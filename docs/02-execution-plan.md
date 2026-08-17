@@ -125,3 +125,85 @@ build order below).
 | Economics formulas need domain assumptions we don't have | Assumptions made explicit, editable, and visible in UI rather than hidden or hardcoded |
 | Solo+AI time risk across DB+auth+UI+viz in 3-4 weeks | Ordered by risk — visualization gets the most buffer; auth is fast via the already-installed NextAuth skill |
 | Organizer source list arrives late, blocking real parsing | Seed data keeps the product demoable end-to-end independent of when real data lands |
+
+## 8. Post-plan review findings (Opus 4.8, 2026-08-17)
+
+An Opus 4.8 review of all planning docs (full text:
+`.superpowers/sdd/2026-08-17-week1-foundation/opus-doc-review.md`) surfaced defects that
+must be resolved before the weeks they affect. Week 1 in-flight fixes were already applied
+to the Week 1 plan. The items below are tracked here and MUST be addressed when their week
+is designed — do not start Week 2 economics coding before resolving the C-cluster.
+
+### Must fix before Week 2 (economics engine)
+
+- **C1 — Capacity units are heterogeneous; "quantity = params ÷ capacity" is undefined
+  generically.** `capacityUnit` is free-text differing per category (orders/hr, pallets/day,
+  "carts simultaneously", rooms/day…). Per-hour vs per-day differ 10-24×; "carts
+  simultaneously" is a *stock*, not a flow. Fix: add a `capacityBasis` enum to `Solution`
+  (`PER_HOUR_FLOW | PER_DAY_FLOW | CONCURRENT_STOCK`), express facility demand in a
+  normalized unit (e.g. operations/day), convert both sides to a common basis before
+  dividing, and use a different sizing rule for `CONCURRENT_STOCK` (units = peak concurrent
+  demand ÷ per-unit concurrency). Document, per facility type, which facility-param field
+  maps to demand. (Schema field deliberately deferred out of Week 1 to avoid pre-committing
+  the economics model; adding it in Week 2 is one cheap migration.)
+- **C2 — Payback/ROI have no guard for annual savings ≤ 0.** savings = 0 → divide-by-zero
+  (Infinity/NaN in UI + Step 4 ROI bar); savings < 0 → nonsensical negative payback.
+  Near-certain on the free-form "Other" path in a live demo. Fix: treat `annualSavings <= 0`
+  as a first-class typed result (`{ economical: false }`) and render "Решение не окупается
+  при текущих параметрах" instead of a number; guard the Step 4 bar the same way. Unit-test
+  savings = 0, savings < 0, quantity = 0.
+- **I1 — OPEX not scaled by quantity while CAPEX is** → savings/ROI systematically
+  overstated (up to quantity×). Fix: `OPEX(new) = quantity × (maintenance + energy +
+  licensing)`; make per-unit vs fleet-total explicit in the UI assumptions.
+- **I2 — Savings model assumes 100% labor elimination and zero baseline OPEX**, decoupled
+  from purchased capacity — optimistic-by-construction, a credibility risk for an "honest
+  tool". Fix: add a visible/editable `laborReplacementPct` (default < 100%), tie displaced
+  labor to capacity coverage (`min(1, deployedCapacity ÷ demand)`), optionally subtract a
+  baseline-OPEX assumption.
+- **M2 — Assumption hygiene:** `discount rate` is declared but unused (add discounted
+  payback/NPV or drop it); `quantity` needs `ceil()` (can't buy 3.7 robots); `hoursPerYear`
+  is used in Baseline but missing from the enumerated assumptions — add it.
+
+### Currency (decided 2026-08-17)
+
+- **I6 — Display currency = RUB primary + USD in parentheses**, via an editable USD→RUB
+  exchange-rate `Assumption`. Week 1 uses a documented constant (`USD_TO_RUB` in
+  `lib/format/currency.ts`); Week 2 moves it into the `Assumption` table. All monetary
+  display goes through the centralized pinned-locale formatter to avoid hydration mismatch.
+  Update the rate to a current value before any live client demo.
+
+### Must fix before Week 3 (visualization)
+
+- **I7 — Visualization has no bounds for extreme inputs.** Robot count comes straight from
+  calculated quantity; nothing clamps it → hundreds of canvas agents (jank/lock-up on
+  stage), or < 1 robot, or an exploding zone grid. Fix in the §5 spec: clamp rendered
+  agents to a sane max with an "×N" multiplier label, clamp/scale the zone grid, guarantee
+  ≥ 1 robot rendered.
+
+### Must fix before Week 4 (deploy/auth) — rebalance
+
+- **I8 — Week 4 is overloaded and retrofits state into deliberately-stateless steps.** Auth
+  is an MVP requirement parked in the final week alongside 5 other large items, and Session
+  persistence must be retrofitted into Steps 1-4. Also "deploy to Vercel" needs a *hosted*
+  Postgres (docker-compose is local-only), `prisma generate` on build, and pooled
+  serverless connections — none called out. Fix: pull auth + a minimal Session write
+  forward to end of Week 2 / start of Week 3 so later steps read/write session as built;
+  add explicit Week 4 tasks (provision managed Postgres e.g. Neon/Vercel Postgres, set
+  `DATABASE_URL` in Vercel, add `prisma generate` to build, use a pooled connection
+  string); don't share the rehearsal week with a first-time deploy.
+
+### Doc hygiene (fix opportunistically)
+
+- **I5 — "Comparison" (the brief's headline value) is never specified**; Week 1 ships a
+  plain catalog. Add a short spec for Step 2 comparison (per-category side-by-side table
+  with aligned rows: price, capacity, OPEX components, and a normalized "cost per unit
+  throughput/yr" once C1 exists). Fine for Week 1 to ship the catalog first, but track
+  comparison as an explicit follow-up rather than leaving it implied.
+- **M3 — PRD self-contradiction:** §2 says a session can be "shared", §4 lists sharing as
+  out-of-scope. (Fixed in PRD: §2 changed to revisit-only.)
+- **M4 — "Other / произвольный объект" is reduced to one fixed preset** with no free-text
+  for the user to describe their object. Acknowledge the reduction in the PRD and add an
+  optional free-text object name/description on the "Other" path so Step 3/4 labels can
+  echo it back ("tailored to what I entered").
+- **M5 — `SolutionCategory.slug` was globally unique** → collision risk with organizer
+  data. (Fixed in Week 1 plan: now `@@unique([facilityTypeId, slug])`.)

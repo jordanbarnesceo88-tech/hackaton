@@ -18,8 +18,8 @@ Primary user: a decision-maker at a company considering robotization (operations
 lead, not necessarily technical), evaluating whether and what to invest in for their
 site. Session-based use — they pick their facility type, compare options, enter their
 own numbers, see the projected economics and a visualization, then (with accounts) can
-revisit or share that session later. Must be credible enough to present live to a real
-client.
+revisit that session later. (Sharing/collaboration is explicitly out of scope — see §4.)
+Must be credible enough to present live to a real client.
 
 ## 3. Scope — MVP (demo-ready)
 

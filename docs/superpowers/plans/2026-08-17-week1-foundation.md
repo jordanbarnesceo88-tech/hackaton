@@ -6,13 +6,18 @@
 user flow (industry/facility-type picker → solution catalog/comparison) as working,
 demoable pages.
 
-**Architecture:** Single Next.js 14+ App Router project, TypeScript, Tailwind + shadcn/ui
+**Architecture:** Single Next.js App Router project, TypeScript, Tailwind + shadcn/ui
 for components, Postgres (local via Docker) accessed through Prisma. Server components
 fetch data directly via Prisma; a small client component handles the two-step picker's
 interactive state.
 
-**Tech Stack:** Next.js (App Router, TypeScript), Tailwind CSS, shadcn/ui, Prisma ORM,
-PostgreSQL 16 (Docker Compose for local dev), Vitest for unit/integration tests.
+**Tech Stack (as actually installed — verified against `package.json`):** Next.js
+**16.3.1**, React **19.2.8**, **Tailwind CSS v4** (CSS-based config in `app/globals.css`
+via `@import "tailwindcss"` + `@theme` — there is NO `tailwind.config.ts`), shadcn/ui
+(built on Base UI `@base-ui/react`, not Radix, on current versions), Prisma ORM,
+PostgreSQL 16 (Docker Compose for local dev), Vitest for unit/integration tests. The
+scaffold's `AGENTS.md` warns Next 16 differs from older Next — consult
+`node_modules/next/dist/docs/` before writing Next-specific code.
 
 **Spec:** `docs/00-idea-brief.md`, `docs/01-prd.md`, `docs/02-execution-plan.md`
 
@@ -191,10 +196,19 @@ DATABASE_URL="postgresql://rrp:rrp_dev_password@localhost:5432/robotization_roi"
 DATABASE_URL="postgresql://rrp:rrp_dev_password@localhost:5432/robotization_roi"
 ```
 
-- [ ] **Step 4: Ensure `.env` is gitignored**
+- [ ] **Step 4: Ensure `.env` is gitignored but `.env.example` is NOT**
 
-Check `.gitignore` for a `.env` line; if it only has `.env*.local`, add a line containing
-just `.env` (keep `.env.example` trackable — it has no real secret).
+The scaffold's `.gitignore` already ignores `.env` via the pattern `.env*` (line ~34).
+That pattern ALSO ignores `.env.example`, which we DO want to commit (it documents the
+required env vars and has no real secret — only a local-only dev password). Add a negation
+line immediately after the `.env*` line so the example file is trackable:
+
+```
+!.env.example
+```
+
+Verify: `git check-ignore .env.example` must now print nothing (exit 1). If it still
+reports the file as ignored, the negation line is missing or misordered.
 
 - [ ] **Step 5: Start Postgres and wait until ready**
 
@@ -235,12 +249,17 @@ model FacilityType {
 
 model SolutionCategory {
   id             String       @id @default(cuid())
-  slug           String       @unique
+  slug           String
   name           String
   description    String
   facilityTypeId String
   facilityType   FacilityType @relation(fields: [facilityTypeId], references: [id])
   solutions      Solution[]
+
+  // slug is unique PER facility type, not globally: two facility types may legitimately
+  // share a category slug (e.g. both a warehouse and an airport having "agv"). A global
+  // @unique would collide once organizer data with repeated category names is imported.
+  @@unique([facilityTypeId, slug])
 }
 
 enum SolutionSource {
@@ -293,10 +312,19 @@ Expected: exit code 0, output includes "Your database is now in sync with your s
 Run: `npx prisma validate`
 Expected: "The schema at prisma/schema.prisma is valid"
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: Fix the scaffold's package name**
+
+`create-next-app` set `"name": "rrp-scaffold"` in `package.json` (carried in from the
+temp scaffold directory). Change it to the real project name:
+
+```
+"name": "robotization-roi-platform",
+```
+
+- [ ] **Step 10: Commit**
 
 ```bash
-git add docker-compose.yml .env.example .gitignore prisma/
+git add docker-compose.yml .env.example .gitignore prisma/ package.json
 git commit -m "Add local Postgres via Docker Compose and Prisma schema"
 ```
 
@@ -313,10 +341,14 @@ git commit -m "Add local Postgres via Docker Compose and Prisma schema"
 - Produces: 4 industries, 4 facility types, 8 solution categories, 14 solutions in the
   database (all `source: SEED`); `npm run db:seed` command.
 
-- [ ] **Step 1: Install a TS script runner**
+- [ ] **Step 1: Install a TS script runner and dotenv**
+
+`dotenv` is needed so the seed script (and, in Task 5, Vitest) can load `DATABASE_URL`
+at runtime — neither runs through the Prisma CLI, which is the only thing that loads
+`.env` automatically.
 
 ```bash
-npm install -D tsx
+npm install -D tsx dotenv
 ```
 
 - [ ] **Step 2: Add seed config and script to `package.json`**
@@ -336,6 +368,10 @@ Add to the `"scripts"` block:
 - [ ] **Step 3: Create `scripts/seed.ts`**
 
 ```typescript
+// IMPORTANT: @prisma/client does NOT auto-load .env at runtime — only the Prisma CLI
+// does. This script runs via `tsx scripts/seed.ts` (not `prisma db seed`), so without
+// this line `new PrismaClient()` throws "Environment variable not found: DATABASE_URL".
+import "dotenv/config";
 import { PrismaClient, SolutionSource } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -674,7 +710,14 @@ async function main() {
 
       for (const categorySeed of facilityTypeSeed.categories) {
         const category = await prisma.solutionCategory.upsert({
-          where: { slug: categorySeed.slug },
+          // Category slug is unique per facility type (@@unique([facilityTypeId, slug])),
+          // so the upsert key is the composite, not the bare slug.
+          where: {
+            facilityTypeId_slug: {
+              facilityTypeId: facilityType.id,
+              slug: categorySeed.slug,
+            },
+          },
           update: {
             name: categorySeed.name,
             description: categorySeed.description,
@@ -793,9 +836,17 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: false,
+    // These are integration tests against a live Postgres via Prisma. Vitest does not
+    // load .env the way Next.js does, and @prisma/client reads process.env directly, so
+    // load .env before any test constructs the client — otherwise DATABASE_URL is
+    // undefined and PrismaClient throws.
+    setupFiles: ["dotenv/config"],
   },
 });
 ```
+
+Note: these tests require Postgres to be up (`docker compose up -d`) and seeded
+(`npm run db:seed`) first — they assert against real seeded rows, not mocks.
 
 - [ ] **Step 4: Write the failing tests first — `lib/db/queries.test.ts`**
 
@@ -911,6 +962,11 @@ git commit -m "Add Prisma client singleton, catalog queries, and tests"
   (`@/components/ui/card`) from Task 2.
 - Produces: `OnboardingForm` component (`@/components/onboarding-form`); route
   `/onboarding`; root `/` redirects to `/onboarding`.
+
+> **Next.js 16 note:** this repo runs Next.js 16 (see the scaffold's `AGENTS.md`), which
+> may differ from older Next in App Router / server-vs-client conventions. The code below
+> uses the correct patterns for 16, but if something behaves unexpectedly, consult
+> `node_modules/next/dist/docs/` per `AGENTS.md` rather than assuming Next 14 behavior.
 
 - [ ] **Step 1: Create `components/onboarding-form.tsx`**
 
@@ -1057,19 +1113,103 @@ git commit -m "Add Step 1: industry and facility type picker"
 ### Task 7: Step 2 — solution catalog / comparison
 
 **Files:**
+- Create: `lib/format/currency.ts`, `lib/format/currency.test.ts`
 - Create: `app/(app)/compare/[type]/page.tsx`
 
 **Interfaces:**
 - Consumes: `getCatalogForFacilityType` from `lib/db/queries.ts`; `Card`/`CardHeader`/
-  `CardTitle`/`CardContent` from `@/components/ui/card`.
-- Produces: route `/compare/[type]`.
+  `CardTitle`/`CardContent` from `@/components/ui/card`; `formatCost` from
+  `@/lib/format/currency`.
+- Produces: `formatCost(usd: number): string` (`@/lib/format/currency`); route
+  `/compare/[type]`.
 
-- [ ] **Step 1: Create `app/(app)/compare/[type]/page.tsx`**
+> **Next.js 16 note (read before writing the page):** this repo runs Next.js 16, which
+> the scaffold's `AGENTS.md` warns differs from older Next. Route `params` is a Promise
+> and must be `await`ed (already reflected below). If anything about App Router / server
+> components behaves unexpectedly, consult `node_modules/next/dist/docs/` per `AGENTS.md`
+> rather than assuming Next 14 behavior.
+
+> **Currency (product decision):** costs are STORED in USD (`priceUsd`, etc.) but
+> DISPLAYED as RUB primary with USD in parentheses, e.g. `4 050 000 ₽ (US$45 000)`.
+> Formatting is centralized in `lib/format/currency.ts` with a PINNED locale so server
+> and client render identical strings (a bare `.toLocaleString()` with no locale uses the
+> runtime locale and can cause a React hydration mismatch). The USD→RUB rate is a
+> documented constant for now; Week 2 moves it into the `Assumption` table as an
+> editable value.
+
+- [ ] **Step 1: Create `lib/format/currency.ts` (+ test)**
+
+Write the failing test first (`lib/format/currency.test.ts`):
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { formatCost, USD_TO_RUB } from "./currency";
+
+describe("formatCost", () => {
+  it("shows RUB primary with USD in parentheses, using a fixed ru-RU format", () => {
+    // 45000 USD at the pinned rate. Assert on the computed RUB figure so the test
+    // tracks the constant rather than hardcoding a rate.
+    const rub = 45000 * USD_TO_RUB;
+    const result = formatCost(45000);
+    expect(result).toContain("₽");
+    expect(result).toContain("US$");
+    // ru-RU groups thousands with a non-breaking space ( ); no fractional part.
+    expect(result).toContain(Math.round(rub).toLocaleString("ru-RU"));
+  });
+
+  it("rounds to whole currency units (no kopecks/cents)", () => {
+    expect(formatCost(45000)).not.toMatch(/[.,]\d{2}\b/);
+  });
+
+  it("formats zero without throwing", () => {
+    expect(formatCost(0)).toContain("0");
+  });
+});
+```
+
+Run `npx vitest run lib/format/currency.test.ts` → expect FAIL (module not found).
+
+Then implement `lib/format/currency.ts`:
+
+```typescript
+// USD→RUB conversion rate. Placeholder constant for Week 1; Week 2 replaces this with an
+// editable value from the Assumption table (see execution plan §4 / Opus review C1-cluster).
+// Update to a current rate before any live client demo.
+export const USD_TO_RUB = 90;
+
+const rubFormatter = new Intl.NumberFormat("ru-RU", {
+  style: "currency",
+  currency: "RUB",
+  maximumFractionDigits: 0,
+});
+
+const usdFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+/**
+ * Format a USD amount for display: RUB primary (converted at USD_TO_RUB), USD in parens.
+ * Uses pinned locales so server and client produce byte-identical output (no hydration
+ * mismatch). Example: formatCost(45000) -> "4 050 000 ₽ (US$45,000)".
+ */
+export function formatCost(usd: number): string {
+  const rub = rubFormatter.format(usd * USD_TO_RUB);
+  const usdStr = usdFormatter.format(usd);
+  return `${rub} (${usdStr})`;
+}
+```
+
+Run `npx vitest run lib/format/currency.test.ts` → expect PASS (3 tests).
+
+- [ ] **Step 2: Create `app/(app)/compare/[type]/page.tsx`**
 
 ```tsx
 import { notFound } from "next/navigation";
 import { getCatalogForFacilityType } from "@/lib/db/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCost } from "@/lib/format/currency";
 
 export default async function ComparePage({
   params,
@@ -1101,12 +1241,12 @@ export default async function ComparePage({
                   <p className="text-sm text-muted-foreground">{solution.vendor}</p>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-1 text-sm">
-                  <div>Цена: ${solution.priceUsd.toLocaleString()}</div>
+                  <div>Цена: {formatCost(solution.priceUsd)}</div>
                   <div>
                     Производительность: {solution.capacityPerUnit} {solution.capacityUnit}
                   </div>
                   <div>
-                    Обслуживание/год: ${solution.maintenanceUsdYear.toLocaleString()}
+                    Обслуживание/год: {formatCost(solution.maintenanceUsdYear)}
                   </div>
                 </CardContent>
               </Card>
@@ -1119,7 +1259,7 @@ export default async function ComparePage({
 }
 ```
 
-- [ ] **Step 2: Manual verification**
+- [ ] **Step 3: Manual verification**
 
 ```bash
 npm run dev
@@ -1127,17 +1267,20 @@ npm run dev
 
 1. Visit `http://localhost:3000/compare/warehouse` — expect heading "Решения для
    объекта: Склад (Торговля)", 2 category sections, each with 2 solution cards showing
-   name, vendor, price, capacity, maintenance.
+   name, vendor, price, capacity, maintenance. Prices show RUB primary with USD in
+   parens, e.g. `4 050 000 ₽ (US$45,000)`.
 2. Visit `/compare/airport`, `/compare/medical`, `/compare/other` — each should render
    its own categories/solutions from the seed data.
 3. Visit `http://localhost:3000/compare/does-not-exist` — expect Next.js's 404 page.
+4. Check the browser console — there must be NO React hydration-mismatch warning for the
+   price strings (this is the whole point of the pinned-locale formatter).
 
 Stop the dev server after verifying (Ctrl+C).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add "app/(app)/compare"
+git add "app/(app)/compare" lib/format
 git commit -m "Add Step 2: solution catalog and comparison page"
 ```
 
@@ -1146,10 +1289,13 @@ git commit -m "Add Step 2: solution catalog and comparison page"
 ## Definition of done
 
 - [ ] `npm run build` succeeds.
-- [ ] `npm test` passes (3 tests from Task 5).
+- [ ] With Postgres up (`docker compose up -d`) and seeded (`npm run db:seed`),
+  `npm test` passes (6 tests: 3 DB-query tests from Task 5 + 3 currency-format tests from
+  Task 7). The DB-query tests are integration tests against a live Postgres, not mocks.
 - [ ] `npm run dev` → `/` redirects to `/onboarding` → pick any of the 4 industries →
-  pick a facility type → land on `/compare/[type]` showing real seeded solutions.
-- [ ] All 7 tasks committed individually (7+ commits since Task 1's initial scaffold
-  commit).
+  pick a facility type → land on `/compare/[type]` showing real seeded solutions, with
+  prices as RUB primary + USD in parens and no hydration warning.
+- [ ] All 7 tasks committed individually (8+ commits since Task 1's initial scaffold
+  commit — Task 3 now has an extra config-fix step).
 - [ ] `CHANGELOG.md` updated with a summary of what this plan added (do this as a final
   step after Task 7, one commit).
