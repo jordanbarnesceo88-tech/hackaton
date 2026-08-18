@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Industry {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  name          String
+  facilityTypes FacilityType[]
+}
+
+model FacilityType {
+  id                 String              @id @default(cuid())
+  slug               String              @unique
+  name               String
+  isGeneric          Boolean             @default(false)
+  industryId         String
+  industry           Industry            @relation(fields: [industryId], references: [id])
+  solutionCategories SolutionCategory[]
+  facilityExamples   FacilityExample[]
+}
+
+model SolutionCategory {
+  id             String       @id @default(cuid())
+  slug           String
+  name           String
+  description    String
+  facilityTypeId String
+  facilityType   FacilityType @relation(fields: [facilityTypeId], references: [id])
+  solutions      Solution[]
+
+  // slug is unique PER facility type, not globally: two facility types may legitimately
+  // share a category slug (e.g. both a warehouse and an airport having "agv"). A global
+  // @unique would collide once organizer data with repeated category names is imported.
+  @@unique([facilityTypeId, slug])
+}
+
+enum SolutionSource {
+  SEED
+  ORGANIZER
+  PARSED
+}
+
+model Solution {
+  id                 String           @id @default(cuid())
+  name               String
+  vendor             String
+  solutionCategoryId String
+  solutionCategory   SolutionCategory @relation(fields: [solutionCategoryId], references: [id])
+  priceUsd           Float
+  capacityPerUnit    Float
+  capacityUnit       String
+  maintenanceUsdYear Float
+  energyUsdYear      Float
+  licensingUsdYear   Float
+  specs              Json
+  source             SolutionSource   @default(SEED)
+  sourceUrl          String?
+  lastVerified       DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([solutionCategoryId, name])
+}
+
+model FacilityExample {
+  id             String       @id @default(cuid())
+  name           String
+  facilityTypeId String
+  facilityType   FacilityType @relation(fields: [facilityTypeId], references: [id])
+  params         Json
+}
