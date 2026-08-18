@@ -46,6 +46,17 @@ scaffold's `AGENTS.md` warns Next 16 differs from older Next — consult
 - `FacilityExample` is defined in this plan's schema (per PRD §6) but is NOT seeded here
   — anonymized organizer examples aren't available yet (PRD §10, open question). The
   table exists and is empty until that data arrives.
+- **Prisma 7 / local-DB realities (discovered during Task 3 — do NOT "correct" these):**
+  - Postgres runs on host port **5433**, not 5432 (a pre-existing native Postgres on this
+    machine holds 5432). `DATABASE_URL` in `.env`/`.env.example` is the source of truth and
+    already points to 5433. Do not change it back to 5432.
+  - The datasource URL lives in **`prisma.config.ts`** (root), not in `schema.prisma` —
+    Prisma 7 removed inline `datasource.url`. `schema.prisma` intentionally has no `url`.
+  - Runtime code connects via a **driver adapter**: `new PrismaClient({ adapter: new
+    PrismaPg({ connectionString: process.env.DATABASE_URL }) })`. Plain `new
+    PrismaClient()` throws under Prisma 7. Deps `@prisma/adapter-pg` + `pg` are installed.
+  - `npx prisma generate` must be run to produce the client at `@prisma/client` (Prisma 7's
+    `migrate dev` does not leave a usable one). It's already generated in this environment.
 
 ---
 
@@ -351,6 +362,22 @@ at runtime — neither runs through the Prisma CLI, which is the only thing that
 npm install -D tsx dotenv
 ```
 
+Note: `@prisma/adapter-pg` and `pg` (the Prisma 7 driver adapter) are already installed
+and committed (see commit `chore(db): sync lockfile + add Prisma 7 driver adapter deps`),
+so no additional runtime deps are needed here. If for some reason they are missing, run
+`npm install @prisma/adapter-pg pg`.
+
+- [ ] **Step 1b: Generate the Prisma client**
+
+The runtime client must be generated before any code (`seed.ts`, tests, the app) can use
+it — Prisma 7's `migrate dev` does NOT leave a usable client at `@prisma/client`.
+
+```bash
+npx --yes prisma generate
+```
+
+Expected: "Generated Prisma Client (v7.x) to ./node_modules/@prisma/client".
+
 - [ ] **Step 2: Add seed config and script to `package.json`**
 
 Add to the top-level of `package.json`:
@@ -370,11 +397,15 @@ Add to the `"scripts"` block:
 ```typescript
 // IMPORTANT: @prisma/client does NOT auto-load .env at runtime — only the Prisma CLI
 // does. This script runs via `tsx scripts/seed.ts` (not `prisma db seed`), so without
-// this line `new PrismaClient()` throws "Environment variable not found: DATABASE_URL".
+// this line DATABASE_URL is undefined.
 import "dotenv/config";
 import { PrismaClient, SolutionSource } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+// Prisma 7 requires a driver adapter — `new PrismaClient()` with no adapter throws
+// "A driver adapter is required to connect to your database". (Validated pattern.)
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 type SolutionSeed = {
   name: string;
@@ -890,15 +921,27 @@ Expected: FAIL — `lib/db/queries.ts` does not exist yet (module not found).
 
 ```typescript
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+// Prisma 7 requires a driver adapter to connect (plain `new PrismaClient()` throws).
+function createPrismaClient() {
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  return new PrismaClient({ adapter });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 ```
+
+Note: in the Next.js app (server components), `DATABASE_URL` is loaded by Next from
+`.env` automatically. In Vitest, it's loaded by the `dotenv/config` setup file (Step 3).
+The runtime client must have been generated first (`npx prisma generate`, done in Task 4
+Step 1b — it persists in `node_modules` for this and later tasks).
 
 - [ ] **Step 7: Create `lib/db/queries.ts`**
 
