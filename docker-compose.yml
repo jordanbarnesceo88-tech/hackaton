@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rrp
+      POSTGRES_PASSWORD: rrp_dev_password
+      POSTGRES_DB: robotization_roi
+    ports:
+      - "5433:5432"
+    volumes:
+      - rrp_pgdata:/var/lib/postgresql/data
+
+volumes:
+  rrp_pgdata:
