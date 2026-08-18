@@ -20,6 +20,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Step 1 picker → Step 2 catalog).
 - Next.js app scaffolded (Next 16.3.1 / React 19.2.8 / Tailwind v4) + shadcn/ui base
   components (button, card, label, radio-group). [Week 1 Tasks 1-2]
+- Local Postgres via Docker Compose + Prisma 7 schema: 5 models (`Industry`,
+  `FacilityType`, `SolutionCategory`, `Solution`, `FacilityExample`) + `SolutionSource`
+  enum, initial migration. Prisma 7 driver-adapter setup (`prisma.config.ts`,
+  `@prisma/adapter-pg`), since Prisma 7 requires an explicit adapter to connect. [Week 1
+  Task 3]
+- Seed data: 4 industries / 4 facility types / 8 solution categories / 14 solutions, all
+  tagged `source: SEED` for provenance. [Week 1 Task 4]
+- Data-access layer (`lib/db/`) with Vitest integration tests run against the seeded
+  database. [Week 1 Task 5]
+- Step 1 `/onboarding` industry + facility type picker. [Week 1 Task 6]
+- Step 2 `/compare/[type]` solution catalog, plus the RUB-primary + USD currency
+  formatter (`lib/format/currency.ts`) it uses to display solution prices. [Week 1 Task 7]
 
 ### Changed
 - Applied an Opus 4.8 review of all planning docs (2 Critical / 8 Important / 6 Minor;
