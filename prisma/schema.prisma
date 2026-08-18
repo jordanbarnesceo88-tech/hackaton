@@ -45,6 +45,12 @@ enum SolutionSource {
   PARSED
 }
 
+enum CapacityBasis {
+  PER_HOUR_FLOW
+  PER_DAY_FLOW
+  CONCURRENT_STOCK
+}
+
 model Solution {
   id                 String           @id @default(cuid())
   name               String
@@ -54,6 +60,7 @@ model Solution {
   priceUsd           Float
   capacityPerUnit    Float
   capacityUnit       String
+  capacityBasis      CapacityBasis    @default(PER_DAY_FLOW)
   maintenanceUsdYear Float
   energyUsdYear      Float
   licensingUsdYear   Float
@@ -73,4 +80,14 @@ model FacilityExample {
   facilityTypeId String
   facilityType   FacilityType @relation(fields: [facilityTypeId], references: [id])
   params         Json
+}
+
+model Assumption {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  label       String
+  value       Float
+  unit        String?
+  description String?
+  order       Int     @default(0)
 }
