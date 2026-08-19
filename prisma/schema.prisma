@@ -91,3 +91,27 @@ model Assumption {
   description String?
   order       Int     @default(0)
 }
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime        @default(now())
+  savedAnalyses SavedAnalysis[]
+}
+
+model SavedAnalysis {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  facilityTypeSlug String
+  solutionId       String
+  params           Json
+  assumptions      Json
+  results          Json
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+}
