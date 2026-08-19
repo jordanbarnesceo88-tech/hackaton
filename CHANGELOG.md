@@ -41,6 +41,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Step 3 `/calculate/[solutionId]`: server page + live client calculator (editable assumptions,
   recompute-on-change, RUB+USD via formatCost, NaN/Infinity finiteness guard, peak-load input for
   concurrent-stock solutions). [Week 2]
+- Step 4 visualization: a 2D Canvas panel on the `/calculate` page showing robots operating on a
+  per-vertical facility layout (warehouse racks / airport belt+gates / medical rooms / generic zones),
+  driven live by the Step 3 params + economics result.
+- Pure, unit-tested scene engine in `lib/scene/` — deterministic layout generator with a 6×6 grid
+  clamp for extreme inputs, a waypoint robot simulator, and KPI derivations (deployed capacity,
+  utilization %, ROI accrual) reusing the economics annualization helpers.
+- Live KPI panel: robots-in-work (capped at 24 with a "показано 24 из N" badge), utilization %, and
+  an animated "накопленная экономия" bar filling to one year's savings in RUB+USD; a
+  not-economical result shows the "не окупается" state. [Week 3]
 
 ### Changed
 - Applied an Opus 4.8 review of all planning docs (2 Critical / 8 Important / 6 Minor;

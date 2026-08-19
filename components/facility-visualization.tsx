@@ -122,8 +122,13 @@ export function FacilityVisualization({
     };
   }, [layout]);
 
-  const util = utilizationPct(capacity, params, assumptions, result.quantity);
-  const deployed = deployedCapacity(result.quantity, capacity.capacityPerUnit);
+  const finiteResult = Number.isFinite(result.quantity);
+  const util = finiteResult
+    ? utilizationPct(capacity, params, assumptions, result.quantity)
+    : null;
+  const deployed = finiteResult
+    ? deployedCapacity(result.quantity, capacity.capacityPerUnit)
+    : null;
   const savings = result.economical ? result.annualSavingsUsd : 0;
   const accrued = result.economical ? roiAccrued(elapsed, LOOP_MS, savings) : 0;
   const accruedFrac = savings > 0 ? accrued / savings : 0;
@@ -154,9 +159,9 @@ export function FacilityVisualization({
             {overflow ? ` (всего ${q})` : ""}
           </div>
           <div>
-            Производительность: <b>{deployed.toLocaleString("ru-RU")} {capacityUnit}</b>
+            Производительность: <b>{deployed === null ? "—" : `${deployed.toLocaleString("ru-RU")} ${capacityUnit}`}</b>
           </div>
-          <div>Загрузка: <b>{util.toFixed(0)}%</b></div>
+          <div>Загрузка: <b>{util === null ? "—" : `${util.toFixed(0)}%`}</b></div>
           <div>
             <div className="mb-1">Накопленная экономия (за год):</div>
             {result.economical ? (
