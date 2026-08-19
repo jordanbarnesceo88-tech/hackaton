@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { FacilityVisualization } from "@/components/facility-visualization";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
+import { saveAnalysisAction } from "@/lib/analyses/actions";
 import type {
   SolutionCapacity,
   FacilityParams,
@@ -64,11 +66,13 @@ export function EconomicsCalculator({
   capacityUnit,
   initialAssumptions,
   facilitySlug,
+  solutionId,
 }: {
   capacity: SolutionCapacity;
   capacityUnit: string;
   initialAssumptions: AssumptionValues;
   facilitySlug: string;
+  solutionId: string;
 }) {
   const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
   const [params, setParams] = useState<FacilityParams>({
@@ -79,8 +83,24 @@ export function EconomicsCalculator({
   });
   const [assumptions, setAssumptions] =
     useState<AssumptionValues>(initialAssumptions);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   const result = computeEconomics(capacity, params, assumptions);
+
+  async function handleSave() {
+    setSaveMsg(null);
+    const res = await saveAnalysisAction({
+      name: `Расчёт — ${new Date().toLocaleDateString("ru-RU")}`,
+      facilityTypeSlug: facilitySlug,
+      solutionId,
+      params,
+      assumptions,
+      results: result,
+    });
+    if (res.ok) setSaveMsg("Сохранено");
+    else if (res.reason === "unauthenticated") setSaveMsg("unauth");
+    else setSaveMsg("Ошибка сохранения");
+  }
 
   // Zeroing a divisor assumption (e.g. workingDaysPerYear=0, or operatingHoursPerDay=0 on a
   // PER_HOUR_FLOW solution) makes the engine divide by zero, yielding NaN/Infinity that would
@@ -151,6 +171,20 @@ export function EconomicsCalculator({
           )}
         </CardContent>
       </Card>
+
+      <div className="md:col-span-2 flex items-center gap-3">
+        <button onClick={handleSave}
+          className="rounded-md border px-3 py-2 text-sm font-medium">
+          Сохранить расчёт
+        </button>
+        {saveMsg === "unauth" ? (
+          <span className="text-sm">
+            <Link href="/login" className="underline">Войдите</Link>, чтобы сохранить расчёт
+          </span>
+        ) : saveMsg ? (
+          <span className="text-sm text-muted-foreground">{saveMsg}</span>
+        ) : null}
+      </div>
 
       <Card className="md:col-span-2">
         <CardHeader>
