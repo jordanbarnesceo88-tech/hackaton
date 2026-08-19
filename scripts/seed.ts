@@ -2,7 +2,7 @@
 // does. This script runs via `tsx scripts/seed.ts` (not `prisma db seed`), so without
 // this line DATABASE_URL is undefined.
 import "dotenv/config";
-import { PrismaClient, SolutionSource } from "@prisma/client";
+import { PrismaClient, SolutionSource, CapacityBasis } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 // Prisma 7 requires a driver adapter — `new PrismaClient()` with no adapter throws
@@ -16,6 +16,7 @@ type SolutionSeed = {
   priceUsd: number;
   capacityPerUnit: number;
   capacityUnit: string;
+  capacityBasis: CapacityBasis;
   maintenanceUsdYear: number;
   energyUsdYear: number;
   licensingUsdYear: number;
@@ -64,6 +65,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 45000,
                 capacityPerUnit: 200,
                 capacityUnit: "заказов/час",
+                capacityBasis: CapacityBasis.PER_HOUR_FLOW,
                 maintenanceUsdYear: 6000,
                 energyUsdYear: 1200,
                 licensingUsdYear: 3000,
@@ -75,6 +77,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 38000,
                 capacityPerUnit: 150,
                 capacityUnit: "заказов/час",
+                capacityBasis: CapacityBasis.PER_HOUR_FLOW,
                 maintenanceUsdYear: 5000,
                 energyUsdYear: 1000,
                 licensingUsdYear: 2500,
@@ -94,6 +97,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 120000,
                 capacityPerUnit: 500,
                 capacityUnit: "паллет/день",
+                capacityBasis: CapacityBasis.PER_DAY_FLOW,
                 maintenanceUsdYear: 15000,
                 energyUsdYear: 4000,
                 licensingUsdYear: 5000,
@@ -105,6 +109,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 95000,
                 capacityPerUnit: 350,
                 capacityUnit: "паллет/день",
+                capacityBasis: CapacityBasis.PER_DAY_FLOW,
                 maintenanceUsdYear: 12000,
                 energyUsdYear: 3200,
                 licensingUsdYear: 4000,
@@ -136,6 +141,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 85000,
                 capacityPerUnit: 400,
                 capacityUnit: "мест багажа/час",
+                capacityBasis: CapacityBasis.PER_HOUR_FLOW,
                 maintenanceUsdYear: 11000,
                 energyUsdYear: 2500,
                 licensingUsdYear: 6000,
@@ -147,6 +153,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 72000,
                 capacityPerUnit: 320,
                 capacityUnit: "мест багажа/час",
+                capacityBasis: CapacityBasis.PER_HOUR_FLOW,
                 maintenanceUsdYear: 9500,
                 energyUsdYear: 2100,
                 licensingUsdYear: 5000,
@@ -166,6 +173,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 65000,
                 capacityPerUnit: 12,
                 capacityUnit: "тележек одновременно",
+                capacityBasis: CapacityBasis.CONCURRENT_STOCK,
                 maintenanceUsdYear: 8000,
                 energyUsdYear: 1800,
                 licensingUsdYear: 3500,
@@ -177,6 +185,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 58000,
                 capacityPerUnit: 10,
                 capacityUnit: "тележек одновременно",
+                capacityBasis: CapacityBasis.CONCURRENT_STOCK,
                 maintenanceUsdYear: 7200,
                 energyUsdYear: 1600,
                 licensingUsdYear: 3000,
@@ -209,6 +218,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 32000,
                 capacityPerUnit: 60,
                 capacityUnit: "доставок/день",
+                capacityBasis: CapacityBasis.PER_DAY_FLOW,
                 maintenanceUsdYear: 4500,
                 energyUsdYear: 800,
                 licensingUsdYear: 2200,
@@ -220,6 +230,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 27000,
                 capacityPerUnit: 45,
                 capacityUnit: "доставок/день",
+                capacityBasis: CapacityBasis.PER_DAY_FLOW,
                 maintenanceUsdYear: 3800,
                 energyUsdYear: 700,
                 licensingUsdYear: 1800,
@@ -238,6 +249,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 41000,
                 capacityPerUnit: 8,
                 capacityUnit: "помещений/день",
+                capacityBasis: CapacityBasis.PER_DAY_FLOW,
                 maintenanceUsdYear: 5200,
                 energyUsdYear: 1500,
                 licensingUsdYear: 2500,
@@ -249,6 +261,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 36000,
                 capacityPerUnit: 6,
                 capacityUnit: "помещений/день",
+                capacityBasis: CapacityBasis.PER_DAY_FLOW,
                 maintenanceUsdYear: 4600,
                 energyUsdYear: 1300,
                 licensingUsdYear: 2100,
@@ -280,6 +293,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 40000,
                 capacityPerUnit: 100,
                 capacityUnit: "операций/час",
+                capacityBasis: CapacityBasis.PER_HOUR_FLOW,
                 maintenanceUsdYear: 5500,
                 energyUsdYear: 1100,
                 licensingUsdYear: 2800,
@@ -298,6 +312,7 @@ const seedData: IndustrySeed[] = [
                 priceUsd: 90000,
                 capacityPerUnit: 300,
                 capacityUnit: "операций/день",
+                capacityBasis: CapacityBasis.PER_DAY_FLOW,
                 maintenanceUsdYear: 11000,
                 energyUsdYear: 3000,
                 licensingUsdYear: 4200,
@@ -316,6 +331,24 @@ async function main() {
   let facilityTypeCount = 0;
   let categoryCount = 0;
   let solutionCount = 0;
+
+  const assumptions = [
+    { key: "laborCostPerHourUsd", label: "Стоимость труда (час)", value: 15, unit: "USD/час", order: 1 },
+    { key: "hoursPerYear", label: "Рабочих часов в году (на сотрудника)", value: 2000, unit: "часов", order: 2 },
+    { key: "workingDaysPerYear", label: "Рабочих дней в году", value: 250, unit: "дней", order: 3 },
+    { key: "operatingHoursPerDay", label: "Часов работы объекта в сутки", value: 16, unit: "часов", order: 4 },
+    { key: "installPctOfCapex", label: "Монтаж/интеграция (доля от CAPEX)", value: 0.15, unit: "доля", order: 5 },
+    { key: "laborReplacementPct", label: "Замещение труда роботами", value: 0.7, unit: "доля", order: 6 },
+    { key: "turnoverPerDay", label: "Оборотов в сутки (для stock-решений)", value: 8, unit: "раз", order: 7 },
+    { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 8 },
+  ];
+  for (const asmp of assumptions) {
+    await prisma.assumption.upsert({
+      where: { key: asmp.key },
+      update: { label: asmp.label, value: asmp.value, unit: asmp.unit, order: asmp.order },
+      create: asmp,
+    });
+  }
 
   for (const industrySeed of seedData) {
     const industry = await prisma.industry.upsert({
@@ -379,6 +412,7 @@ async function main() {
               priceUsd: solutionSeed.priceUsd,
               capacityPerUnit: solutionSeed.capacityPerUnit,
               capacityUnit: solutionSeed.capacityUnit,
+              capacityBasis: solutionSeed.capacityBasis,
               maintenanceUsdYear: solutionSeed.maintenanceUsdYear,
               energyUsdYear: solutionSeed.energyUsdYear,
               licensingUsdYear: solutionSeed.licensingUsdYear,
@@ -392,6 +426,7 @@ async function main() {
               priceUsd: solutionSeed.priceUsd,
               capacityPerUnit: solutionSeed.capacityPerUnit,
               capacityUnit: solutionSeed.capacityUnit,
+              capacityBasis: solutionSeed.capacityBasis,
               maintenanceUsdYear: solutionSeed.maintenanceUsdYear,
               energyUsdYear: solutionSeed.energyUsdYear,
               licensingUsdYear: solutionSeed.licensingUsdYear,
@@ -406,7 +441,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${industryCount} industries, ${facilityTypeCount} facility types, ${categoryCount} solution categories, ${solutionCount} solutions.`
+    `Seeded ${industryCount} industries, ${facilityTypeCount} facility types, ${categoryCount} solution categories, ${solutionCount} solutions, ${assumptions.length} assumptions.`
   );
 }
 

@@ -32,6 +32,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Step 1 `/onboarding` industry + facility type picker. [Week 1 Task 6]
 - Step 2 `/compare/[type]` solution catalog, plus the RUB-primary + USD currency
   formatter (`lib/format/currency.ts`) it uses to display solution prices. [Week 1 Task 7]
+- `capacityBasis` enum + `Assumption` Prisma model (migration). [Week 2]
+- Pure economics engine in `lib/economics/` — capacity-unit normalization (C1: per-hour/per-day
+  flow + concurrent-stock sizing) and `computeEconomics` (OPEX×qty, labor-replacement %, savings≤0
+  guard, undiscounted payback/ROI), fully unit-tested; plus the assumptions row→values mapper. [Week 2]
+- Seeded `capacityBasis` on all 14 solutions + 8 editable economic assumptions. [Week 2]
+- Query helpers `getSolutionForCalc` / `getAssumptions`; "Рассчитать экономику" links on Step 2. [Week 2]
+- Step 3 `/calculate/[solutionId]`: server page + live client calculator (editable assumptions,
+  recompute-on-change, RUB+USD via formatCost, NaN/Infinity finiteness guard, peak-load input for
+  concurrent-stock solutions). [Week 2]
 
 ### Changed
 - Applied an Opus 4.8 review of all planning docs (2 Critical / 8 Important / 6 Minor;

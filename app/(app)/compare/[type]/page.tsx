@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCatalogForFacilityType } from "@/lib/db/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,14 @@ export default async function ComparePage({
                     Обслуживание/год: {formatCost(solution.maintenanceUsdYear)}
                   </div>
                 </CardContent>
+                <div className="px-6 pb-4">
+                  <Link
+                    href={`/calculate/${solution.id}`}
+                    className="text-sm font-medium underline underline-offset-4"
+                  >
+                    Рассчитать экономику →
+                  </Link>
+                </div>
               </Card>
             ))}
           </div>

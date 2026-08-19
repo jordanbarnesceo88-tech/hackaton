@@ -27,3 +27,16 @@ export async function getCatalogForFacilityType(facilityTypeSlug: string) {
     },
   });
 }
+
+export async function getAssumptions() {
+  return prisma.assumption.findMany({ orderBy: { order: "asc" } });
+}
+
+export async function getSolutionForCalc(id: string) {
+  return prisma.solution.findUnique({
+    where: { id },
+    include: {
+      solutionCategory: { include: { facilityType: { include: { industry: true } } } },
+    },
+  });
+}
