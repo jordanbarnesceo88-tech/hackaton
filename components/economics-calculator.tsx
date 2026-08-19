@@ -85,6 +85,7 @@ export function EconomicsCalculator({
   const resultsFinite =
     Number.isFinite(result.quantity) &&
     Number.isFinite(result.capexUsd) &&
+    result.capexUsd > 0 &&
     Number.isFinite(result.opexAnnualUsd) &&
     Number.isFinite(result.baselineAnnualUsd) &&
     Number.isFinite(result.annualSavingsUsd);
