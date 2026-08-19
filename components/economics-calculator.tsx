@@ -67,20 +67,24 @@ export function EconomicsCalculator({
   initialAssumptions,
   facilitySlug,
   solutionId,
+  initialParams,
 }: {
   capacity: SolutionCapacity;
   capacityUnit: string;
   initialAssumptions: AssumptionValues;
   facilitySlug: string;
   solutionId: string;
+  initialParams?: FacilityParams;
 }) {
   const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
-  const [params, setParams] = useState<FacilityParams>({
-    areaM2: 1000,
-    opsPerDay: 500,
-    staffCount: 10,
-    ...(isStock ? { peakConcurrent: 20 } : {}),
-  });
+  const [params, setParams] = useState<FacilityParams>(
+    initialParams ?? {
+      areaM2: 1000,
+      opsPerDay: 500,
+      staffCount: 10,
+      ...(isStock ? { peakConcurrent: 20 } : {}),
+    }
+  );
   const [assumptions, setAssumptions] =
     useState<AssumptionValues>(initialAssumptions);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
