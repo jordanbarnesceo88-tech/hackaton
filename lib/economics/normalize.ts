@@ -1,5 +1,17 @@
 import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
 
+/** Annualized throughput capacity of ONE unit (flow bases only). */
+export function capacityPerYear(cap: SolutionCapacity, a: AssumptionValues): number {
+  const hoursFactor =
+    cap.capacityBasis === "PER_HOUR_FLOW" ? a.operatingHoursPerDay : 1;
+  return cap.capacityPerUnit * hoursFactor * a.workingDaysPerYear;
+}
+
+/** Annualized facility demand from daily operations. */
+export function demandPerYear(params: FacilityParams, a: AssumptionValues): number {
+  return params.opsPerDay * a.workingDaysPerYear;
+}
+
 export function computeQuantity(
   cap: SolutionCapacity,
   params: FacilityParams,
@@ -15,9 +27,5 @@ export function computeQuantity(
     return Math.max(1, Math.ceil(peak / cap.capacityPerUnit));
   }
 
-  const hoursFactor =
-    cap.capacityBasis === "PER_HOUR_FLOW" ? a.operatingHoursPerDay : 1;
-  const capacityPerYear = cap.capacityPerUnit * hoursFactor * a.workingDaysPerYear;
-  const demandPerYear = params.opsPerDay * a.workingDaysPerYear;
-  return Math.max(1, Math.ceil(demandPerYear / capacityPerYear));
+  return Math.max(1, Math.ceil(demandPerYear(params, a) / capacityPerYear(cap, a)));
 }

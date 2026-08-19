@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { FacilityVisualization } from "@/components/facility-visualization";
+import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
 import type {
   SolutionCapacity,
@@ -61,10 +63,12 @@ export function EconomicsCalculator({
   capacity,
   capacityUnit,
   initialAssumptions,
+  facilitySlug,
 }: {
   capacity: SolutionCapacity;
   capacityUnit: string;
   initialAssumptions: AssumptionValues;
+  facilitySlug: string;
 }) {
   const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
   const [params, setParams] = useState<FacilityParams>({
@@ -165,6 +169,15 @@ export function EconomicsCalculator({
           ))}
         </CardContent>
       </Card>
+
+      <FacilityVisualization
+        facilityKind={mapKind(facilitySlug)}
+        params={params}
+        assumptions={assumptions}
+        capacity={capacity}
+        capacityUnit={capacityUnit}
+        result={result}
+      />
     </div>
   );
 }

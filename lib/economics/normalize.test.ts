@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeQuantity } from "./normalize";
+import { computeQuantity, capacityPerYear, demandPerYear } from "./normalize";
 import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
 
 const a: AssumptionValues = {
@@ -48,5 +48,22 @@ describe("computeQuantity", () => {
   it("throws on non-positive capacity (no divide-by-zero)", () => {
     const cap: SolutionCapacity = { ...base, capacityPerUnit: 0, capacityBasis: "PER_DAY_FLOW" };
     expect(() => computeQuantity(cap, params, a)).toThrow();
+  });
+});
+
+describe("capacityPerYear / demandPerYear helpers", () => {
+  it("annualizes a PER_HOUR_FLOW capacity using operating hours", () => {
+    // 50/hr * 16 hrs/day * 250 days = 200000
+    const cap = { priceUsd: 1, maintenanceUsdYear: 0, energyUsdYear: 0, licensingUsdYear: 0,
+      capacityPerUnit: 50, capacityBasis: "PER_HOUR_FLOW" as const };
+    expect(capacityPerYear(cap, a)).toBe(200000);
+  });
+  it("annualizes a PER_DAY_FLOW capacity without the hours factor", () => {
+    const cap = { priceUsd: 1, maintenanceUsdYear: 0, energyUsdYear: 0, licensingUsdYear: 0,
+      capacityPerUnit: 400, capacityBasis: "PER_DAY_FLOW" as const };
+    expect(capacityPerYear(cap, a)).toBe(100000); // 400 * 1 * 250
+  });
+  it("annualizes demand from opsPerDay", () => {
+    expect(demandPerYear({ areaM2: 0, opsPerDay: 1600, staffCount: 0 }, a)).toBe(400000);
   });
 });

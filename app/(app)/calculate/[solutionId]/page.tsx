@@ -37,6 +37,7 @@ export default async function CalculatePage({
         }}
         capacityUnit={solution.capacityUnit}
         initialAssumptions={initialAssumptions}
+        facilitySlug={solution.solutionCategory.facilityType.slug}
       />
     </div>
   );
