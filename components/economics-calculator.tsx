@@ -22,20 +22,33 @@ const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   roiHorizonYears: "Горизонт ROI (лет)",
 };
 
+// Ratio (0..1 fraction) assumptions get a finer spinner step; everything else steps by 1.
+const RATIO_KEYS = new Set<keyof AssumptionValues>([
+  "installPctOfCapex",
+  "laborReplacementPct",
+]);
+
 function NumField({
+  id,
   label,
   value,
+  step = 1,
   onChange,
 }: {
+  id: string;
   label: string;
   value: number;
+  step?: number;
   onChange: (n: number) => void;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <Label>{label}</Label>
+      <Label htmlFor={id}>{label}</Label>
       <input
+        id={id}
         type="number"
+        min={0}
+        step={step}
         className="rounded-md border px-3 py-2 text-sm"
         value={Number.isFinite(value) ? value : 0}
         onChange={(e) => onChange(Number(e.target.value))}
@@ -65,6 +78,17 @@ export function EconomicsCalculator({
 
   const result = computeEconomics(capacity, params, assumptions);
 
+  // Zeroing a divisor assumption (e.g. workingDaysPerYear=0, or operatingHoursPerDay=0 on a
+  // PER_HOUR_FLOW solution) makes the engine divide by zero, yielding NaN/Infinity that would
+  // otherwise render as a bogus "economical" card (NaN <= 0 is false). Guard the shared outputs
+  // and show a neutral notice instead of numbers when any of them isn't finite.
+  const resultsFinite =
+    Number.isFinite(result.quantity) &&
+    Number.isFinite(result.capexUsd) &&
+    Number.isFinite(result.opexAnnualUsd) &&
+    Number.isFinite(result.baselineAnnualUsd) &&
+    Number.isFinite(result.annualSavingsUsd);
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
@@ -72,14 +96,15 @@ export function EconomicsCalculator({
           <CardTitle>Параметры объекта</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <NumField label="Площадь (м²)" value={params.areaM2}
+          <NumField id="areaM2" label="Площадь (м²)" value={params.areaM2}
             onChange={(n) => setParams((p) => ({ ...p, areaM2: n }))} />
-          <NumField label="Объём операций в сутки" value={params.opsPerDay}
+          <NumField id="opsPerDay" label="Объём операций в сутки" value={params.opsPerDay}
             onChange={(n) => setParams((p) => ({ ...p, opsPerDay: n }))} />
-          <NumField label="Численность персонала" value={params.staffCount}
+          <NumField id="staffCount" label="Численность персонала" value={params.staffCount}
             onChange={(n) => setParams((p) => ({ ...p, staffCount: n }))} />
           {isStock && (
             <NumField
+              id="peakConcurrent"
               label="Пиковая одновременная нагрузка"
               value={params.peakConcurrent ?? 0}
               onChange={(n) => setParams((p) => ({ ...p, peakConcurrent: n }))}
@@ -96,20 +121,28 @@ export function EconomicsCalculator({
           <CardTitle>Результаты</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm">
-          <div>Требуется единиц: <b>{result.quantity}</b></div>
-          <div>CAPEX: <b>{formatCost(result.capexUsd)}</b></div>
-          <div>OPEX/год: <b>{formatCost(result.opexAnnualUsd)}</b></div>
-          <div>Базовые затраты на труд/год: {formatCost(result.baselineAnnualUsd)}</div>
-          {result.economical ? (
-            <>
-              <div>Годовая экономия: <b>{formatCost(result.annualSavingsUsd)}</b></div>
-              <div>Срок окупаемости: <b>{result.paybackYears.toFixed(1)} лет</b></div>
-              <div>ROI: <b>{result.roiPct.toFixed(0)}%</b></div>
-            </>
-          ) : (
-            <div className="font-medium text-red-600">
-              Решение не окупается при текущих параметрах
+          {!resultsFinite ? (
+            <div className="font-medium text-muted-foreground">
+              Проверьте параметры расчёта — некоторые значения некорректны
             </div>
+          ) : (
+            <>
+              <div>Требуется единиц: <b>{result.quantity}</b></div>
+              <div>CAPEX: <b>{formatCost(result.capexUsd)}</b></div>
+              <div>OPEX/год: <b>{formatCost(result.opexAnnualUsd)}</b></div>
+              <div>Базовые затраты на труд/год: {formatCost(result.baselineAnnualUsd)}</div>
+              {result.economical ? (
+                <>
+                  <div>Годовая экономия: <b>{formatCost(result.annualSavingsUsd)}</b></div>
+                  <div>Срок окупаемости: <b>{result.paybackYears.toFixed(1)} лет</b></div>
+                  <div>ROI: <b>{result.roiPct.toFixed(0)}%</b></div>
+                </>
+              ) : (
+                <div className="font-medium text-red-600">
+                  Решение не окупается при текущих параметрах
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -122,8 +155,10 @@ export function EconomicsCalculator({
           {(Object.keys(ASSUMPTION_LABELS) as (keyof AssumptionValues)[]).map((k) => (
             <NumField
               key={k}
+              id={k}
               label={ASSUMPTION_LABELS[k]}
               value={assumptions[k]}
+              step={RATIO_KEYS.has(k) ? 0.05 : 1}
               onChange={(n) => setAssumptions((a) => ({ ...a, [k]: n }))}
             />
           ))}
