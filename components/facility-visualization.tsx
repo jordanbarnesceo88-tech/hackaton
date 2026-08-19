@@ -40,8 +40,12 @@ export function FacilityVisualization({
   const robotsRef = useRef<RobotState[]>([]);
   const [elapsed, setElapsed] = useState(0);
 
-  const renderCount = Math.max(1, Math.min(MAX_RENDERED, Math.floor(result.quantity)));
-  const overflow = result.quantity > MAX_RENDERED;
+  // Fall back to 1 when quantity is non-finite (the Week-2 calculator can pass a
+  // non-finite result while showing its own "проверьте параметры" guard); otherwise
+  // Math.floor(NaN) would make renderCount NaN and the badge read "из NaN".
+  const q = Number.isFinite(result.quantity) ? result.quantity : 1;
+  const renderCount = Math.max(1, Math.min(MAX_RENDERED, Math.floor(q)));
+  const overflow = q > MAX_RENDERED;
 
   const layout = useMemo(
     () => generateLayout(facilityKind, params),
@@ -101,12 +105,17 @@ export function FacilityVisualization({
       if (document.hidden) {
         cancelAnimationFrame(raf);
       } else {
+        // Cancel any pending frame before scheduling so a hidden-mount (whose initial
+        // frame was skipped) or a rapid hide→show can't leave two rAF loops running.
+        cancelAnimationFrame(raf);
         last = performance.now();
         raf = requestAnimationFrame(draw);
       }
     };
     document.addEventListener("visibilitychange", onVis);
-    raf = requestAnimationFrame(draw);
+    // Don't schedule while hidden: a callback registered here never fires until the tab
+    // is shown, at which point onVis would schedule a second, independent loop.
+    if (!document.hidden) raf = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVis);
@@ -135,14 +144,14 @@ export function FacilityVisualization({
           />
           {overflow && (
             <span className="absolute right-2 top-2 rounded bg-black/70 px-2 py-1 text-xs text-white">
-              показано {MAX_RENDERED} из {result.quantity}
+              показано {MAX_RENDERED} из {q}
             </span>
           )}
         </div>
         <div className="flex flex-col gap-3 text-sm">
           <div>
             Роботов в работе: <b>{renderCount}</b>
-            {overflow ? ` (всего ${result.quantity})` : ""}
+            {overflow ? ` (всего ${q})` : ""}
           </div>
           <div>
             Производительность: <b>{deployed.toLocaleString("ru-RU")} {capacityUnit}</b>
