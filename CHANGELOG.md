@@ -50,6 +50,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Live KPI panel: robots-in-work (capped at 24 with a "показано 24 из N" badge), utilization %, and
   an animated "накопленная экономия" bar filling to one year's savings in RUB+USD; a
   not-economical result shows the "не окупается" state. [Week 3]
+- Accounts (Auth.js v5 credentials, bcrypt-hashed passwords, JWT sessions): signup/login,
+  header auth state, logout. Anonymous users can still use Steps 1-4; login is required only
+  to save. [Week 4]
+- Save & revisit: a logged-in user can save a completed analysis and reopen it from "Мои
+  расчёты" (`/analyses`); saved analyses are strictly user-scoped. [Week 4]
+- Deploy-ready config: `output: "standalone"`, multi-stage `Dockerfile`, `.dockerignore`, and
+  a `docs/DEPLOY.md` runbook (managed Postgres + env vars + migrate/seed + Vercel/Docker). [Week 4]
 
 ### Changed
 - Applied an Opus 4.8 review of all planning docs (2 Critical / 8 Important / 6 Minor;
