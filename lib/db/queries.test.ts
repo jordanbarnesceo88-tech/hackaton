@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getIndustries, getCatalogForFacilityType, getSolutionForCalc, getAssumptions } from "./queries";
+import { createSavedAnalysis, getSavedAnalyses, getSavedAnalysis } from "./queries";
+import { prisma } from "./client";
 
 describe("getIndustries", () => {
   it("returns all 4 seeded industries with their facility types", async () => {
@@ -45,5 +47,29 @@ describe("getSolutionForCalc", () => {
     expect(sol!.capacityBasis).toBeDefined();
     expect(sol!.solutionCategory.facilityType.slug).toBe("warehouse");
     expect(await getSolutionForCalc("does-not-exist")).toBeNull();
+  });
+});
+
+describe("saved analyses (user-scoped)", () => {
+  it("creates and lists a user's analyses, and forbids cross-user reads", async () => {
+    const a = await prisma.user.create({
+      data: { email: `a-${Date.now()}@test.local`, passwordHash: "x" },
+    });
+    const b = await prisma.user.create({
+      data: { email: `b-${Date.now()}@test.local`, passwordHash: "x" },
+    });
+    const saved = await createSavedAnalysis(a.id, {
+      name: "test", facilityTypeSlug: "warehouse", solutionId: "sol1",
+      params: { opsPerDay: 100 }, assumptions: { laborCostPerHourUsd: 15 }, results: { quantity: 2 },
+    });
+    const listA = await getSavedAnalyses(a.id);
+    expect(listA.some((s) => s.id === saved.id)).toBe(true);
+    // owner can read
+    expect(await getSavedAnalysis(saved.id, a.id)).not.toBeNull();
+    // other user cannot
+    expect(await getSavedAnalysis(saved.id, b.id)).toBeNull();
+    expect(await getSavedAnalyses(b.id)).toHaveLength(0);
+
+    await prisma.user.deleteMany({ where: { id: { in: [a.id, b.id] } } }); // cascade cleans analyses
   });
 });

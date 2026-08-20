@@ -40,3 +40,37 @@ export async function getSolutionForCalc(id: string) {
     },
   });
 }
+
+export type SavedAnalysisInput = {
+  name: string;
+  facilityTypeSlug: string;
+  solutionId: string;
+  params: unknown;
+  assumptions: unknown;
+  results: unknown;
+};
+
+export async function createSavedAnalysis(userId: string, input: SavedAnalysisInput) {
+  return prisma.savedAnalysis.create({
+    data: {
+      userId,
+      name: input.name,
+      facilityTypeSlug: input.facilityTypeSlug,
+      solutionId: input.solutionId,
+      params: input.params as object,
+      assumptions: input.assumptions as object,
+      results: input.results as object,
+    },
+  });
+}
+
+export async function getSavedAnalyses(userId: string) {
+  return prisma.savedAnalysis.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getSavedAnalysis(id: string, userId: string) {
+  return prisma.savedAnalysis.findFirst({ where: { id, userId } });
+}
