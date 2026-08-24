@@ -58,7 +58,7 @@ describe("computeEconomics", () => {
     const r = computeEconomics(cap, params, a);
     expect(r.economical).toBe(false);
     if (r.economical) return;
-    expect(r.reason).toBe("no_savings");
+    if (r.reason !== "no_savings") throw new Error("expected no_savings");
     expect(r.annualSavingsUsd).toBeLessThanOrEqual(0);
     expect(r).not.toHaveProperty("paybackYears");
   });
@@ -69,5 +69,46 @@ describe("computeEconomics", () => {
     const r = computeEconomics(cap, params, { ...a, laborReplacementPct: 0.5 });
     if (!r.economical) throw new Error("expected economical");
     expect(r.annualSavingsUsd).toBeCloseTo(150000 - 9000, 2);
+  });
+
+  // E1: the engine must never leak Infinity/NaN for degenerate inputs — it returns a typed
+  // { economical: false, reason: "invalid_inputs" } instead. (Previously these produced
+  // Infinity/NaN masked only by ad-hoc UI finiteness checks.)
+  describe("invalid_inputs guard (E1)", () => {
+    const stock: SolutionCapacity = { ...cap, capacityBasis: "CONCURRENT_STOCK" };
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+
+    it("returns invalid_inputs when turnoverPerDay = 0 on a stock solution (no peak given)", () => {
+      const r = computeEconomics(stock, params, { ...a, turnoverPerDay: 0 });
+      expect(r).toEqual({ economical: false, reason: "invalid_inputs" });
+    });
+
+    it("returns invalid_inputs when priceUsd = 0 (capex not positive)", () => {
+      const r = computeEconomics({ ...cap, priceUsd: 0 }, params, a);
+      expect(r).toEqual({ economical: false, reason: "invalid_inputs" });
+    });
+
+    it("returns invalid_inputs when workingDaysPerYear = 0 (non-finite quantity)", () => {
+      const r = computeEconomics(cap, params, { ...a, workingDaysPerYear: 0 });
+      expect(r).toEqual({ economical: false, reason: "invalid_inputs" });
+    });
+
+    it("returns invalid_inputs when operatingHoursPerDay = 0 on a per-hour solution", () => {
+      const perHour: SolutionCapacity = { ...cap, capacityBasis: "PER_HOUR_FLOW" };
+      const r = computeEconomics(perHour, params, { ...a, operatingHoursPerDay: 0 });
+      expect(r).toEqual({ economical: false, reason: "invalid_inputs" });
+    });
+
+    it("returns invalid_inputs when capacityPerUnit = 0 (was a thrown error)", () => {
+      const r = computeEconomics({ ...cap, capacityPerUnit: 0 }, params, a);
+      expect(r).toEqual({ economical: false, reason: "invalid_inputs" });
+    });
+
+    it("never exposes non-finite numbers on any returned field", () => {
+      const r = computeEconomics(stock, params, { ...a, turnoverPerDay: 0 });
+      for (const v of Object.values(r)) {
+        if (typeof v === "number") expect(Number.isFinite(v)).toBe(true);
+      }
+    });
   });
 });

@@ -106,17 +106,11 @@ export function EconomicsCalculator({
     else setSaveMsg("Ошибка сохранения");
   }
 
-  // Zeroing a divisor assumption (e.g. workingDaysPerYear=0, or operatingHoursPerDay=0 on a
-  // PER_HOUR_FLOW solution) makes the engine divide by zero, yielding NaN/Infinity that would
-  // otherwise render as a bogus "economical" card (NaN <= 0 is false). Guard the shared outputs
-  // and show a neutral notice instead of numbers when any of them isn't finite.
-  const resultsFinite =
-    Number.isFinite(result.quantity) &&
-    Number.isFinite(result.capexUsd) &&
-    result.capexUsd > 0 &&
-    Number.isFinite(result.opexAnnualUsd) &&
-    Number.isFinite(result.baselineAnnualUsd) &&
-    Number.isFinite(result.annualSavingsUsd);
+  // The engine returns a typed `invalid_inputs` result for degenerate inputs (e.g. a zeroed
+  // divisor assumption), so it never leaks NaN/Infinity here — that variant carries no numeric
+  // fields, so `"quantity" in result` both detects it and narrows the union for the numeric
+  // branch below. (Finiteness is guaranteed by the engine, not re-checked field-by-field here.)
+  const hasNumbers = "quantity" in result;
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -150,7 +144,7 @@ export function EconomicsCalculator({
           <CardTitle>Результаты</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm">
-          {!resultsFinite ? (
+          {!hasNumbers ? (
             <div className="font-medium text-muted-foreground">
               Проверьте параметры расчёта — некоторые значения некорректны
             </div>

@@ -12,6 +12,9 @@ export function computeEconomics(
   a: AssumptionValues
 ): EconomicsResult {
   const quantity = computeQuantity(cap, params, a);
+  if (quantity === null) {
+    return { economical: false, reason: "invalid_inputs" }; // E1
+  }
 
   const baselineAnnualUsd =
     params.staffCount * a.laborCostPerHourUsd * a.hoursPerYear;
@@ -21,6 +24,17 @@ export function computeEconomics(
     (cap.maintenanceUsdYear + cap.energyUsdYear + cap.licensingUsdYear); // I1
   const annualSavingsUsd =
     baselineAnnualUsd * a.laborReplacementPct - opexAnnualUsd; // I2
+
+  // E1: reject any degenerate money output (non-finite, or a non-positive CAPEX that would
+  // make payback/ROI meaningless or divide-by-zero) as invalid rather than emitting garbage.
+  const finite =
+    Number.isFinite(capexUsd) &&
+    Number.isFinite(opexAnnualUsd) &&
+    Number.isFinite(baselineAnnualUsd) &&
+    Number.isFinite(annualSavingsUsd);
+  if (!finite || capexUsd <= 0) {
+    return { economical: false, reason: "invalid_inputs" };
+  }
 
   const common = {
     quantity,

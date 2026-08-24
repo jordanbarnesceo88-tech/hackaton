@@ -27,23 +27,28 @@ export type AssumptionValues = {
   roiHorizonYears: number;
 };
 
+type EconomicsCommon = {
+  quantity: number;
+  capexUsd: number;
+  opexAnnualUsd: number;
+  baselineAnnualUsd: number;
+  annualSavingsUsd: number;
+};
+
 export type EconomicsResult =
-  | {
+  | (EconomicsCommon & {
       economical: true;
-      quantity: number;
-      capexUsd: number;
-      opexAnnualUsd: number;
-      baselineAnnualUsd: number;
-      annualSavingsUsd: number;
       paybackYears: number;
       roiPct: number;
-    }
-  | {
+    })
+  | (EconomicsCommon & {
       economical: false;
       reason: "no_savings";
-      quantity: number;
-      capexUsd: number;
-      opexAnnualUsd: number;
-      baselineAnnualUsd: number;
-      annualSavingsUsd: number;
+    })
+  // Degenerate inputs (zero-valued divisors, non-positive price/capacity, or any
+  // non-finite intermediate) yield no meaningful numbers. Returned as a typed result so
+  // the engine never leaks Infinity/NaN to callers (UI, persisted `results`, future API).
+  | {
+      economical: false;
+      reason: "invalid_inputs";
     };

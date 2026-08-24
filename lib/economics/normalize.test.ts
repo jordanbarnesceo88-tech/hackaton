@@ -45,9 +45,19 @@ describe("computeQuantity", () => {
     expect(computeQuantity(cap, { ...params, opsPerDay: 1 }, a)).toBe(1);
   });
 
-  it("throws on non-positive capacity (no divide-by-zero)", () => {
+  it("returns null on non-positive capacity (no divide-by-zero, no throw)", () => {
     const cap: SolutionCapacity = { ...base, capacityPerUnit: 0, capacityBasis: "PER_DAY_FLOW" };
-    expect(() => computeQuantity(cap, params, a)).toThrow();
+    expect(computeQuantity(cap, params, a)).toBeNull();
+  });
+
+  it("returns null when a zero turnover rate makes the stock peak non-finite", () => {
+    const cap: SolutionCapacity = { ...base, capacityPerUnit: 12, capacityBasis: "CONCURRENT_STOCK" };
+    expect(computeQuantity(cap, params, { ...a, turnoverPerDay: 0 })).toBeNull();
+  });
+
+  it("returns null when annualized capacity collapses to zero (workingDaysPerYear = 0)", () => {
+    const cap: SolutionCapacity = { ...base, capacityPerUnit: 400, capacityBasis: "PER_DAY_FLOW" };
+    expect(computeQuantity(cap, params, { ...a, workingDaysPerYear: 0 })).toBeNull();
   });
 });
 

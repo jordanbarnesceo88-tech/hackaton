@@ -40,10 +40,12 @@ export function FacilityVisualization({
   const robotsRef = useRef<RobotState[]>([]);
   const [elapsed, setElapsed] = useState(0);
 
-  // Fall back to 1 when quantity is non-finite (the Week-2 calculator can pass a
-  // non-finite result while showing its own "проверьте параметры" guard); otherwise
-  // Math.floor(NaN) would make renderCount NaN and the badge read "из NaN".
-  const q = Number.isFinite(result.quantity) ? result.quantity : 1;
+  // The engine returns a typed `invalid_inputs` variant (no numeric fields) for degenerate
+  // inputs; `"quantity" in result` detects it and narrows the union. Fall back to 1 robot in
+  // that case so the scene still renders while the calculator shows its "проверьте параметры"
+  // notice. When numbers are present the engine guarantees `quantity` is finite.
+  const hasNumbers = "quantity" in result;
+  const q = hasNumbers ? result.quantity : 1;
   const renderCount = Math.max(1, Math.min(MAX_RENDERED, Math.floor(q)));
   const overflow = q > MAX_RENDERED;
 
@@ -122,11 +124,10 @@ export function FacilityVisualization({
     };
   }, [layout]);
 
-  const finiteResult = Number.isFinite(result.quantity);
-  const util = finiteResult
+  const util = hasNumbers
     ? utilizationPct(capacity, params, assumptions, result.quantity)
     : null;
-  const deployed = finiteResult
+  const deployed = hasNumbers
     ? deployedCapacity(result.quantity, capacity.capacityPerUnit)
     : null;
   const savings = result.economical ? result.annualSavingsUsd : 0;

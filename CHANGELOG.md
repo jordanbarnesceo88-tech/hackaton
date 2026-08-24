@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- **Economics engine no longer leaks `Infinity`/`NaN` for degenerate inputs (audit E1).**
+  `computeQuantity` now returns `null` (instead of throwing or dividing by zero) for
+  non-positive per-unit capacity, a zero turnover rate with no explicit peak, or a
+  zero-valued annualization divisor; `computeEconomics` maps that — plus any non-finite money
+  output or non-positive CAPEX — to a typed `{ economical: false, reason: "invalid_inputs" }`
+  result. UI (calculator + visualization) narrows on this variant and shows the existing
+  "проверьте параметры" notice, replacing the duplicated ad-hoc finiteness checks. No change
+  to results for valid inputs; only previously-`Infinity`/`NaN` (masked) cases are affected.
+  Added engine tests for each degenerate path.
+
 ### Added
 - Project scaffolding: `docs/00-idea-brief.md` (fixed source idea, verbatim),
   this changelog. Git repo initialized.
