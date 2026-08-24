@@ -6,6 +6,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Signup no longer 500s on a duplicate-email race (audit E2).** Concurrent signups could
+  both pass the pre-insert `findUnique` check and then race on the `User.email` unique
+  constraint; the loser threw an unhandled `P2002`. The `create` is now wrapped and P2002 is
+  mapped to the same "email уже существует" message. Also removed the dead `redirect` import
+  in `lib/auth/actions.ts` (REFACTORING #3).
 - **Economics engine no longer leaks `Infinity`/`NaN` for degenerate inputs (audit E1).**
   `computeQuantity` now returns `null` (instead of throwing or dividing by zero) for
   non-positive per-unit capacity, a zero turnover rate with no explicit peak, or a
