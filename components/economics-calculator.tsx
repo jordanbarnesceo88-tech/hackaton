@@ -14,6 +14,7 @@ import type {
   AssumptionValues,
 } from "@/lib/economics/types";
 import { formatCost } from "@/lib/format/currency";
+import { formatYearsRu } from "@/lib/format/plural";
 
 const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   laborCostPerHourUsd: "Стоимость труда (USD/час)",
@@ -157,7 +158,7 @@ export function EconomicsCalculator({
               {result.economical ? (
                 <>
                   <div>Годовая экономия: <b>{formatCost(result.annualSavingsUsd)}</b></div>
-                  <div>Срок окупаемости: <b>{result.paybackYears.toFixed(1)} лет</b></div>
+                  <div>Срок окупаемости: <b>{formatYearsRu(result.paybackYears)}</b></div>
                   <div>ROI: <b>{result.roiPct.toFixed(0)}%</b></div>
                 </>
               ) : (

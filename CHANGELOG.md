@@ -6,6 +6,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Correct Russian pluralization for the payback period (audit T2).** Payback rendered a
+  fixed "X лет" ("1 лет"/"2 лет" are ungrammatical). New tested `lib/format/plural.ts`
+  (`pluralRu` + `formatYearsRu`) applies proper noun agreement — "1.0 год", "2.0 года",
+  "5.0 лет", and the genitive singular "1.5 года" for fractional durations.
 - **Signup no longer 500s on a duplicate-email race (audit E2).** Concurrent signups could
   both pass the pre-insert `findUnique` check and then race on the `User.email` unique
   constraint; the loser threw an unhandled `P2002`. The `create` is now wrapped and P2002 is
