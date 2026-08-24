@@ -69,7 +69,9 @@ export function FacilityVisualization({
     let raf = 0;
     let last = performance.now();
     const start = performance.now();
-    // speed scales mildly with utilization/throughput but stays bounded.
+    // Fixed illustrative speed: per the plan's "numbers are real, motion is illustrative"
+    // line, robot speed is decorative and intentionally not tied to throughput (that would
+    // read as a physical simulation we don't claim to be). The real figures live in the KPIs.
     const speed = 0.15;
 
     const draw = () => {
