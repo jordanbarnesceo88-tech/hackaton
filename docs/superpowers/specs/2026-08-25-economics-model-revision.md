@@ -55,9 +55,12 @@ annualSavingsUsd = laborSavedUsd − opexAnnualUsd
 ### A3 — discounting, NPV, asset lifecycle
 ```
 capexUsd = quantity × priceUsd × (1 + installPctOfCapex)            // initial outlay
+lifeYears      = floor(assetLifeYears)         // whole-year cadence (annual model; life ≥ 1)
 cashflows[0]   = −capexUsd
-cashflows[t]   = annualSavingsUsd − (t % assetLifeYears == 0 ? capexUsd : 0)   for t=1..H
-                 (re-CAPEX when assets expire within the horizon H = roiHorizonYears)
+cashflows[t]   = annualSavingsUsd − ((t % lifeYears == 0 && t < H) ? capexUsd : 0)   for t=1..H
+                 (re-CAPEX only when assets expire with productive years left; `t < H` avoids
+                  a spurious final-year fleet — notably when lifeYears exactly divides H, e.g.
+                  life == H ⇒ no re-buy)
 
 npvUsd                = Σ_{t=0..H} cashflows[t] / (1+discountRate)^t
 discountedPaybackYears = first fractional year cumulative discounted CF ≥ 0, else null (>H)

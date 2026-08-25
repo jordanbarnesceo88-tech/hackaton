@@ -17,7 +17,7 @@ export function computeEconomics(
     quantity === null ||
     !(a.opsPerWorkerPerYear > 0) ||
     !(a.roiHorizonYears >= 1) || // A3: need at least one year to model
-    !(a.assetLifeYears > 0) || // A3: re-CAPEX cadence divisor
+    !(a.assetLifeYears >= 1) || // A3: whole-year re-CAPEX cadence (annual cash-flow model)
     !(a.discountRate > -1) // A3: (1+rate) must stay positive
   ) {
     return { economical: false, reason: "invalid_inputs" }; // E1 / A1 / A3
@@ -28,7 +28,9 @@ export function computeEconomics(
   // demand = full annual demand for every basis; a human handles `opsPerWorkerPerYear` of it.
   const annualLaborCostPerFteUsd = a.laborCostPerHourUsd * a.hoursPerYear;
   const maxDisplaceableFte = demandPerYear(params, a) / a.opsPerWorkerPerYear;
-  const displacedFte = Math.min(params.staffCount, maxDisplaceableFte);
+  // Clamp at 0 so a negative param (e.g. a pasted negative opsPerDay/staffCount that slips past
+  // the min=0 inputs) can't surface a negative displaced-FTE / negative baseline labour cost.
+  const displacedFte = Math.max(0, Math.min(params.staffCount, maxDisplaceableFte));
   const baselineAnnualUsd = displacedFte * annualLaborCostPerFteUsd;
 
   const capexUsd = quantity * cap.priceUsd * (1 + a.installPctOfCapex);
@@ -64,13 +66,17 @@ export function computeEconomics(
     return { economical: false, reason: "no_savings", ...common }; // C2
   }
 
-  // A3: model yearly cash flows over the horizon, re-buying the fleet whenever the assets
-  // wear out mid-horizon (assetLifeYears < roiHorizonYears). t=0 is the initial CAPEX outlay.
+  // A3: model yearly cash flows over the horizon, re-buying the fleet whenever the assets wear
+  // out with productive years still left (t % lifeYears === 0 && t < horizon). The `t < horizon`
+  // guard avoids charging a spurious final-year fleet that is never used — notably when
+  // assetLifeYears exactly divides the horizon (e.g. life == horizon → no re-buy at all). Life
+  // is floored to whole years to match the annual cash-flow granularity. t=0 is the initial CAPEX.
   const horizon = Math.floor(a.roiHorizonYears);
+  const lifeYears = Math.floor(a.assetLifeYears);
   const cashflows: number[] = [-capexUsd];
   let reCapexTotal = 0;
   for (let t = 1; t <= horizon; t++) {
-    const reCapex = t % a.assetLifeYears === 0 ? capexUsd : 0;
+    const reCapex = t % lifeYears === 0 && t < horizon ? capexUsd : 0;
     reCapexTotal += reCapex;
     cashflows.push(annualSavingsUsd - reCapex);
   }

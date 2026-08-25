@@ -1,4 +1,5 @@
 import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
+import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
 
 // Saved-analysis payloads arrive from the client and are persisted as-is (jsonb), so validate
 // shape and bound sizes here before they touch the DB. Pure + framework-free so it's unit
@@ -35,20 +36,10 @@ export function validateParams(raw: unknown): FacilityParams | null {
   return out;
 }
 
-const ASSUMPTION_KEYS: (keyof AssumptionValues)[] = [
-  "laborCostPerHourUsd",
-  "hoursPerYear",
-  "workingDaysPerYear",
-  "operatingHoursPerDay",
-  "installPctOfCapex",
-  "laborReplacementPct",
-  "residualSupervisionPct",
-  "opsPerWorkerPerYear",
-  "turnoverPerDay",
-  "roiHorizonYears",
-  "discountRate",
-  "assetLifeYears",
-];
+// Derive the key list from DEFAULT_ASSUMPTIONS (which is typed AssumptionValues, so it is
+// exhaustive by construction) rather than hand-maintaining a parallel list — a new assumption
+// added to the model is then validated automatically instead of being silently stripped.
+const ASSUMPTION_KEYS = Object.keys(DEFAULT_ASSUMPTIONS) as (keyof AssumptionValues)[];
 
 /** Validate the assumptions bag: every known key present and a finite number. */
 export function validateAssumptions(raw: unknown): AssumptionValues | null {

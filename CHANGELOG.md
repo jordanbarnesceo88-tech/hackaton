@@ -35,6 +35,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   **302%**, NPV **+$262k** — versus the old model's 1648% ROI.
 
 ### Fixed
+- **Code-review fixes on the audit branch (2026-08-25).**
+  - A3 re-CAPEX no longer charges a spurious final-year fleet purchase: the fleet is re-bought
+    only when assets expire with productive years left (`t % lifeYears === 0 && t < horizon`),
+    and asset life is floored to whole years to match the annual cash-flow model (life must be
+    ≥ 1, else `invalid_inputs`). Fixes the case where `assetLifeYears` divides the horizon —
+    notably `assetLifeYears === roiHorizonYears`, which previously ~halved ROI and understated
+    NPV. **Changes output numbers only for those (now-corrected) configurations.**
+  - `displacedFte` is clamped at 0 so a negative param (e.g. a pasted negative `opsPerDay`/
+    `staffCount`) can't surface a negative displaced-FTE or negative baseline labour cost.
+  - The visualization now shows the neutral "Проверьте параметры" notice for `invalid_inputs`
+    instead of the red "не окупается" (which wrongly implied the solution was unprofitable),
+    matching the results panel.
+  - The discounted-payback "no payback" case now reads "не окупается в пределах горизонта"
+    instead of the ungrammatical/rounding-mismatched "более N лет".
+  - `validate.ts` derives its assumption-key list from `DEFAULT_ASSUMPTIONS` so a newly added
+    assumption is validated automatically instead of being silently stripped from saved payloads.
 - **Validate the saved-analysis payload server-side (audit S1).** The save action persisted
   fully client-controlled input as jsonb with no checks. Added tested `lib/analyses/validate.ts`
   (bounded/trimmed `name`, strict finite-number shape for `params` + `assumptions`,

@@ -168,7 +168,13 @@ export function FacilityVisualization({
           <div>Загрузка: <b>{util === null ? "—" : `${util.toFixed(0)}%`}</b></div>
           <div>
             <div className="mb-1">Накопленная экономия (за год):</div>
-            {result.economical ? (
+            {!hasNumbers ? (
+              // Invalid inputs: stay consistent with the results panel's neutral notice rather
+              // than claiming the solution is unprofitable.
+              <div className="font-medium text-muted-foreground">
+                Проверьте параметры расчёта
+              </div>
+            ) : result.economical ? (
               <>
                 <div className="h-3 w-full overflow-hidden rounded bg-muted">
                   <div

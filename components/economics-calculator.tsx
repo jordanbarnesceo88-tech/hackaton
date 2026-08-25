@@ -51,7 +51,7 @@ export function EconomicsCalculator({
         capacity={capacity}
         capacityUnit={capacityUnit}
       />
-      <ResultsPanel result={result} horizonYears={assumptions.roiHorizonYears} />
+      <ResultsPanel result={result} />
       <SaveControl
         facilitySlug={facilitySlug}
         solutionId={solutionId}

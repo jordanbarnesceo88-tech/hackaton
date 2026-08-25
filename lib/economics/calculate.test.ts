@@ -125,6 +125,32 @@ describe("computeEconomics", () => {
       expect(r.npvUsd).toBeCloseTo(npv(a.discountRate, cfs), 2);
     });
 
+    it("does NOT re-buy when asset life equals the horizon (assets last the whole horizon)", () => {
+      // life 5 == horizon 5 -> no re-CAPEX; simple ROI must match the no-re-buy formula and
+      // the default (life 7) result — the terminal-year over-count bug would have halved it.
+      const r5 = computeEconomics(cap, params, { ...a, assetLifeYears: 5 });
+      const r7 = computeEconomics(cap, params, { ...a, assetLifeYears: 7 });
+      if (!r5.economical || !r7.economical) throw new Error("expected economical");
+      expect(r5.simpleRoiPct).toBeCloseTo(((159000 * 5 - 57500) / 57500) * 100, 2);
+      expect(r5.simpleRoiPct).toBeCloseTo(r7.simpleRoiPct, 6);
+      expect(r5.npvUsd).toBeCloseTo(r7.npvUsd, 6);
+    });
+
+    it("clamps displaced FTE to 0 for a negative param instead of showing negative labor", () => {
+      const r = computeEconomics(cap, { ...params, opsPerDay: -400 }, a);
+      if (r.economical) throw new Error("expected non-economical");
+      if (r.reason !== "no_savings") throw new Error("expected no_savings, got " + r.reason);
+      expect(r.displacedFte).toBe(0);
+      expect(r.baselineAnnualUsd).toBe(0);
+    });
+
+    it("rejects a sub-year asset life as invalid_inputs", () => {
+      expect(computeEconomics(cap, params, { ...a, assetLifeYears: 0.5 })).toEqual({
+        economical: false,
+        reason: "invalid_inputs",
+      });
+    });
+
     it("reports null discounted payback when it never recovers within the horizon", () => {
       // huge CAPEX, 1-year horizon -> positive annual savings but no discounted payback
       const pricey: SolutionCapacity = { ...cap, priceUsd: 5_000_000 };

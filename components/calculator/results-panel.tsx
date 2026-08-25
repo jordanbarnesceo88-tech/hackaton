@@ -4,13 +4,7 @@ import { formatYearsRu } from "@/lib/format/plural";
 import { isCalculable } from "@/lib/economics/types";
 import type { EconomicsResult } from "@/lib/economics/types";
 
-export function ResultsPanel({
-  result,
-  horizonYears,
-}: {
-  result: EconomicsResult;
-  horizonYears: number;
-}) {
+export function ResultsPanel({ result }: { result: EconomicsResult }) {
   // `isCalculable` is false only for the engine's `invalid_inputs` variant (degenerate inputs);
   // it also narrows the union so the numeric fields below are type-safe.
   const hasNumbers = isCalculable(result);
@@ -39,7 +33,7 @@ export function ResultsPanel({
                   Срок окупаемости (дисконт.):{" "}
                   <b>
                     {result.discountedPaybackYears === null
-                      ? `более ${horizonYears} лет`
+                      ? "не окупается в пределах горизонта"
                       : formatYearsRu(result.discountedPaybackYears)}
                   </b>
                 </div>
