@@ -6,7 +6,8 @@ export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
   workingDaysPerYear: 250,
   operatingHoursPerDay: 16,
   installPctOfCapex: 0.15,
-  laborReplacementPct: 0.7,
+  laborReplacementPct: 0.5, // A2 (was 0.7)
+  residualSupervisionPct: 0.1, // A2
   opsPerWorkerPerYear: 12500, // A1
   turnoverPerDay: 8,
   roiHorizonYears: 5,

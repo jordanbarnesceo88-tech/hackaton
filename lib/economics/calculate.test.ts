@@ -9,6 +9,7 @@ const a: AssumptionValues = {
   operatingHoursPerDay: 16,
   installPctOfCapex: 0.15,
   laborReplacementPct: 0.7,
+  residualSupervisionPct: 0, // fixtures keep this 0 so pre-A2 numbers stay stable
   opsPerWorkerPerYear: 12500,
   turnoverPerDay: 8,
   roiHorizonYears: 5,
@@ -91,6 +92,14 @@ describe("computeEconomics", () => {
     const r = computeEconomics(cap, params, { ...a, laborReplacementPct: 0.5 });
     if (!r.economical) throw new Error("expected economical");
     expect(r.annualSavingsUsd).toBeCloseTo(120000 - 9000, 2);
+  });
+
+  it("retains residual supervision cost (A2)", () => {
+    // baseline 240000 * replacement 0.7 * (1 - 0.1 residual) = 151200; opex 9000 -> 142200
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const r = computeEconomics(cap, params, { ...a, residualSupervisionPct: 0.1 });
+    if (!r.economical) throw new Error("expected economical");
+    expect(r.annualSavingsUsd).toBeCloseTo(240000 * 0.7 * 0.9 - 9000, 2);
   });
 
   // E1: the engine must never leak Infinity/NaN for degenerate inputs — it returns a typed

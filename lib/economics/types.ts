@@ -23,6 +23,9 @@ export type AssumptionValues = {
   operatingHoursPerDay: number;
   installPctOfCapex: number;
   laborReplacementPct: number;
+  // A2: fraction of displaced labor that stays as human oversight/exception-handling and is
+  // therefore NOT saved (reduces savings by (1 - residualSupervisionPct)).
+  residualSupervisionPct: number;
   // A1: annual operations one human worker handles (same unit as facility demand). Caps how
   // many workers the fleet can realistically displace, so savings track workload not headcount.
   opsPerWorkerPerYear: number;

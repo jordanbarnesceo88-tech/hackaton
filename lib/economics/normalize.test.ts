@@ -9,6 +9,7 @@ const a: AssumptionValues = {
   operatingHoursPerDay: 16,
   installPctOfCapex: 0.15,
   laborReplacementPct: 0.7,
+  residualSupervisionPct: 0,
   opsPerWorkerPerYear: 12500,
   turnoverPerDay: 8,
   roiHorizonYears: 5,

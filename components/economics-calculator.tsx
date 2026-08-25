@@ -23,6 +23,7 @@ const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   operatingHoursPerDay: "Часов работы в сутки",
   installPctOfCapex: "Монтаж (доля от CAPEX)",
   laborReplacementPct: "Замещение труда (доля)",
+  residualSupervisionPct: "Остаточный надзор (доля)",
   opsPerWorkerPerYear: "Операций на сотрудника в год",
   turnoverPerDay: "Оборотов в сутки",
   roiHorizonYears: "Горизонт ROI (лет)",
@@ -32,6 +33,7 @@ const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
 const RATIO_KEYS = new Set<keyof AssumptionValues>([
   "installPctOfCapex",
   "laborReplacementPct",
+  "residualSupervisionPct",
 ]);
 
 function NumField({

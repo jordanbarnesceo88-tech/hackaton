@@ -29,7 +29,8 @@ export function computeEconomics(
     quantity *
     (cap.maintenanceUsdYear + cap.energyUsdYear + cap.licensingUsdYear); // I1
   const annualSavingsUsd =
-    baselineAnnualUsd * a.laborReplacementPct - opexAnnualUsd; // I2
+    baselineAnnualUsd * a.laborReplacementPct * (1 - a.residualSupervisionPct) -
+    opexAnnualUsd; // I2 (A2: residual supervision retained)
 
   // E1: reject any degenerate money output (non-finite, or a non-positive CAPEX that would
   // make payback/ROI meaningless or divide-by-zero) as invalid rather than emitting garbage.

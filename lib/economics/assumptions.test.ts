@@ -13,4 +13,9 @@ describe("assumptionsToValues", () => {
     // missing keys fall back to documented defaults
     expect(v.workingDaysPerYear).toBe(DEFAULT_ASSUMPTIONS.workingDaysPerYear);
   });
+
+  it("ships the conservative post-audit defaults (A2)", () => {
+    expect(DEFAULT_ASSUMPTIONS.laborReplacementPct).toBe(0.5); // was 0.7
+    expect(DEFAULT_ASSUMPTIONS.residualSupervisionPct).toBe(0.1);
+  });
 });

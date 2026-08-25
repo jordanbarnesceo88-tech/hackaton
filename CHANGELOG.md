@@ -19,6 +19,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   замещаемый решением" and the results show "Замещается персонала (ЭПЗ)". `opsPerWorkerPerYear
   ≤ 0` → `invalid_inputs`. Example (default per-day solution, 400 ops/day, 10 staff): annual
   savings 201k → **159k**, ROI 1648% → **1283%**.
+- **A2 — conservative defaults + residual supervision cost.** Default `laborReplacementPct`
+  lowered 0.7 → **0.5**, and a new editable `residualSupervisionPct` (default 0.1) retains
+  ongoing human oversight: `savings = baseline × replacement × (1 − residual) − opex`. Removes
+  the "robots eliminate 70% of all labor at zero running cost" optimism the audit flagged.
 
 ### Fixed
 - **Validate the saved-analysis payload server-side (audit S1).** The save action persisted
