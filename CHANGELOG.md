@@ -35,6 +35,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   **302%**, NPV **+$262k** — versus the old model's 1648% ROI.
 
 ### Added
+- **Saved analyses can be named (audit U2).** The save control now has an optional name field
+  (capped at 120 chars); a blank name falls back to the previous dated default. Two saves on
+  the same day are no longer indistinguishable in "Мои расчёты".
+- **Security headers (audit SEC1 / DEPLOY §5).** `next.config.ts` now sets Content-Security-
+  Policy, X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy, and HSTS
+  on all routes. CSP keeps `'unsafe-inline'` for Next's inline hydration (and `'unsafe-eval'`
+  in dev only for HMR) — to be tightened with nonces later. Login/signup **rate-limiting**
+  remains deferred (needs a deploy-time shared store), per DEPLOY §5.
 - **Editable USD→RUB exchange rate (audit I6 / §8 I6).** The rate moved from a hardcoded
   `USD_TO_RUB` constant into a seeded, editable `usdToRub` assumption. `formatCost(usd, rate)`
   now takes the rate; it's threaded through the calculator results, the visualization, and the

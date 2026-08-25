@@ -38,8 +38,10 @@ deferred to deploy time because they need production infrastructure or config:
   real user credentials. In serverless this needs a shared store (managed Postgres, Upstash/KV,
   or the platform's edge rate limiter) — hence deferred to here rather than an in-memory counter
   that wouldn't work across instances. **This is the top pre-launch item.**
-- **Security headers.** Add CSP, HSTS, X-Frame-Options, and Referrer-Policy (e.g. via
-  `next.config.ts` `headers()` or the host/CDN).
+- **Security headers.** DONE — `next.config.ts` `headers()` sets CSP, HSTS, X-Frame-Options,
+  X-Content-Type-Options, and Referrer-Policy on all routes (audit SEC1). The CSP still allows
+  `'unsafe-inline'` scripts for Next's inline hydration bootstrap; tighten to nonce-based CSP
+  when convenient.
 - **(Optional) Email verification** on signup, if any future feature (password reset,
   notifications) will trust email ownership. Not needed for the current feature set.
 
