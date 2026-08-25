@@ -6,6 +6,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Validate the saved-analysis payload server-side (audit S1).** The save action persisted
+  fully client-controlled input as jsonb with no checks. Added tested `lib/analyses/validate.ts`
+  (bounded/trimmed `name`, strict finite-number shape for `params` + `assumptions`,
+  plain-object `results`); the action now also verifies the solution exists and derives
+  `facilityTypeSlug` from it rather than trusting the client's slug. Server-action errors are
+  now logged before returning the generic client result (REFACTORING #5).
 - **Correct Russian pluralization for the payback period (audit T2).** Payback rendered a
   fixed "X лет" ("1 лет"/"2 лет" are ungrammatical). New tested `lib/format/plural.ts`
   (`pluralRu` + `formatYearsRu`) applies proper noun agreement — "1.0 год", "2.0 года",
