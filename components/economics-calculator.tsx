@@ -8,6 +8,7 @@ import { FacilityVisualization } from "@/components/facility-visualization";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { saveAnalysisAction } from "@/lib/analyses/actions";
+import { isCalculable } from "@/lib/economics/types";
 import type {
   SolutionCapacity,
   FacilityParams,
@@ -85,10 +86,10 @@ export function EconomicsCalculator({
   }
 
   // The engine returns a typed `invalid_inputs` result for degenerate inputs (e.g. a zeroed
-  // divisor assumption), so it never leaks NaN/Infinity here — that variant carries no numeric
-  // fields, so `"quantity" in result` both detects it and narrows the union for the numeric
-  // branch below. (Finiteness is guaranteed by the engine, not re-checked field-by-field here.)
-  const hasNumbers = "quantity" in result;
+  // divisor assumption), so it never leaks NaN/Infinity here — `isCalculable` detects that
+  // variant and narrows the union for the numeric branch below. (Finiteness is guaranteed by
+  // the engine, not re-checked field-by-field here.)
+  const hasNumbers = isCalculable(result);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">

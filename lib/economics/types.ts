@@ -68,3 +68,11 @@ export type EconomicsResult =
       economical: false;
       reason: "invalid_inputs";
     };
+
+/** Result variants that carry numeric fields (economical or no_savings) — i.e. not the
+ *  `invalid_inputs` placeholder. Used to gate/narrow number rendering in the UI. */
+export type CalculableResult = Extract<EconomicsResult, { quantity: number }>;
+
+export function isCalculable(r: EconomicsResult): r is CalculableResult {
+  return "quantity" in r;
+}

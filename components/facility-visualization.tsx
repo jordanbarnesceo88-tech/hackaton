@@ -6,6 +6,7 @@ import { generateLayout } from "@/lib/scene/layout";
 import { spawnRobots, stepRobots } from "@/lib/scene/simulate";
 import { deployedCapacity, utilizationPct, roiAccrued } from "@/lib/scene/kpi";
 import { formatCost } from "@/lib/format/currency";
+import { isCalculable } from "@/lib/economics/types";
 import type { FacilityKind, RobotState } from "@/lib/scene/types";
 import type {
   SolutionCapacity,
@@ -41,10 +42,10 @@ export function FacilityVisualization({
   const [elapsed, setElapsed] = useState(0);
 
   // The engine returns a typed `invalid_inputs` variant (no numeric fields) for degenerate
-  // inputs; `"quantity" in result` detects it and narrows the union. Fall back to 1 robot in
-  // that case so the scene still renders while the calculator shows its "проверьте параметры"
-  // notice. When numbers are present the engine guarantees `quantity` is finite.
-  const hasNumbers = "quantity" in result;
+  // inputs; `isCalculable` detects it and narrows the union. Fall back to 1 robot in that case
+  // so the scene still renders while the calculator shows its "проверьте параметры" notice.
+  // When numbers are present the engine guarantees `quantity` is finite.
+  const hasNumbers = isCalculable(result);
   const q = hasNumbers ? result.quantity : 1;
   const renderCount = Math.max(1, Math.min(MAX_RENDERED, Math.floor(q)));
   const overflow = q > MAX_RENDERED;
