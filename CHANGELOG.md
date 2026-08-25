@@ -64,6 +64,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   visibly changes the result. No economics-model change.
 
 ### Fixed
+- **Revisit fidelity: flag stale saved analyses (audit P2).** Opening a saved analysis restores
+  its inputs but the calculator recomputes from the *current* solution row, so a solution-data
+  or model change makes the shown numbers differ from what was saved. The calculate page now
+  recomputes with the saved inputs against today's data, compares to the stored results, and
+  shows an amber "данные/модель изменились — показан пересчёт" banner when they diverge instead
+  of silently showing different numbers.
 - **Code-review fixes on the audit branch (2026-08-25).**
   - A3 re-CAPEX no longer charges a spurious final-year fleet purchase: the fleet is re-bought
     only when assets expire with productive years left (`t % lifeYears === 0 && t < horizon`),
