@@ -35,6 +35,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   **302%**, NPV **+$262k** — versus the old model's 1648% ROI.
 
 ### Added
+- **Editable USD→RUB exchange rate (audit I6 / §8 I6).** The rate moved from a hardcoded
+  `USD_TO_RUB` constant into a seeded, editable `usdToRub` assumption. `formatCost(usd, rate)`
+  now takes the rate; it's threaded through the calculator results, the visualization, and the
+  comparison table (all sourced from the DB assumptions). Default remains 90; editing it in the
+  assumptions panel reprices every RUB figure live. Non-positive/non-finite rate falls back to
+  the default.
 - **Real Step-2 comparison table (audit P1 / §8 I5).** `/compare/[type]` now renders a
   per-category side-by-side table — price, capacity + basis, the **full** OPEX breakdown
   (maintenance + energy + licensing, previously only maintenance was shown), the annual OPEX

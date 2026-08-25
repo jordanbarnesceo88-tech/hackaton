@@ -182,7 +182,7 @@ export function FacilityVisualization({
                     style={{ width: `${Math.round(accruedFrac * 100)}%` }}
                   />
                 </div>
-                <div className="mt-1 font-medium">{formatCost(accrued)}</div>
+                <div className="mt-1 font-medium">{formatCost(accrued, assumptions.usdToRub)}</div>
               </>
             ) : (
               <div className="font-medium text-red-600">

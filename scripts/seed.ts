@@ -345,6 +345,7 @@ async function main() {
     { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 10 },
     { key: "discountRate", label: "Ставка дисконтирования", value: 0.12, unit: "доля", order: 11 },
     { key: "assetLifeYears", label: "Срок службы техники", value: 7, unit: "лет", order: 12 },
+    { key: "usdToRub", label: "Курс USD→RUB", value: 90, unit: "₽/$", order: 13 },
   ];
   for (const asmp of assumptions) {
     await prisma.assumption.upsert({

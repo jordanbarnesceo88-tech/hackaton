@@ -51,7 +51,7 @@ export function EconomicsCalculator({
         capacity={capacity}
         capacityUnit={capacityUnit}
       />
-      <ResultsPanel result={result} />
+      <ResultsPanel result={result} usdToRub={assumptions.usdToRub} />
       <SaveControl
         facilitySlug={facilitySlug}
         solutionId={solutionId}

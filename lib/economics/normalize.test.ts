@@ -14,6 +14,7 @@ const a: AssumptionValues = {
   turnoverPerDay: 8,
   discountRate: 0.12,
   assetLifeYears: 7,
+  usdToRub: 90,
   roiHorizonYears: 5,
 };
 const params: FacilityParams = { areaM2: 1000, opsPerDay: 1600, staffCount: 10 };

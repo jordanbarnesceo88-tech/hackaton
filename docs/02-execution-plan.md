@@ -226,4 +226,7 @@ in [docs/superpowers/specs/2026-08-25-economics-model-revision.md](./superpowers
   визуализация" (it drives only the Step-4 scene), and basis-only assumptions are hidden when
   they don't apply (`operatingHoursPerDay` only for PER_HOUR_FLOW, `turnoverPerDay` only for
   CONCURRENT_STOCK) — so every visible field moves the result. No economics-model change.
-- Still open (deferred): I6 rate-in-Assumptions, M4 free-text Other.
+- **I6 — USD→RUB rate in the Assumption table → RESOLVED.** `usdToRub` is now a seeded,
+  editable assumption; `formatCost(usd, rate)` takes it, threaded through the calculator
+  results, visualization, and comparison table (all load the DB rate). Default stays 90.
+- Still open (deferred): M4 free-text Other; SEC1 rate-limiting (needs deploy-time shared store).

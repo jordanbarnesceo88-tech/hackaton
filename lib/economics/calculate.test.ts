@@ -16,6 +16,7 @@ const a: AssumptionValues = {
   roiHorizonYears: 5,
   discountRate: 0.12,
   assetLifeYears: 7,
+  usdToRub: 90,
 };
 
 // PER_DAY_FLOW, cap 400/day. opsPerDay 400 -> qty = ceil((400*250)/(400*250)) = 1.

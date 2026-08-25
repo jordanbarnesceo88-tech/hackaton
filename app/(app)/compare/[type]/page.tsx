@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCatalogForFacilityType } from "@/lib/db/queries";
+import { getCatalogForFacilityType, getAssumptions } from "@/lib/db/queries";
 import { formatCost } from "@/lib/format/currency";
 import { capacityPerYear } from "@/lib/economics/normalize";
-import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
-import type { CapacityBasis } from "@/lib/economics/types";
+import { assumptionsToValues } from "@/lib/economics/assumptions";
+import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
 
 const BASIS_LABEL: Record<CapacityBasis, string> = {
   PER_HOUR_FLOW: "поток/час",
@@ -27,13 +27,13 @@ type SolutionRow = {
 
 // Normalized comparison metrics. Annualized throughput and price-per-annual-unit are only
 // meaningful for flow bases (per-hour / per-day); CONCURRENT_STOCK is a stock, not a flow, so
-// we abstain (—) rather than print a misleading number. Uses the default assumption constants
+// we abstain (—) rather than print a misleading number. Uses the DB assumption constants
 // (operating hours/day, working days/year) so every row is normalized on the same basis.
-function annualThroughput(s: SolutionRow): number | null {
+function annualThroughput(s: SolutionRow, a: AssumptionValues): number | null {
   if (s.capacityBasis === "CONCURRENT_STOCK") return null;
   return capacityPerYear(
     { ...s, capacityBasis: s.capacityBasis, capacityPerUnit: s.capacityPerUnit },
-    DEFAULT_ASSUMPTIONS
+    a
   );
 }
 
@@ -50,11 +50,17 @@ export default async function ComparePage({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
-  const catalog = await getCatalogForFacilityType(type);
+  const [catalog, assumptionRows] = await Promise.all([
+    getCatalogForFacilityType(type),
+    getAssumptions(),
+  ]);
 
   if (!catalog) {
     notFound();
   }
+
+  const a = assumptionsToValues(assumptionRows);
+  const money = (usd: number) => formatCost(usd, a.usdToRub);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 py-12">
@@ -93,7 +99,7 @@ export default async function ComparePage({
               <tbody>
                 {category.solutions.map((s) => {
                   const opex = s.maintenanceUsdYear + s.energyUsdYear + s.licensingUsdYear;
-                  const annual = annualThroughput(s as SolutionRow);
+                  const annual = annualThroughput(s as SolutionRow, a);
                   const normPrice = annual && annual > 0 ? s.priceUsd / annual : null;
                   return (
                     <tr key={s.id} className="border-b last:border-0">
@@ -101,7 +107,7 @@ export default async function ComparePage({
                         <div className="font-medium">{s.name}</div>
                         <div className="text-xs text-muted-foreground">{s.vendor}</div>
                       </Td>
-                      <Td className="text-right whitespace-nowrap">{formatCost(s.priceUsd)}</Td>
+                      <Td className="text-right whitespace-nowrap">{money(s.priceUsd)}</Td>
                       <Td className="whitespace-nowrap">
                         {s.capacityPerUnit} {s.capacityUnit}
                         <div className="text-xs text-muted-foreground">
@@ -113,12 +119,12 @@ export default async function ComparePage({
                           ? "—"
                           : `${annual.toLocaleString("ru-RU")} ${s.capacityUnit.split("/")[0]}/год`}
                       </Td>
-                      <Td className="text-right whitespace-nowrap">{formatCost(s.maintenanceUsdYear)}</Td>
-                      <Td className="text-right whitespace-nowrap">{formatCost(s.energyUsdYear)}</Td>
-                      <Td className="text-right whitespace-nowrap">{formatCost(s.licensingUsdYear)}</Td>
-                      <Td className="text-right whitespace-nowrap font-medium">{formatCost(opex)}</Td>
+                      <Td className="text-right whitespace-nowrap">{money(s.maintenanceUsdYear)}</Td>
+                      <Td className="text-right whitespace-nowrap">{money(s.energyUsdYear)}</Td>
+                      <Td className="text-right whitespace-nowrap">{money(s.licensingUsdYear)}</Td>
+                      <Td className="text-right whitespace-nowrap font-medium">{money(opex)}</Td>
                       <Td className="text-right whitespace-nowrap">
-                        {normPrice === null ? "—" : formatCost(normPrice)}
+                        {normPrice === null ? "—" : money(normPrice)}
                       </Td>
                       <Td>
                         <Link

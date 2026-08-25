@@ -35,6 +35,9 @@ export type AssumptionValues = {
   // triggers CAPEX re-investment when robots wear out before the ROI horizon ends.
   discountRate: number;
   assetLifeYears: number;
+  // I6: display-only USD→RUB rate. Not used by the engine (all math is USD) — lives here so it
+  // is editable in the same assumptions panel and sourced from the DB Assumption table.
+  usdToRub: number;
 };
 
 type EconomicsCommon = {

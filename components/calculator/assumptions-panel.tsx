@@ -16,6 +16,7 @@ const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   roiHorizonYears: "Горизонт ROI (лет)",
   discountRate: "Ставка дисконтирования (доля)",
   assetLifeYears: "Срок службы техники (лет)",
+  usdToRub: "Курс USD→RUB",
 };
 
 // Ratio (0..1 fraction) assumptions get a finer spinner step; everything else steps by 1.
