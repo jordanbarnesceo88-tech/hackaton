@@ -64,10 +64,13 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
 
 export default async function ComparePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string }>;
+  searchParams: Promise<{ obj?: string }>;
 }) {
   const { type } = await params;
+  const { obj } = await searchParams;
   const [catalog, assumptionRows] = await Promise.all([
     getCatalogForFacilityType(type),
     getAssumptions(),
@@ -79,12 +82,15 @@ export default async function ComparePage({
 
   const a = assumptionsToValues(assumptionRows);
   const money = (usd: number) => formatCost(usd, a.usdToRub);
+  // M4: free-text object name from the "Other" path, echoed here and carried to Step 3.
+  const objectName = obj?.trim().slice(0, 80) || null;
+  const calcQuery = objectName ? `?obj=${encodeURIComponent(objectName)}` : "";
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 py-12">
       <div>
         <h1 className="text-2xl font-semibold">
-          Сравнение решений: {catalog.name} ({catalog.industry.name})
+          Сравнение решений: {objectName ? `«${objectName}»` : catalog.name} ({catalog.industry.name})
         </h1>
         <p className="text-sm text-muted-foreground">
           Показатели по каждому типу решений — цена, полный OPEX и нормированная стоимость
@@ -149,7 +155,7 @@ export default async function ComparePage({
                       </Td>
                       <Td>
                         <Link
-                          href={`/calculate/${s.id}`}
+                          href={`/calculate/${s.id}${calcQuery}`}
                           className="whitespace-nowrap text-sm font-medium underline underline-offset-4"
                         >
                           Рассчитать →

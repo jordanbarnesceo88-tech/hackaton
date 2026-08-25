@@ -35,6 +35,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   **302%**, NPV **+$262k** — versus the old model's 1648% ROI.
 
 ### Added
+- **Free-text object name on the "Other" path (audit M4 / §8 M4).** The generic facility path now
+  offers an optional object name in onboarding, carried via `?obj=` and echoed in the Step-2
+  comparison and Step-3 calculation headings, so the flow reads as tailored to the user's object.
+- **Data-provenance badges in the comparison table (audit D1, partial).** Each solution shows a
+  source badge — демо-данные / данные организатора / открытый источник (linking `sourceUrl`) —
+  so the placeholder catalogue is honestly labelled. The import-side validator stays deferred
+  until real organizer data exists.
 - **Saved analyses can be named (audit U2).** The save control now has an optional name field
   (capped at 120 chars); a blank name falls back to the previous dated default. Two saves on
   the same day are no longer indistinguishable in "Мои расчёты".

@@ -11,6 +11,7 @@ type FacilityType = {
   id: string;
   slug: string;
   name: string;
+  isGeneric: boolean;
 };
 
 type Industry = {
@@ -24,13 +25,19 @@ export function OnboardingForm({ industries }: { industries: Industry[] }) {
   const router = useRouter();
   const [industrySlug, setIndustrySlug] = useState<string | null>(null);
   const [facilityTypeSlug, setFacilityTypeSlug] = useState<string | null>(null);
+  const [objectName, setObjectName] = useState("");
 
   const selectedIndustry = industries.find((i) => i.slug === industrySlug) ?? null;
+  const selectedFacility =
+    selectedIndustry?.facilityTypes.find((f) => f.slug === facilityTypeSlug) ?? null;
 
   function handleContinue() {
-    if (facilityTypeSlug) {
-      router.push(`/compare/${facilityTypeSlug}`);
-    }
+    if (!facilityTypeSlug) return;
+    // M4: on the generic "Other" path, carry the user's free-text object name forward so
+    // Steps 2-3 can echo it back ("tailored to what I entered").
+    const obj = selectedFacility?.isGeneric ? objectName.trim() : "";
+    const query = obj ? `?obj=${encodeURIComponent(obj.slice(0, 80))}` : "";
+    router.push(`/compare/${facilityTypeSlug}${query}`);
   }
 
   return (
@@ -79,6 +86,27 @@ export function OnboardingForm({ industries }: { industries: Industry[] }) {
                 </div>
               ))}
             </RadioGroup>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedFacility?.isGeneric && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Название объекта (необязательно)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <input
+              type="text"
+              value={objectName}
+              maxLength={80}
+              placeholder="Например: распределительный центр «Восток»"
+              onChange={(e) => setObjectName(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Будет показано в расчёте и визуализации.
+            </p>
           </CardContent>
         </Card>
       )}

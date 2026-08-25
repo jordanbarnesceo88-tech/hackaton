@@ -229,4 +229,10 @@ in [docs/superpowers/specs/2026-08-25-economics-model-revision.md](./superpowers
 - **I6 — USD→RUB rate in the Assumption table → RESOLVED.** `usdToRub` is now a seeded,
   editable assumption; `formatCost(usd, rate)` takes it, threaded through the calculator
   results, visualization, and comparison table (all load the DB rate). Default stays 90.
-- Still open (deferred): M4 free-text Other; SEC1 rate-limiting (needs deploy-time shared store).
+- **M4 — free-text "Other" object → RESOLVED.** The generic path now offers an optional object
+  name in onboarding, carried via `?obj=` and echoed in the Step-2 comparison and Step-3 calc
+  headings ("tailored to what I entered").
+- **D1 — provenance → PARTIAL.** Solution rows now show a source badge (демо/организатор/
+  открытый источник) in the comparison table; the import-side validator (require
+  capacityBasis/sourceUrl for non-SEED rows) stays deferred until real organizer data exists.
+- Still open (deferred): SEC1 login/signup rate-limiting (needs a deploy-time shared store).

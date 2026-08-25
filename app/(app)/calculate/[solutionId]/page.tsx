@@ -38,10 +38,11 @@ export default async function CalculatePage({
   searchParams,
 }: {
   params: Promise<{ solutionId: string }>;
-  searchParams: Promise<{ analysis?: string }>;
+  searchParams: Promise<{ analysis?: string; obj?: string }>;
 }) {
   const { solutionId } = await params;
-  const { analysis: analysisId } = await searchParams;
+  const { analysis: analysisId, obj } = await searchParams;
+  const objectName = obj?.trim().slice(0, 80) || null; // M4: echo the "Other" object name
   const [solution, assumptionRows] = await Promise.all([
     getSolutionForCalc(solutionId),
     getAssumptions(),
@@ -76,7 +77,10 @@ export default async function CalculatePage({
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 py-12">
       <div>
-        <h1 className="text-2xl font-semibold">Расчёт экономики: {solution.name}</h1>
+        <h1 className="text-2xl font-semibold">
+          Расчёт экономики: {solution.name}
+          {objectName ? ` — объект «${objectName}»` : ""}
+        </h1>
         <p className="text-sm text-muted-foreground">
           {solution.vendor} · {solution.solutionCategory.facilityType.name} (
           {solution.solutionCategory.facilityType.industry.name})
