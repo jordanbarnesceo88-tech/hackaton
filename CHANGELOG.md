@@ -43,6 +43,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   concurrent-stock) — replacing the old catalog cards. Delivers the brief's headline
   "independent comparison" value.
 
+- **Only basis-relevant calculator fields are shown (audit U1 / REFACTORING #6).** `area` is
+  relabelled "Площадь, м² (только визуализация)" since it drives only the Step-4 scene, and
+  basis-specific assumptions are hidden when they don't apply (`operatingHoursPerDay` only for
+  PER_HOUR_FLOW, `turnoverPerDay` only for CONCURRENT_STOCK) — so editing any visible field
+  visibly changes the result. No economics-model change.
+
 ### Fixed
 - **Code-review fixes on the audit branch (2026-08-25).**
   - A3 re-CAPEX no longer charges a spurious final-year fleet purchase: the fleet is re-bought

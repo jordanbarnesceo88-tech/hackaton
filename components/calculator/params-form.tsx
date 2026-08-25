@@ -21,7 +21,9 @@ export function ParamsForm({
         <CardTitle>Параметры объекта</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <NumField id="areaM2" label="Площадь (м²)" value={params.areaM2}
+        {/* U1: area does not enter the economics — it only sizes the Step-4 scene. Labelled so
+            no field silently fails to move the result. */}
+        <NumField id="areaM2" label="Площадь, м² (только визуализация)" value={params.areaM2}
           onChange={(n) => setParams((p) => ({ ...p, areaM2: n }))} />
         <NumField id="opsPerDay" label="Объём операций в сутки" value={params.opsPerDay}
           onChange={(n) => setParams((p) => ({ ...p, opsPerDay: n }))} />

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumField } from "@/components/ui/num-field";
-import type { AssumptionValues } from "@/lib/economics/types";
+import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
 
 const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   laborCostPerHourUsd: "Стоимость труда (USD/час)",
@@ -26,20 +26,33 @@ const RATIO_KEYS = new Set<keyof AssumptionValues>([
   "discountRate",
 ]);
 
+// U1: assumptions the engine only consumes for a specific capacity basis. Hidden for other
+// bases so every visible field actually affects the result (operatingHoursPerDay only
+// annualizes PER_HOUR_FLOW capacity; turnoverPerDay only derives the CONCURRENT_STOCK peak).
+const BASIS_ONLY: Partial<Record<keyof AssumptionValues, CapacityBasis>> = {
+  operatingHoursPerDay: "PER_HOUR_FLOW",
+  turnoverPerDay: "CONCURRENT_STOCK",
+};
+
 export function AssumptionsPanel({
   assumptions,
   setAssumptions,
+  capacityBasis,
 }: {
   assumptions: AssumptionValues;
   setAssumptions: Dispatch<SetStateAction<AssumptionValues>>;
+  capacityBasis: CapacityBasis;
 }) {
+  const visibleKeys = (Object.keys(ASSUMPTION_LABELS) as (keyof AssumptionValues)[]).filter(
+    (k) => !BASIS_ONLY[k] || BASIS_ONLY[k] === capacityBasis
+  );
   return (
     <Card className="md:col-span-2">
       <CardHeader>
         <CardTitle>Допущения (можно изменить)</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-        {(Object.keys(ASSUMPTION_LABELS) as (keyof AssumptionValues)[]).map((k) => (
+        {visibleKeys.map((k) => (
           <NumField
             key={k}
             id={k}

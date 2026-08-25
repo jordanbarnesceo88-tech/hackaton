@@ -59,7 +59,11 @@ export function EconomicsCalculator({
         assumptions={assumptions}
         result={result}
       />
-      <AssumptionsPanel assumptions={assumptions} setAssumptions={setAssumptions} />
+      <AssumptionsPanel
+        assumptions={assumptions}
+        setAssumptions={setAssumptions}
+        capacityBasis={capacity.capacityBasis}
+      />
       <FacilityVisualization
         facilityKind={mapKind(facilitySlug)}
         params={params}

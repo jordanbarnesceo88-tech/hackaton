@@ -222,5 +222,8 @@ in [docs/superpowers/specs/2026-08-25-economics-model-revision.md](./superpowers
 - **I5 — Step 2 comparison → RESOLVED (P1).** `/compare/[type]` now renders a per-category
   comparison table (price, capacity + basis, full OPEX = maint+energy+licensing, and a
   normalized "цена за ед. годовой производительности") instead of the old catalog cards.
-- Still open (deferred): I6 rate-in-Assumptions, M4 free-text Other, and the U1 inert-`area`
-  field (being addressed next).
+- **U1 — inert calculator fields → RESOLVED (REFACTORING #6).** `area` is relabelled "только
+  визуализация" (it drives only the Step-4 scene), and basis-only assumptions are hidden when
+  they don't apply (`operatingHoursPerDay` only for PER_HOUR_FLOW, `turnoverPerDay` only for
+  CONCURRENT_STOCK) — so every visible field moves the result. No economics-model change.
+- Still open (deferred): I6 rate-in-Assumptions, M4 free-text Other.
