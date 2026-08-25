@@ -23,12 +23,17 @@ export type AssumptionValues = {
   operatingHoursPerDay: number;
   installPctOfCapex: number;
   laborReplacementPct: number;
+  // A1: annual operations one human worker handles (same unit as facility demand). Caps how
+  // many workers the fleet can realistically displace, so savings track workload not headcount.
+  opsPerWorkerPerYear: number;
   turnoverPerDay: number;
   roiHorizonYears: number;
 };
 
 type EconomicsCommon = {
   quantity: number;
+  // A1: workload-capped displaced full-time-equivalents = min(staffCount, demand/opsPerWorker).
+  displacedFte: number;
   capexUsd: number;
   opexAnnualUsd: number;
   baselineAnnualUsd: number;

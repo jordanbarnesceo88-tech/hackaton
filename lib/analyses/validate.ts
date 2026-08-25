@@ -42,6 +42,7 @@ const ASSUMPTION_KEYS: (keyof AssumptionValues)[] = [
   "operatingHoursPerDay",
   "installPctOfCapex",
   "laborReplacementPct",
+  "opsPerWorkerPerYear",
   "turnoverPerDay",
   "roiHorizonYears",
 ];

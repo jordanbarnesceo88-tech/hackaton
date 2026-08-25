@@ -23,6 +23,7 @@ const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   operatingHoursPerDay: "Часов работы в сутки",
   installPctOfCapex: "Монтаж (доля от CAPEX)",
   laborReplacementPct: "Замещение труда (доля)",
+  opsPerWorkerPerYear: "Операций на сотрудника в год",
   turnoverPerDay: "Оборотов в сутки",
   roiHorizonYears: "Горизонт ROI (лет)",
 };
@@ -124,7 +125,7 @@ export function EconomicsCalculator({
             onChange={(n) => setParams((p) => ({ ...p, areaM2: n }))} />
           <NumField id="opsPerDay" label="Объём операций в сутки" value={params.opsPerDay}
             onChange={(n) => setParams((p) => ({ ...p, opsPerDay: n }))} />
-          <NumField id="staffCount" label="Численность персонала" value={params.staffCount}
+          <NumField id="staffCount" label="Персонал, замещаемый решением" value={params.staffCount}
             onChange={(n) => setParams((p) => ({ ...p, staffCount: n }))} />
           {isStock && (
             <NumField
@@ -152,6 +153,7 @@ export function EconomicsCalculator({
           ) : (
             <>
               <div>Требуется единиц: <b>{result.quantity}</b></div>
+              <div>Замещается персонала (ЭПЗ): <b>{result.displacedFte.toFixed(1)}</b></div>
               <div>CAPEX: <b>{formatCost(result.capexUsd)}</b></div>
               <div>OPEX/год: <b>{formatCost(result.opexAnnualUsd)}</b></div>
               <div>Базовые затраты на труд/год: {formatCost(result.baselineAnnualUsd)}</div>

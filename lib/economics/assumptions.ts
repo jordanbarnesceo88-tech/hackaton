@@ -7,6 +7,7 @@ export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
   operatingHoursPerDay: 16,
   installPctOfCapex: 0.15,
   laborReplacementPct: 0.7,
+  opsPerWorkerPerYear: 12500, // A1
   turnoverPerDay: 8,
   roiHorizonYears: 5,
 };

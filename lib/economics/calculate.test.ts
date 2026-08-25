@@ -9,6 +9,7 @@ const a: AssumptionValues = {
   operatingHoursPerDay: 16,
   installPctOfCapex: 0.15,
   laborReplacementPct: 0.7,
+  opsPerWorkerPerYear: 12500,
   turnoverPerDay: 8,
   roiHorizonYears: 5,
 };
@@ -25,21 +26,34 @@ const cap: SolutionCapacity = {
 
 describe("computeEconomics", () => {
   it("computes an economical result with all fields", () => {
-    // staff 10 -> baseline = 10*15*2000 = 300000
+    // demand/yr = 400*250 = 100000; maxDisplaceable = 100000/12500 = 8; displacedFte = min(10,8)=8
+    // baseline = 8*(15*2000) = 8*30000 = 240000
     // qty 1 -> capex = 1*50000*1.15 = 57500; opex = 1*(6000+1000+2000)=9000
-    // savings = 300000*0.7 - 9000 = 210000 - 9000 = 201000
-    // payback = 57500/201000 ≈ 0.286; roi = (201000*5 - 57500)/57500*100 ≈ 1647.8
+    // savings = 240000*0.7 - 9000 = 168000 - 9000 = 159000
+    // payback = 57500/159000 ≈ 0.362; roi = (159000*5 - 57500)/57500*100 ≈ 1282.6
     const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
     const r = computeEconomics(cap, params, a);
     expect(r.economical).toBe(true);
     if (!r.economical) return;
     expect(r.quantity).toBe(1);
+    expect(r.displacedFte).toBeCloseTo(8, 6);
     expect(r.capexUsd).toBeCloseTo(57500, 2);
     expect(r.opexAnnualUsd).toBeCloseTo(9000, 2);
-    expect(r.baselineAnnualUsd).toBeCloseTo(300000, 2);
-    expect(r.annualSavingsUsd).toBeCloseTo(201000, 2);
-    expect(r.paybackYears).toBeCloseTo(57500 / 201000, 4);
-    expect(r.roiPct).toBeCloseTo(((201000 * 5 - 57500) / 57500) * 100, 2);
+    expect(r.baselineAnnualUsd).toBeCloseTo(240000, 2);
+    expect(r.annualSavingsUsd).toBeCloseTo(159000, 2);
+    expect(r.paybackYears).toBeCloseTo(57500 / 159000, 4);
+    expect(r.roiPct).toBeCloseTo(((159000 * 5 - 57500) / 57500) * 100, 2);
+  });
+
+  it("caps displaced labor by workload, not raw headcount (A1)", () => {
+    // opsPerDay 40 -> demand/yr 10000 -> maxDisplaceable 10000/12500 = 0.8; staffCount 100
+    // displacedFte = min(100, 0.8) = 0.8 (a huge headcount can't inflate savings)
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 40, staffCount: 100 };
+    const r = computeEconomics(cap, params, a);
+    if (!r.economical && r.reason === "invalid_inputs") throw new Error("unexpected invalid");
+    expect(r.displacedFte).toBeCloseTo(0.8, 6);
+    if (r.economical) return; // tiny workload likely won't cover OPEX — either branch is fine
+    expect(r.reason).toBe("no_savings");
   });
 
   it("scales OPEX by quantity (I1)", () => {
@@ -49,6 +63,14 @@ describe("computeEconomics", () => {
     if (!r.economical) throw new Error("expected economical");
     expect(r.quantity).toBe(4);
     expect(r.opexAnnualUsd).toBeCloseTo(36000, 2);
+  });
+
+  it("returns invalid_inputs when opsPerWorkerPerYear <= 0 (A1)", () => {
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    expect(computeEconomics(cap, params, { ...a, opsPerWorkerPerYear: 0 })).toEqual({
+      economical: false,
+      reason: "invalid_inputs",
+    });
   });
 
   it("returns not-economical when savings <= 0 (C2), no payback/roi", () => {
@@ -64,11 +86,11 @@ describe("computeEconomics", () => {
   });
 
   it("applies labor-replacement pct < 100 (I2)", () => {
-    // baseline 300000, replacement 0.5 -> labor saved 150000; opex 9000; savings 141000
+    // displacedFte 8 -> baseline 240000; replacement 0.5 -> labor saved 120000; opex 9000
     const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
     const r = computeEconomics(cap, params, { ...a, laborReplacementPct: 0.5 });
     if (!r.economical) throw new Error("expected economical");
-    expect(r.annualSavingsUsd).toBeCloseTo(150000 - 9000, 2);
+    expect(r.annualSavingsUsd).toBeCloseTo(120000 - 9000, 2);
   });
 
   // E1: the engine must never leak Infinity/NaN for degenerate inputs — it returns a typed

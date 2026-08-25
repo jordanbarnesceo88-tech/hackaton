@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed (economics model — output numbers change; signed off 2026-08-25)
+
+> Audit findings A1–A3, spec: `docs/superpowers/specs/2026-08-25-economics-model-revision.md`.
+> Each is a separate commit; together they replace the over-optimistic Week-2 savings/ROI.
+
+- **A1 — labor savings now track workload, not raw headcount.** New editable
+  `opsPerWorkerPerYear` assumption (default 12500) caps displaced staff:
+  `displacedFte = min(staffCount, demandPerYear ÷ opsPerWorkerPerYear)`, and `baseline` +
+  savings derive from `displacedFte`. A facility that overstates headcount relative to its
+  operation volume can no longer inflate savings (e.g. 1 robot doing 40 ops/day now displaces
+  0.8 FTE, not 70% of a 100-person payroll). The Step-3 input is relabelled "Персонал,
+  замещаемый решением" and the results show "Замещается персонала (ЭПЗ)". `opsPerWorkerPerYear
+  ≤ 0` → `invalid_inputs`. Example (default per-day solution, 400 ops/day, 10 staff): annual
+  savings 201k → **159k**, ROI 1648% → **1283%**.
+
 ### Fixed
 - **Validate the saved-analysis payload server-side (audit S1).** The save action persisted
   fully client-controlled input as jsonb with no checks. Added tested `lib/analyses/validate.ts`

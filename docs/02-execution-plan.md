@@ -207,3 +207,17 @@ is designed — do not start Week 2 economics coding before resolving the C-clus
   echo it back ("tailored to what I entered").
 - **M5 — `SolutionCategory.slug` was globally unique** → collision risk with organizer
   data. (Fixed in Week 1 plan: now `@@unique([facilityTypeId, slug])`.)
+
+### Resolution log — post-build audit (2026-08-24/25)
+
+A full read-only audit ([docs/AUDIT.md](./AUDIT.md)) reconfirmed §8 status and surfaced new
+findings. Economics-model fixes (change output numbers, product-owner-signed-off) are specified
+in [docs/superpowers/specs/2026-08-25-economics-model-revision.md](./superpowers/specs/2026-08-25-economics-model-revision.md):
+
+- **I2 — 100% labor / no residual cost → RESOLVED (A1 + A2).** Displaced labor is now
+  workload-capped (`displacedFte = min(staffCount, demand/opsPerWorkerPerYear)`), the default
+  replacement is 0.5 (was 0.7), and a `residualSupervisionPct` retains ongoing oversight cost.
+- **M2 — discount rate → RESOLVED (A3).** `discountRate` + `assetLifeYears` now drive NPV,
+  discounted payback, and horizon re-CAPEX alongside the (relabelled) simple figures.
+- Still open (deferred, not part of this pass): I5 comparison (P1), I6 rate-in-Assumptions,
+  M4 free-text Other, and the U1 inert-`area` field.
