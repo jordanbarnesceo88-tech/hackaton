@@ -34,6 +34,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   staff): annual savings **$111k**, simple payback **1.2 г**, discounted **1.4 г**, simple ROI
   **302%**, NPV **+$262k** — versus the old model's 1648% ROI.
 
+### Added
+- **Real Step-2 comparison table (audit P1 / §8 I5).** `/compare/[type]` now renders a
+  per-category side-by-side table — price, capacity + basis, the **full** OPEX breakdown
+  (maintenance + energy + licensing, previously only maintenance was shown), the annual OPEX
+  total, and a normalized "цена за ед. годовой производительности" (price ÷ annualized
+  throughput, via the engine's `capacityPerYear`; shown only for flow bases, "—" for
+  concurrent-stock) — replacing the old catalog cards. Delivers the brief's headline
+  "independent comparison" value.
+
 ### Fixed
 - **Code-review fixes on the audit branch (2026-08-25).**
   - A3 re-CAPEX no longer charges a spurious final-year fleet purchase: the fleet is re-bought

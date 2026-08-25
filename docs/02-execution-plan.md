@@ -219,5 +219,8 @@ in [docs/superpowers/specs/2026-08-25-economics-model-revision.md](./superpowers
   replacement is 0.5 (was 0.7), and a `residualSupervisionPct` retains ongoing oversight cost.
 - **M2 — discount rate → RESOLVED (A3).** `discountRate` + `assetLifeYears` now drive NPV,
   discounted payback, and horizon re-CAPEX alongside the (relabelled) simple figures.
-- Still open (deferred, not part of this pass): I5 comparison (P1), I6 rate-in-Assumptions,
-  M4 free-text Other, and the U1 inert-`area` field.
+- **I5 — Step 2 comparison → RESOLVED (P1).** `/compare/[type]` now renders a per-category
+  comparison table (price, capacity + basis, full OPEX = maint+energy+licensing, and a
+  normalized "цена за ед. годовой производительности") instead of the old catalog cards.
+- Still open (deferred): I6 rate-in-Assumptions, M4 free-text Other, and the U1 inert-`area`
+  field (being addressed next).
