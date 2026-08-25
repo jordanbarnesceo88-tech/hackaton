@@ -23,11 +23,15 @@ export function SaveControl({
   result: EconomicsResult;
 }) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [name, setName] = useState("");
 
   async function handleSave() {
     setSaveMsg(null);
+    // Fall back to a dated default when the user leaves the name blank.
+    const trimmed = name.trim();
+    const finalName = trimmed || `Расчёт — ${new Date().toLocaleDateString("ru-RU")}`;
     const res = await saveAnalysisAction({
-      name: `Расчёт — ${new Date().toLocaleDateString("ru-RU")}`,
+      name: finalName,
       facilityTypeSlug: facilitySlug,
       solutionId,
       params,
@@ -40,7 +44,15 @@ export function SaveControl({
   }
 
   return (
-    <div className="md:col-span-2 flex items-center gap-3">
+    <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+      <input
+        type="text"
+        value={name}
+        maxLength={120}
+        placeholder="Название расчёта (необязательно)"
+        onChange={(e) => setName(e.target.value)}
+        className="min-w-56 flex-1 rounded-md border px-3 py-2 text-sm"
+      />
       <button onClick={handleSave}
         className="rounded-md border px-3 py-2 text-sm font-medium">
         Сохранить расчёт
