@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { NumField } from "@/components/ui/num-field";
 import { FacilityVisualization } from "@/components/facility-visualization";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
@@ -38,35 +38,6 @@ const RATIO_KEYS = new Set<keyof AssumptionValues>([
   "residualSupervisionPct",
   "discountRate",
 ]);
-
-function NumField({
-  id,
-  label,
-  value,
-  step = 1,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: number;
-  step?: number;
-  onChange: (n: number) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id}>{label}</Label>
-      <input
-        id={id}
-        type="number"
-        min={0}
-        step={step}
-        className="rounded-md border px-3 py-2 text-sm"
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </div>
-  );
-}
 
 export function EconomicsCalculator({
   capacity,
