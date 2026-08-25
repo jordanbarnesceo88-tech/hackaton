@@ -11,6 +11,8 @@ export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
   opsPerWorkerPerYear: 12500, // A1
   turnoverPerDay: 8,
   roiHorizonYears: 5,
+  discountRate: 0.12, // A3
+  assetLifeYears: 7, // A3
 };
 
 export function assumptionsToValues(

@@ -31,6 +31,10 @@ export type AssumptionValues = {
   opsPerWorkerPerYear: number;
   turnoverPerDay: number;
   roiHorizonYears: number;
+  // A3: time-value + lifecycle. discountRate drives NPV / discounted payback; assetLifeYears
+  // triggers CAPEX re-investment when robots wear out before the ROI horizon ends.
+  discountRate: number;
+  assetLifeYears: number;
 };
 
 type EconomicsCommon = {
@@ -46,8 +50,12 @@ type EconomicsCommon = {
 export type EconomicsResult =
   | (EconomicsCommon & {
       economical: true;
-      paybackYears: number;
-      roiPct: number;
+      // A3: "simple" = undiscounted; NPV/discounted payback use the discount rate. Discounted
+      // payback is null when the investment does not pay back within the ROI horizon.
+      simplePaybackYears: number;
+      simpleRoiPct: number;
+      npvUsd: number;
+      discountedPaybackYears: number | null;
     })
   | (EconomicsCommon & {
       economical: false;

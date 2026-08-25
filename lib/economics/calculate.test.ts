@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { computeEconomics } from "./calculate";
+import { npv, discountedPaybackYears } from "./finance";
 import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
 
 const a: AssumptionValues = {
@@ -13,6 +14,8 @@ const a: AssumptionValues = {
   opsPerWorkerPerYear: 12500,
   turnoverPerDay: 8,
   roiHorizonYears: 5,
+  discountRate: 0.12,
+  assetLifeYears: 7,
 };
 
 // PER_DAY_FLOW, cap 400/day. opsPerDay 400 -> qty = ceil((400*250)/(400*250)) = 1.
@@ -42,8 +45,15 @@ describe("computeEconomics", () => {
     expect(r.opexAnnualUsd).toBeCloseTo(9000, 2);
     expect(r.baselineAnnualUsd).toBeCloseTo(240000, 2);
     expect(r.annualSavingsUsd).toBeCloseTo(159000, 2);
-    expect(r.paybackYears).toBeCloseTo(57500 / 159000, 4);
-    expect(r.roiPct).toBeCloseTo(((159000 * 5 - 57500) / 57500) * 100, 2);
+    // A3: asset life 7 >= horizon 5 -> no re-CAPEX, so simple figures match the old formula.
+    expect(r.simplePaybackYears).toBeCloseTo(57500 / 159000, 4);
+    expect(r.simpleRoiPct).toBeCloseTo(((159000 * 5 - 57500) / 57500) * 100, 2);
+    const cfs = [-57500, 159000, 159000, 159000, 159000, 159000];
+    expect(r.npvUsd).toBeCloseTo(npv(a.discountRate, cfs), 2);
+    expect(r.discountedPaybackYears).toBeCloseTo(
+      discountedPaybackYears(a.discountRate, cfs)!,
+      4
+    );
   });
 
   it("caps displaced labor by workload, not raw headcount (A1)", () => {
@@ -100,6 +110,39 @@ describe("computeEconomics", () => {
     const r = computeEconomics(cap, params, { ...a, residualSupervisionPct: 0.1 });
     if (!r.economical) throw new Error("expected economical");
     expect(r.annualSavingsUsd).toBeCloseTo(240000 * 0.7 * 0.9 - 9000, 2);
+  });
+
+  describe("discounting & asset lifecycle (A3)", () => {
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+
+    it("re-buys CAPEX when asset life < horizon and reflects it in simple ROI", () => {
+      // life 2, horizon 5 -> re-CAPEX at t=2,4 -> investment = capex*3 = 172500
+      const r = computeEconomics(cap, params, { ...a, assetLifeYears: 2 });
+      if (!r.economical) throw new Error("expected economical");
+      const investment = 57500 * 3;
+      expect(r.simpleRoiPct).toBeCloseTo(((159000 * 5 - investment) / investment) * 100, 2);
+      const cfs = [-57500, 159000, 159000 - 57500, 159000, 159000 - 57500, 159000];
+      expect(r.npvUsd).toBeCloseTo(npv(a.discountRate, cfs), 2);
+    });
+
+    it("reports null discounted payback when it never recovers within the horizon", () => {
+      // huge CAPEX, 1-year horizon -> positive annual savings but no discounted payback
+      const pricey: SolutionCapacity = { ...cap, priceUsd: 5_000_000 };
+      const r = computeEconomics(pricey, params, { ...a, roiHorizonYears: 1 });
+      if (!r.economical) throw new Error("expected economical (savings still > 0)");
+      expect(r.discountedPaybackYears).toBeNull();
+      expect(r.npvUsd).toBeLessThan(0);
+    });
+
+    it("rejects a non-positive horizon / asset life / discount rate as invalid_inputs", () => {
+      expect(computeEconomics(cap, params, { ...a, roiHorizonYears: 0 }).economical).toBe(false);
+      expect(computeEconomics(cap, params, { ...a, assetLifeYears: 0 }).economical).toBe(false);
+      expect(computeEconomics(cap, params, { ...a, discountRate: -1 }).economical).toBe(false);
+      expect(computeEconomics(cap, params, { ...a, assetLifeYears: 0 })).toEqual({
+        economical: false,
+        reason: "invalid_inputs",
+      });
+    });
   });
 
   // E1: the engine must never leak Infinity/NaN for degenerate inputs — it returns a typed

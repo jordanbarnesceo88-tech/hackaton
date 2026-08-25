@@ -343,6 +343,8 @@ async function main() {
     { key: "opsPerWorkerPerYear", label: "Операций на сотрудника в год", value: 12500, unit: "операций", order: 8 },
     { key: "turnoverPerDay", label: "Оборотов в сутки (для stock-решений)", value: 8, unit: "раз", order: 9 },
     { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 10 },
+    { key: "discountRate", label: "Ставка дисконтирования", value: 0.12, unit: "доля", order: 11 },
+    { key: "assetLifeYears", label: "Срок службы техники", value: 7, unit: "лет", order: 12 },
   ];
   for (const asmp of assumptions) {
     await prisma.assumption.upsert({

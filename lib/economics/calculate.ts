@@ -5,6 +5,7 @@ import type {
   EconomicsResult,
 } from "./types";
 import { computeQuantity, demandPerYear } from "./normalize";
+import { npv, discountedPaybackYears } from "./finance";
 
 export function computeEconomics(
   cap: SolutionCapacity,
@@ -12,8 +13,14 @@ export function computeEconomics(
   a: AssumptionValues
 ): EconomicsResult {
   const quantity = computeQuantity(cap, params, a);
-  if (quantity === null || !(a.opsPerWorkerPerYear > 0)) {
-    return { economical: false, reason: "invalid_inputs" }; // E1 / A1
+  if (
+    quantity === null ||
+    !(a.opsPerWorkerPerYear > 0) ||
+    !(a.roiHorizonYears >= 1) || // A3: need at least one year to model
+    !(a.assetLifeYears > 0) || // A3: re-CAPEX cadence divisor
+    !(a.discountRate > -1) // A3: (1+rate) must stay positive
+  ) {
+    return { economical: false, reason: "invalid_inputs" }; // E1 / A1 / A3
   }
 
   // A1: cap displaced labor by the work the fleet actually covers, not raw headcount. The
@@ -57,9 +64,30 @@ export function computeEconomics(
     return { economical: false, reason: "no_savings", ...common }; // C2
   }
 
-  const paybackYears = capexUsd / annualSavingsUsd;
-  const roiPct =
-    ((annualSavingsUsd * a.roiHorizonYears - capexUsd) / capexUsd) * 100;
+  // A3: model yearly cash flows over the horizon, re-buying the fleet whenever the assets
+  // wear out mid-horizon (assetLifeYears < roiHorizonYears). t=0 is the initial CAPEX outlay.
+  const horizon = Math.floor(a.roiHorizonYears);
+  const cashflows: number[] = [-capexUsd];
+  let reCapexTotal = 0;
+  for (let t = 1; t <= horizon; t++) {
+    const reCapex = t % a.assetLifeYears === 0 ? capexUsd : 0;
+    reCapexTotal += reCapex;
+    cashflows.push(annualSavingsUsd - reCapex);
+  }
 
-  return { economical: true, ...common, paybackYears, roiPct };
+  const investmentUsd = capexUsd + reCapexTotal;
+  const simplePaybackYears = capexUsd / annualSavingsUsd; // undiscounted, first-cost
+  const simpleRoiPct =
+    ((annualSavingsUsd * horizon - investmentUsd) / investmentUsd) * 100;
+  const npvUsd = npv(a.discountRate, cashflows);
+  const discountedPayback = discountedPaybackYears(a.discountRate, cashflows);
+
+  return {
+    economical: true,
+    ...common,
+    simplePaybackYears,
+    simpleRoiPct,
+    npvUsd,
+    discountedPaybackYears: discountedPayback,
+  };
 }

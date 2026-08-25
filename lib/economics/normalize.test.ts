@@ -12,6 +12,8 @@ const a: AssumptionValues = {
   residualSupervisionPct: 0,
   opsPerWorkerPerYear: 12500,
   turnoverPerDay: 8,
+  discountRate: 0.12,
+  assetLifeYears: 7,
   roiHorizonYears: 5,
 };
 const params: FacilityParams = { areaM2: 1000, opsPerDay: 1600, staffCount: 10 };

@@ -23,6 +23,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   lowered 0.7 → **0.5**, and a new editable `residualSupervisionPct` (default 0.1) retains
   ongoing human oversight: `savings = baseline × replacement × (1 − residual) − opex`. Removes
   the "robots eliminate 70% of all labor at zero running cost" optimism the audit flagged.
+- **A3 — discounting, NPV & asset lifecycle.** New editable `discountRate` (0.12) and
+  `assetLifeYears` (7). The engine now models yearly cash flows over the ROI horizon, re-buying
+  the fleet when assets expire mid-horizon, and reports **NPV** and **discounted payback**
+  alongside the (now explicitly labelled) **simple** payback/ROI. `paybackYears`→
+  `simplePaybackYears`, `roiPct`→`simpleRoiPct`; adds `npvUsd` and `discountedPaybackYears`
+  (null = no payback within the horizon, shown as "более N лет"). Non-positive horizon / asset
+  life / discount rate ≤ −1 → `invalid_inputs`. New `lib/economics/finance.ts` (`npv`,
+  `discountedPaybackYears`) is unit-tested. Example (default DB assumptions, 500 ops/day, 10
+  staff): annual savings **$111k**, simple payback **1.2 г**, discounted **1.4 г**, simple ROI
+  **302%**, NPV **+$262k** — versus the old model's 1648% ROI.
 
 ### Fixed
 - **Validate the saved-analysis payload server-side (audit S1).** The save action persisted

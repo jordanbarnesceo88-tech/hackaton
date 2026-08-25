@@ -46,6 +46,8 @@ const ASSUMPTION_KEYS: (keyof AssumptionValues)[] = [
   "opsPerWorkerPerYear",
   "turnoverPerDay",
   "roiHorizonYears",
+  "discountRate",
+  "assetLifeYears",
 ];
 
 /** Validate the assumptions bag: every known key present and a finite number. */

@@ -27,6 +27,8 @@ const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   opsPerWorkerPerYear: "Операций на сотрудника в год",
   turnoverPerDay: "Оборотов в сутки",
   roiHorizonYears: "Горизонт ROI (лет)",
+  discountRate: "Ставка дисконтирования (доля)",
+  assetLifeYears: "Срок службы техники (лет)",
 };
 
 // Ratio (0..1 fraction) assumptions get a finer spinner step; everything else steps by 1.
@@ -34,6 +36,7 @@ const RATIO_KEYS = new Set<keyof AssumptionValues>([
   "installPctOfCapex",
   "laborReplacementPct",
   "residualSupervisionPct",
+  "discountRate",
 ]);
 
 function NumField({
@@ -162,8 +165,17 @@ export function EconomicsCalculator({
               {result.economical ? (
                 <>
                   <div>Годовая экономия: <b>{formatCost(result.annualSavingsUsd)}</b></div>
-                  <div>Срок окупаемости: <b>{formatYearsRu(result.paybackYears)}</b></div>
-                  <div>ROI: <b>{result.roiPct.toFixed(0)}%</b></div>
+                  <div>Срок окупаемости (простой): <b>{formatYearsRu(result.simplePaybackYears)}</b></div>
+                  <div>
+                    Срок окупаемости (дисконт.):{" "}
+                    <b>
+                      {result.discountedPaybackYears === null
+                        ? `более ${assumptions.roiHorizonYears} лет`
+                        : formatYearsRu(result.discountedPaybackYears)}
+                    </b>
+                  </div>
+                  <div>ROI (простой, без дисконтирования): <b>{result.simpleRoiPct.toFixed(0)}%</b></div>
+                  <div>NPV (чистая приведённая стоимость): <b>{formatCost(result.npvUsd)}</b></div>
                 </>
               ) : (
                 <div className="font-medium text-red-600">
