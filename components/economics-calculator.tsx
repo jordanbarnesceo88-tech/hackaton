@@ -23,12 +23,20 @@ export function EconomicsCalculator({
   initialSelectedId,
   initialAssumptions,
   facilitySlug,
+  facilityTypeName,
+  industryName,
+  objectName,
+  dataChanged,
   initialParams,
 }: {
   categorySolutions: SiblingSolution[];
   initialSelectedId: string;
   initialAssumptions: AssumptionValues;
   facilitySlug: string;
+  facilityTypeName: string;
+  industryName: string;
+  objectName: string | null;
+  dataChanged: boolean;
   initialParams?: FacilityParams;
 }) {
   const [selectedSolutionId, setSelectedSolutionId] = useState(initialSelectedId);
@@ -60,7 +68,24 @@ export function EconomicsCalculator({
   const bars = sensitivity(capacity, params, assumptions);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="flex flex-col gap-6">
+      {/* Header lives here (not the server page) so the title/vendor follow an in-place switch. */}
+      <div>
+        <h1 className="text-2xl font-semibold">
+          Расчёт экономики: {primary.name}
+          {objectName ? ` — объект «${objectName}»` : ""}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {primary.vendor} · {facilityTypeName} ({industryName})
+        </p>
+      </div>
+      {dataChanged && (
+        <div className="rounded-md border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
+          актуальным данным, он может отличаться от сохранённого.
+        </div>
+      )}
+      <div className="grid gap-6 md:grid-cols-2">
       <ParamsForm
         params={params}
         setParams={setParams}
@@ -95,6 +120,7 @@ export function EconomicsCalculator({
         capacityUnit={primary.capacityUnit}
         result={result}
       />
+      </div>
     </div>
   );
 }

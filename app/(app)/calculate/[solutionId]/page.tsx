@@ -82,28 +82,16 @@ export default async function CalculatePage({
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 py-12">
-      <div>
-        <h1 className="text-2xl font-semibold">
-          Расчёт экономики: {solution.name}
-          {objectName ? ` — объект «${objectName}»` : ""}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {solution.vendor} · {solution.solutionCategory.facilityType.name} (
-          {solution.solutionCategory.facilityType.industry.name})
-        </p>
-      </div>
-      {dataChanged && (
-        <div className="rounded-md border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
-          актуальным данным, он может отличаться от сохранённого.
-        </div>
-      )}
+    <div className="mx-auto max-w-3xl py-12">
       <EconomicsCalculator
         categorySolutions={categorySolutions}
         initialSelectedId={solution.id}
         initialAssumptions={initialAssumptions}
         facilitySlug={solution.solutionCategory.facilityType.slug}
+        facilityTypeName={solution.solutionCategory.facilityType.name}
+        industryName={solution.solutionCategory.facilityType.industry.name}
+        objectName={objectName}
+        dataChanged={dataChanged}
         initialParams={initialParams}
       />
     </div>
