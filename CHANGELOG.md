@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- **ROI-ranked recommendation + NPV sensitivity on the calculate page (decision engine).** For
+  the user's facility, Step 3 now ranks the chosen solution's category siblings by NPV/payback
+  ("Рекомендация для вашего объекта", ★ on the best) and lets you switch the primary solution
+  **in place** — results, visualization, and save all follow instantly, no reload. Below it, an
+  **NPV sensitivity tornado** ("Чувствительность NPV к допущениям") shows how much each
+  assumption swings the result at ±25%, exposing the levers behind the number. New pure engine
+  modules `lib/economics/recommend.ts` + `sensitivity.ts` (with a behavior-preserving extraction
+  of `baseEconomics`/`projectFinance` from `calculate.ts` so the tornado computes honest negative
+  NPVs). Spec: `docs/superpowers/specs/2026-08-29-recommendation-sensitivity-design.md`.
+
 ### Changed (economics model — output numbers change; signed off 2026-08-25)
 
 > Audit findings A1–A3, spec: `docs/superpowers/specs/2026-08-25-economics-model-revision.md`.
