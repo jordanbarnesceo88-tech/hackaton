@@ -207,3 +207,32 @@ is designed — do not start Week 2 economics coding before resolving the C-clus
   echo it back ("tailored to what I entered").
 - **M5 — `SolutionCategory.slug` was globally unique** → collision risk with organizer
   data. (Fixed in Week 1 plan: now `@@unique([facilityTypeId, slug])`.)
+
+### Resolution log — post-build audit (2026-08-24/25)
+
+A full read-only audit ([docs/AUDIT.md](./AUDIT.md)) reconfirmed §8 status and surfaced new
+findings. Economics-model fixes (change output numbers, product-owner-signed-off) are specified
+in [docs/superpowers/specs/2026-08-25-economics-model-revision.md](./superpowers/specs/2026-08-25-economics-model-revision.md):
+
+- **I2 — 100% labor / no residual cost → RESOLVED (A1 + A2).** Displaced labor is now
+  workload-capped (`displacedFte = min(staffCount, demand/opsPerWorkerPerYear)`), the default
+  replacement is 0.5 (was 0.7), and a `residualSupervisionPct` retains ongoing oversight cost.
+- **M2 — discount rate → RESOLVED (A3).** `discountRate` + `assetLifeYears` now drive NPV,
+  discounted payback, and horizon re-CAPEX alongside the (relabelled) simple figures.
+- **I5 — Step 2 comparison → RESOLVED (P1).** `/compare/[type]` now renders a per-category
+  comparison table (price, capacity + basis, full OPEX = maint+energy+licensing, and a
+  normalized "цена за ед. годовой производительности") instead of the old catalog cards.
+- **U1 — inert calculator fields → RESOLVED (REFACTORING #6).** `area` is relabelled "только
+  визуализация" (it drives only the Step-4 scene), and basis-only assumptions are hidden when
+  they don't apply (`operatingHoursPerDay` only for PER_HOUR_FLOW, `turnoverPerDay` only for
+  CONCURRENT_STOCK) — so every visible field moves the result. No economics-model change.
+- **I6 — USD→RUB rate in the Assumption table → RESOLVED.** `usdToRub` is now a seeded,
+  editable assumption; `formatCost(usd, rate)` takes it, threaded through the calculator
+  results, visualization, and comparison table (all load the DB rate). Default stays 90.
+- **M4 — free-text "Other" object → RESOLVED.** The generic path now offers an optional object
+  name in onboarding, carried via `?obj=` and echoed in the Step-2 comparison and Step-3 calc
+  headings ("tailored to what I entered").
+- **D1 — provenance → PARTIAL.** Solution rows now show a source badge (демо/организатор/
+  открытый источник) in the comparison table; the import-side validator (require
+  capacityBasis/sourceUrl for non-SEED rows) stays deferred until real organizer data exists.
+- Still open (deferred): SEC1 login/signup rate-limiting (needs a deploy-time shared store).

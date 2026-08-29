@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getIndustries, getCatalogForFacilityType, getSolutionForCalc, getAssumptions } from "./queries";
 import { createSavedAnalysis, getSavedAnalyses, getSavedAnalysis } from "./queries";
 import { prisma } from "./client";
+import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
 
 describe("getIndustries", () => {
   it("returns all 4 seeded industries with their facility types", async () => {
@@ -30,10 +31,13 @@ describe("getCatalogForFacilityType", () => {
 });
 
 describe("getAssumptions", () => {
-  it("returns the 8 seeded assumptions ordered by `order`", async () => {
+  it("seeds one row per model assumption, ordered by `order`", async () => {
     const rows = await getAssumptions();
-    expect(rows).toHaveLength(8);
-    expect(rows[0].key).toBe("laborCostPerHourUsd");
+    // Tie the count to the model definition, not a magic number, so a new assumption that is
+    // added to the engine but not seeded (or vice versa) fails here.
+    const expectedKeys = Object.keys(DEFAULT_ASSUMPTIONS).sort();
+    expect(rows.map((r) => r.key).sort()).toEqual(expectedKeys);
+    expect(rows[0].key).toBe("laborCostPerHourUsd"); // order 1
     expect(rows.map((r) => r.order)).toEqual([...rows.map((r) => r.order)].sort((x, y) => x - y));
   });
 });

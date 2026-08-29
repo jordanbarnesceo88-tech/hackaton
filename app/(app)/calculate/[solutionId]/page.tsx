@@ -2,26 +2,66 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getSolutionForCalc, getAssumptions, getSavedAnalysis } from "@/lib/db/queries";
 import { assumptionsToValues } from "@/lib/economics/assumptions";
+import { computeEconomics } from "@/lib/economics/calculate";
 import { EconomicsCalculator } from "@/components/economics-calculator";
-import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
+import type {
+  FacilityParams,
+  AssumptionValues,
+  SolutionCapacity,
+  EconomicsResult,
+} from "@/lib/economics/types";
+
+// P2: a saved analysis restores its params/assumptions but the calculator recomputes live from
+// the CURRENT solution row. If the solution's price/capacity/OPEX changed since the save (or the
+// economics model itself changed), the displayed numbers differ from what was stored. Detect
+// that by recomputing with the saved inputs against today's solution and comparing to the
+// stored results, so we can tell the user honestly instead of silently showing different numbers.
+function resultsDiverged(stored: unknown, recomputed: EconomicsResult): boolean {
+  if (!stored || typeof stored !== "object") return true;
+  const s = stored as Record<string, unknown>;
+  const now = recomputed as Record<string, unknown>;
+  // Discriminant change (economical ↔ not, or a different reason) is a divergence.
+  if (s.economical !== now.economical) return true;
+  if (now.reason !== undefined && s.reason !== now.reason) return true;
+  // Compare every numeric output field the recompute produces — not just a few — so a model
+  // change that only shifts derived figures (NPV, ROI, payback, OPEX, displaced FTE …) is caught.
+  for (const [k, v] of Object.entries(now)) {
+    if (typeof v !== "number") continue;
+    const then = s[k];
+    if (typeof then !== "number") return true;
+    if (Math.abs(v - then) / Math.max(1, Math.abs(v)) > 1e-6) return true;
+  }
+  return false;
+}
 
 export default async function CalculatePage({
   params,
   searchParams,
 }: {
   params: Promise<{ solutionId: string }>;
-  searchParams: Promise<{ analysis?: string }>;
+  searchParams: Promise<{ analysis?: string; obj?: string }>;
 }) {
   const { solutionId } = await params;
-  const { analysis: analysisId } = await searchParams;
+  const { analysis: analysisId, obj } = await searchParams;
+  const objectName = obj?.trim().slice(0, 80) || null; // M4: echo the "Other" object name
   const [solution, assumptionRows] = await Promise.all([
     getSolutionForCalc(solutionId),
     getAssumptions(),
   ]);
   if (!solution) notFound();
 
+  const capacity: SolutionCapacity = {
+    capacityPerUnit: solution.capacityPerUnit,
+    capacityBasis: solution.capacityBasis,
+    priceUsd: solution.priceUsd,
+    maintenanceUsdYear: solution.maintenanceUsdYear,
+    energyUsdYear: solution.energyUsdYear,
+    licensingUsdYear: solution.licensingUsdYear,
+  };
+
   let initialAssumptions = assumptionsToValues(assumptionRows);
   let initialParams: FacilityParams | undefined;
+  let dataChanged = false;
   if (analysisId) {
     const session = await auth();
     if (session?.user?.id) {
@@ -29,6 +69,8 @@ export default async function CalculatePage({
       if (saved && saved.solutionId === solutionId) {
         initialParams = saved.params as FacilityParams;
         initialAssumptions = saved.assumptions as AssumptionValues;
+        const recomputed = computeEconomics(capacity, initialParams, initialAssumptions);
+        dataChanged = resultsDiverged(saved.results, recomputed);
       }
     }
   }
@@ -36,21 +78,23 @@ export default async function CalculatePage({
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 py-12">
       <div>
-        <h1 className="text-2xl font-semibold">Расчёт экономики: {solution.name}</h1>
+        <h1 className="text-2xl font-semibold">
+          Расчёт экономики: {solution.name}
+          {objectName ? ` — объект «${objectName}»` : ""}
+        </h1>
         <p className="text-sm text-muted-foreground">
           {solution.vendor} · {solution.solutionCategory.facilityType.name} (
           {solution.solutionCategory.facilityType.industry.name})
         </p>
       </div>
+      {dataChanged && (
+        <div className="rounded-md border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
+          актуальным данным, он может отличаться от сохранённого.
+        </div>
+      )}
       <EconomicsCalculator
-        capacity={{
-          capacityPerUnit: solution.capacityPerUnit,
-          capacityBasis: solution.capacityBasis,
-          priceUsd: solution.priceUsd,
-          maintenanceUsdYear: solution.maintenanceUsdYear,
-          energyUsdYear: solution.energyUsdYear,
-          licensingUsdYear: solution.licensingUsdYear,
-        }}
+        capacity={capacity}
         capacityUnit={solution.capacityUnit}
         initialAssumptions={initialAssumptions}
         facilitySlug={solution.solutionCategory.facilityType.slug}

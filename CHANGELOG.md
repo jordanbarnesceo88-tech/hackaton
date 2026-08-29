@@ -5,6 +5,130 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed (economics model — output numbers change; signed off 2026-08-25)
+
+> Audit findings A1–A3, spec: `docs/superpowers/specs/2026-08-25-economics-model-revision.md`.
+> Each is a separate commit; together they replace the over-optimistic Week-2 savings/ROI.
+
+- **A1 — labor savings now track workload, not raw headcount.** New editable
+  `opsPerWorkerPerYear` assumption (default 12500) caps displaced staff:
+  `displacedFte = min(staffCount, demandPerYear ÷ opsPerWorkerPerYear)`, and `baseline` +
+  savings derive from `displacedFte`. A facility that overstates headcount relative to its
+  operation volume can no longer inflate savings (e.g. 1 robot doing 40 ops/day now displaces
+  0.8 FTE, not 70% of a 100-person payroll). The Step-3 input is relabelled "Персонал,
+  замещаемый решением" and the results show "Замещается персонала (ЭПЗ)". `opsPerWorkerPerYear
+  ≤ 0` → `invalid_inputs`. Example (default per-day solution, 400 ops/day, 10 staff): annual
+  savings 201k → **159k**, ROI 1648% → **1283%**.
+- **A2 — conservative defaults + residual supervision cost.** Default `laborReplacementPct`
+  lowered 0.7 → **0.5**, and a new editable `residualSupervisionPct` (default 0.1) retains
+  ongoing human oversight: `savings = baseline × replacement × (1 − residual) − opex`. Removes
+  the "robots eliminate 70% of all labor at zero running cost" optimism the audit flagged.
+- **A3 — discounting, NPV & asset lifecycle.** New editable `discountRate` (0.12) and
+  `assetLifeYears` (7). The engine now models yearly cash flows over the ROI horizon, re-buying
+  the fleet when assets expire mid-horizon, and reports **NPV** and **discounted payback**
+  alongside the (now explicitly labelled) **simple** payback/ROI. `paybackYears`→
+  `simplePaybackYears`, `roiPct`→`simpleRoiPct`; adds `npvUsd` and `discountedPaybackYears`
+  (null = no payback within the horizon, shown as "более N лет"). Non-positive horizon / asset
+  life / discount rate ≤ −1 → `invalid_inputs`. New `lib/economics/finance.ts` (`npv`,
+  `discountedPaybackYears`) is unit-tested. Example (default DB assumptions, 500 ops/day, 10
+  staff): annual savings **$111k**, simple payback **1.2 г**, discounted **1.4 г**, simple ROI
+  **302%**, NPV **+$262k** — versus the old model's 1648% ROI.
+
+### Added
+- **Free-text object name on the "Other" path (audit M4 / §8 M4).** The generic facility path now
+  offers an optional object name in onboarding, carried via `?obj=` and echoed in the Step-2
+  comparison and Step-3 calculation headings, so the flow reads as tailored to the user's object.
+- **Data-provenance badges in the comparison table (audit D1, partial).** Each solution shows a
+  source badge — демо-данные / данные организатора / открытый источник (linking `sourceUrl`) —
+  so the placeholder catalogue is honestly labelled. The import-side validator stays deferred
+  until real organizer data exists.
+- **Saved analyses can be named (audit U2).** The save control now has an optional name field
+  (capped at 120 chars); a blank name falls back to the previous dated default. Two saves on
+  the same day are no longer indistinguishable in "Мои расчёты".
+- **Security headers (audit SEC1 / DEPLOY §5).** `next.config.ts` now sets Content-Security-
+  Policy, X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy, and HSTS
+  on all routes. CSP keeps `'unsafe-inline'` for Next's inline hydration (and `'unsafe-eval'`
+  in dev only for HMR) — to be tightened with nonces later. Login/signup **rate-limiting**
+  remains deferred (needs a deploy-time shared store), per DEPLOY §5.
+- **Editable USD→RUB exchange rate (audit I6 / §8 I6).** The rate moved from a hardcoded
+  `USD_TO_RUB` constant into a seeded, editable `usdToRub` assumption. `formatCost(usd, rate)`
+  now takes the rate; it's threaded through the calculator results, the visualization, and the
+  comparison table (all sourced from the DB assumptions). Default remains 90; editing it in the
+  assumptions panel reprices every RUB figure live. Non-positive/non-finite rate falls back to
+  the default.
+- **Real Step-2 comparison table (audit P1 / §8 I5).** `/compare/[type]` now renders a
+  per-category side-by-side table — price, capacity + basis, the **full** OPEX breakdown
+  (maintenance + energy + licensing, previously only maintenance was shown), the annual OPEX
+  total, and a normalized "цена за ед. годовой производительности" (price ÷ annualized
+  throughput, via the engine's `capacityPerYear`; shown only for flow bases, "—" for
+  concurrent-stock) — replacing the old catalog cards. Delivers the brief's headline
+  "independent comparison" value.
+
+- **Only basis-relevant calculator fields are shown (audit U1 / REFACTORING #6).** `area` is
+  relabelled "Площадь, м² (только визуализация)" since it drives only the Step-4 scene, and
+  basis-specific assumptions are hidden when they don't apply (`operatingHoursPerDay` only for
+  PER_HOUR_FLOW, `turnoverPerDay` only for CONCURRENT_STOCK) — so editing any visible field
+  visibly changes the result. No economics-model change.
+
+### Fixed
+- **Second code-review pass on the audit-left batch (2026-08-29).**
+  - The comparison table's normalized metric is now **"Цена за 1000 ед./год"** (was "за ед.").
+    Per-unit annual price is sub-dollar for high-throughput solutions and rounded to "US$0"
+    under the whole-unit money formatter, making the headline comparison column useless; per
+    1000 units it reads meaningfully (e.g. US$56 / US$960).
+  - `resultsDiverged` (P2 revisit banner) now compares the economical/reason discriminant and
+    **every** numeric output field, so a model change that shifts only derived figures (NPV,
+    ROI, payback, OPEX, displaced FTE) is caught — not just quantity/capex/savings.
+  - The save button is **disabled while a save is in flight** ("Сохранение…"), preventing
+    duplicate saved rows from a double-click.
+  - Removed a stray `scripts/_q.mts` temp file accidentally committed with M4.
+- **Revisit fidelity: flag stale saved analyses (audit P2).** Opening a saved analysis restores
+  its inputs but the calculator recomputes from the *current* solution row, so a solution-data
+  or model change makes the shown numbers differ from what was saved. The calculate page now
+  recomputes with the saved inputs against today's data, compares to the stored results, and
+  shows an amber "данные/модель изменились — показан пересчёт" banner when they diverge instead
+  of silently showing different numbers.
+- **Code-review fixes on the audit branch (2026-08-25).**
+  - A3 re-CAPEX no longer charges a spurious final-year fleet purchase: the fleet is re-bought
+    only when assets expire with productive years left (`t % lifeYears === 0 && t < horizon`),
+    and asset life is floored to whole years to match the annual cash-flow model (life must be
+    ≥ 1, else `invalid_inputs`). Fixes the case where `assetLifeYears` divides the horizon —
+    notably `assetLifeYears === roiHorizonYears`, which previously ~halved ROI and understated
+    NPV. **Changes output numbers only for those (now-corrected) configurations.**
+  - `displacedFte` is clamped at 0 so a negative param (e.g. a pasted negative `opsPerDay`/
+    `staffCount`) can't surface a negative displaced-FTE or negative baseline labour cost.
+  - The visualization now shows the neutral "Проверьте параметры" notice for `invalid_inputs`
+    instead of the red "не окупается" (which wrongly implied the solution was unprofitable),
+    matching the results panel.
+  - The discounted-payback "no payback" case now reads "не окупается в пределах горизонта"
+    instead of the ungrammatical/rounding-mismatched "более N лет".
+  - `validate.ts` derives its assumption-key list from `DEFAULT_ASSUMPTIONS` so a newly added
+    assumption is validated automatically instead of being silently stripped from saved payloads.
+- **Validate the saved-analysis payload server-side (audit S1).** The save action persisted
+  fully client-controlled input as jsonb with no checks. Added tested `lib/analyses/validate.ts`
+  (bounded/trimmed `name`, strict finite-number shape for `params` + `assumptions`,
+  plain-object `results`); the action now also verifies the solution exists and derives
+  `facilityTypeSlug` from it rather than trusting the client's slug. Server-action errors are
+  now logged before returning the generic client result (REFACTORING #5).
+- **Correct Russian pluralization for the payback period (audit T2).** Payback rendered a
+  fixed "X лет" ("1 лет"/"2 лет" are ungrammatical). New tested `lib/format/plural.ts`
+  (`pluralRu` + `formatYearsRu`) applies proper noun agreement — "1.0 год", "2.0 года",
+  "5.0 лет", and the genitive singular "1.5 года" for fractional durations.
+- **Signup no longer 500s on a duplicate-email race (audit E2).** Concurrent signups could
+  both pass the pre-insert `findUnique` check and then race on the `User.email` unique
+  constraint; the loser threw an unhandled `P2002`. The `create` is now wrapped and P2002 is
+  mapped to the same "email уже существует" message. Also removed the dead `redirect` import
+  in `lib/auth/actions.ts` (REFACTORING #3).
+- **Economics engine no longer leaks `Infinity`/`NaN` for degenerate inputs (audit E1).**
+  `computeQuantity` now returns `null` (instead of throwing or dividing by zero) for
+  non-positive per-unit capacity, a zero turnover rate with no explicit peak, or a
+  zero-valued annualization divisor; `computeEconomics` maps that — plus any non-finite money
+  output or non-positive CAPEX — to a typed `{ economical: false, reason: "invalid_inputs" }`
+  result. UI (calculator + visualization) narrows on this variant and shows the existing
+  "проверьте параметры" notice, replacing the duplicated ad-hoc finiteness checks. No change
+  to results for valid inputs; only previously-`Infinity`/`NaN` (masked) cases are affected.
+  Added engine tests for each degenerate path.
+
 ### Added
 - Project scaffolding: `docs/00-idea-brief.md` (fixed source idea, verbatim),
   this changelog. Git repo initialized.

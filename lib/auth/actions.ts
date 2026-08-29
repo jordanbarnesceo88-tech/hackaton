@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/client";
 import { hashPassword } from "@/lib/auth/password";
 import { signIn, signOut } from "@/auth";
@@ -24,7 +24,17 @@ export async function signUpAction(
   if (existing) return { error: "Пользователь с таким email уже существует" };
 
   const passwordHash = await hashPassword(password);
-  await prisma.user.create({ data: { email, passwordHash, name } });
+  try {
+    await prisma.user.create({ data: { email, passwordHash, name } });
+  } catch (e) {
+    // Two concurrent signups can both clear the findUnique check above and then race on the
+    // `User.email` unique constraint; the loser throws P2002. Map it to the same friendly
+    // message instead of surfacing an unhandled 500.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return { error: "Пользователь с таким email уже существует" };
+    }
+    throw e;
+  }
   // signIn throws a redirect on success.
   await signIn("credentials", { email, password, redirectTo: "/" });
   return { error: null };

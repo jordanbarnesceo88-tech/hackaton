@@ -21,12 +21,15 @@ const usdNumberFormatter = new Intl.NumberFormat("en-US", {
 });
 
 /**
- * Format a USD amount for display: RUB primary (converted at USD_TO_RUB), USD in parens.
- * Uses pinned locales so server and client produce byte-identical output (no hydration
- * mismatch). Example: formatCost(45000) -> "4 050 000 ₽ (US$45,000)".
+ * Format a USD amount for display: RUB primary (converted at `rateRub`), USD in parens.
+ * `rateRub` defaults to the documented `USD_TO_RUB` constant; callers with the editable
+ * `usdToRub` assumption in scope (I6) pass it so an edited rate is reflected live. Uses pinned
+ * locales so server and client produce byte-identical output (no hydration mismatch).
+ * Example: formatCost(45000) -> "4 050 000 ₽ (US$45,000)".
  */
-export function formatCost(usd: number): string {
-  const rub = rubFormatter.format(usd * USD_TO_RUB);
+export function formatCost(usd: number, rateRub: number = USD_TO_RUB): string {
+  const rate = Number.isFinite(rateRub) && rateRub > 0 ? rateRub : USD_TO_RUB;
+  const rub = rubFormatter.format(usd * rate);
   const usdStr = `US$${usdNumberFormatter.format(usd)}`;
   return `${rub} (${usdStr})`;
 }

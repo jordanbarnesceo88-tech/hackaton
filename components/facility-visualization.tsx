@@ -6,6 +6,7 @@ import { generateLayout } from "@/lib/scene/layout";
 import { spawnRobots, stepRobots } from "@/lib/scene/simulate";
 import { deployedCapacity, utilizationPct, roiAccrued } from "@/lib/scene/kpi";
 import { formatCost } from "@/lib/format/currency";
+import { isCalculable } from "@/lib/economics/types";
 import type { FacilityKind, RobotState } from "@/lib/scene/types";
 import type {
   SolutionCapacity,
@@ -40,10 +41,12 @@ export function FacilityVisualization({
   const robotsRef = useRef<RobotState[]>([]);
   const [elapsed, setElapsed] = useState(0);
 
-  // Fall back to 1 when quantity is non-finite (the Week-2 calculator can pass a
-  // non-finite result while showing its own "проверьте параметры" guard); otherwise
-  // Math.floor(NaN) would make renderCount NaN and the badge read "из NaN".
-  const q = Number.isFinite(result.quantity) ? result.quantity : 1;
+  // The engine returns a typed `invalid_inputs` variant (no numeric fields) for degenerate
+  // inputs; `isCalculable` detects it and narrows the union. Fall back to 1 robot in that case
+  // so the scene still renders while the calculator shows its "проверьте параметры" notice.
+  // When numbers are present the engine guarantees `quantity` is finite.
+  const hasNumbers = isCalculable(result);
+  const q = hasNumbers ? result.quantity : 1;
   const renderCount = Math.max(1, Math.min(MAX_RENDERED, Math.floor(q)));
   const overflow = q > MAX_RENDERED;
 
@@ -67,7 +70,9 @@ export function FacilityVisualization({
     let raf = 0;
     let last = performance.now();
     const start = performance.now();
-    // speed scales mildly with utilization/throughput but stays bounded.
+    // Fixed illustrative speed: per the plan's "numbers are real, motion is illustrative"
+    // line, robot speed is decorative and intentionally not tied to throughput (that would
+    // read as a physical simulation we don't claim to be). The real figures live in the KPIs.
     const speed = 0.15;
 
     const draw = () => {
@@ -122,11 +127,10 @@ export function FacilityVisualization({
     };
   }, [layout]);
 
-  const finiteResult = Number.isFinite(result.quantity);
-  const util = finiteResult
+  const util = hasNumbers
     ? utilizationPct(capacity, params, assumptions, result.quantity)
     : null;
-  const deployed = finiteResult
+  const deployed = hasNumbers
     ? deployedCapacity(result.quantity, capacity.capacityPerUnit)
     : null;
   const savings = result.economical ? result.annualSavingsUsd : 0;
@@ -164,7 +168,13 @@ export function FacilityVisualization({
           <div>Загрузка: <b>{util === null ? "—" : `${util.toFixed(0)}%`}</b></div>
           <div>
             <div className="mb-1">Накопленная экономия (за год):</div>
-            {result.economical ? (
+            {!hasNumbers ? (
+              // Invalid inputs: stay consistent with the results panel's neutral notice rather
+              // than claiming the solution is unprofitable.
+              <div className="font-medium text-muted-foreground">
+                Проверьте параметры расчёта
+              </div>
+            ) : result.economical ? (
               <>
                 <div className="h-3 w-full overflow-hidden rounded bg-muted">
                   <div
@@ -172,7 +182,7 @@ export function FacilityVisualization({
                     style={{ width: `${Math.round(accruedFrac * 100)}%` }}
                   />
                 </div>
-                <div className="mt-1 font-medium">{formatCost(accrued)}</div>
+                <div className="mt-1 font-medium">{formatCost(accrued, assumptions.usdToRub)}</div>
               </>
             ) : (
               <div className="font-medium text-red-600">

@@ -12,20 +12,27 @@ export function demandPerYear(params: FacilityParams, a: AssumptionValues): numb
   return params.opsPerDay * a.workingDaysPerYear;
 }
 
+/**
+ * Fleet size needed to meet demand. Returns `null` for degenerate inputs (non-positive
+ * per-unit capacity, a zero turnover rate with no explicit peak, or any zero-valued
+ * annualization divisor) instead of throwing or producing Infinity — callers translate the
+ * null into a typed `invalid_inputs` result rather than leaking a non-finite number.
+ */
 export function computeQuantity(
   cap: SolutionCapacity,
   params: FacilityParams,
   a: AssumptionValues
-): number {
-  if (!(cap.capacityPerUnit > 0)) {
-    throw new Error("capacityPerUnit must be > 0");
-  }
+): number | null {
+  if (!(cap.capacityPerUnit > 0)) return null;
 
   if (cap.capacityBasis === "CONCURRENT_STOCK") {
     const peak =
       params.peakConcurrent ?? Math.ceil(params.opsPerDay / a.turnoverPerDay);
+    if (!Number.isFinite(peak)) return null; // e.g. turnoverPerDay <= 0
     return Math.max(1, Math.ceil(peak / cap.capacityPerUnit));
   }
 
-  return Math.max(1, Math.ceil(demandPerYear(params, a) / capacityPerYear(cap, a)));
+  const perYear = capacityPerYear(cap, a);
+  if (!(perYear > 0)) return null; // e.g. workingDaysPerYear or operatingHoursPerDay <= 0
+  return Math.max(1, Math.ceil(demandPerYear(params, a) / perYear));
 }

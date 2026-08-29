@@ -20,4 +20,15 @@ describe("formatCost", () => {
   it("formats zero without throwing", () => {
     expect(formatCost(0)).toContain("0");
   });
+
+  it("uses a caller-supplied rate (I6 editable usdToRub)", () => {
+    expect(formatCost(100, 100)).toContain((100 * 100).toLocaleString("ru-RU"));
+    expect(formatCost(100, 50)).toContain((100 * 50).toLocaleString("ru-RU"));
+  });
+
+  it("falls back to the default rate for a non-positive/non-finite rate", () => {
+    const expected = formatCost(100); // default USD_TO_RUB
+    expect(formatCost(100, 0)).toBe(expected);
+    expect(formatCost(100, NaN)).toBe(expected);
+  });
 });

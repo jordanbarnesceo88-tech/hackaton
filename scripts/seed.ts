@@ -338,9 +338,14 @@ async function main() {
     { key: "workingDaysPerYear", label: "Рабочих дней в году", value: 250, unit: "дней", order: 3 },
     { key: "operatingHoursPerDay", label: "Часов работы объекта в сутки", value: 16, unit: "часов", order: 4 },
     { key: "installPctOfCapex", label: "Монтаж/интеграция (доля от CAPEX)", value: 0.15, unit: "доля", order: 5 },
-    { key: "laborReplacementPct", label: "Замещение труда роботами", value: 0.7, unit: "доля", order: 6 },
-    { key: "turnoverPerDay", label: "Оборотов в сутки (для stock-решений)", value: 8, unit: "раз", order: 7 },
-    { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 8 },
+    { key: "laborReplacementPct", label: "Замещение труда роботами", value: 0.5, unit: "доля", order: 6 },
+    { key: "residualSupervisionPct", label: "Остаточный надзор персоналом", value: 0.1, unit: "доля", order: 7 },
+    { key: "opsPerWorkerPerYear", label: "Операций на сотрудника в год", value: 12500, unit: "операций", order: 8 },
+    { key: "turnoverPerDay", label: "Оборотов в сутки (для stock-решений)", value: 8, unit: "раз", order: 9 },
+    { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 10 },
+    { key: "discountRate", label: "Ставка дисконтирования", value: 0.12, unit: "доля", order: 11 },
+    { key: "assetLifeYears", label: "Срок службы техники", value: 7, unit: "лет", order: 12 },
+    { key: "usdToRub", label: "Курс USD→RUB", value: 90, unit: "₽/$", order: 13 },
   ];
   for (const asmp of assumptions) {
     await prisma.assumption.upsert({
