@@ -1,6 +1,11 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
-import { getSolutionForCalc, getAssumptions, getSavedAnalysis } from "@/lib/db/queries";
+import {
+  getSolutionForCalc,
+  getAssumptions,
+  getSavedAnalysis,
+  getSiblingSolutions,
+} from "@/lib/db/queries";
 import { assumptionsToValues } from "@/lib/economics/assumptions";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { EconomicsCalculator } from "@/components/economics-calculator";
@@ -44,9 +49,10 @@ export default async function CalculatePage({
   const { solutionId } = await params;
   const { analysis: analysisId, obj } = await searchParams;
   const objectName = obj?.trim().slice(0, 80) || null; // M4: echo the "Other" object name
-  const [solution, assumptionRows] = await Promise.all([
+  const [solution, assumptionRows, categorySolutions] = await Promise.all([
     getSolutionForCalc(solutionId),
     getAssumptions(),
+    getSiblingSolutions(solutionId),
   ]);
   if (!solution) notFound();
 
@@ -94,11 +100,10 @@ export default async function CalculatePage({
         </div>
       )}
       <EconomicsCalculator
-        capacity={capacity}
-        capacityUnit={solution.capacityUnit}
+        categorySolutions={categorySolutions}
+        initialSelectedId={solution.id}
         initialAssumptions={initialAssumptions}
         facilitySlug={solution.solutionCategory.facilityType.slug}
-        solutionId={solution.id}
         initialParams={initialParams}
       />
     </div>
