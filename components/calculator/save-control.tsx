@@ -24,23 +24,30 @@ export function SaveControl({
 }) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
 
   async function handleSave() {
+    if (saving) return; // guard against double-submit while a save is in flight
+    setSaving(true);
     setSaveMsg(null);
     // Fall back to a dated default when the user leaves the name blank.
     const trimmed = name.trim();
     const finalName = trimmed || `Расчёт — ${new Date().toLocaleDateString("ru-RU")}`;
-    const res = await saveAnalysisAction({
-      name: finalName,
-      facilityTypeSlug: facilitySlug,
-      solutionId,
-      params,
-      assumptions,
-      results: result,
-    });
-    if (res.ok) setSaveMsg("Сохранено");
-    else if (res.reason === "unauthenticated") setSaveMsg("unauth");
-    else setSaveMsg("Ошибка сохранения");
+    try {
+      const res = await saveAnalysisAction({
+        name: finalName,
+        facilityTypeSlug: facilitySlug,
+        solutionId,
+        params,
+        assumptions,
+        results: result,
+      });
+      if (res.ok) setSaveMsg("Сохранено");
+      else if (res.reason === "unauthenticated") setSaveMsg("unauth");
+      else setSaveMsg("Ошибка сохранения");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -53,9 +60,9 @@ export function SaveControl({
         onChange={(e) => setName(e.target.value)}
         className="min-w-56 flex-1 rounded-md border px-3 py-2 text-sm"
       />
-      <button onClick={handleSave}
-        className="rounded-md border px-3 py-2 text-sm font-medium">
-        Сохранить расчёт
+      <button onClick={handleSave} disabled={saving}
+        className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50">
+        {saving ? "Сохранение…" : "Сохранить расчёт"}
       </button>
       {saveMsg === "unauth" ? (
         <span className="text-sm">

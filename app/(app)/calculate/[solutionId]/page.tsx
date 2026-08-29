@@ -19,16 +19,17 @@ import type {
 function resultsDiverged(stored: unknown, recomputed: EconomicsResult): boolean {
   if (!stored || typeof stored !== "object") return true;
   const s = stored as Record<string, unknown>;
-  const keys = ["quantity", "capexUsd", "annualSavingsUsd"] as const;
-  for (const k of keys) {
-    const now = (recomputed as Record<string, unknown>)[k];
+  const now = recomputed as Record<string, unknown>;
+  // Discriminant change (economical ↔ not, or a different reason) is a divergence.
+  if (s.economical !== now.economical) return true;
+  if (now.reason !== undefined && s.reason !== now.reason) return true;
+  // Compare every numeric output field the recompute produces — not just a few — so a model
+  // change that only shifts derived figures (NPV, ROI, payback, OPEX, displaced FTE …) is caught.
+  for (const [k, v] of Object.entries(now)) {
+    if (typeof v !== "number") continue;
     const then = s[k];
-    if (typeof now !== "number") {
-      if (typeof then === "number") return true; // was calculable, now invalid (or vice versa)
-      continue;
-    }
     if (typeof then !== "number") return true;
-    if (Math.abs(now - then) / Math.max(1, Math.abs(now)) > 1e-6) return true;
+    if (Math.abs(v - then) / Math.max(1, Math.abs(v)) > 1e-6) return true;
   }
   return false;
 }

@@ -116,7 +116,7 @@ export default async function ComparePage({
                   <Th className="text-right">Энергия/год</Th>
                   <Th className="text-right">Лицензии/год</Th>
                   <Th className="text-right">OPEX/год</Th>
-                  <Th className="text-right">Цена за ед./год</Th>
+                  <Th className="text-right">Цена за 1000 ед./год</Th>
                   <Th />
                 </tr>
               </thead>
@@ -124,7 +124,10 @@ export default async function ComparePage({
                 {category.solutions.map((s) => {
                   const opex = s.maintenanceUsdYear + s.energyUsdYear + s.licensingUsdYear;
                   const annual = annualThroughput(s as SolutionRow, a);
-                  const normPrice = annual && annual > 0 ? s.priceUsd / annual : null;
+                  // Per 1000 units of annual throughput: the per-unit figure is sub-dollar for
+                  // high-throughput solutions and would round to "US$0" under the whole-unit
+                  // money formatter, making the headline comparison metric useless.
+                  const normPrice = annual && annual > 0 ? (s.priceUsd * 1000) / annual : null;
                   return (
                     <tr key={s.id} className="border-b last:border-0">
                       <Td>

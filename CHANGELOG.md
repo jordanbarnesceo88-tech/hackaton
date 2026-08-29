@@ -71,6 +71,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   visibly changes the result. No economics-model change.
 
 ### Fixed
+- **Second code-review pass on the audit-left batch (2026-08-29).**
+  - The comparison table's normalized metric is now **"Цена за 1000 ед./год"** (was "за ед.").
+    Per-unit annual price is sub-dollar for high-throughput solutions and rounded to "US$0"
+    under the whole-unit money formatter, making the headline comparison column useless; per
+    1000 units it reads meaningfully (e.g. US$56 / US$960).
+  - `resultsDiverged` (P2 revisit banner) now compares the economical/reason discriminant and
+    **every** numeric output field, so a model change that shifts only derived figures (NPV,
+    ROI, payback, OPEX, displaced FTE) is caught — not just quantity/capex/savings.
+  - The save button is **disabled while a save is in flight** ("Сохранение…"), preventing
+    duplicate saved rows from a double-click.
+  - Removed a stray `scripts/_q.mts` temp file accidentally committed with M4.
 - **Revisit fidelity: flag stale saved analyses (audit P2).** Opening a saved analysis restores
   its inputs but the calculator recomputes from the *current* solution row, so a solution-data
   or model change makes the shown numbers differ from what was saved. The calculate page now
