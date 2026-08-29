@@ -1,4 +1,5 @@
 import { prisma } from "./client";
+import type { SiblingSolution } from "@/lib/economics/recommend";
 
 export async function getIndustries() {
   return prisma.industry.findMany({
@@ -39,6 +40,24 @@ export async function getSolutionForCalc(id: string) {
       solutionCategory: { include: { facilityType: { include: { industry: true } } } },
     },
   });
+}
+
+export async function getSiblingSolutions(solutionId: string): Promise<SiblingSolution[]> {
+  const solution = await prisma.solution.findUnique({
+    where: { id: solutionId },
+    select: { solutionCategoryId: true },
+  });
+  if (!solution) return [];
+  const rows = await prisma.solution.findMany({
+    where: { solutionCategoryId: solution.solutionCategoryId },
+    orderBy: { name: "asc" },
+    select: {
+      id: true, name: true, vendor: true, priceUsd: true, capacityPerUnit: true,
+      capacityUnit: true, capacityBasis: true, maintenanceUsdYear: true,
+      energyUsdYear: true, licensingUsdYear: true,
+    },
+  });
+  return rows;
 }
 
 export type SavedAnalysisInput = {
