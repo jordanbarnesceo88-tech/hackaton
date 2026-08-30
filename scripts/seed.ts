@@ -4,6 +4,7 @@
 import "dotenv/config";
 import { PrismaClient, SolutionSource, CapacityBasis } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { WAREHOUSE_REAL } from "./parse-sources/warehouse-real";
 
 // Prisma 7 requires a driver adapter — `new PrismaClient()` with no adapter throws
 // "A driver adapter is required to connect to your database". (Validated pattern.)
@@ -58,64 +59,14 @@ const seedData: IndustrySeed[] = [
             name: "Автономные мобильные роботы (AMR)",
             description:
               "Мобильные роботы для перемещения товаров между зонами склада без выделенных путей",
-            solutions: [
-              {
-                name: "RoboPick A200",
-                vendor: "Demo Robotics Co.",
-                priceUsd: 45000,
-                capacityPerUnit: 200,
-                capacityUnit: "заказов/час",
-                capacityBasis: CapacityBasis.PER_HOUR_FLOW,
-                maintenanceUsdYear: 6000,
-                energyUsdYear: 1200,
-                licensingUsdYear: 3000,
-                specs: { payloadKg: 200, speedMps: 1.5, batteryHours: 8 },
-              },
-              {
-                name: "WareBot X1",
-                vendor: "Placeholder Automation LLC",
-                priceUsd: 38000,
-                capacityPerUnit: 150,
-                capacityUnit: "заказов/час",
-                capacityBasis: CapacityBasis.PER_HOUR_FLOW,
-                maintenanceUsdYear: 5000,
-                energyUsdYear: 1000,
-                licensingUsdYear: 2500,
-                specs: { payloadKg: 150, speedMps: 1.2, batteryHours: 10 },
-              },
-            ],
+            solutions: [],
           },
           {
             slug: "asrs",
             name: "Автоматизированные системы хранения (AS/RS)",
             description:
               "Автоматизированные стеллажные системы для хранения и подбора товаров",
-            solutions: [
-              {
-                name: "StackMax 3000",
-                vendor: "Demo Robotics Co.",
-                priceUsd: 120000,
-                capacityPerUnit: 500,
-                capacityUnit: "паллет/день",
-                capacityBasis: CapacityBasis.PER_DAY_FLOW,
-                maintenanceUsdYear: 15000,
-                energyUsdYear: 4000,
-                licensingUsdYear: 5000,
-                specs: { heightM: 12, aislesServed: 4 },
-              },
-              {
-                name: "VertiStore S",
-                vendor: "Placeholder Automation LLC",
-                priceUsd: 95000,
-                capacityPerUnit: 350,
-                capacityUnit: "паллет/день",
-                capacityBasis: CapacityBasis.PER_DAY_FLOW,
-                maintenanceUsdYear: 12000,
-                energyUsdYear: 3200,
-                licensingUsdYear: 4000,
-                specs: { heightM: 9, aislesServed: 3 },
-              },
-            ],
+            solutions: [],
           },
         ],
       },
@@ -443,6 +394,41 @@ async function main() {
         }
       }
     }
+  }
+
+  // Real, cited warehouse products (source: PARSED) — replaces the demo warehouse rows.
+  const warehouse = await prisma.facilityType.findUnique({ where: { slug: "warehouse" } });
+  if (warehouse) {
+    for (const s of WAREHOUSE_REAL) {
+      const category = await prisma.solutionCategory.findUnique({
+        where: { facilityTypeId_slug: { facilityTypeId: warehouse.id, slug: s.categorySlug } },
+      });
+      if (!category) continue;
+      const data = {
+        vendor: s.vendor, priceUsd: s.priceUsd, priceEstimated: s.priceEstimated,
+        priceLowUsd: s.priceLowUsd, priceHighUsd: s.priceHighUsd, priceBasis: s.priceBasis,
+        capacityPerUnit: s.capacityPerUnit, capacityUnit: s.capacityUnit,
+        capacityBasis: s.capacityBasis, maintenanceUsdYear: s.maintenanceUsdYear,
+        energyUsdYear: s.energyUsdYear, licensingUsdYear: s.licensingUsdYear,
+        specs: s.specs, source: SolutionSource.PARSED,
+        sourceUrl: s.sourceUrl, lastVerified: new Date(s.lastVerified),
+      };
+      await prisma.solution.upsert({
+        where: { solutionCategoryId_name: { solutionCategoryId: category.id, name: s.name } },
+        update: data,
+        create: { name: s.name, solutionCategoryId: category.id, ...data },
+      });
+      solutionCount++;
+    }
+
+    // Prune stale demo rows: delete warehouse solutions not in the curated set.
+    const keep = WAREHOUSE_REAL.map((s) => s.name);
+    await prisma.solution.deleteMany({
+      where: {
+        solutionCategory: { facilityType: { slug: "warehouse" } },
+        name: { notIn: keep },
+      },
+    });
   }
 
   console.log(
