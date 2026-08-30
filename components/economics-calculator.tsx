@@ -6,8 +6,12 @@ import { ParamsForm } from "@/components/calculator/params-form";
 import { ResultsPanel } from "@/components/calculator/results-panel";
 import { AssumptionsPanel } from "@/components/calculator/assumptions-panel";
 import { SaveControl } from "@/components/calculator/save-control";
+import { RecommendationPanel } from "@/components/calculator/recommendation-panel";
+import { SensitivityChart } from "@/components/calculator/sensitivity-chart";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
+import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
+import { sensitivity } from "@/lib/economics/sensitivity";
 import type {
   SolutionCapacity,
   FacilityParams,
@@ -15,21 +19,31 @@ import type {
 } from "@/lib/economics/types";
 
 export function EconomicsCalculator({
-  capacity,
-  capacityUnit,
+  categorySolutions,
+  initialSelectedId,
   initialAssumptions,
   facilitySlug,
-  solutionId,
+  facilityTypeName,
+  industryName,
+  objectName,
+  dataChanged,
   initialParams,
 }: {
-  capacity: SolutionCapacity;
-  capacityUnit: string;
+  categorySolutions: SiblingSolution[];
+  initialSelectedId: string;
   initialAssumptions: AssumptionValues;
   facilitySlug: string;
-  solutionId: string;
+  facilityTypeName: string;
+  industryName: string;
+  objectName: string | null;
+  dataChanged: boolean;
   initialParams?: FacilityParams;
 }) {
-  const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
+  const [selectedSolutionId, setSelectedSolutionId] = useState(initialSelectedId);
+  const primary =
+    categorySolutions.find((s) => s.id === selectedSolutionId) ?? categorySolutions[0];
+
+  const isStock = primary.capacityBasis === "CONCURRENT_STOCK";
   const [params, setParams] = useState<FacilityParams>(
     initialParams ?? {
       areaM2: 1000,
@@ -38,23 +52,57 @@ export function EconomicsCalculator({
       ...(isStock ? { peakConcurrent: 20 } : {}),
     }
   );
-  const [assumptions, setAssumptions] =
-    useState<AssumptionValues>(initialAssumptions);
+  const [assumptions, setAssumptions] = useState<AssumptionValues>(initialAssumptions);
+
+  const capacity: SolutionCapacity = {
+    capacityPerUnit: primary.capacityPerUnit,
+    capacityBasis: primary.capacityBasis,
+    priceUsd: primary.priceUsd,
+    maintenanceUsdYear: primary.maintenanceUsdYear,
+    energyUsdYear: primary.energyUsdYear,
+    licensingUsdYear: primary.licensingUsdYear,
+  };
 
   const result = computeEconomics(capacity, params, assumptions);
+  const ranked = rankSolutions(categorySolutions, params, assumptions);
+  const bars = sensitivity(capacity, params, assumptions);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="flex flex-col gap-6">
+      {/* Header lives here (not the server page) so the title/vendor follow an in-place switch. */}
+      <div>
+        <h1 className="text-2xl font-semibold">
+          Расчёт экономики: {primary.name}
+          {objectName ? ` — объект «${objectName}»` : ""}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {primary.vendor} · {facilityTypeName} ({industryName})
+        </p>
+      </div>
+      {dataChanged && (
+        <div className="rounded-md border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
+          актуальным данным, он может отличаться от сохранённого.
+        </div>
+      )}
+      <div className="grid gap-6 md:grid-cols-2">
       <ParamsForm
         params={params}
         setParams={setParams}
         capacity={capacity}
-        capacityUnit={capacityUnit}
+        capacityUnit={primary.capacityUnit}
       />
       <ResultsPanel result={result} usdToRub={assumptions.usdToRub} />
+      <RecommendationPanel
+        ranked={ranked}
+        selectedId={selectedSolutionId}
+        usdToRub={assumptions.usdToRub}
+        onSelect={setSelectedSolutionId}
+      />
+      <SensitivityChart bars={bars} usdToRub={assumptions.usdToRub} />
       <SaveControl
         facilitySlug={facilitySlug}
-        solutionId={solutionId}
+        solutionId={selectedSolutionId}
         params={params}
         assumptions={assumptions}
         result={result}
@@ -62,16 +110,17 @@ export function EconomicsCalculator({
       <AssumptionsPanel
         assumptions={assumptions}
         setAssumptions={setAssumptions}
-        capacityBasis={capacity.capacityBasis}
+        capacityBasis={primary.capacityBasis}
       />
       <FacilityVisualization
         facilityKind={mapKind(facilitySlug)}
         params={params}
         assumptions={assumptions}
         capacity={capacity}
-        capacityUnit={capacityUnit}
+        capacityUnit={primary.capacityUnit}
         result={result}
       />
+      </div>
     </div>
   );
 }

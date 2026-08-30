@@ -1,6 +1,11 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
-import { getSolutionForCalc, getAssumptions, getSavedAnalysis } from "@/lib/db/queries";
+import {
+  getSolutionForCalc,
+  getAssumptions,
+  getSavedAnalysis,
+  getSiblingSolutions,
+} from "@/lib/db/queries";
 import { assumptionsToValues } from "@/lib/economics/assumptions";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { EconomicsCalculator } from "@/components/economics-calculator";
@@ -44,9 +49,10 @@ export default async function CalculatePage({
   const { solutionId } = await params;
   const { analysis: analysisId, obj } = await searchParams;
   const objectName = obj?.trim().slice(0, 80) || null; // M4: echo the "Other" object name
-  const [solution, assumptionRows] = await Promise.all([
+  const [solution, assumptionRows, categorySolutions] = await Promise.all([
     getSolutionForCalc(solutionId),
     getAssumptions(),
+    getSiblingSolutions(solutionId),
   ]);
   if (!solution) notFound();
 
@@ -76,29 +82,16 @@ export default async function CalculatePage({
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 py-12">
-      <div>
-        <h1 className="text-2xl font-semibold">
-          Расчёт экономики: {solution.name}
-          {objectName ? ` — объект «${objectName}»` : ""}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {solution.vendor} · {solution.solutionCategory.facilityType.name} (
-          {solution.solutionCategory.facilityType.industry.name})
-        </p>
-      </div>
-      {dataChanged && (
-        <div className="rounded-md border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
-          актуальным данным, он может отличаться от сохранённого.
-        </div>
-      )}
+    <div className="mx-auto max-w-3xl py-12">
       <EconomicsCalculator
-        capacity={capacity}
-        capacityUnit={solution.capacityUnit}
+        categorySolutions={categorySolutions}
+        initialSelectedId={solution.id}
         initialAssumptions={initialAssumptions}
         facilitySlug={solution.solutionCategory.facilityType.slug}
-        solutionId={solution.id}
+        facilityTypeName={solution.solutionCategory.facilityType.name}
+        industryName={solution.solutionCategory.facilityType.industry.name}
+        objectName={objectName}
+        dataChanged={dataChanged}
         initialParams={initialParams}
       />
     </div>

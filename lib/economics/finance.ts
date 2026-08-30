@@ -26,3 +26,34 @@ export function discountedPaybackYears(rate: number, cashflows: number[]): numbe
   }
   return null;
 }
+
+import type { AssumptionValues } from "./types";
+
+/**
+ * A3 finance projection over the ROI horizon. Re-buys the fleet when assets wear out with
+ * productive years left (`t % lifeYears === 0 && t < horizon`); life floored to whole years.
+ * Does NOT gate on savings sign — a negative annualSavings yields a real negative NPV (used by
+ * the sensitivity tornado).
+ */
+export function projectFinance(
+  annualSavingsUsd: number,
+  capexUsd: number,
+  a: AssumptionValues
+): { npvUsd: number; simplePaybackYears: number; simpleRoiPct: number; discountedPaybackYears: number | null } {
+  const horizon = Math.floor(a.roiHorizonYears);
+  const lifeYears = Math.floor(a.assetLifeYears);
+  const cashflows: number[] = [-capexUsd];
+  let reCapexTotal = 0;
+  for (let t = 1; t <= horizon; t++) {
+    const reCapex = t % lifeYears === 0 && t < horizon ? capexUsd : 0;
+    reCapexTotal += reCapex;
+    cashflows.push(annualSavingsUsd - reCapex);
+  }
+  const investmentUsd = capexUsd + reCapexTotal;
+  return {
+    npvUsd: npv(a.discountRate, cashflows),
+    simplePaybackYears: capexUsd / annualSavingsUsd,
+    simpleRoiPct: ((annualSavingsUsd * horizon - investmentUsd) / investmentUsd) * 100,
+    discountedPaybackYears: discountedPaybackYears(a.discountRate, cashflows),
+  };
+}

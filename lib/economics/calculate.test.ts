@@ -113,6 +113,17 @@ describe("computeEconomics", () => {
     expect(r.annualSavingsUsd).toBeCloseTo(240000 * 0.7 * 0.9 - 9000, 2);
   });
 
+  it("finance figures stay consistent after the projectFinance extraction (parity)", () => {
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const r = computeEconomics(cap, params, a);
+    if (!r.economical) throw new Error("expected economical");
+    // Values pinned pre-refactor (assetLife 7 >= horizon 5 -> no re-CAPEX).
+    expect(r.simplePaybackYears).toBeCloseTo(57500 / 159000, 6);
+    expect(r.simpleRoiPct).toBeCloseTo(((159000 * 5 - 57500) / 57500) * 100, 4);
+    expect(r.npvUsd).toBeGreaterThan(0);
+    expect(Number.isFinite(r.npvUsd)).toBe(true);
+  });
+
   describe("discounting & asset lifecycle (A3)", () => {
     const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
 

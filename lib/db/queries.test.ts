@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getIndustries, getCatalogForFacilityType, getSolutionForCalc, getAssumptions } from "./queries";
+import { getIndustries, getCatalogForFacilityType, getSolutionForCalc, getAssumptions, getSiblingSolutions } from "./queries";
 import { createSavedAnalysis, getSavedAnalyses, getSavedAnalysis } from "./queries";
 import { prisma } from "./client";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
@@ -75,5 +75,21 @@ describe("saved analyses (user-scoped)", () => {
     expect(await getSavedAnalyses(b.id)).toHaveLength(0);
 
     await prisma.user.deleteMany({ where: { id: { in: [a.id, b.id] } } }); // cascade cleans analyses
+  });
+});
+
+describe("getSiblingSolutions", () => {
+  it("returns all solutions in a solution's category, ordered by name", async () => {
+    const warehouse = await getCatalogForFacilityType("warehouse");
+    const amr = warehouse!.solutionCategories.find((c) => c.slug === "amr")!;
+    const one = amr.solutions[0].id;
+    const siblings = await getSiblingSolutions(one);
+    expect(siblings.length).toBe(amr.solutions.length);
+    expect(siblings.map((s) => s.id)).toContain(one);
+    const names = siblings.map((s) => s.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+  it("returns [] for an unknown solution id", async () => {
+    expect(await getSiblingSolutions("does-not-exist")).toEqual([]);
   });
 });

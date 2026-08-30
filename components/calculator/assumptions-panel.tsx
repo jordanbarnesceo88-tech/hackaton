@@ -2,30 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumField } from "@/components/ui/num-field";
 import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
-
-const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
-  laborCostPerHourUsd: "Стоимость труда (USD/час)",
-  hoursPerYear: "Рабочих часов в году",
-  workingDaysPerYear: "Рабочих дней в году",
-  operatingHoursPerDay: "Часов работы в сутки",
-  installPctOfCapex: "Монтаж (доля от CAPEX)",
-  laborReplacementPct: "Замещение труда (доля)",
-  residualSupervisionPct: "Остаточный надзор (доля)",
-  opsPerWorkerPerYear: "Операций на сотрудника в год",
-  turnoverPerDay: "Оборотов в сутки",
-  roiHorizonYears: "Горизонт ROI (лет)",
-  discountRate: "Ставка дисконтирования (доля)",
-  assetLifeYears: "Срок службы техники (лет)",
-  usdToRub: "Курс USD→RUB",
-};
-
-// Ratio (0..1 fraction) assumptions get a finer spinner step; everything else steps by 1.
-const RATIO_KEYS = new Set<keyof AssumptionValues>([
-  "installPctOfCapex",
-  "laborReplacementPct",
-  "residualSupervisionPct",
-  "discountRate",
-]);
+import { ASSUMPTION_LABELS, RATIO_KEYS } from "./assumption-labels";
 
 // U1: assumptions the engine only consumes for a specific capacity basis. Hidden for other
 // bases so every visible field actually affects the result (operatingHoursPerDay only
