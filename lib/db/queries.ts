@@ -55,6 +55,8 @@ export async function getSiblingSolutions(solutionId: string): Promise<SiblingSo
       id: true, name: true, vendor: true, priceUsd: true, capacityPerUnit: true,
       capacityUnit: true, capacityBasis: true, maintenanceUsdYear: true,
       energyUsdYear: true, licensingUsdYear: true,
+      priceEstimated: true, priceLowUsd: true, priceHighUsd: true,
+      priceBasis: true, sourceUrl: true,
     },
   });
   return rows;
