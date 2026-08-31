@@ -20,9 +20,14 @@ export default async function AnalysesPage() {
                 <b>{a.name}</b> · {a.facilityTypeSlug} ·{" "}
                 {new Date(a.createdAt).toLocaleDateString("ru-RU")}
               </span>
-              <Link href={`/calculate/${a.solutionId}?analysis=${a.id}`} className="underline">
-                Открыть
-              </Link>
+              <span className="flex gap-3">
+                <Link href={`/calculate/${a.solutionId}?analysis=${a.id}`} className="underline">
+                  Открыть
+                </Link>
+                <Link href={`/report/${a.id}`} className="underline">
+                  Отчёт
+                </Link>
+              </span>
             </li>
           ))}
         </ul>
