@@ -421,14 +421,19 @@ async function main() {
       solutionCount++;
     }
 
-    // Prune stale demo rows: delete warehouse solutions not in the curated set.
+    // Prune stale demo rows: delete warehouse SEED/PARSED solutions not in the curated set.
+    // Guards: skip entirely if the curated set is empty (Prisma treats `notIn: []` as "match all",
+    // which would wipe the vertical); and never touch ORGANIZER data (future real imports).
     const keep = WAREHOUSE_REAL.map((s) => s.name);
-    await prisma.solution.deleteMany({
-      where: {
-        solutionCategory: { facilityType: { slug: "warehouse" } },
-        name: { notIn: keep },
-      },
-    });
+    if (keep.length > 0) {
+      await prisma.solution.deleteMany({
+        where: {
+          solutionCategory: { facilityType: { slug: "warehouse" } },
+          source: { in: [SolutionSource.SEED, SolutionSource.PARSED] },
+          name: { notIn: keep },
+        },
+      });
+    }
   }
 
   console.log(
