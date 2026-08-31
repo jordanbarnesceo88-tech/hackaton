@@ -40,6 +40,9 @@ export function HeroResults({
       <div className="mt-1 text-4xl font-bold text-sky-900">
         {formatYearsRu(result.simplePaybackYears)}
       </div>
+      {/* Label the headline as the simple (undiscounted) payback, consistent with the A3 honesty
+          discipline used everywhere else — the number is real but must not imply a discounted claim. */}
+      <div className="text-xs text-sky-700/80">простой срок окупаемости</div>
       <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-sky-800">
         <span>
           NPV <b>{formatCost(result.npvUsd, usdToRub)}</b>
