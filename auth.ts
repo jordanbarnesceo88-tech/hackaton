@@ -6,6 +6,10 @@ import { verifyPassword } from "@/lib/auth/password";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  // Auth.js auto-trusts the host in `next dev` but NOT in the built/production app (`next start`),
+  // where it otherwise rejects requests with "UntrustedHost" and auth callbacks fail. Required for
+  // self-hosted / Docker deploys (and for the production-mode E2E run). Vercel sets this itself.
+  trustHost: true,
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
