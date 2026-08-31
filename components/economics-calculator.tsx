@@ -12,6 +12,7 @@ import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
 import { sensitivity } from "@/lib/economics/sensitivity";
+import { formatCost } from "@/lib/format/currency";
 import type {
   SolutionCapacity,
   FacilityParams,
@@ -78,6 +79,20 @@ export function EconomicsCalculator({
         <p className="text-sm text-muted-foreground">
           {primary.vendor} · {facilityTypeName} ({industryName})
         </p>
+        {primary.priceEstimated && primary.priceLowUsd != null && primary.priceHighUsd != null && (
+          <p className="text-xs text-amber-700">
+            оценка цены: {formatCost(primary.priceLowUsd, assumptions.usdToRub)}–
+            {formatCost(primary.priceHighUsd, assumptions.usdToRub)} · CAPEX по середине диапазона
+            {primary.sourceUrl ? (
+              <>
+                {" "}
+                <a href={primary.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                  источник ↗
+                </a>
+              </>
+            ) : null}
+          </p>
+        )}
       </div>
       {dataChanged && (
         <div className="rounded-md border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">

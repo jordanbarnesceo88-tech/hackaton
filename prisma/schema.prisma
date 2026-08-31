@@ -58,6 +58,10 @@ model Solution {
   solutionCategoryId String
   solutionCategory   SolutionCategory @relation(fields: [solutionCategoryId], references: [id])
   priceUsd           Float
+  priceEstimated     Boolean          @default(false)
+  priceLowUsd        Float?
+  priceHighUsd       Float?
+  priceBasis         String?
   capacityPerUnit    Float
   capacityUnit       String
   capacityBasis      CapacityBasis    @default(PER_DAY_FLOW)

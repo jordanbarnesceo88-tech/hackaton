@@ -11,6 +11,11 @@ export type SiblingSolution = SolutionCapacity & {
   name: string;
   vendor: string;
   capacityUnit: string;
+  priceEstimated: boolean;
+  priceLowUsd: number | null;
+  priceHighUsd: number | null;
+  priceBasis: string | null;
+  sourceUrl: string | null;
 };
 
 export type RankedSolution = {

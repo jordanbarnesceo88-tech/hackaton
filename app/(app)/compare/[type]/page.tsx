@@ -23,6 +23,10 @@ type SolutionRow = {
   maintenanceUsdYear: number;
   energyUsdYear: number;
   licensingUsdYear: number;
+  priceEstimated: boolean;
+  priceLowUsd: number | null;
+  priceHighUsd: number | null;
+  priceBasis: string | null;
 };
 
 // Normalized comparison metrics. Annualized throughput and price-per-annual-unit are only
@@ -137,7 +141,16 @@ export default async function ComparePage({
                           <Provenance source={s.source} sourceUrl={s.sourceUrl} />
                         </div>
                       </Td>
-                      <Td className="text-right whitespace-nowrap">{money(s.priceUsd)}</Td>
+                      <Td className="text-right whitespace-nowrap">
+                        {s.priceEstimated && s.priceLowUsd != null && s.priceHighUsd != null ? (
+                          <span title={s.priceBasis ?? undefined}>
+                            {money(s.priceLowUsd)}–{money(s.priceHighUsd)}{" "}
+                            <sup className="text-[10px] text-amber-700">оценка</sup>
+                          </span>
+                        ) : (
+                          money(s.priceUsd)
+                        )}
+                      </Td>
                       <Td className="whitespace-nowrap">
                         {s.capacityPerUnit} {s.capacityUnit}
                         <div className="text-xs text-muted-foreground">
