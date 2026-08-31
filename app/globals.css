@@ -142,4 +142,8 @@
 
 .report-block {
   break-inside: avoid;
+  /* Force background fills (tornado bars, provenance badges) to print — browsers omit
+     backgrounds by default in "Save as PDF". Inherits to descendants. */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }

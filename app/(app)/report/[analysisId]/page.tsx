@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getSavedAnalysis, getSolutionForCalc, getAssumptions } from "@/lib/db/queries";
+import { getSavedAnalysis, getSolutionForCalc } from "@/lib/db/queries";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { sensitivity } from "@/lib/economics/sensitivity";
 import { resultsDiverged } from "@/lib/analyses/diverged";
@@ -82,6 +82,7 @@ export default async function ReportPage({
           <div>Стоимость труда: {money(a.laborCostPerHourUsd)}/час</div>
           <div>Операций в сутки: {p.opsPerDay}</div>
           <div>Замещение труда: {(a.laborReplacementPct * 100).toFixed(0)}%</div>
+          <div>Остаточный надзор: {(a.residualSupervisionPct * 100).toFixed(0)}%</div>
           <div>Персонал (замещаемый): {p.staffCount}</div>
           <div>Ставка дисконтирования: {(a.discountRate * 100).toFixed(0)}%</div>
           <div>Горизонт ROI: {a.roiHorizonYears} лет</div>
@@ -99,6 +100,7 @@ export default async function ReportPage({
             <div>Замещается персонала (ЭПЗ): <b>{result.displacedFte.toFixed(1)}</b></div>
             <div>CAPEX: <b>{money(result.capexUsd)}</b></div>
             <div>OPEX/год: <b>{money(result.opexAnnualUsd)}</b></div>
+            <div>Базовые затраты на труд/год: <b>{money(result.baselineAnnualUsd)}</b></div>
             {result.economical ? (
               <>
                 <div>Годовая экономия: <b>{money(result.annualSavingsUsd)}</b></div>

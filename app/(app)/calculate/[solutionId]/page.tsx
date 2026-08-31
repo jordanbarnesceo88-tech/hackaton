@@ -14,7 +14,6 @@ import type {
   FacilityParams,
   AssumptionValues,
   SolutionCapacity,
-  EconomicsResult,
 } from "@/lib/economics/types";
 
 export default async function CalculatePage({
