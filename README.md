@@ -4,6 +4,18 @@ Web platform helping companies evaluate robotization investments: browse/compare
 available robotic solutions for their facility type, calculate OPEX/CAPEX/payback/ROI,
 and see a visualization of robots operating on their site.
 
+## Tests & CI
+
+The DB must be up and seeded first: `docker compose up -d` then `npm run db:seed`.
+
+- `npm test` — unit/integration tests (Vitest), against the local Postgres.
+- `npm run test:e2e` — end-to-end tests (Playwright, Chromium) over the full 4-step flow
+  incl. signup → save → report. The Playwright config builds and starts the app automatically
+  (`next build && next start`); run `npx playwright install chromium` once beforehand.
+- `.github/workflows/ci.yml` runs unit + E2E (with a Postgres service) on every push/PR — it
+  activates automatically **once this repo is pushed to a GitHub remote**; until then run the
+  commands above locally.
+
 ## Docs
 
 - [docs/00-idea-brief.md](./docs/00-idea-brief.md) — original task/idea (fixed)

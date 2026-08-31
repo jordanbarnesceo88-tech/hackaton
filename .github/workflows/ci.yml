@@ -1,0 +1,48 @@
+# CI: unit + E2E on push/PR. Inert until this repo has a GitHub remote; until then run
+# `npm run test:e2e` locally. Runs green the moment a remote exists.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rrp
+          POSTGRES_PASSWORD: rrp_dev_password
+          POSTGRES_DB: robotization_roi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rrp"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://rrp:rrp_dev_password@localhost:5432/robotization_roi
+      AUTH_SECRET: ci-throwaway-secret-not-for-production
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npm run db:seed
+      - run: npm run build
+      - run: npx vitest run
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
