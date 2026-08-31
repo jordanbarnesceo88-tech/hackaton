@@ -8,6 +8,7 @@ import { AssumptionsPanel } from "@/components/calculator/assumptions-panel";
 import { SaveControl } from "@/components/calculator/save-control";
 import { RecommendationPanel } from "@/components/calculator/recommendation-panel";
 import { SensitivityChart } from "@/components/calculator/sensitivity-chart";
+import { HeroResults } from "@/components/calculator/hero-results";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
@@ -101,6 +102,11 @@ export function EconomicsCalculator({
         </div>
       )}
       <div className="grid gap-6 md:grid-cols-2">
+      <HeroResults
+        result={result}
+        usdToRub={assumptions.usdToRub}
+        priceEstimated={primary.priceEstimated}
+      />
       <ParamsForm
         params={params}
         setParams={setParams}

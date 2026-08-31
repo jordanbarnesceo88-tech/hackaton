@@ -6,6 +6,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **Hero results band on the calculate page (backlog #4).** A prominent one-glance headline above
+  the calculator — «Окупается за N лет» with NPV and ROI, and an estimated-price caveat for
+  cited/estimate solutions. Non-economical shows a plain «Не окупается»; invalid inputs hide the
+  band (the results panel already notes it). Presentational — reuses the existing computed result.
 - **Shareable one-page report (`/report/[id]`):** Saved analyses can now be exported to a
   print-to-PDF view — a clean one-pager showing the facility parameters, calculated results,
   NPV sensitivity tornado, solution provenance (source badge + link), and a disclaimer footer.
