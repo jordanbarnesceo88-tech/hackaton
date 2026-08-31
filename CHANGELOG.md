@@ -6,6 +6,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **Real, sourced warehouse products (data credibility).** The fake `RoboPick/StackMax/…`
+  warehouse rows are replaced with **3 real robotics products** — Hai Robotics HaiPick A42T
+  (`amr`), Exotec Skypod and AutoStore (`asrs`) — seeded as `source: PARSED`. Specs are cited to
+  live public pages (`sourceUrl`/`lastVerified`); **prices are shown as clearly-labelled estimate
+  ranges** with an "оценка" marker + citation in the comparison table and calculate header, since
+  industrial-robot list prices are not published (the ROI engine computes at the range midpoint,
+  unchanged). New schema fields `priceEstimated`/`priceLowUsd`/`priceHighUsd`/`priceBasis`; curated
+  data in `scripts/parse-sources/warehouse-real.ts` guarded by a data-integrity test; per-figure
+  citations + a "verify before a live demo" gate in `docs/data-provenance.md`. Airport/medical/
+  other remain badged demo (`SEED`) pending organizer data. CAPEX-only (RaaS deferred).
 - **ROI-ranked recommendation + NPV sensitivity on the calculate page (decision engine).** For
   the user's facility, Step 3 now ranks the chosen solution's category siblings by NPV/payback
   ("Рекомендация для вашего объекта", ★ on the best) and lets you switch the primary solution
