@@ -23,6 +23,7 @@ export function SaveControl({
   result: EconomicsResult;
 }) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -42,8 +43,10 @@ export function SaveControl({
         assumptions,
         results: result,
       });
-      if (res.ok) setSaveMsg("Сохранено");
-      else if (res.reason === "unauthenticated") setSaveMsg("unauth");
+      if (res.ok) {
+        setSavedId(res.id);
+        setSaveMsg("Сохранено");
+      } else if (res.reason === "unauthenticated") setSaveMsg("unauth");
       else setSaveMsg("Ошибка сохранения");
     } finally {
       setSaving(false);
@@ -71,6 +74,11 @@ export function SaveControl({
       ) : saveMsg ? (
         <span className="text-sm text-muted-foreground">{saveMsg}</span>
       ) : null}
+      {savedId && (
+        <a href={`/report/${savedId}`} className="text-sm underline">
+          Открыть отчёт
+        </a>
+      )}
     </div>
   );
 }

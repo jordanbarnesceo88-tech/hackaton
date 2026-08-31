@@ -6,6 +6,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **Shareable one-page report (`/report/[id]`):** Saved analyses can now be exported to a
+  print-to-PDF view — a clean one-pager showing the facility parameters, calculated results,
+  NPV sensitivity tornado, solution provenance (source badge + link), and a disclaimer footer.
+  Entry points: a "Отчёт" link on the analyses list (`/analyses`) and an "Открыть отчёт" link
+  displayed after save succeeds on the calculator.
 - **Real, sourced warehouse products (data credibility).** The fake `RoboPick/StackMax/…`
   warehouse rows are replaced with **3 real robotics products** — Hai Robotics HaiPick A42T
   (`amr`), Exotec Skypod and AutoStore (`asrs`) — seeded as `source: PARSED`. Specs are cited to
