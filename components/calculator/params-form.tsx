@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumField } from "@/components/ui/num-field";
+import { RegionSelect } from "@/components/calculator/region-select";
 import type { FacilityParams, SolutionCapacity } from "@/lib/economics/types";
 
 export function ParamsForm({
@@ -8,11 +9,15 @@ export function ParamsForm({
   setParams,
   capacity,
   capacityUnit,
+  onPickRegion,
+  usdToRub,
 }: {
   params: FacilityParams;
   setParams: Dispatch<SetStateAction<FacilityParams>>;
   capacity: SolutionCapacity;
   capacityUnit: string;
+  onPickRegion: (labor: number, energyFactor: number) => void;
+  usdToRub: number;
 }) {
   const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
   return (
@@ -21,6 +26,7 @@ export function ParamsForm({
         <CardTitle>Параметры объекта</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        <RegionSelect usdToRub={usdToRub} onPick={onPickRegion} />
         {/* U1: area does not enter the economics — it only sizes the Step-4 scene. Labelled so
             no field silently fails to move the result. */}
         <NumField id="areaM2" label="Площадь, м² (только визуализация)" value={params.areaM2}

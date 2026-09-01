@@ -112,6 +112,14 @@ export function EconomicsCalculator({
         setParams={setParams}
         capacity={capacity}
         capacityUnit={primary.capacityUnit}
+        usdToRub={assumptions.usdToRub}
+        onPickRegion={(labor, energyFactor) =>
+          setAssumptions((prev) => ({
+            ...prev,
+            laborCostPerHourUsd: labor,
+            energyCostFactor: energyFactor,
+          }))
+        }
       />
       <ResultsPanel result={result} usdToRub={assumptions.usdToRub} />
       <RecommendationPanel
