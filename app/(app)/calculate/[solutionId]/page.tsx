@@ -6,15 +6,11 @@ import {
   getSavedAnalysis,
   getSiblingSolutions,
 } from "@/lib/db/queries";
-import { assumptionsToValues } from "@/lib/economics/assumptions";
+import { assumptionsToValues, withAssumptionDefaults } from "@/lib/economics/assumptions";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { resultsDiverged } from "@/lib/analyses/diverged";
 import { EconomicsCalculator } from "@/components/economics-calculator";
-import type {
-  FacilityParams,
-  AssumptionValues,
-  SolutionCapacity,
-} from "@/lib/economics/types";
+import type { FacilityParams, SolutionCapacity } from "@/lib/economics/types";
 
 export default async function CalculatePage({
   params,
@@ -51,7 +47,9 @@ export default async function CalculatePage({
       const saved = await getSavedAnalysis(analysisId, session.user.id);
       if (saved && saved.solutionId === solutionId) {
         initialParams = saved.params as FacilityParams;
-        initialAssumptions = saved.assumptions as AssumptionValues;
+        // Backfill defaults so an analysis saved before a newer assumption (e.g. energyCostFactor)
+        // doesn't recompute to NaN/invalid.
+        initialAssumptions = withAssumptionDefaults(saved.assumptions);
         const recomputed = computeEconomics(capacity, initialParams, initialAssumptions);
         dataChanged = resultsDiverged(saved.results, recomputed);
       }
