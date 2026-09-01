@@ -10,6 +10,10 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
+    // Give each run a distinct client IP so the auth rate limiter (keyed on X-Forwarded-For)
+    // buckets runs independently — otherwise repeated runs share `…:unknown` and the 6th signup
+    // within 15 min would hit the cap and fail spuriously.
+    extraHTTPHeaders: { "x-forwarded-for": `e2e-${Date.now()}` },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
