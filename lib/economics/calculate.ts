@@ -43,7 +43,8 @@ export function baseEconomics(
 
   const capexUsd = quantity * cap.priceUsd * (1 + a.installPctOfCapex);
   const opexAnnualUsd =
-    quantity * (cap.maintenanceUsdYear + cap.energyUsdYear + cap.licensingUsdYear);
+    quantity *
+    (cap.maintenanceUsdYear + cap.energyUsdYear * a.energyCostFactor + cap.licensingUsdYear);
   const annualSavingsUsd =
     baselineAnnualUsd * a.laborReplacementPct * (1 - a.residualSupervisionPct) - opexAnnualUsd;
 

@@ -14,6 +14,7 @@ export const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   discountRate: "Ставка дисконтирования (доля)",
   assetLifeYears: "Срок службы техники (лет)",
   usdToRub: "Курс USD→RUB",
+  energyCostFactor: "Множитель энергозатрат (регион)",
 };
 
 // Ratio (0..1 fraction) assumptions get a finer spinner step; everything else steps by 1.
@@ -22,4 +23,5 @@ export const RATIO_KEYS = new Set<keyof AssumptionValues>([
   "laborReplacementPct",
   "residualSupervisionPct",
   "discountRate",
+  "energyCostFactor",
 ]);

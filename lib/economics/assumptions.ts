@@ -14,6 +14,7 @@ export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
   discountRate: 0.12, // A3
   assetLifeYears: 7, // A3
   usdToRub: 90, // I6 (display-only; update before a live demo)
+  energyCostFactor: 1.0, // #8a (regional; 1.0 = no change)
 };
 
 export function assumptionsToValues(

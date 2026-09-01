@@ -6,7 +6,7 @@ const a: AssumptionValues = {
   laborCostPerHourUsd: 15, hoursPerYear: 2000, workingDaysPerYear: 250,
   operatingHoursPerDay: 16, installPctOfCapex: 0.15, laborReplacementPct: 0.5,
   residualSupervisionPct: 0.1, opsPerWorkerPerYear: 12500, turnoverPerDay: 8,
-  roiHorizonYears: 5, discountRate: 0.12, assetLifeYears: 7, usdToRub: 90,
+  roiHorizonYears: 5, discountRate: 0.12, assetLifeYears: 7, usdToRub: 90, energyCostFactor: 1.0,
 };
 const cap: SolutionCapacity = {
   capacityPerUnit: 400, capacityBasis: "PER_DAY_FLOW", priceUsd: 50000,

@@ -297,6 +297,7 @@ async function main() {
     { key: "discountRate", label: "Ставка дисконтирования", value: 0.12, unit: "доля", order: 11 },
     { key: "assetLifeYears", label: "Срок службы техники", value: 7, unit: "лет", order: 12 },
     { key: "usdToRub", label: "Курс USD→RUB", value: 90, unit: "₽/$", order: 13 },
+    { key: "energyCostFactor", label: "Множитель энергозатрат (регион)", value: 1.0, unit: "коэф.", order: 14 },
   ];
   for (const asmp of assumptions) {
     await prisma.assumption.upsert({
