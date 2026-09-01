@@ -108,7 +108,7 @@ export function EconomicsCalculator({
         usdToRub={assumptions.usdToRub}
         priceEstimated={primary.priceEstimated}
       />
-      <BreakEvenNote capacity={capacity} params={params} assumptions={assumptions} />
+      <BreakEvenNote capacity={capacity} params={params} assumptions={assumptions} result={result} />
       <ParamsForm
         params={params}
         setParams={setParams}
