@@ -14,6 +14,7 @@ export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
   discountRate: 0.12, // A3
   assetLifeYears: 7, // A3
   usdToRub: 90, // I6 (display-only; update before a live demo)
+  energyCostFactor: 1.0, // #8a (regional; 1.0 = no change)
 };
 
 export function assumptionsToValues(
@@ -24,6 +25,23 @@ export function assumptionsToValues(
   for (const k of Object.keys(out) as (keyof AssumptionValues)[]) {
     const v = byKey.get(k);
     if (typeof v === "number") out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Backfill a persisted (jsonb) assumptions blob with defaults for any key that is missing or
+ * non-finite. Saved analyses created before a new assumption was introduced (e.g. #8a's
+ * `energyCostFactor`) lack that key; without this, `energyUsdYear * undefined = NaN` would poison
+ * the recompute and a formerly-valid saved analysis would render as invalid. Use on every read of
+ * `SavedAnalysis.assumptions` before feeding the engine.
+ */
+export function withAssumptionDefaults(raw: unknown): AssumptionValues {
+  const src = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const out = { ...DEFAULT_ASSUMPTIONS };
+  for (const k of Object.keys(out) as (keyof AssumptionValues)[]) {
+    const v = src[k];
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
   }
   return out;
 }

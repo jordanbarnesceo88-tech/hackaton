@@ -6,6 +6,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **Regional labor/energy presets (opt-in convenience).** The calculator now offers a "Регион
+  (труд/энергия)" dropdown on the Step 3 parameters panel. Selecting a region (Москва,
+  Санкт-Петербург, РФ — среднее, or Низкозатратный регион/СКФО) automatically sets both
+  `laborCostPerHourUsd` and `energyCostFactor` based on 2025 Rosstat average wages and regional
+  industrial-tariff indices. Both values remain fully editable after selection; the presets are
+  cited in `docs/data-provenance.md` with a "verify before a live demo" caveat. New assumption
+  field `energyCostFactor` (default 1.0, applied as a multiplier on annual energy cost).
 - **Hero results band on the calculate page (backlog #4).** A prominent one-glance headline above
   the calculator — «Окупается за N лет» with NPV and ROI, and an estimated-price caveat for
   cited/estimate solutions. Non-economical shows a plain «Не окупается»; invalid inputs hide the

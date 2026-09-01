@@ -16,6 +16,7 @@ const a: AssumptionValues = {
   assetLifeYears: 7,
   usdToRub: 90,
   roiHorizonYears: 5,
+  energyCostFactor: 1.0,
 };
 const params: FacilityParams = { areaM2: 1000, opsPerDay: 1600, staffCount: 10 };
 const base = { priceUsd: 1, maintenanceUsdYear: 0, energyUsdYear: 0, licensingUsdYear: 0 };

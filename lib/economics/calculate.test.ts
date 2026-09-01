@@ -17,6 +17,7 @@ const a: AssumptionValues = {
   discountRate: 0.12,
   assetLifeYears: 7,
   usdToRub: 90,
+  energyCostFactor: 1.0,
 };
 
 // PER_DAY_FLOW, cap 400/day. opsPerDay 400 -> qty = ceil((400*250)/(400*250)) = 1.
@@ -122,6 +123,24 @@ describe("computeEconomics", () => {
     expect(r.simpleRoiPct).toBeCloseTo(((159000 * 5 - 57500) / 57500) * 100, 4);
     expect(r.npvUsd).toBeGreaterThan(0);
     expect(Number.isFinite(r.npvUsd)).toBe(true);
+  });
+
+  it("energyCostFactor 1.0 is a no-op (parity with the pre-#8a numbers)", () => {
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const r = computeEconomics(cap, params, a);
+    if (!r.economical) throw new Error("expected economical");
+    // opex = 1*(6000 + 1000 + 2000) = 9000, unchanged.
+    expect(r.opexAnnualUsd).toBeCloseTo(9000, 6);
+  });
+
+  it("energyCostFactor scales ONLY the energy term of OPEX (#8a)", () => {
+    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const base = computeEconomics(cap, params, a);
+    const scaled = computeEconomics(cap, params, { ...a, energyCostFactor: 0.5 });
+    if (!base.economical || !scaled.economical) throw new Error("expected economical");
+    // energy 1000 → 500; opex drops by quantity(1)*500 = 500; savings rise by 500.
+    expect(base.opexAnnualUsd - scaled.opexAnnualUsd).toBeCloseTo(500, 6);
+    expect(scaled.annualSavingsUsd - base.annualSavingsUsd).toBeCloseTo(500, 6);
   });
 
   describe("discounting & asset lifecycle (A3)", () => {

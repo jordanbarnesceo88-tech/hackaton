@@ -38,6 +38,8 @@ export type AssumptionValues = {
   // I6: display-only USD→RUB rate. Not used by the engine (all math is USD) — lives here so it
   // is editable in the same assumptions panel and sourced from the DB Assumption table.
   usdToRub: number;
+  // #8a: regional energy-cost multiplier on each solution's energyUsdYear. Default 1.0 (no-op).
+  energyCostFactor: number;
 };
 
 type EconomicsCommon = {

@@ -56,12 +56,30 @@
 | Licensing/yr | ~$6,000 | software (estimate) |
 | `sourceUrl` | https://www.autostoresystem.com/benefits/high-throughput | |
 
-## Known caveats to re-check before a demo
-- **Prices are estimates, not quotes** — all three are third-party analyst figures; confirm the
-  ranges still hold and consider getting a real quote for the demo target facility.
-- **AS/RS grain** — Exotec and AutoStore are modelled *per station/port* so they compare fairly;
-  a *full system* is many stations + hundreds of robots (system prices $2–10M) — make that clear
-  if a client asks "why is an AutoStore only $300k?".
-- **Optimistic specs** — the throughput figures are vendor best-case; sustained real-world rates
-  are typically lower.
-- Re-open each `sourceUrl` and confirm the numbers before presenting.
+## Regional presets: labor wages + energy factors
+
+The calculator offers opt-in **Regional presets** that set both `laborCostPerHourUsd` and
+`energyCostFactor` by selecting a region. Picking a region is entirely optional; users can always
+edit both figures independently below the selector.
+
+| Region | Avg. monthly wage (₽, 2025) | Labor/hour (USD) | Energy factor | Source |
+|---|---|---|---|---|
+| Москва | ~180,860 | $12.0 | 1.0 (reference) | Rosstat-based average; energy tariff baseline |
+| Санкт-Петербург | ~121,475 | $8.0 | 0.95 | Rosstat-based average; regional tariff ~5% lower |
+| РФ — среднее | ~100,360 | $6.6 | 0.9 | Rosstat-based 2025 RF average; tariff ~10% lower |
+| Низкозатратный регион (СКФО) | ~46,281 | $3.1 | 0.8 | North Caucasus (e.g. Ingushetia, Chechnya) low-cost reference; ~20% lower tariff |
+
+**Derivation:**
+- **Labor cost per hour:** cited 2025 average monthly wage (Rosstat) ÷ ~168 working hours/month ÷ 90
+  (the app's USD→RUB reference rate), rounded.
+- **Energy factor:** approximate regional index relative to Москва = 1.0, based on RF industrial
+  electricity-tariff variation (~±30% typical). This is a *multiplier* on the annual energy cost
+  estimate, not a per-kWh rate. Regional tariffs vary; this figure is an order-of-magnitude
+  regional proxy.
+
+**⚠ Before a live client demo, VERIFY:**
+- **Verify each region's current average wage** against the latest Rosstat / regional labour board
+  data, as labor-cost presets drift annually.
+- **Verify the energy factor** against the target region's current industrial tariff. The table
+  figures are approximate regional indices; real industrial rates vary by utility and contract
+  terms.
