@@ -4,9 +4,13 @@ import { prisma } from "@/lib/db/client";
 import { verifyPassword } from "@/lib/auth/password";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 
-// Login: 10 attempts per (email+IP) per 15 minutes — throttles credential-stuffing without
-// locking a whole IP (NAT/shared) out of every account.
+// Login throttling, two buckets both enforced per 15-min window:
+//  - per (email+IP): 10 — stops single-account password brute force without locking a whole
+//    NAT/shared IP out of one account.
+//  - per IP: 50 — caps credential-stuffing / password-spray across MANY accounts from one IP
+//    (the per-email bucket alone wouldn't, since each email is independent).
 const LOGIN_LIMIT = 10;
+const LOGIN_IP_LIMIT = 50;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -24,14 +28,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(creds?.password ?? "");
         if (!email || !password) return null;
 
-        // Throttle credential-stuffing. Over the limit → treat as a failed login (return null),
-        // giving no signal that the account exists or that a limit was hit.
+        // Throttle credential-stuffing. Over either limit → treat as a failed login (return
+        // null), giving no signal that the account exists or that a limit was hit.
         const ip = clientIp(request.headers);
-        const limited = await rateLimit(`login:${email}:${ip}`, {
+        const perAccount = await rateLimit(`login:${email}:${ip}`, {
           limit: LOGIN_LIMIT,
           windowMs: LOGIN_WINDOW_MS,
         });
-        if (!limited.ok) return null;
+        const perIp = await rateLimit(`login:ip:${ip}`, {
+          limit: LOGIN_IP_LIMIT,
+          windowMs: LOGIN_WINDOW_MS,
+        });
+        if (!perAccount.ok || !perIp.ok) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;

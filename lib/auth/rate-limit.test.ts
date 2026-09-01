@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { rateLimit, clientIp } from "./rate-limit";
 import { prisma } from "@/lib/db/client";
 
@@ -6,6 +6,9 @@ const KEY = "test:ratelimit:key";
 
 describe("rateLimit (DB-backed fixed window)", () => {
   beforeEach(async () => {
+    await prisma.rateLimit.deleteMany({ where: { key: KEY } });
+  });
+  afterAll(async () => {
     await prisma.rateLimit.deleteMany({ where: { key: KEY } });
   });
 
