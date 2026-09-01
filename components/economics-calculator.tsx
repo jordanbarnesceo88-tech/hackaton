@@ -9,6 +9,7 @@ import { SaveControl } from "@/components/calculator/save-control";
 import { RecommendationPanel } from "@/components/calculator/recommendation-panel";
 import { SensitivityChart } from "@/components/calculator/sensitivity-chart";
 import { HeroResults } from "@/components/calculator/hero-results";
+import { BreakEvenNote } from "@/components/calculator/break-even-note";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
@@ -107,6 +108,7 @@ export function EconomicsCalculator({
         usdToRub={assumptions.usdToRub}
         priceEstimated={primary.priceEstimated}
       />
+      <BreakEvenNote capacity={capacity} params={params} assumptions={assumptions} result={result} />
       <ParamsForm
         params={params}
         setParams={setParams}

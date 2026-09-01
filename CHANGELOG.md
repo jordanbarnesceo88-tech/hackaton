@@ -41,6 +41,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   modules `lib/economics/recommend.ts` + `sensitivity.ts` (with a behavior-preserving extraction
   of `baseEconomics`/`projectFinance` from `calculate.ts` so the tornado computes honest negative
   NPVs). Spec: `docs/superpowers/specs/2026-08-29-recommendation-sensitivity-design.md`.
+- **Break-even labor rate on the calculator.** A note card on the calculate page shows the
+  minimum hourly labor cost ($/hr) at which the solution achieves NPV=0 over the projection
+  horizon, plus a safety margin indicator (ratio of current cost to break-even rate). Read-only;
+  no changes to existing numbers.
 
 ### Changed (economics model — output numbers change; signed off 2026-08-25)
 
