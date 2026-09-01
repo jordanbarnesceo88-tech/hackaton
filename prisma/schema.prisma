@@ -119,3 +119,12 @@ model SavedAnalysis {
 
   @@index([userId])
 }
+
+// Fixed-window rate-limit counter for auth endpoints (login/signup). DB-backed so it works on
+// both a single Docker instance and serverless/multi-instance. `key` is e.g. "signup:ip:<ip>" or
+// "login:<email>:<ip>"; `windowStart` is reset when the window elapses.
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+}

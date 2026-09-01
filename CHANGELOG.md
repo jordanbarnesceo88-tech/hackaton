@@ -6,6 +6,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **DB-backed rate limiting on login & signup (audit SEC1 / deploy #6).** A fixed-window limiter
+  (`lib/auth/rate-limit.ts` + `RateLimit` table) throttles signup (5 / IP / 15 min) and login
+  (10 / email+IP / 15 min). Postgres-backed so it works on both single-instance Docker and
+  serverless; fails open on DB error. Closes the top pre-launch security item.
 - **Regional labor/energy presets (opt-in convenience).** The calculator now offers a "Регион
   (труд/энергия)" dropdown on the Step 3 parameters panel. Selecting a region (Москва,
   Санкт-Петербург, РФ — среднее, or Низкозатратный регион/СКФО) automatically sets both
