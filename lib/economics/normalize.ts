@@ -25,6 +25,27 @@ export function capacityPerYear(cap: SolutionCapacity, a: AssumptionValues): num
   return cap.capacityPerUnit * hoursFactor * a.workingDaysPerYear;
 }
 
+/**
+ * The peak concurrent load a CONCURRENT_STOCK solution is sized against: the user's explicit
+ * figure when they gave one, otherwise derived from throughput and turnover. Returns null when
+ * the derivation is degenerate (a zero or negative turnover rate with no explicit peak).
+ *
+ * Exported because the UI needs the same answer the engine uses. `ParamsForm` used to render
+ * `params.peakConcurrent ?? 0`, so whenever the field was unset it displayed 0 while the engine
+ * quietly sized the fleet from the derived peak — the form and the result disagreeing about the
+ * number driving the calculation.
+ */
+export function resolvePeakConcurrent(
+  params: FacilityParams,
+  a: AssumptionValues
+): number | null {
+  if (params.peakConcurrent !== undefined) {
+    return Number.isFinite(params.peakConcurrent) ? params.peakConcurrent : null;
+  }
+  const derived = Math.ceil(params.opsPerDay / a.turnoverPerDay);
+  return Number.isFinite(derived) ? derived : null;
+}
+
 /** Annualized facility demand from daily operations. */
 export function demandPerYear(params: FacilityParams, a: AssumptionValues): number {
   return params.opsPerDay * a.workingDaysPerYear;
@@ -44,9 +65,8 @@ export function computeQuantity(
   if (!(cap.capacityPerUnit > 0)) return null;
 
   if (cap.capacityBasis === "CONCURRENT_STOCK") {
-    const peak =
-      params.peakConcurrent ?? Math.ceil(params.opsPerDay / a.turnoverPerDay);
-    if (!Number.isFinite(peak)) return null; // e.g. turnoverPerDay <= 0
+    const peak = resolvePeakConcurrent(params, a);
+    if (peak === null) return null; // e.g. turnoverPerDay <= 0
     return Math.max(1, Math.ceil(peak / cap.capacityPerUnit));
   }
 

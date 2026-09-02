@@ -4,6 +4,7 @@ import {
   capacityPerYear,
   demandPerYear,
   toSolutionCapacity,
+  resolvePeakConcurrent,
 } from "./normalize";
 import { makeAssumptions, makeCapacity, makeParams } from "./fixtures";
 import type { SolutionCapacity } from "./types";
@@ -103,5 +104,36 @@ describe("toSolutionCapacity", () => {
   it("preserves a non-default capacity basis and costs", () => {
     const cap = makeCapacity({ capacityBasis: "CONCURRENT_STOCK", priceUsd: 1234, energyUsdYear: 7 });
     expect(toSolutionCapacity(cap)).toEqual(cap);
+  });
+});
+
+describe("resolvePeakConcurrent", () => {
+  it("uses the explicit peak when the user gave one", () => {
+    expect(resolvePeakConcurrent(makeParams({ peakConcurrent: 30 }), a)).toBe(30);
+  });
+
+  it("derives from throughput and turnover when unset — the value the engine sizes against", () => {
+    // opsPerDay 1600 / turnoverPerDay 8 = 200. The form used to render 0 in this case.
+    expect(resolvePeakConcurrent(makeParams({ opsPerDay: 1600 }), a)).toBe(200);
+  });
+
+  it("rounds a fractional derived peak up to a whole unit", () => {
+    expect(resolvePeakConcurrent(makeParams({ opsPerDay: 100 }), makeAssumptions({ turnoverPerDay: 8 }))).toBe(13);
+  });
+
+  it("returns null for a degenerate derivation instead of Infinity", () => {
+    expect(resolvePeakConcurrent(makeParams(), makeAssumptions({ turnoverPerDay: 0 }))).toBeNull();
+  });
+
+  it("returns null for a non-finite explicit peak", () => {
+    expect(resolvePeakConcurrent(makeParams({ peakConcurrent: NaN }), a)).toBeNull();
+  });
+
+  it("agrees with the quantity the engine computes for a stock solution", () => {
+    // capacityPerUnit 12, derived peak 200 -> ceil(200/12) = 17, matching computeQuantity.
+    const cap = makeCapacity({ capacityPerUnit: 12, capacityBasis: "CONCURRENT_STOCK" });
+    const p = makeParams({ opsPerDay: 1600 });
+    const peak = resolvePeakConcurrent(p, a)!;
+    expect(computeQuantity(cap, p, a)).toBe(Math.ceil(peak / 12));
   });
 });

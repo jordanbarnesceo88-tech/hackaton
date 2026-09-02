@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **The peak-load field could show a number the engine wasn't using.** `ParamsForm` rendered
+  `params.peakConcurrent ?? 0`, but when that field is unset the engine derives the peak from
+  throughput and turnover instead — so the form would display `0` while the fleet was sized from
+  something else. Reachable by switching in place into a `CONCURRENT_STOCK` solution, since the
+  default is set in a `useState` initializer that runs once. Latent with current data (no seeded
+  category mixes capacity bases — verified), live the moment one does. The derivation is now a
+  single exported `resolvePeakConcurrent()` used by both the engine and the form, so they cannot
+  disagree. 6 tests, including one asserting it matches `computeQuantity`'s own sizing.
 - **Robots jumped back to their start positions on every unrelated keystroke.** The
   visualization memoized its layout on the whole `params` object, but `generateLayout` reads
   only `params.areaM2` — and `params` is a fresh object on each edit, so typing in «Объём

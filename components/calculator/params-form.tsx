@@ -2,13 +2,19 @@ import type { Dispatch, SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumField } from "@/components/ui/num-field";
 import { RegionSelect } from "@/components/calculator/region-select";
-import type { FacilityParams, SolutionCapacity } from "@/lib/economics/types";
+import type {
+  FacilityParams,
+  SolutionCapacity,
+  AssumptionValues,
+} from "@/lib/economics/types";
+import { resolvePeakConcurrent } from "@/lib/economics/normalize";
 
 export function ParamsForm({
   params,
   setParams,
   capacity,
   capacityUnit,
+  assumptions,
   onPickRegion,
   usdToRub,
 }: {
@@ -16,6 +22,7 @@ export function ParamsForm({
   setParams: Dispatch<SetStateAction<FacilityParams>>;
   capacity: SolutionCapacity;
   capacityUnit: string;
+  assumptions: AssumptionValues;
   onPickRegion: (labor: number, energyFactor: number) => void;
   usdToRub: number;
 }) {
@@ -39,7 +46,11 @@ export function ParamsForm({
           <NumField
             id="peakConcurrent"
             label="Пиковая одновременная нагрузка"
-            value={params.peakConcurrent ?? 0}
+            // Show what the engine is actually sizing against. When the field has never been
+            // set — which happens if the user switches in-place into a stock solution — the
+            // engine derives the peak from throughput and turnover, and rendering `?? 0` here
+            // put a 0 on screen while the fleet was sized from something else entirely.
+            value={resolvePeakConcurrent(params, assumptions) ?? 0}
             onChange={(n) => setParams((p) => ({ ...p, peakConcurrent: n }))}
           />
         )}

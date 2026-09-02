@@ -104,6 +104,7 @@ export function EconomicsCalculator({
         setParams={setParams}
         capacity={capacity}
         capacityUnit={primary.capacityUnit}
+        assumptions={assumptions}
         usdToRub={assumptions.usdToRub}
         onPickRegion={(labor, energyFactor) =>
           setAssumptions((prev) => ({
