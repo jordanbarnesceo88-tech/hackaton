@@ -198,6 +198,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   behavior/copy change; all tests green.
 
 ### Added
+- **`npm run check:sources` — a real gate on the "verify before a live demo" promise.**
+  `docs/data-provenance.md` commits to every cited figure being re-checked before it is shown,
+  but nothing enforced it: `lastVerified` was only validated for its date *format*, so a
+  citation could rot for a year and still pass. The script reports each citation's age and exits
+  non-zero past 180 days (`MAX_SOURCE_AGE_DAYS` to override), and `DEPLOY.md` now calls for it
+  before a demo. Deliberately not in CI — a check that fails when a date rolls over would turn
+  the build red for something no commit caused. A unit test covers what *is* safe to assert
+  there: that the dates parse and are not in the future.
+- **E2E teardown.** Each run signed up throwaway accounts and never removed them; the dev
+  database had reached 63 users, 39 of them e2e leftovers, plus a `RateLimit` row per run. The
+  suite now cleans up after itself (41 users and 71 rate-limit rows on first run), matching only
+  its own prefixes and never failing a green run on a cleanup error.
 - **E2E assertion that the report's figures equal the calculator's.** Both surfaces render the
   same ten numbers, and the report recomputes them from the *saved* params/assumptions rather
   than live state — so a fault in the save round-trip (`validateAssumptions`,

@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx scripts/seed.ts",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:sources": "tsx scripts/check-sources.ts"
   },
   "prisma": {
     "seed": "tsx scripts/seed.ts"

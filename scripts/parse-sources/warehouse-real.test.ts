@@ -35,3 +35,14 @@ describe("WAREHOUSE_REAL curated data", () => {
     }
   );
 });
+
+describe("lastVerified integrity", () => {
+  // Staleness itself is checked by `npm run check:sources`, not here: a test that fails once a
+  // date passes would turn CI red for something no commit caused. What is safe to assert in CI
+  // is that the dates are real and not claims about the future.
+  it.each(WAREHOUSE_REAL.map((s) => [s.name, s] as const))("%s has a real, past verification date", (_n, s) => {
+    const t = new Date(s.lastVerified).getTime();
+    expect(Number.isNaN(t)).toBe(false);
+    expect(t).toBeLessThanOrEqual(Date.now());
+  });
+});

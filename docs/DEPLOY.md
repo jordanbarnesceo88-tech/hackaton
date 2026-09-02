@@ -28,6 +28,15 @@ docker build -t rrp .
 docker run -p 3000:3000 -e DATABASE_URL="<pooled url>" -e AUTH_SECRET="<secret>" rrp
 ```
 
+## 4c. Check the cited figures are still current  **[before any live demo]**
+```bash
+npm run check:sources      # exits non-zero if a citation is older than 180 days
+```
+`docs/data-provenance.md` promises every real figure is verified before it is shown. This is
+that check: it reports the age of each product citation and fails past the threshold
+(override with `MAX_SOURCE_AGE_DAYS`). It is deliberately not part of CI — a test that fails
+when a date rolls over would turn the build red for something no commit caused.
+
 ## 5. Security hardening before real production traffic  **[required before public launch]**
 The auth code is correct for the current stage (bcrypt passwords, JWT sessions, strictly
 user-scoped saved analyses — no cross-user access), but a few hardening steps are deliberately
