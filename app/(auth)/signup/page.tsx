@@ -11,7 +11,7 @@ export default function SignupPage() {
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-4 py-16">
       <h1 className="text-2xl font-semibold">Регистрация</h1>
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <form action={action} className="flex flex-col gap-3">
         <input name="name" type="text" placeholder="Имя (необязательно)"
           className="rounded-md border px-3 py-2 text-sm" />

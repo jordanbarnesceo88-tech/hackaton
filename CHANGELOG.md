@@ -5,6 +5,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- **Brand identity & design tokens (#5a).** Replaced shadcn's default pure-grayscale theme with a
+  **deep-blue + cyan** brand (`globals.css` oklch tokens, light + dark, brand-blue focus ring, a
+  blue→cyan chart ramp for the sensitivity tornado, heading polish). Normalized 12 component/page
+  files from ad-hoc `sky/emerald/amber/red` to one token per semantic: **primary** (actions/links/
+  hero/★/tornado), **positive** green (savings/margin), **caution** amber (estimates), and
+  `destructive` (не окупается/errors). Provenance badges keep their data-source hues; the canvas
+  scene is unchanged (its cyan robots now intentionally echo the accent). Visual-only — no layout/
+  behavior/copy change; all tests green.
+
 ### Added
 - **DB-backed rate limiting on login & signup (audit SEC1 / deploy #6).** A fixed-window limiter
   (`lib/auth/rate-limit.ts` + `RateLimit` table) throttles signup (5 / IP / 15 min) and login
