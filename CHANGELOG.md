@@ -6,6 +6,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Robots jumped back to their start positions on every unrelated keystroke.** The
+  visualization memoized its layout on the whole `params` object, but `generateLayout` reads
+  only `params.areaM2` — and `params` is a fresh object on each edit, so typing in «Объём
+  операций» or «Персонал» minted a new layout, retriggering the respawn effect. `generateLayout`
+  now takes `areaM2: number` rather than `FacilityParams`, which makes the memo key correct by
+  construction instead of by an eslint-disable. Verified by sampling the canvas: editing
+  `opsPerDay` or `staffCount` leaves the scene untouched, `areaM2` still rebuilds the grid.
 - **Signed-in users got sideways scroll on every page on a phone.** `SiteHeader` rendered the
   full account email in a flex nav with no truncation and no wrapping, so a long address pushed
   the header past the viewport — 146px of horizontal scroll at 390px, reproduced on Chromium,

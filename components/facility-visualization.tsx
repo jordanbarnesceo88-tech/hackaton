@@ -50,9 +50,14 @@ export function FacilityVisualization({
   const renderCount = Math.max(1, Math.min(MAX_RENDERED, Math.floor(q)));
   const overflow = q > MAX_RENDERED;
 
+  // Key on areaM2, not the whole params object. generateLayout reads only params.areaM2
+  // (lib/scene/layout.ts: `clamp(Math.round(params.areaM2 / 200), 4, 36)`), but `params` is a
+  // fresh object on every edit, so typing in «Объём операций» or «Персонал» minted a new layout,
+  // which retriggered the respawn effect below and snapped every robot back to its start
+  // position — a visible jump on a field that has nothing to do with the scene's geometry.
   const layout = useMemo(
-    () => generateLayout(facilityKind, params),
-    [facilityKind, params]
+    () => generateLayout(facilityKind, params.areaM2),
+    [facilityKind, params.areaM2]
   );
 
   // (Re)spawn robots when the layout or render count changes.

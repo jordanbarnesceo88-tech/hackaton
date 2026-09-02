@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { generateLayout, mapKind } from "./layout";
-import type { FacilityParams } from "@/lib/economics/types";
-
-const params: FacilityParams = { areaM2: 1000, opsPerDay: 500, staffCount: 10 };
-const huge: FacilityParams = { areaM2: 10_000_000, opsPerDay: 9_999_999, staffCount: 9999 };
+// generateLayout takes the area alone — it is the only input the scene grid is sized from.
+const AREA = 1000;
+const HUGE_AREA = 10_000_000;
 
 describe("mapKind", () => {
   it("passes through known kinds", () => {
@@ -20,11 +19,11 @@ describe("mapKind", () => {
 
 describe("generateLayout", () => {
   it("is deterministic for the same inputs", () => {
-    expect(generateLayout("warehouse", params)).toEqual(generateLayout("warehouse", params));
+    expect(generateLayout("warehouse", AREA)).toEqual(generateLayout("warehouse", AREA));
   });
   it("produces the requested kind and a valid path template", () => {
     for (const k of ["warehouse", "airport", "medical", "other"] as const) {
-      const layout = generateLayout(k, params);
+      const layout = generateLayout(k, AREA);
       expect(layout.kind).toBe(k);
       expect(layout.zones.length).toBeGreaterThan(0);
       expect(layout.pathTemplate.length).toBeGreaterThanOrEqual(2);
@@ -45,12 +44,12 @@ describe("generateLayout", () => {
   });
   it("includes a dock zone in every layout", () => {
     for (const k of ["warehouse", "airport", "medical", "other"] as const) {
-      expect(generateLayout(k, params).zones.some((z) => z.kind === "dock")).toBe(true);
+      expect(generateLayout(k, AREA).zones.some((z) => z.kind === "dock")).toBe(true);
     }
   });
   it("clamps the grid for extreme inputs (I7) — never explodes past a 6x6 grid + a few fixtures", () => {
     for (const k of ["warehouse", "airport", "medical", "other"] as const) {
-      const nonDock = generateLayout(k, huge).zones.filter((z) => z.kind !== "dock");
+      const nonDock = generateLayout(k, HUGE_AREA).zones.filter((z) => z.kind !== "dock");
       // 6x6 = 36 grid cells, plus at most a couple of fixture zones (belt/corridor).
       expect(nonDock.length).toBeLessThanOrEqual(40);
     }
