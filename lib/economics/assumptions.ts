@@ -1,4 +1,4 @@
-import type { AssumptionValues } from "./types";
+import type { AssumptionValues, FacilityParams } from "./types";
 
 export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
   laborCostPerHourUsd: 15,
@@ -63,6 +63,33 @@ export function assumptionsInRange(a: AssumptionValues): boolean {
     const { min, max } = ASSUMPTION_BOUNDS[k];
     return Number.isFinite(a[k]) && a[k] >= min && a[k] <= max;
   });
+}
+
+/**
+ * Coerce a persisted (jsonb) facility-params blob into a usable `FacilityParams`.
+ *
+ * The mirror of `withAssumptionDefaults`. Saved analyses had their assumptions defensively
+ * backfilled on every read while `params` was cast straight from jsonb — an asymmetry, given
+ * both come from the same untrusted-once-written blob. The engine's finiteness guard does
+ * catch the damage (a missing `opsPerDay` makes `demandPerYear` NaN, which fails the finite
+ * check and yields `invalid_inputs`), so this is defence in depth rather than a live fix: it
+ * turns "the whole analysis renders as invalid" into "the missing field falls back".
+ */
+export function withParamDefaults(raw: unknown): FacilityParams {
+  const src = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const num = (v: unknown, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  const out: FacilityParams = {
+    areaM2: num(src.areaM2, 1000),
+    opsPerDay: num(src.opsPerDay, 500),
+    staffCount: num(src.staffCount, 10),
+  };
+  // peakConcurrent is genuinely optional: absent means "derive it from turnover", which is a
+  // different instruction from any particular number, so only carry it over when it is usable.
+  if (typeof src.peakConcurrent === "number" && Number.isFinite(src.peakConcurrent)) {
+    out.peakConcurrent = src.peakConcurrent;
+  }
+  return out;
 }
 
 export function assumptionsToValues(

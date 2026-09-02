@@ -6,6 +6,7 @@ import {
   ASSUMPTION_BOUNDS,
   clampAssumption,
   assumptionsInRange,
+  withParamDefaults,
 } from "./assumptions";
 import type { AssumptionValues } from "./types";
 
@@ -90,5 +91,42 @@ describe("clampAssumption", () => {
   it("respects physical limits", () => {
     expect(clampAssumption("operatingHoursPerDay", 99)).toBe(24);
     expect(clampAssumption("workingDaysPerYear", 5000)).toBe(366);
+  });
+});
+
+describe("withParamDefaults", () => {
+  it("passes a complete blob through untouched", () => {
+    const p = { areaM2: 2000, opsPerDay: 750, staffCount: 12, peakConcurrent: 30 };
+    expect(withParamDefaults(p)).toEqual(p);
+  });
+
+  it("fills a field missing from an older saved blob", () => {
+    // Without this the engine sees opsPerDay undefined -> demandPerYear NaN -> invalid_inputs,
+    // and a previously-working saved analysis renders as "проверьте параметры".
+    expect(withParamDefaults({ areaM2: 2000, staffCount: 12 })).toEqual({
+      areaM2: 2000,
+      opsPerDay: 500,
+      staffCount: 12,
+    });
+  });
+
+  it("rejects non-finite values rather than carrying them into the engine", () => {
+    const v = withParamDefaults({ areaM2: NaN, opsPerDay: Infinity, staffCount: "10" });
+    expect(v).toEqual({ areaM2: 1000, opsPerDay: 500, staffCount: 10 });
+  });
+
+  it("omits peakConcurrent when absent, because absent means 'derive it'", () => {
+    // Present-but-zero and absent are different instructions to computeQuantity, so an absent
+    // value must not become a number here.
+    expect("peakConcurrent" in withParamDefaults({ areaM2: 1, opsPerDay: 1, staffCount: 1 })).toBe(false);
+  });
+
+  it("keeps an explicit peakConcurrent, including zero", () => {
+    expect(withParamDefaults({ areaM2: 1, opsPerDay: 1, staffCount: 1, peakConcurrent: 0 }).peakConcurrent).toBe(0);
+  });
+
+  it("returns all defaults for null / non-object input", () => {
+    expect(withParamDefaults(null)).toEqual({ areaM2: 1000, opsPerDay: 500, staffCount: 10 });
+    expect(withParamDefaults("nonsense")).toEqual({ areaM2: 1000, opsPerDay: 500, staffCount: 10 });
   });
 });

@@ -6,7 +6,7 @@ import {
   getSavedAnalysis,
   getSiblingSolutions,
 } from "@/lib/db/queries";
-import { assumptionsToValues, withAssumptionDefaults } from "@/lib/economics/assumptions";
+import { assumptionsToValues, withAssumptionDefaults, withParamDefaults } from "@/lib/economics/assumptions";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { resultsDiverged } from "@/lib/analyses/diverged";
@@ -40,7 +40,7 @@ export default async function CalculatePage({
     if (session?.user?.id) {
       const saved = await getSavedAnalysis(analysisId, session.user.id);
       if (saved && saved.solutionId === solutionId) {
-        initialParams = saved.params as FacilityParams;
+        initialParams = withParamDefaults(saved.params);
         // Backfill defaults so an analysis saved before a newer assumption (e.g. energyCostFactor)
         // doesn't recompute to NaN/invalid.
         initialAssumptions = withAssumptionDefaults(saved.assumptions);

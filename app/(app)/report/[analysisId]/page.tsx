@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getSavedAnalysis, getSolutionForCalc } from "@/lib/db/queries";
 import { computeEconomics } from "@/lib/economics/calculate";
-import { withAssumptionDefaults } from "@/lib/economics/assumptions";
+import { withAssumptionDefaults, withParamDefaults } from "@/lib/economics/assumptions";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { sensitivity } from "@/lib/economics/sensitivity";
 import { resultsDiverged } from "@/lib/analyses/diverged";
@@ -12,7 +12,6 @@ import { SensitivityChart } from "@/components/calculator/sensitivity-chart";
 import { economicsRows, REPORT_LABELS } from "@/components/calculator/economics-rows";
 import { ProvenanceBadge } from "@/components/provenance-badge";
 import { PrintButton } from "@/components/report/print-button";
-import type { FacilityParams } from "@/lib/economics/types";
 
 export default async function ReportPage({
   params,
@@ -29,7 +28,7 @@ export default async function ReportPage({
   const solution = await getSolutionForCalc(saved.solutionId);
   if (!solution) notFound();
 
-  const p = saved.params as FacilityParams;
+  const p = withParamDefaults(saved.params);
   // Backfill defaults so a pre-existing saved analysis (missing a newer assumption like
   // energyCostFactor) doesn't recompute to NaN/invalid in the report.
   const a = withAssumptionDefaults(saved.assumptions);

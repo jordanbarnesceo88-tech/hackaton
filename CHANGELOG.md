@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Saved facility params are now backfilled like assumptions were.** A saved analysis had its
+  `assumptions` defensively repaired on every read (`withAssumptionDefaults`) while `params` was
+  cast straight out of jsonb — an asymmetry, given both come from the same blob. The engine's
+  finiteness guard does catch the damage, so this is defence in depth rather than a live bug:
+  it turns "a field went missing, so the whole analysis renders as «проверьте параметры»" into
+  "that field falls back to its default". `withParamDefaults` deliberately leaves
+  `peakConcurrent` absent when it is absent, because absent means "derive it from turnover" —
+  a different instruction from any particular number.
 - **Two controls kept asserting things the model had stopped agreeing with.** The region select
   was uncontrolled, so after picking «Москва» and then editing the labour rate it still claimed
   Москва while the numbers were no longer that region's — it now derives its selection from the
