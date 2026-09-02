@@ -5,11 +5,10 @@
 > is required. Do it on a branch (`refactor-pass`), keep `npm run build` + `npx vitest run`
 > green after each item, and review before merge.
 >
-> **Status as of 2026-09-02** (re-verified against the tree, not assumed): items 1–5 are DONE
-> and merged. Item 6 is the only one still open, and it is deliberately parked — it is
-> behavior-visible, so it needs sign-off as a small feature rather than being folded into a
-> refactor. Items added during the 2026-09-02 pass are listed under "Done in the 2026-09-02
-> pass" below; do not redo any of the above.
+> **Status as of 2026-09-02: ALL SIX items are DONE and merged.** Do not redo any of them.
+> Items 1–5 shipped during the build weeks; item 6 shipped as commit `fc7c167`
+> ("U1: show only basis-relevant calculator fields (audit / REFACTORING #6)"). Work done in the
+> 2026-09-02 refactor pass is listed under "Done in the 2026-09-02 pass" below.
 
 ## Prioritized items
 
@@ -40,12 +39,14 @@
 
 ### Behavior-visible (a small UX change, not pure refactor)
 
-6. **OPEN — parked, needs sign-off. Show only calculator fields the current basis/engine
-   uses.** `areaM2` is captured but not consumed by the engine; `turnoverPerDay` only matters
-   for `CONCURRENT_STOCK`; `operatingHoursPerDay` only for `PER_HOUR_FLOW`. Hide/disable the
-   irrelevant ones per the selected solution's `capacityBasis` so editing a field always
-   visibly changes the result. *(Medium; behavior-visible — treat as a small feature, get
-   sign-off. Deliberately left out of the 2026-09-02 refactor pass for that reason.)*
+6. **Show only calculator fields the current basis/engine uses** — **DONE** in `fc7c167`,
+   and solved slightly differently from the original proposal. `AssumptionsPanel`'s
+   `BASIS_ONLY` map hides `operatingHoursPerDay` unless the basis is `PER_HOUR_FLOW` and
+   `turnoverPerDay` unless it is `CONCURRENT_STOCK`. `areaM2` is *not* hidden — it does drive
+   the Step-4 scene, so instead of disappearing it is relabelled «Площадь, м² (только
+   визуализация)», which keeps the item's real goal: every visible field visibly changes
+   something. See the CHANGELOG entry "Only basis-relevant calculator fields are shown
+   (audit U1 / REFACTORING #6)".
 
 ## Done in the 2026-09-02 pass
 
