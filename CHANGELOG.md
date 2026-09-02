@@ -6,6 +6,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Login, signup and the save field had no labels at all (WCAG 2.2 SC 3.3.2 / 1.3.1, Level A).**
+  All six inputs relied on a placeholder, which vanishes as soon as the field has content and is
+  not a reliable accessible name. Each now has a real `<label for>` — visible on the auth forms,
+  visually hidden on the save field where the inline layout has no room. Also adds the
+  `autoComplete` hints browsers and password managers expect (`email`, `current-password`,
+  `new-password`, `name`) and moves signup's "мин. 8 символов" into an `aria-describedby` hint
+  rather than a placeholder that disappears while you type the password.
 - **The peak-load field could show a number the engine wasn't using.** `ParamsForm` rendered
   `params.peakConcurrent ?? 0`, but when that field is unset the engine derives the peak from
   throughput and turnover instead — so the form would display `0` while the fleet was sized from

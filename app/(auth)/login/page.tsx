@@ -29,9 +29,13 @@ export default async function LoginPage({
       <h1 className="text-2xl font-semibold">Вход</h1>
       {error && <p className="text-sm text-destructive">Неверный email или пароль</p>}
       <form action={login} className="flex flex-col gap-3">
-        <input name="email" type="email" required placeholder="Email"
+        {/* A placeholder is not a label (WCAG 2.2 SC 3.3.2 / 1.3.1): it disappears the moment
+            the field has content, and screen readers may not announce it as the field's name. */}
+        <label htmlFor="email" className="text-sm font-medium">Email</label>
+        <input id="email" name="email" type="email" required autoComplete="email"
           className="rounded-md border px-3 py-2 text-sm" />
-        <input name="password" type="password" required placeholder="Пароль"
+        <label htmlFor="password" className="text-sm font-medium">Пароль</label>
+        <input id="password" name="password" type="password" required autoComplete="current-password"
           className="rounded-md border px-3 py-2 text-sm" />
         <button type="submit" className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground">
           Войти

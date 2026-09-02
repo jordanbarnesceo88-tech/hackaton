@@ -55,7 +55,11 @@ export function SaveControl({
 
   return (
     <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+      <label htmlFor="analysis-name" className="sr-only">
+        Название расчёта (необязательно)
+      </label>
       <input
+        id="analysis-name"
         type="text"
         value={name}
         maxLength={120}
