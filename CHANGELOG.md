@@ -6,6 +6,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **The robot animation could not be stopped (WCAG 2.2 SC 2.2.2, Level A) and the canvas had no
+  text alternative (SC 1.1.1, Level A).** The scene started on its own, ran indefinitely
+  alongside other content, and offered no control — the visualization card contained zero
+  interactive elements. It also ignored `prefers-reduced-motion` entirely, which a CSS media
+  query cannot fix for a `requestAnimationFrame` loop. Adds a pause/resume button
+  (`aria-pressed`) that starts **paused** when the OS asks for reduced motion, and gives the
+  canvas `role="img"` with a label naming the robot count and stating that the motion is
+  decorative — the figures it depicts are all present as text in the KPI column beside it.
+  Paused still paints one frame, so the layout stays visible; only the motion stops.
 - **Card section titles were not headings, and /onboarding had none at all (WCAG 2.2 SC 1.3.1
   Level A / SC 2.4.6 AA).** shadcn's `CardTitle` renders a `<div>` by design, leaving the
   consumer to choose the level — and nothing ever did. The calculator's whole outline was a

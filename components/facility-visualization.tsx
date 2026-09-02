@@ -40,6 +40,14 @@ export function FacilityVisualization({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const robotsRef = useRef<RobotState[]>([]);
   const [elapsed, setElapsed] = useState(0);
+  // SC 2.2.2 (Pause, Stop, Hide) — Level A: motion that starts by itself, runs longer than five
+  // seconds and sits alongside other content needs a user-operable way to stop it. Starts paused
+  // when the OS asks for reduced motion, which the rAF loop could not otherwise honour (a CSS
+  // media query cannot reach a canvas animation).
+  const [paused, setPaused] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  );
 
   // The engine returns a typed `invalid_inputs` variant (no numeric fields) for degenerate
   // inputs; `isCalculable` detects it and narrows the union. Fall back to 1 robot in that case
@@ -85,8 +93,12 @@ export function FacilityVisualization({
       const dt = Math.min(now - last, 100); // clamp dt (e.g. after tab refocus)
       last = now;
 
-      robotsRef.current = stepRobots(robotsRef.current, dt, speed);
-      setElapsed(now - start);
+      // Paused still draws one frame, so the scene stays visible and legible — it just stops
+      // advancing. Hiding it would lose the layout, which is the informative part.
+      if (!paused) {
+        robotsRef.current = stepRobots(robotsRef.current, dt, speed);
+        setElapsed(now - start);
+      }
 
       const W = canvas.width;
       const H = canvas.height;
@@ -108,7 +120,7 @@ export function FacilityVisualization({
         ctx.fill();
       }
 
-      raf = requestAnimationFrame(draw);
+      if (!paused) raf = requestAnimationFrame(draw);
     };
 
     const onVis = () => {
@@ -130,7 +142,7 @@ export function FacilityVisualization({
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [layout]);
+  }, [layout, paused]);
 
   const util = hasNumbers
     ? utilizationPct(capacity, params, assumptions, result.quantity)
@@ -149,10 +161,18 @@ export function FacilityVisualization({
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="relative">
+          {/* SC 1.1.1: the canvas is decorative — "numbers are real, motion is illustrative".
+              Every figure it depicts (robot count, throughput, utilisation) is spelled out as
+              text in the KPI column beside it, so the scene itself carries no information that
+              is lost. Labelled rather than aria-hidden so its purpose is still discoverable. */}
           <canvas
             ref={canvasRef}
             width={720}
             height={360}
+            role="img"
+            aria-label={`Иллюстрация работы решения: ${renderCount} ${
+              renderCount === 1 ? "робот" : "роботов"
+            } на схеме объекта. Движение декоративное; показатели приведены рядом текстом.`}
             className="w-full rounded-md border"
             style={{ aspectRatio: "2 / 1" }}
           />
@@ -161,6 +181,14 @@ export function FacilityVisualization({
               показано {MAX_RENDERED} из {q}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => setPaused((v) => !v)}
+            aria-pressed={paused}
+            className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white"
+          >
+            {paused ? "▶ Продолжить" : "❚❚ Пауза"}
+          </button>
         </div>
         <div className="flex flex-col gap-3 text-sm">
           <div>
