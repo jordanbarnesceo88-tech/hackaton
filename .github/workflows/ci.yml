@@ -36,6 +36,10 @@ jobs:
       - run: npm ci
       - run: npx prisma migrate deploy
       - run: npm run db:seed
+      # --max-warnings=0 because eslint exits 0 on warnings: without it this step would
+      # only catch hard errors, and the repo's findings (unused imports and the like)
+      # are all warnings. The tree is at 0/0 today, so this locks that in.
+      - run: npm run lint -- --max-warnings=0
       - run: npm run build
       - run: npx vitest run
       - run: npx playwright install --with-deps chromium
