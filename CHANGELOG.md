@@ -198,6 +198,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   behavior/copy change; all tests green.
 
 ### Added
+- **Tests for the two server actions, which were at 0% coverage.** `saveAnalysisAction` is the
+  app's write boundary — it decides what a client may persist and derives `facilityTypeSlug`
+  from the database rather than trusting the payload — and `signUpAction` owns the rate limit,
+  the email/password rules and the duplicate-account race. Neither had a single test. 14 new
+  ones, running against the real database with only `auth()`, `next/headers` and `signIn`
+  faked, so they assert behaviour rather than mocks: the slug really is overwritten when a
+  client supplies its own, the analysis really is stored against the session user, an
+  out-of-range assumption really is refused, and the per-IP signup cap really does engage on
+  the sixth attempt.
 - **`npm run check:sources` — a real gate on the "verify before a live demo" promise.**
   `docs/data-provenance.md` commits to every cited figure being re-checked before it is shown,
   but nothing enforced it: `lastVerified` was only validated for its date *format*, so a
