@@ -6,6 +6,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Signed-in users got sideways scroll on every page on a phone.** `SiteHeader` rendered the
+  full account email in a flex nav with no truncation and no wrapping, so a long address pushed
+  the header past the viewport — 146px of horizontal scroll at 390px, reproduced on Chromium,
+  Firefox and WebKit, and scaling with email length. Because the header forced the body wider,
+  every card below was laid out off-screen too. Anonymous browsing was unaffected, which is why
+  it went unnoticed. It also broke **WCAG 2.2 SC 1.4.10 (Reflow)**, which requires no horizontal
+  scrolling at 320 CSS px. The email now truncates and is hidden below `sm`, and the header wraps
+  instead of overflowing. Verified at 320 / 390 / 834 / 1280 px on all three engines: 0px
+  everywhere; the desktop header is unchanged at a single 45px row with the email shown.
 - **Rate limiter let a parallel burst walk straight past the limit.** Counting was a
   read-then-write, whose own comment described the risk as over-counting "by up to N". Measured,
   it was worse: every request in a burst read no row, all took the fresh-window branch, and each
