@@ -6,6 +6,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Number fields could not be cleared to retype.** `NumField` bound its value straight to the
+  number and committed `Number(e.target.value)` on every keystroke — and `Number("")` is `0`, so
+  emptying a box to enter a new figure instantly rewrote it to `0` and recomputed the whole
+  model against it. The input now holds the raw string while it is being edited, commits only
+  parseable values (so `""`, `"-"` and `"1e"` leave the last good number in place instead of
+  pushing `0` or `NaN`), and re-syncs to the model on blur. The M3 clamping still applies.
 - **Login was an account-enumeration oracle, and long Cyrillic passwords were silently
   truncated.** `authorize` returned before bcrypt when the account did not exist, so a real
   address answered in **71 ms** against **2.9 ms** for an unknown one — a 25x gap that reveals
