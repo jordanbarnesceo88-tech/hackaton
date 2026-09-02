@@ -37,7 +37,7 @@ describe("getAssumptions", () => {
     // added to the engine but not seeded (or vice versa) fails here.
     const expectedKeys = Object.keys(DEFAULT_ASSUMPTIONS).sort();
     expect(rows.map((r) => r.key).sort()).toEqual(expectedKeys);
-    expect(rows[0].key).toBe("laborCostPerHourUsd"); // order 1
+    expect(rows[0]!.key).toBe("laborCostPerHourUsd"); // order 1
     expect(rows.map((r) => r.order)).toEqual([...rows.map((r) => r.order)].sort((x, y) => x - y));
   });
 });
@@ -45,7 +45,7 @@ describe("getAssumptions", () => {
 describe("getSolutionForCalc", () => {
   it("returns a solution with capacityBasis and its facility type, or null", async () => {
     const warehouse = await getCatalogForFacilityType("warehouse");
-    const someId = warehouse!.solutionCategories[0].solutions[0].id;
+    const someId = warehouse!.solutionCategories[0]!.solutions[0]!.id;
     const sol = await getSolutionForCalc(someId);
     expect(sol).not.toBeNull();
     expect(sol!.capacityBasis).toBeDefined();
@@ -82,7 +82,7 @@ describe("getSiblingSolutions", () => {
   it("returns all solutions in a solution's category, ordered by name", async () => {
     const warehouse = await getCatalogForFacilityType("warehouse");
     const amr = warehouse!.solutionCategories.find((c) => c.slug === "amr")!;
-    const one = amr.solutions[0].id;
+    const one = amr.solutions[0]!.id;
     const siblings = await getSiblingSolutions(one);
     expect(siblings.length).toBe(amr.solutions.length);
     expect(siblings.map((s) => s.id)).toContain(one);

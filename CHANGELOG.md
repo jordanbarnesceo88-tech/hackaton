@@ -162,6 +162,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   `npm ci` fail for anyone without a `.env`.
 
 ### Changed
+- **`noUncheckedIndexedAccess` enabled**, which surfaced two genuine unguarded assumptions
+  behind 39 type errors. `spawnRobots`/`stepRobots` indexed `path[segment]` with no floor on
+  path length — an empty path makes `segment % 0` NaN, `path[NaN]` undefined, and `lerp` would
+  have thrown from inside the animation loop rather than anywhere diagnosable. And the
+  calculator's `find(...) ?? categorySolutions[0]` assumed the category is never empty; it now
+  renders a message instead of dereferencing undefined. The rest were places the compiler simply
+  could not see an existing guard (`ranked[0]` behind a length check, `cashflows[t]` inside its
+  own loop bound, `split(",")[0]`), rewritten so it can.
 - **Shared economics row builder (refactor).** The print report re-rendered the same ten
   figures as the calculator's results panel, each spelling out its own money formatting, RU
   year pluralisation and null-payback wording — so a new engine figure had to be added twice.

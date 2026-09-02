@@ -13,8 +13,8 @@ export function npv(rate: number, cashflows: number[]): number {
  */
 export function discountedPaybackYears(rate: number, cashflows: number[]): number | null {
   let cumulative = 0;
-  for (let t = 0; t < cashflows.length; t++) {
-    const discounted = cashflows[t] / Math.pow(1 + rate, t);
+  for (const [t, cashflow] of cashflows.entries()) {
+    const discounted = cashflow / Math.pow(1 + rate, t);
     const before = cumulative;
     cumulative += discounted;
     if (cumulative >= 0) {

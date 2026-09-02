@@ -40,10 +40,14 @@ export function EconomicsCalculator({
   initialParams?: FacilityParams;
 }) {
   const [selectedSolutionId, setSelectedSolutionId] = useState(initialSelectedId);
+  // `?? categorySolutions[0]` assumed the list is never empty. It is non-empty in practice —
+  // the page 404s before rendering if the solution does not exist, and a solution is always a
+  // sibling of itself — but the assumption was unchecked, and an empty list would have thrown
+  // a bare "cannot read property of undefined" from somewhere deep in the render.
   const primary =
     categorySolutions.find((s) => s.id === selectedSolutionId) ?? categorySolutions[0];
 
-  const isStock = primary.capacityBasis === "CONCURRENT_STOCK";
+  const isStock = primary?.capacityBasis === "CONCURRENT_STOCK";
   const [params, setParams] = useState<FacilityParams>(
     initialParams ?? {
       areaM2: 1000,
@@ -53,6 +57,16 @@ export function EconomicsCalculator({
     }
   );
   const [assumptions, setAssumptions] = useState<AssumptionValues>(initialAssumptions);
+
+  // After every hook: an early return above would change the hook order between renders,
+  // which is what the rules-of-hooks lint (now failing the build) exists to catch.
+  if (!primary) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Для этой категории нет решений для расчёта.
+      </p>
+    );
+  }
 
   const capacity = toSolutionCapacity(primary);
 

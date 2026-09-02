@@ -29,7 +29,7 @@ describe("sensitivity", () => {
     const bars = sensitivity(cap, params, a);
     expect(bars.length).toBeGreaterThan(0);
     for (let i = 1; i < bars.length; i++) {
-      expect(bars[i - 1].swing).toBeGreaterThanOrEqual(bars[i].swing);
+      expect(bars[i - 1]!.swing).toBeGreaterThanOrEqual(bars[i]!.swing);
     }
     expect(bars.every((b) => b.swing >= 0)).toBe(true);
   });

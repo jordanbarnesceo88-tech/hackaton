@@ -30,20 +30,20 @@ describe("stepRobots", () => {
     const robots = [{ id: 0, pos: { x: 0, y: 0 }, path: layout.pathTemplate, segment: 0, t: 0 }];
     // segment 0 is length 1 (from (0,0) to (1,0)); speed 0.5/sec * 0.5s = 0.25 progress
     const next = stepRobots(robots, 500, 0.5);
-    expect(next[0].t).toBeCloseTo(0.25, 3);
-    expect(next[0].pos.x).toBeCloseTo(0.25, 3);
-    expect(next[0].pos.y).toBeCloseTo(0, 3);
+    expect(next[0]!.t).toBeCloseTo(0.25, 3);
+    expect(next[0]!.pos.x).toBeCloseTo(0.25, 3);
+    expect(next[0]!.pos.y).toBeCloseTo(0, 3);
   });
   it("rolls over to the next segment when t exceeds 1", () => {
     const robots = [{ id: 0, pos: { x: 1, y: 0 }, path: layout.pathTemplate, segment: 0, t: 0.9 }];
     const next = stepRobots(robots, 500, 0.5); // +0.25 -> 1.15 -> seg 1, t 0.15
-    expect(next[0].segment).toBe(1);
-    expect(next[0].t).toBeCloseTo(0.15, 3);
+    expect(next[0]!.segment).toBe(1);
+    expect(next[0]!.t).toBeCloseTo(0.15, 3);
   });
   it("loops from the last segment back to the first", () => {
     const robots = [{ id: 0, pos: { x: 0, y: 1 }, path: layout.pathTemplate, segment: 3, t: 0.95 }];
     const next = stepRobots(robots, 200, 0.5); // +0.1 -> 1.05 -> wraps to segment 0
-    expect(next[0].segment).toBe(0);
+    expect(next[0]!.segment).toBe(0);
   });
   it("is pure — does not mutate the input array or robots", () => {
     const robots = [{ id: 0, pos: { x: 0, y: 0 }, path: layout.pathTemplate, segment: 0, t: 0 }];

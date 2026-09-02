@@ -22,18 +22,18 @@ describe("rankSolutions", () => {
   it("orders economical solutions by NPV descending", () => {
     const ranked = rankSolutions([pricey, cheap], params, a);
     expect(ranked.map((r) => r.id)).toEqual(["cheap", "pricey"]);
-    expect(ranked[0].result.economical).toBe(true);
+    expect(ranked[0]!.result.economical).toBe(true);
   });
   it("places non-economical solutions after economical ones", () => {
     const ranked = rankSolutions([unprofitable, cheap], params, a);
-    expect(ranked[0].id).toBe("cheap");
-    expect(ranked[1].id).toBe("bad");
-    expect(ranked[1].result.economical).toBe(false);
+    expect(ranked[0]!.id).toBe("cheap");
+    expect(ranked[1]!.id).toBe("bad");
+    expect(ranked[1]!.result.economical).toBe(false);
   });
   it("is a stable single-item list", () => {
     const ranked = rankSolutions([cheap], params, a);
     expect(ranked).toHaveLength(1);
-    expect(ranked[0].id).toBe("cheap");
+    expect(ranked[0]!.id).toBe("cheap");
   });
   it("breaks NPV ties deterministically by name", () => {
     const twinA: SiblingSolution = { ...cheap, id: "a", name: "Alpha" };

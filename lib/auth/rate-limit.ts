@@ -77,7 +77,7 @@ export async function rateLimit(
  * leftmost hop and rotate it to get unlimited fresh buckets — see DEPLOY.md.
  */
 export function clientIp(headers: Headers): string {
-  const xff = headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
+  const firstHop = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (firstHop) return firstHop;
   return headers.get("x-real-ip")?.trim() || "unknown";
 }

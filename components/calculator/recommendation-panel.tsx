@@ -15,10 +15,11 @@ export function RecommendationPanel({
   usdToRub: number;
   onSelect: (id: string) => void;
 }) {
-  if (ranked.length < 2) return null;
+  const leader = ranked[0];
+  if (!leader || ranked.length < 2) return null;
   // ★ marks a recommendation, so it needs the discounted test, not just positive savings —
   // otherwise the leader of an all-unviable category is starred as "best" with a negative NPV.
-  const bestId = isViable(ranked[0].result) ? ranked[0].id : null;
+  const bestId = isViable(leader.result) ? leader.id : null;
 
   return (
     <Card className="md:col-span-2">

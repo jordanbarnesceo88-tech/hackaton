@@ -49,7 +49,7 @@ describe("economicsRows", () => {
     const report = economicsRows(calculable(), 90, REPORT_LABELS);
     expect(panel.map((r) => r.value)).toEqual(report.map((r) => r.value));
     const differing = panel
-      .filter((r, i) => r.label !== report[i].label)
+      .filter((r, i) => r.label !== report[i]!.label)
       .map((r) => r.key);
     expect(differing).toEqual(["roi", "npv"]);
     expect(report.find((r) => r.key === "roi")!.label).toBe("ROI (простой)");
