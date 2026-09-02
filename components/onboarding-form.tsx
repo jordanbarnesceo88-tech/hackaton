@@ -42,9 +42,12 @@ export function OnboardingForm({ industries }: { industries: Industry[] }) {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 py-12">
+      {/* This page had no heading of any kind, so screen-reader users landed on the entry
+          point of the app with no document outline to orient by (WCAG SC 1.3.1 / 2.4.6). */}
+      <h1 className="text-2xl font-semibold">Подбор роботизированного решения</h1>
       <Card>
         <CardHeader>
-          <CardTitle>1. Выберите отрасль</CardTitle>
+          <CardTitle as="h2">1. Выберите отрасль</CardTitle>
         </CardHeader>
         <CardContent>
           <RadioGroup
@@ -67,7 +70,7 @@ export function OnboardingForm({ industries }: { industries: Industry[] }) {
       {selectedIndustry && (
         <Card>
           <CardHeader>
-            <CardTitle>2. Выберите тип объекта</CardTitle>
+            <CardTitle as="h2">2. Выберите тип объекта</CardTitle>
           </CardHeader>
           <CardContent>
             <RadioGroup
@@ -93,7 +96,7 @@ export function OnboardingForm({ industries }: { industries: Industry[] }) {
       {selectedFacility?.isGeneric && (
         <Card>
           <CardHeader>
-            <CardTitle>Название объекта (необязательно)</CardTitle>
+            <CardTitle as="h2">Название объекта (необязательно)</CardTitle>
           </CardHeader>
           <CardContent>
             <input

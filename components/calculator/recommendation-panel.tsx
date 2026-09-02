@@ -23,7 +23,7 @@ export function RecommendationPanel({
   return (
     <Card className="md:col-span-2">
       <CardHeader>
-        <CardTitle>Рекомендация для вашего объекта</CardTitle>
+        <CardTitle as="h2">Рекомендация для вашего объекта</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         <p className="text-xs text-muted-foreground">

@@ -33,9 +33,16 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+// Renders a div by default (shadcn's choice, so the consumer owns the heading level). Pass
+// `as="h2"` where the card is a real section of the page, so it lands in the document outline
+// — WCAG SC 1.3.1 / 2.4.6. Without it a page of cards has no structure to navigate by.
+function CardTitle({
+  className,
+  as: Tag = "div",
+  ...props
+}: React.ComponentProps<"div"> & { as?: "div" | "h2" | "h3" }) {
   return (
-    <div
+    <Tag
       data-slot="card-title"
       className={cn(
         "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",

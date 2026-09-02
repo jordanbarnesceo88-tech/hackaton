@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Card section titles were not headings, and /onboarding had none at all (WCAG 2.2 SC 1.3.1
+  Level A / SC 2.4.6 AA).** shadcn's `CardTitle` renders a `<div>` by design, leaving the
+  consumer to choose the level — and nothing ever did. The calculator's whole outline was a
+  single `h1` with six unstructured section titles beneath it, and the onboarding page, the
+  entry point of the app, had no heading of any kind for a screen-reader user to orient by.
+  `CardTitle` now takes an `as` prop; every card that is a real page section passes `as="h2"`,
+  and onboarding gains an `h1`. Outlines verified: 1/2, 1/3 and 1/7 headings across the three
+  pages, exactly one `h1` each, no level skips.
 - **Status messages were never announced (WCAG 2.2 SC 4.1.3, Level AA).** The app had zero live
   regions. «Сохранено» / «Ошибка сохранения» and the signup error all appear without a
   navigation or focus change, so a screen-reader user got no indication that a save had

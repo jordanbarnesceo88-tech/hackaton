@@ -145,7 +145,7 @@ export function FacilityVisualization({
   return (
     <Card className="md:col-span-2">
       <CardHeader>
-        <CardTitle>Визуализация работы роботов</CardTitle>
+        <CardTitle as="h2">Визуализация работы роботов</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="relative">

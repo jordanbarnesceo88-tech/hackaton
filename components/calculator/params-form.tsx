@@ -30,7 +30,7 @@ export function ParamsForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Параметры объекта</CardTitle>
+        <CardTitle as="h2">Параметры объекта</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <RegionSelect usdToRub={usdToRub} onPick={onPickRegion} />

@@ -28,7 +28,7 @@ export function AssumptionsPanel({
   return (
     <Card className="md:col-span-2">
       <CardHeader>
-        <CardTitle>Допущения (можно изменить)</CardTitle>
+        <CardTitle as="h2">Допущения (можно изменить)</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
         {visibleKeys.map((k) => (

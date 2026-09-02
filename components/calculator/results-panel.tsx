@@ -16,7 +16,7 @@ export function ResultsPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Результаты</CardTitle>
+        <CardTitle as="h2">Результаты</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         {!hasNumbers ? (
