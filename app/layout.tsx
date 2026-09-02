@@ -3,14 +3,17 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
+// The UI is Russian, so the Cyrillic subset is the one that actually matters — with "latin"
+// alone every Cyrillic glyph fell back to a system font and the brand typography reached
+// almost nothing on screen. "latin" stays for the figures, US$/₽ and the Latin product names.
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["cyrillic", "latin"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["cyrillic", "latin"],
 });
 
 export const metadata: Metadata = {

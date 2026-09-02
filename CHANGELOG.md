@@ -6,6 +6,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **The brand font never reached the Russian UI.** `app/layout.tsx` loaded Geist and Geist Mono
+  with `subsets: ["latin"]`, but the entire interface is Cyrillic — so every Russian glyph fell
+  back to a system font and the typography established by the #5a brand pass applied to almost
+  nothing on screen (digits, `US$`, `CAPEX`/`NPV`, Latin product names). Both faces ship a
+  `cyrillic` subset; adding it emits the `U+400-45F` faces, and
+  `document.fonts.check('16px Geist', 'Расчёт экономики')` now returns true where it returned
+  false. One word in two places.
 - **Two tornado bars were measured on a different ruler than their ±25% label.**
   `projectFinance` floors `roiHorizonYears` and `assetLifeYears` to whole years, so a
   percentage perturbation lands somewhere other than it claims: ±25% on a 5-year horizon gives
