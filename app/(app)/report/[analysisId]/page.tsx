@@ -8,8 +8,8 @@ import { sensitivity } from "@/lib/economics/sensitivity";
 import { resultsDiverged } from "@/lib/analyses/diverged";
 import { isCalculable } from "@/lib/economics/types";
 import { formatCost } from "@/lib/format/currency";
-import { formatYearsRu } from "@/lib/format/plural";
 import { SensitivityChart } from "@/components/calculator/sensitivity-chart";
+import { economicsRows, REPORT_LABELS } from "@/components/calculator/economics-rows";
 import { ProvenanceBadge } from "@/components/provenance-badge";
 import { PrintButton } from "@/components/report/print-button";
 import type { FacilityParams } from "@/lib/economics/types";
@@ -89,27 +89,12 @@ export default async function ReportPage({
           <div className="mt-1 text-sm text-muted-foreground">Проверьте параметры расчёта</div>
         ) : (
           <div className="mt-1 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-            <div>Требуется единиц: <b>{result.quantity}</b></div>
-            <div>Замещается персонала (ЭПЗ): <b>{result.displacedFte.toFixed(1)}</b></div>
-            <div>CAPEX: <b>{money(result.capexUsd)}</b></div>
-            <div>OPEX/год: <b>{money(result.opexAnnualUsd)}</b></div>
-            <div>Базовые затраты на труд/год: <b>{money(result.baselineAnnualUsd)}</b></div>
-            {result.economical ? (
-              <>
-                <div>Годовая экономия: <b>{money(result.annualSavingsUsd)}</b></div>
-                <div>Срок окупаемости (простой): <b>{formatYearsRu(result.simplePaybackYears)}</b></div>
-                <div>
-                  Срок окупаемости (дисконт.):{" "}
-                  <b>
-                    {result.discountedPaybackYears === null
-                      ? "не окупается в пределах горизонта"
-                      : formatYearsRu(result.discountedPaybackYears)}
-                  </b>
-                </div>
-                <div>ROI (простой): <b>{result.simpleRoiPct.toFixed(0)}%</b></div>
-                <div>NPV: <b>{money(result.npvUsd)}</b></div>
-              </>
-            ) : (
+            {economicsRows(result, a.usdToRub, REPORT_LABELS).map((row) => (
+              <div key={row.key}>
+                {row.label}: <b>{row.value}</b>
+              </div>
+            ))}
+            {!result.economical && (
               <div className="col-span-2 font-medium text-destructive">
                 Решение не окупается при текущих параметрах
               </div>

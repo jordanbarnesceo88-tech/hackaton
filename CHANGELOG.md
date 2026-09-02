@@ -6,6 +6,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Changed
+- **Shared economics row builder (refactor).** The print report re-rendered the same ten
+  figures as the calculator's results panel, each spelling out its own money formatting, RU
+  year pluralisation and null-payback wording — so a new engine figure had to be added twice.
+  Extracted `components/calculator/economics-rows.ts` (`economicsRows()` + `PANEL_LABELS` /
+  `REPORT_LABELS`); each surface still lays the rows out in its own markup (2-column print
+  grid vs. stacked card) and keeps its own wording for the non-economical and invalid-input
+  notices, which genuinely differ. Five tests pin row order, the no-savings truncation, the
+  label variants and the never-pays-back wording. **One visual change:** the panel's «Базовые
+  затраты на труд/год» value is now bold like its other nine rows and like the report — it was
+  the only unbolded value on the card. No output number changes.
 - **One `SolutionCapacity` projection (refactor).** The six-field literal mapping a solution
   record down to what the engine consumes was rebuilt by hand in four places — both server
   pages, the calculator shell, and `rankSolutions` — so adding a cost field to the model meant
