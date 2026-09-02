@@ -60,6 +60,24 @@ deferred to deploy time because they need production infrastructure or config:
 - **(Optional) Email verification** on signup, if any future feature (password reset,
   notifications) will trust email ownership. Not needed for the current feature set.
 
+## 6. Known `npm audit` findings — assessed, not actionable
+
+`npm audit` reports **4 high-severity advisories**. Both are reachable only through the Prisma
+CLI and neither is exploitable here; check this list before spending time on them again:
+
+| Advisory | Package | Why it does not apply |
+|---|---|---|
+| [GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr) | `mysql2` | Auth-plugin downgrade leaking plaintext credentials — to a **MySQL** server. `datasource db` is `postgresql`, the runtime driver is `@prisma/adapter-pg`, and no source file references mysql. The driver is never loaded. |
+| [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx) | `deepmerge-ts` | Stack exhaustion on recursive object graphs, in Prisma's own tooling. Not reachable from application code. |
+
+Both arrive via `prisma`, which is a **devDependency** — it is not installed in the runtime
+image (the Dockerfile's runner stage copies only `.next/standalone`).
+
+**Do not run `npm audit fix --force`.** It resolves these by downgrading `prisma` to 6.19.3,
+which is a major version behind `@prisma/client@7` and would break the driver-adapter setup
+this app depends on — `new PrismaClient()` without an adapter throws under Prisma 7. The fix is
+worse than the finding. Re-check when Prisma ships a release that drops these transitives.
+
 ## Notes
 - The Prisma pg driver adapter (`lib/db/client.ts`) uses a connection pool — use a **pooled**
   `DATABASE_URL` in serverless environments.
