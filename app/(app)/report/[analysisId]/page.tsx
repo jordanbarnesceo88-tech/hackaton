@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getSavedAnalysis, getSolutionForCalc } from "@/lib/db/queries";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { withAssumptionDefaults } from "@/lib/economics/assumptions";
+import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { sensitivity } from "@/lib/economics/sensitivity";
 import { resultsDiverged } from "@/lib/analyses/diverged";
 import { isCalculable } from "@/lib/economics/types";
@@ -11,7 +12,7 @@ import { formatYearsRu } from "@/lib/format/plural";
 import { SensitivityChart } from "@/components/calculator/sensitivity-chart";
 import { ProvenanceBadge } from "@/components/provenance-badge";
 import { PrintButton } from "@/components/report/print-button";
-import type { FacilityParams, SolutionCapacity } from "@/lib/economics/types";
+import type { FacilityParams } from "@/lib/economics/types";
 
 export default async function ReportPage({
   params,
@@ -32,14 +33,7 @@ export default async function ReportPage({
   // Backfill defaults so a pre-existing saved analysis (missing a newer assumption like
   // energyCostFactor) doesn't recompute to NaN/invalid in the report.
   const a = withAssumptionDefaults(saved.assumptions);
-  const capacity: SolutionCapacity = {
-    capacityPerUnit: solution.capacityPerUnit,
-    capacityBasis: solution.capacityBasis,
-    priceUsd: solution.priceUsd,
-    maintenanceUsdYear: solution.maintenanceUsdYear,
-    energyUsdYear: solution.energyUsdYear,
-    licensingUsdYear: solution.licensingUsdYear,
-  };
+  const capacity = toSolutionCapacity(solution);
   const result = computeEconomics(capacity, p, a);
   const bars = sensitivity(capacity, p, a);
   const dataChanged = resultsDiverged(saved.results, result);

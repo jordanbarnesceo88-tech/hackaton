@@ -6,6 +6,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Changed
+- **One `SolutionCapacity` projection (refactor).** The six-field literal mapping a solution
+  record down to what the engine consumes was rebuilt by hand in four places — both server
+  pages, the calculator shell, and `rankSolutions` — so adding a cost field to the model meant
+  editing all four. Extracted `toSolutionCapacity()` into `lib/economics/normalize.ts` and
+  routed every call site through it. Structural typing does the narrowing, so the emitted
+  object is identical; three tests pin the projection (all fields copied, extras dropped,
+  non-default basis preserved). No output number changes.
 - **Shared test fixtures for the economics/scene suites (refactor).** Six test files each
   hand-built a full 14-field `AssumptionValues` literal (plus repeated baseline
   `SolutionCapacity` / `FacilityParams` literals — the facility params alone appeared 13

@@ -8,9 +8,10 @@ import {
 } from "@/lib/db/queries";
 import { assumptionsToValues, withAssumptionDefaults } from "@/lib/economics/assumptions";
 import { computeEconomics } from "@/lib/economics/calculate";
+import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { resultsDiverged } from "@/lib/analyses/diverged";
 import { EconomicsCalculator } from "@/components/economics-calculator";
-import type { FacilityParams, SolutionCapacity } from "@/lib/economics/types";
+import type { FacilityParams } from "@/lib/economics/types";
 
 export default async function CalculatePage({
   params,
@@ -29,14 +30,7 @@ export default async function CalculatePage({
   ]);
   if (!solution) notFound();
 
-  const capacity: SolutionCapacity = {
-    capacityPerUnit: solution.capacityPerUnit,
-    capacityBasis: solution.capacityBasis,
-    priceUsd: solution.priceUsd,
-    maintenanceUsdYear: solution.maintenanceUsdYear,
-    energyUsdYear: solution.energyUsdYear,
-    licensingUsdYear: solution.licensingUsdYear,
-  };
+  const capacity = toSolutionCapacity(solution);
 
   let initialAssumptions = assumptionsToValues(assumptionRows);
   let initialParams: FacilityParams | undefined;

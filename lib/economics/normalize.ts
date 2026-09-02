@@ -1,5 +1,23 @@
 import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
 
+/**
+ * Project any solution-shaped record (a Prisma row, a `SiblingSolution`) down to exactly the
+ * six fields the engine consumes. Callers hold wider objects — DB rows carry ids, names,
+ * provenance — and every entry point was rebuilding this literal by hand, so a new cost field
+ * on `SolutionCapacity` meant editing four call sites. Structural typing does the narrowing;
+ * this just names it in one place.
+ */
+export function toSolutionCapacity(s: SolutionCapacity): SolutionCapacity {
+  return {
+    capacityPerUnit: s.capacityPerUnit,
+    capacityBasis: s.capacityBasis,
+    priceUsd: s.priceUsd,
+    maintenanceUsdYear: s.maintenanceUsdYear,
+    energyUsdYear: s.energyUsdYear,
+    licensingUsdYear: s.licensingUsdYear,
+  };
+}
+
 /** Annualized throughput capacity of ONE unit (flow bases only). */
 export function capacityPerYear(cap: SolutionCapacity, a: AssumptionValues): number {
   const hoursFactor =

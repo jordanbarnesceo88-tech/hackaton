@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { computeQuantity, capacityPerYear, demandPerYear } from "./normalize";
-import { makeAssumptions, makeParams } from "./fixtures";
+import {
+  computeQuantity,
+  capacityPerYear,
+  demandPerYear,
+  toSolutionCapacity,
+} from "./normalize";
+import { makeAssumptions, makeCapacity, makeParams } from "./fixtures";
 import type { SolutionCapacity } from "./types";
 
 const a = makeAssumptions({ laborReplacementPct: 0.7, residualSupervisionPct: 0 });
@@ -67,5 +72,36 @@ describe("capacityPerYear / demandPerYear helpers", () => {
   });
   it("annualizes demand from opsPerDay", () => {
     expect(demandPerYear({ areaM2: 0, opsPerDay: 1600, staffCount: 0 }, a)).toBe(400000);
+  });
+});
+
+describe("toSolutionCapacity", () => {
+  it("copies every engine field off a wider solution-shaped record", () => {
+    const row = {
+      ...makeCapacity(),
+      id: "sol-1",
+      name: "Robot",
+      vendor: "V",
+      capacityUnit: "паллет/день",
+      sourceUrl: "https://example.test",
+    };
+    expect(toSolutionCapacity(row)).toEqual(makeCapacity());
+  });
+
+  it("drops the non-engine fields rather than passing them through", () => {
+    const row = { ...makeCapacity(), id: "sol-1", vendor: "V" };
+    expect(Object.keys(toSolutionCapacity(row)).sort()).toEqual([
+      "capacityBasis",
+      "capacityPerUnit",
+      "energyUsdYear",
+      "licensingUsdYear",
+      "maintenanceUsdYear",
+      "priceUsd",
+    ]);
+  });
+
+  it("preserves a non-default capacity basis and costs", () => {
+    const cap = makeCapacity({ capacityBasis: "CONCURRENT_STOCK", priceUsd: 1234, energyUsdYear: 7 });
+    expect(toSolutionCapacity(cap)).toEqual(cap);
   });
 });

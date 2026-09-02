@@ -12,14 +12,11 @@ import { HeroResults } from "@/components/calculator/hero-results";
 import { BreakEvenNote } from "@/components/calculator/break-even-note";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
+import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
 import { sensitivity } from "@/lib/economics/sensitivity";
 import { formatCost } from "@/lib/format/currency";
-import type {
-  SolutionCapacity,
-  FacilityParams,
-  AssumptionValues,
-} from "@/lib/economics/types";
+import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
 
 export function EconomicsCalculator({
   categorySolutions,
@@ -57,14 +54,7 @@ export function EconomicsCalculator({
   );
   const [assumptions, setAssumptions] = useState<AssumptionValues>(initialAssumptions);
 
-  const capacity: SolutionCapacity = {
-    capacityPerUnit: primary.capacityPerUnit,
-    capacityBasis: primary.capacityBasis,
-    priceUsd: primary.priceUsd,
-    maintenanceUsdYear: primary.maintenanceUsdYear,
-    energyUsdYear: primary.energyUsdYear,
-    licensingUsdYear: primary.licensingUsdYear,
-  };
+  const capacity = toSolutionCapacity(primary);
 
   const result = computeEconomics(capacity, params, assumptions);
   const ranked = rankSolutions(categorySolutions, params, assumptions);

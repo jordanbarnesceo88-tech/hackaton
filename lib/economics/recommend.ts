@@ -5,6 +5,7 @@ import type {
   EconomicsResult,
 } from "./types";
 import { computeEconomics } from "./calculate";
+import { toSolutionCapacity } from "./normalize";
 
 export type SiblingSolution = SolutionCapacity & {
   id: string;
@@ -41,18 +42,7 @@ export function rankSolutions(
     id: s.id,
     name: s.name,
     vendor: s.vendor,
-    result: computeEconomics(
-      {
-        capacityPerUnit: s.capacityPerUnit,
-        capacityBasis: s.capacityBasis,
-        priceUsd: s.priceUsd,
-        maintenanceUsdYear: s.maintenanceUsdYear,
-        energyUsdYear: s.energyUsdYear,
-        licensingUsdYear: s.licensingUsdYear,
-      },
-      params,
-      a
-    ),
+    result: computeEconomics(toSolutionCapacity(s), params, a),
   }));
 
   return ranked.sort((x, y) => {
