@@ -6,6 +6,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Changed
+- **Shared test fixtures for the economics/scene suites (refactor).** Six test files each
+  hand-built a full 14-field `AssumptionValues` literal (plus repeated baseline
+  `SolutionCapacity` / `FacilityParams` literals — the facility params alone appeared 13
+  times). Extracted `lib/economics/fixtures.ts` with `makeAssumptions()` / `makeCapacity()` /
+  `makeParams()`, each spreading `DEFAULT_ASSUMPTIONS` (or a documented baseline) then caller
+  overrides, so a test now states only the field it exercises. Every fixture value is
+  byte-identical to before — the two suites that deliberately pin pre-A2 numbers keep their
+  `laborReplacementPct: 0.7` / `residualSupervisionPct: 0` as explicit overrides. Test-only;
+  no source file imports it. −60 net lines; all 127 tests green with unchanged assertions.
 - **Brand identity & design tokens (#5a).** Replaced shadcn's default pure-grayscale theme with a
   **deep-blue + cyan** brand (`globals.css` oklch tokens, light + dark, brand-blue focus ring, a
   blue→cyan chart ramp for the sensitivity tornado, heading polish). Normalized 12 component/page

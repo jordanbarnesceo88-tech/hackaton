@@ -1,14 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { rankSolutions, type SiblingSolution } from "./recommend";
-import type { FacilityParams, AssumptionValues } from "./types";
+import { makeAssumptions, makeParams } from "./fixtures";
 
-const a: AssumptionValues = {
-  laborCostPerHourUsd: 15, hoursPerYear: 2000, workingDaysPerYear: 250,
-  operatingHoursPerDay: 16, installPctOfCapex: 0.15, laborReplacementPct: 0.5,
-  residualSupervisionPct: 0.1, opsPerWorkerPerYear: 12500, turnoverPerDay: 8,
-  roiHorizonYears: 5, discountRate: 0.12, assetLifeYears: 7, usdToRub: 90, energyCostFactor: 1.0,
-};
-const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+const a = makeAssumptions();
+const params = makeParams();
 
 const base = {
   capacityBasis: "PER_DAY_FLOW" as const, capacityPerUnit: 400, capacityUnit: "паллет/день",

@@ -1,24 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { computeQuantity, capacityPerYear, demandPerYear } from "./normalize";
-import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
+import { makeAssumptions, makeParams } from "./fixtures";
+import type { SolutionCapacity } from "./types";
 
-const a: AssumptionValues = {
-  laborCostPerHourUsd: 15,
-  hoursPerYear: 2000,
-  workingDaysPerYear: 250,
-  operatingHoursPerDay: 16,
-  installPctOfCapex: 0.15,
-  laborReplacementPct: 0.7,
-  residualSupervisionPct: 0,
-  opsPerWorkerPerYear: 12500,
-  turnoverPerDay: 8,
-  discountRate: 0.12,
-  assetLifeYears: 7,
-  usdToRub: 90,
-  roiHorizonYears: 5,
-  energyCostFactor: 1.0,
-};
-const params: FacilityParams = { areaM2: 1000, opsPerDay: 1600, staffCount: 10 };
+const a = makeAssumptions({ laborReplacementPct: 0.7, residualSupervisionPct: 0 });
+const params = makeParams({ opsPerDay: 1600 });
 const base = { priceUsd: 1, maintenanceUsdYear: 0, energyUsdYear: 0, licensingUsdYear: 0 };
 
 describe("computeQuantity", () => {

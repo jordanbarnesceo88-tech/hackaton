@@ -1,34 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { computeEconomics } from "./calculate";
 import { npv, discountedPaybackYears } from "./finance";
-import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
+import { makeAssumptions, makeCapacity, makeParams } from "./fixtures";
+import type { SolutionCapacity, FacilityParams } from "./types";
 
-const a: AssumptionValues = {
-  laborCostPerHourUsd: 15,
-  hoursPerYear: 2000,
-  workingDaysPerYear: 250,
-  operatingHoursPerDay: 16,
-  installPctOfCapex: 0.15,
-  laborReplacementPct: 0.7,
-  residualSupervisionPct: 0, // fixtures keep this 0 so pre-A2 numbers stay stable
-  opsPerWorkerPerYear: 12500,
-  turnoverPerDay: 8,
-  roiHorizonYears: 5,
-  discountRate: 0.12,
-  assetLifeYears: 7,
-  usdToRub: 90,
-  energyCostFactor: 1.0,
-};
+// residualSupervisionPct stays 0 so the pinned pre-A2 numbers below remain stable.
+const a = makeAssumptions({ laborReplacementPct: 0.7, residualSupervisionPct: 0 });
 
 // PER_DAY_FLOW, cap 400/day. opsPerDay 400 -> qty = ceil((400*250)/(400*250)) = 1.
-const cap: SolutionCapacity = {
-  capacityPerUnit: 400,
-  capacityBasis: "PER_DAY_FLOW",
-  priceUsd: 50000,
-  maintenanceUsdYear: 6000,
-  energyUsdYear: 1000,
-  licensingUsdYear: 2000,
-};
+const cap = makeCapacity();
 
 describe("computeEconomics", () => {
   it("computes an economical result with all fields", () => {
@@ -37,7 +17,7 @@ describe("computeEconomics", () => {
     // qty 1 -> capex = 1*50000*1.15 = 57500; opex = 1*(6000+1000+2000)=9000
     // savings = 240000*0.7 - 9000 = 168000 - 9000 = 159000
     // payback = 57500/159000 ≈ 0.362; roi = (159000*5 - 57500)/57500*100 ≈ 1282.6
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
     const r = computeEconomics(cap, params, a);
     expect(r.economical).toBe(true);
     if (!r.economical) return;
@@ -79,7 +59,7 @@ describe("computeEconomics", () => {
   });
 
   it("returns invalid_inputs when opsPerWorkerPerYear <= 0 (A1)", () => {
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
     expect(computeEconomics(cap, params, { ...a, opsPerWorkerPerYear: 0 })).toEqual({
       economical: false,
       reason: "invalid_inputs",
@@ -100,7 +80,7 @@ describe("computeEconomics", () => {
 
   it("applies labor-replacement pct < 100 (I2)", () => {
     // displacedFte 8 -> baseline 240000; replacement 0.5 -> labor saved 120000; opex 9000
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
     const r = computeEconomics(cap, params, { ...a, laborReplacementPct: 0.5 });
     if (!r.economical) throw new Error("expected economical");
     expect(r.annualSavingsUsd).toBeCloseTo(120000 - 9000, 2);
@@ -108,14 +88,14 @@ describe("computeEconomics", () => {
 
   it("retains residual supervision cost (A2)", () => {
     // baseline 240000 * replacement 0.7 * (1 - 0.1 residual) = 151200; opex 9000 -> 142200
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
     const r = computeEconomics(cap, params, { ...a, residualSupervisionPct: 0.1 });
     if (!r.economical) throw new Error("expected economical");
     expect(r.annualSavingsUsd).toBeCloseTo(240000 * 0.7 * 0.9 - 9000, 2);
   });
 
   it("finance figures stay consistent after the projectFinance extraction (parity)", () => {
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
     const r = computeEconomics(cap, params, a);
     if (!r.economical) throw new Error("expected economical");
     // Values pinned pre-refactor (assetLife 7 >= horizon 5 -> no re-CAPEX).
@@ -126,7 +106,7 @@ describe("computeEconomics", () => {
   });
 
   it("energyCostFactor 1.0 is a no-op (parity with the pre-#8a numbers)", () => {
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
     const r = computeEconomics(cap, params, a);
     if (!r.economical) throw new Error("expected economical");
     // opex = 1*(6000 + 1000 + 2000) = 9000, unchanged.
@@ -134,7 +114,7 @@ describe("computeEconomics", () => {
   });
 
   it("energyCostFactor scales ONLY the energy term of OPEX (#8a)", () => {
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
     const base = computeEconomics(cap, params, a);
     const scaled = computeEconomics(cap, params, { ...a, energyCostFactor: 0.5 });
     if (!base.economical || !scaled.economical) throw new Error("expected economical");
@@ -144,7 +124,7 @@ describe("computeEconomics", () => {
   });
 
   describe("discounting & asset lifecycle (A3)", () => {
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
 
     it("re-buys CAPEX when asset life < horizon and reflects it in simple ROI", () => {
       // life 2, horizon 5 -> re-CAPEX at t=2,4 -> investment = capex*3 = 172500
@@ -207,7 +187,7 @@ describe("computeEconomics", () => {
   // Infinity/NaN masked only by ad-hoc UI finiteness checks.)
   describe("invalid_inputs guard (E1)", () => {
     const stock: SolutionCapacity = { ...cap, capacityBasis: "CONCURRENT_STOCK" };
-    const params: FacilityParams = { areaM2: 1000, opsPerDay: 400, staffCount: 10 };
+    const params = makeParams();
 
     it("returns invalid_inputs when turnoverPerDay = 0 on a stock solution (no peak given)", () => {
       const r = computeEconomics(stock, params, { ...a, turnoverPerDay: 0 });
