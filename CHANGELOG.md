@@ -6,6 +6,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Rate limiter let a parallel burst walk straight past the limit.** Counting was a
+  read-then-write, whose own comment described the risk as over-counting "by up to N". Measured,
+  it was worse: every request in a burst read no row, all took the fresh-window branch, and each
+  wrote `count = 1` — clobbering instead of accumulating. **100 parallel attempts against a limit
+  of 10 were all allowed**, and repeated bursts of 20 let 40 through before it clamped, so the
+  effective limit was roughly twice the attacker's chosen concurrency — weakest against exactly
+  the parallel shape credential stuffing takes. Replaced with a single atomic
+  `INSERT … ON CONFLICT DO UPDATE … RETURNING`, so Postgres's row lock serialises concurrent
+  callers. Re-running the original probe: parallel bursts of 20 / 50 / 100 now allow exactly 10
+  each, and repeated bursts total 10 instead of 40.
 - **The brand font never reached the Russian UI.** `app/layout.tsx` loaded Geist and Geist Mono
   with `subsets: ["latin"]`, but the entire interface is Cyrillic — so every Russian glyph fell
   back to a system font and the typography established by the #5a brand pass applied to almost

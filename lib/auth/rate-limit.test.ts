@@ -45,3 +45,24 @@ describe("clientIp", () => {
     expect(clientIp(new Headers())).toBe("unknown");
   });
 });
+
+describe("concurrency (the shape a credential-stuffing attack actually takes)", () => {
+  it("does not let a parallel burst walk past the limit", async () => {
+    const key = `race:${Date.now()}:${Math.random()}`;
+    const opts = { limit: 5, windowMs: 60_000 };
+    // 40 simultaneous attempts against a limit of 5. Under the old read-then-write every
+    // request saw no row, took the fresh-window branch, and wrote count = 1 — so all 40 were
+    // allowed and the counter ended at 1.
+    const results = await Promise.all([...Array(40)].map(() => rateLimit(key, opts)));
+    const allowed = results.filter((r) => r.ok).length;
+    expect(allowed).toBeLessThanOrEqual(opts.limit);
+  });
+
+  it("keeps blocking after the burst instead of resetting the window", async () => {
+    const key = `race2:${Date.now()}:${Math.random()}`;
+    const opts = { limit: 5, windowMs: 60_000 };
+    await Promise.all([...Array(20)].map(() => rateLimit(key, opts)));
+    const after = await Promise.all([...Array(20)].map(() => rateLimit(key, opts)));
+    expect(after.filter((r) => r.ok).length).toBe(0);
+  });
+});

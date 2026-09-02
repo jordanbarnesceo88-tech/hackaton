@@ -11,10 +11,17 @@ export type RateLimitResult = { ok: boolean; retryAfterSec: number };
  * Fail-open: if the DB read/write errors, allow the request (never lock users out on infra
  * hiccups) — the limiter is defense-in-depth, not the primary auth control.
  *
- * Known, accepted limitations (defense-in-depth, not a hard gate):
- *  - Non-atomic read-then-write: N concurrent requests in one window can over-count past `limit`
- *    by up to N. Fine for brute-force slowing; an atomic `INSERT … ON CONFLICT … RETURNING`
- *    would tighten it if ever needed.
+ * Counting is a single atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING`. This was a
+ * read-then-write, which the previous comment described as over-counting "by up to N". Measured,
+ * it was worse than that: every request in a burst read no row, all took the fresh-window branch,
+ * and each wrote `count = 1`, clobbering rather than accumulating — 100 parallel attempts against
+ * a limit of 10 were all allowed, and repeated bursts of 20 let 40 through before it clamped. The
+ * overshoot scaled with the attacker's concurrency, so the effective limit was roughly twice
+ * whatever parallelism they chose — weakest against credential stuffing, which is precisely the
+ * parallel shape this exists to slow. Postgres takes a row lock for the conflicting update, so
+ * concurrent callers now serialise and the returned count is authoritative.
+ *
+ * Remaining accepted limitations:
  *  - Counts every attempt (successes too), so a user re-logging in >limit times in a window is
  *    throttled; the caps are set generously (JWT sessions make frequent re-login rare).
  *  - Trust in the client IP is only as good as the proxy (see `clientIp`).
@@ -24,28 +31,39 @@ export async function rateLimit(
   { limit, windowMs }: { limit: number; windowMs: number }
 ): Promise<RateLimitResult> {
   const now = Date.now();
+  const startedAt = new Date(now);
+  // Any window that began at or before this instant has elapsed and must restart at 1.
+  const expiredBefore = new Date(now - windowMs);
   try {
-    const row = await prisma.rateLimit.findUnique({ where: { key } });
+    // One statement: insert the bucket, or — under the row lock Postgres takes for the
+    // conflicting update — either restart an elapsed window or increment a live one. The
+    // returned count already includes this attempt, so `count > limit` is the block condition.
+    const rows = await prisma.$queryRaw<{ count: number; windowStart: Date }[]>`
+      INSERT INTO "RateLimit" ("key", "count", "windowStart")
+      VALUES (${key}, 1, ${startedAt})
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE
+          WHEN "RateLimit"."windowStart" <= ${expiredBefore} THEN 1
+          ELSE "RateLimit"."count" + 1
+        END,
+        "windowStart" = CASE
+          WHEN "RateLimit"."windowStart" <= ${expiredBefore} THEN ${startedAt}
+          ELSE "RateLimit"."windowStart"
+        END
+      RETURNING "count", "windowStart"
+    `;
 
-    if (!row || now - row.windowStart.getTime() >= windowMs) {
-      // No bucket, or the window elapsed → start a fresh window.
-      await prisma.rateLimit.upsert({
-        where: { key },
-        create: { key, count: 1, windowStart: new Date(now) },
-        update: { count: 1, windowStart: new Date(now) },
-      });
-      return { ok: true, retryAfterSec: 0 };
-    }
+    const row = rows[0];
+    if (!row) return { ok: true, retryAfterSec: 0 }; // shouldn't happen; fail open
 
-    const retryAfterSec = Math.ceil((windowMs - (now - row.windowStart.getTime())) / 1000);
-    if (row.count >= limit) {
-      return { ok: false, retryAfterSec };
-    }
+    const count = Number(row.count);
+    const windowStart =
+      row.windowStart instanceof Date ? row.windowStart : new Date(row.windowStart);
+    // A window this call just started has nothing to wait for, matching the previous contract.
+    const retryAfterSec =
+      count === 1 ? 0 : Math.ceil((windowMs - (now - windowStart.getTime())) / 1000);
 
-    await prisma.rateLimit.update({
-      where: { key },
-      data: { count: { increment: 1 } },
-    });
+    if (count > limit) return { ok: false, retryAfterSec: Math.max(1, retryAfterSec) };
     return { ok: true, retryAfterSec };
   } catch {
     return { ok: true, retryAfterSec: 0 }; // fail-open
