@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- **`prisma generate` now runs at install time — CI and the Vercel path were both broken.**
+  Prisma 7 dropped `@prisma/client`'s own postinstall hook, `npm run build` is bare `next build`,
+  and the generated client is gitignored — so nothing regenerated it outside the Dockerfile.
+  Proven on a clean clone running the exact CI sequence: `npm ci` ✓ → `migrate deploy` ✓ →
+  `db:seed` **exit 1** (`MODULE_NOT_FOUND: @prisma/client/default.js`) → `build` **exit 1**.
+  The workflow's "runs green the moment a remote exists" comment and `DEPLOY.md §4a`'s claim
+  that the build generates the client automatically were both false. Adds
+  `"postinstall": "prisma generate"`, and two changes it turns out to require: the Dockerfile's
+  `deps` stage now copies the schema before `npm ci` (generate exits 1 without it), and
+  `prisma.config.ts` no longer uses `env()`, which threw at config-load time and would have made
+  `npm ci` fail for anyone without a `.env`.
+
 ### Changed
 - **Shared economics row builder (refactor).** The print report re-rendered the same ten
   figures as the calculator's results panel, each spelling out its own money formatting, RU
