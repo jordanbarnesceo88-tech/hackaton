@@ -6,6 +6,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Two tornado bars were measured on a different ruler than their ±25% label.**
+  `projectFinance` floors `roiHorizonYears` and `assetLifeYears` to whole years, so a
+  percentage perturbation lands somewhere other than it claims: ±25% on a 5-year horizon gives
+  3.75 / 6.25, which floor to 3 / 6 — an actual **−40% / +20%**. That bar was then ranked
+  against seven others measured at a true ±25%, inflating its swing to 169 248. `assetLifeYears`
+  had the opposite problem: 5.25 and 8.75 floor to 5 and 8, neither of which triggers re-CAPEX
+  at a 5-year horizon, so it always drew an empty bar. Both now move by **±1 whole year** — what
+  the model actually consumes — and the horizon's swing corrects to 106 332. Each bar carries a
+  `kind` so the chart can label it (`±1 год`), and the caption no longer claims ±25% for
+  everything. 5 new tests.
 - **The hero band celebrated solutions the results panel called unprofitable.** `economical` is
   set by `annualSavingsUsd > 0` alone, so it stays true when discounted cash flows never recover
   the CAPEX — and three UI surfaces read it as "good investment". MediCarry M1 rendered the
