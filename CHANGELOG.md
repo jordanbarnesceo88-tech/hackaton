@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Stale-analysis banner stayed silent when a solution stopped paying back.**
+  `resultsDiverged` skipped every field whose recomputed value was not a number, so when
+  `discountedPaybackYears` flipped from a number to `null` — "не окупается в пределах
+  горизонта", the single most important change a saved analysis can undergo — it compared
+  nothing and reported no divergence. The mirror case (null → number) was caught, which is what
+  made the asymmetry easy to miss. Null is now compared as a conclusion in its own right,
+  before the numeric branch. Four tests cover both directions, null → null, and a stored blob
+  missing the key.
 - **`prisma generate` now runs at install time — CI and the Vercel path were both broken.**
   Prisma 7 dropped `@prisma/client`'s own postinstall hook, `npm run build` is bare `next build`,
   and the generated client is gitignored — so nothing regenerated it outside the Dockerfile.
