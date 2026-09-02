@@ -63,3 +63,25 @@ describe("isPlainObject", () => {
     expect(isPlainObject(null)).toBe(false);
   });
 });
+
+describe("validateAssumptions range checks", () => {
+  it("accepts the shipped defaults", () => {
+    expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS })).not.toBeNull();
+  });
+  it("rejects a fraction above 1 (the crafted-payload path the panel now clamps)", () => {
+    expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, laborReplacementPct: 5 })).toBeNull();
+  });
+  it("rejects a negative supervision share", () => {
+    expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, residualSupervisionPct: -3 })).toBeNull();
+  });
+  it("rejects a negative discount rate the engine alone would accept", () => {
+    expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, discountRate: -0.99 })).toBeNull();
+  });
+  it("rejects more than 24 operating hours in a day", () => {
+    expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, operatingHoursPerDay: 25 })).toBeNull();
+  });
+  it("still accepts boundary values", () => {
+    expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, laborReplacementPct: 1 })).not.toBeNull();
+    expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, laborReplacementPct: 0 })).not.toBeNull();
+  });
+});

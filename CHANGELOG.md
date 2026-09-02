@@ -6,6 +6,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Assumptions are now bounded — a mistyped digit could produce an authoritative nonsense
+  figure and save it into a client report.** Nothing constrained the «Допущения» inputs: no
+  `max`, no clamp, no check in `validateAssumptions`. Typing `5` into «Замещение труда (доля)»
+  — a fraction — returned an NPV of 3 803 215 against a true 299 373, and a discount rate of
+  −0.99 (which the engine permits, since it only guards `> -1`) returned
+  61 363 636 327 691 730 ₽. Every value stayed finite, so `invalid_inputs` never fired and the
+  number rendered with full confidence. Adds `ASSUMPTION_BOUNDS` with a documented range per
+  assumption — physical limits where they exist (24 h/day, 366 days/year, fractions 0..1) and
+  generous sanity caps elsewhere — applied at the two boundaries that matter: the panel clamps
+  on input, and `validateAssumptions` rejects out-of-range payloads before persistence. **The
+  engine is deliberately untouched** and keeps its own `invalid_inputs` guards, so the
+  sensitivity tornado can still evaluate degenerate scenarios. 15 new tests.
 - **Stale-analysis banner stayed silent when a solution stopped paying back.**
   `resultsDiverged` skipped every field whose recomputed value was not a number, so when
   `discountedPaybackYears` flipped from a number to `null` — "не окупается в пределах

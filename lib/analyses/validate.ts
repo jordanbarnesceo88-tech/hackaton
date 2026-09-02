@@ -1,5 +1,5 @@
 import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
-import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
+import { DEFAULT_ASSUMPTIONS, ASSUMPTION_BOUNDS } from "@/lib/economics/assumptions";
 
 // Saved-analysis payloads arrive from the client and are persisted as-is (jsonb), so validate
 // shape and bound sizes here before they touch the DB. Pure + framework-free so it's unit
@@ -41,13 +41,20 @@ export function validateParams(raw: unknown): FacilityParams | null {
 // added to the model is then validated automatically instead of being silently stripped.
 const ASSUMPTION_KEYS = Object.keys(DEFAULT_ASSUMPTIONS) as (keyof AssumptionValues)[];
 
-/** Validate the assumptions bag: every known key present and a finite number. */
+/**
+ * Validate the assumptions bag: every known key present, a finite number, and inside its
+ * accepted range. The range check is defence in depth — the panel already clamps on input, so
+ * only a crafted payload reaches here out of bounds, and persisting one would put an
+ * unreachable-by-UI figure into a saved analysis and its client-facing report.
+ */
 export function validateAssumptions(raw: unknown): AssumptionValues | null {
   if (!isPlainObject(raw)) return null;
   const out = {} as AssumptionValues;
   for (const k of ASSUMPTION_KEYS) {
     const v = raw[k];
     if (!isFiniteNumber(v)) return null;
+    const { min, max } = ASSUMPTION_BOUNDS[k];
+    if (v < min || v > max) return null;
     out[k] = v;
   }
   return out;

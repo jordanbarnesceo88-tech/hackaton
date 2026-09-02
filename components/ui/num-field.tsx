@@ -7,12 +7,16 @@ export function NumField({
   label,
   value,
   step = 1,
+  min = 0,
+  max,
   onChange,
 }: {
   id: string;
   label: string;
   value: number;
   step?: number;
+  min?: number;
+  max?: number;
   onChange: (n: number) => void;
 }) {
   return (
@@ -21,7 +25,8 @@ export function NumField({
       <input
         id={id}
         type="number"
-        min={0}
+        min={min}
+        max={max}
         step={step}
         className="rounded-md border px-3 py-2 text-sm"
         value={Number.isFinite(value) ? value : 0}

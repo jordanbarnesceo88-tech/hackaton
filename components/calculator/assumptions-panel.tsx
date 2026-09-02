@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumField } from "@/components/ui/num-field";
 import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
+import { ASSUMPTION_BOUNDS, clampAssumption } from "@/lib/economics/assumptions";
 import { ASSUMPTION_LABELS, RATIO_KEYS } from "./assumption-labels";
 
 // U1: assumptions the engine only consumes for a specific capacity basis. Hidden for other
@@ -37,7 +38,12 @@ export function AssumptionsPanel({
             label={ASSUMPTION_LABELS[k]}
             value={assumptions[k]}
             step={RATIO_KEYS.has(k) ? 0.05 : 1}
-            onChange={(n) => setAssumptions((a) => ({ ...a, [k]: n }))}
+            min={ASSUMPTION_BOUNDS[k].min}
+            max={ASSUMPTION_BOUNDS[k].max}
+            // Clamp on the way in: `type=number` min/max only constrain the spinner, so a typed
+            // or pasted value still arrives unbounded. Without this, «Замещение труда» = 5
+            // yields a 12x NPV that renders with full confidence and can be saved to a report.
+            onChange={(n) => setAssumptions((a) => ({ ...a, [k]: clampAssumption(k, n) }))}
           />
         ))}
       </CardContent>
