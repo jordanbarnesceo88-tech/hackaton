@@ -127,6 +127,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   behavior/copy change; all tests green.
 
 ### Added
+- **E2E assertion that the report's figures equal the calculator's.** Both surfaces render the
+  same ten numbers, and the report recomputes them from the *saved* params/assumptions rather
+  than live state — so a fault in the save round-trip (`validateAssumptions`,
+  `withAssumptionDefaults`) would silently put different numbers in the client-facing PDF than
+  the client saw on screen. Nothing asserted they agreed. The new spec walks the values across
+  the save boundary and compares every shared row, plus the two whose wording deliberately
+  differs. Confirmed non-vacuous: injecting a report-only drift fails it with
+  `report vs panel: CAPEX — Expected 31 050 000 ₽, Received 32 400 000 ₽`.
 - **DB-backed rate limiting on login & signup (audit SEC1 / deploy #6).** A fixed-window limiter
   (`lib/auth/rate-limit.ts` + `RateLimit` table) throttles signup (5 / IP / 15 min) and login
   (10 / email+IP / 15 min). Postgres-backed so it works on both single-instance Docker and
