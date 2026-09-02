@@ -48,7 +48,7 @@ export function ResultsPanel({
                 <div>NPV (чистая приведённая стоимость): <b>{money(result.npvUsd)}</b></div>
               </>
             ) : (
-              <div className="font-medium text-red-600">
+              <div className="font-medium text-destructive">
                 Решение не окупается при текущих параметрах
               </div>
             )}

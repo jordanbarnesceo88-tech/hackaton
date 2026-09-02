@@ -33,7 +33,7 @@ export function RecommendationPanel({
             <div
               key={r.id}
               className={`flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 ${
-                isSelected ? "border-sky-500 bg-sky-50/50" : ""
+                isSelected ? "border-primary bg-accent" : ""
               }`}
             >
               <div className="min-w-40">
@@ -41,7 +41,7 @@ export function RecommendationPanel({
                   {isBest ? "★ " : ""}
                   {r.name}
                   {isSelected ? (
-                    <span className="ml-2 text-xs text-sky-700">вы смотрите</span>
+                    <span className="ml-2 text-xs text-primary">вы смотрите</span>
                   ) : null}
                 </div>
                 <div className="text-xs text-muted-foreground">{r.vendor}</div>

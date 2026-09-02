@@ -6,7 +6,7 @@ export async function SiteHeader() {
   const session = await auth();
   return (
     <header className="flex items-center justify-between border-b px-6 py-3 text-sm no-print">
-      <Link href="/onboarding" className="font-semibold">Платформа оценки роботизации</Link>
+      <Link href="/onboarding" className="font-semibold text-primary">Платформа оценки роботизации</Link>
       <nav className="flex items-center gap-4">
         {session?.user ? (
           <>

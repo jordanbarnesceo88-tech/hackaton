@@ -27,7 +27,7 @@ export default async function LoginPage({
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-4 py-16">
       <h1 className="text-2xl font-semibold">Вход</h1>
-      {error && <p className="text-sm text-red-600">Неверный email или пароль</p>}
+      {error && <p className="text-sm text-destructive">Неверный email или пароль</p>}
       <form action={login} className="flex flex-col gap-3">
         <input name="email" type="email" required placeholder="Email"
           className="rounded-md border px-3 py-2 text-sm" />

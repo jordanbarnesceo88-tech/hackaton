@@ -185,7 +185,7 @@ export function FacilityVisualization({
                 <div className="mt-1 font-medium">{formatCost(accrued, assumptions.usdToRub)}</div>
               </>
             ) : (
-              <div className="font-medium text-red-600">
+              <div className="font-medium text-destructive">
                 Решение не окупается — экономия не накапливается
               </div>
             )}

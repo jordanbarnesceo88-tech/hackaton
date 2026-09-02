@@ -53,8 +53,8 @@ export default async function ReportPage({
         <PrintButton />
       </div>
 
-      <header className="border-b-2 border-sky-600 pb-3">
-        <div className="text-xs font-medium uppercase tracking-wide text-sky-700">
+      <header className="border-b-2 border-primary pb-3">
+        <div className="text-xs font-medium uppercase tracking-wide text-primary">
           Robotization ROI
         </div>
         <h1 className="text-2xl font-semibold">Отчёт ROI: {saved.name}</h1>
@@ -116,7 +116,7 @@ export default async function ReportPage({
                 <div>NPV: <b>{money(result.npvUsd)}</b></div>
               </>
             ) : (
-              <div className="col-span-2 font-medium text-red-600">
+              <div className="col-span-2 font-medium text-destructive">
                 Решение не окупается при текущих параметрах
               </div>
             )}

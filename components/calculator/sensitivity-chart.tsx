@@ -30,7 +30,7 @@ export function SensitivityChart({
             </span>
             <div className="h-3 w-full rounded bg-muted">
               <div
-                className="h-full rounded bg-sky-500"
+                className="h-full rounded bg-primary"
                 style={{ width: `${Math.round((b.swing / maxSwing) * 100)}%` }}
               />
             </div>
