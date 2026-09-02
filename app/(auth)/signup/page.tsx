@@ -11,7 +11,12 @@ export default function SignupPage() {
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-4 py-16">
       <h1 className="text-2xl font-semibold">Регистрация</h1>
-      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {/* The signup error arrives via useActionState — no navigation, so it needs announcing.
+          role="alert" (assertive) rather than status: the submission failed and the user is
+          about to retry. */}
+      <p role="alert" aria-live="assertive" className="text-sm text-destructive">
+        {state.error}
+      </p>
       <form action={action} className="flex flex-col gap-3">
         {/* Visible labels, not placeholders — see the note in the login page. */}
         <label htmlFor="name" className="text-sm font-medium">Имя (необязательно)</label>

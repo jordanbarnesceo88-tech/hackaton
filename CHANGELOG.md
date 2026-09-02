@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Status messages were never announced (WCAG 2.2 SC 4.1.3, Level AA).** The app had zero live
+  regions. «Сохранено» / «Ошибка сохранения» and the signup error all appear without a
+  navigation or focus change, so a screen-reader user got no indication that a save had
+  succeeded or that signup had failed. The save outcome is now a `role="status"`
+  (`aria-live="polite"`) wrapper that is always present in the tree — a region injected together
+  with its text is unreliably announced — and the signup error is a `role="alert"` since the
+  submission failed and the user is about to retry. The login error needs neither: it arrives
+  via a redirect, so the page load announces it.
 - **Login, signup and the save field had no labels at all (WCAG 2.2 SC 3.3.2 / 1.3.1, Level A).**
   All six inputs relied on a placeholder, which vanishes as soon as the field has content and is
   not a reliable accessible name. Each now has a real `<label for>` — visible on the auth forms,

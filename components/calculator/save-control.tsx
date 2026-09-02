@@ -71,13 +71,20 @@ export function SaveControl({
         className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50">
         {saving ? "Сохранение…" : "Сохранить расчёт"}
       </button>
-      {saveMsg === "unauth" ? (
-        <span className="text-sm">
-          <Link href="/login" className="underline">Войдите</Link>, чтобы сохранить расчёт
-        </span>
-      ) : saveMsg ? (
-        <span className="text-sm text-muted-foreground">{saveMsg}</span>
-      ) : null}
+      {/* SC 4.1.3 Status Messages: the outcome appears without a navigation or focus change,
+          so without a live region a screen-reader user gets no indication the save happened.
+          role="status" is polite — it waits for a pause rather than interrupting. The wrapper
+          is always rendered so the region exists in the tree before the text arrives; injecting
+          an aria-live node and its content in the same tick is unreliably announced. */}
+      <span role="status" aria-live="polite" className="text-sm">
+        {saveMsg === "unauth" ? (
+          <>
+            <Link href="/login" className="underline">Войдите</Link>, чтобы сохранить расчёт
+          </>
+        ) : saveMsg ? (
+          <span className="text-muted-foreground">{saveMsg}</span>
+        ) : null}
+      </span>
       {savedId && (
         <a href={`/report/${savedId}`} className="text-sm underline">
           Открыть отчёт
