@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/client";
-import { hashPassword } from "@/lib/auth/password";
+import { hashPassword, passwordByteLength, MAX_PASSWORD_BYTES } from "@/lib/auth/password";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 import { signIn, signOut } from "@/auth";
 
@@ -36,6 +36,11 @@ export async function signUpAction(
 
   if (!EMAIL_RE.test(email)) return { error: "Некорректный email" };
   if (password.length < 8) return { error: "Пароль должен быть не короче 8 символов" };
+  // bcrypt ignores everything past 72 bytes, and Cyrillic costs two bytes per character, so a
+  // long Russian passphrase would be silently truncated and weaker than the user believes.
+  if (passwordByteLength(password) > MAX_PASSWORD_BYTES) {
+    return { error: "Пароль слишком длинный (максимум 72 байта, кириллица — 2 байта на символ)" };
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "Пользователь с таким email уже существует" };

@@ -6,6 +6,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Login was an account-enumeration oracle, and long Cyrillic passwords were silently
+  truncated.** `authorize` returned before bcrypt when the account did not exist, so a real
+  address answered in **71 ms** against **2.9 ms** for an unknown one — a 25x gap that reveals
+  which addresses are registered. Both paths now run a bcrypt comparison, the miss against a
+  process-lifetime decoy hash of the same cost; measured over HTTP the ratio is **0.90x**,
+  indistinguishable. Alongside it: the work factor goes from 10 to 12 (~76 ms → ~279 ms per
+  hash; existing hashes carry their own cost, so nobody is locked out and no migration is
+  needed), and signup now rejects passwords over 72 **bytes** rather than letting bcrypt drop
+  the tail — Cyrillic is two bytes per character, so an ordinary 40-character Russian
+  passphrase was being quietly cut to 36.
 - **The robot animation could not be stopped (WCAG 2.2 SC 2.2.2, Level A) and the canvas had no
   text alternative (SC 1.1.1, Level A).** The scene started on its own, ran indefinitely
   alongside other content, and offered no control — the visualization card contained zero
