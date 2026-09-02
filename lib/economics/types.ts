@@ -74,6 +74,24 @@ export type EconomicsResult =
       reason: "invalid_inputs";
     };
 
+/**
+ * True when the investment is worth recommending, not merely cash-flow positive.
+ *
+ * `economical` answers a narrower question than the UI was reading into it: it is set by
+ * `annualSavingsUsd > 0` alone, so it stays true for a solution whose savings never recover the
+ * discounted CAPEX. Two of the thirteen seeded solutions are exactly that — MediCarry M1 pairs
+ * `economical: true` with an NPV of −$87 878 and no discounted payback inside the horizon — and
+ * the hero band was celebrating them while the results panel directly below said
+ * «не окупается в пределах горизонта».
+ *
+ * Viability adds the two discounted tests: the project must be NPV-positive and must actually
+ * recover within the modelled horizon. Presentational only — the engine's discriminant and every
+ * number it produces are unchanged.
+ */
+export function isViable(r: EconomicsResult): boolean {
+  return r.economical && r.npvUsd >= 0 && r.discountedPaybackYears !== null;
+}
+
 /** Result variants that carry numeric fields (economical or no_savings) — i.e. not the
  *  `invalid_inputs` placeholder. Used to gate/narrow number rendering in the UI. */
 export type CalculableResult = Extract<EconomicsResult, { quantity: number }>;

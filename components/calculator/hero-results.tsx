@@ -1,6 +1,6 @@
 import { formatCost } from "@/lib/format/currency";
 import { formatYearsRu } from "@/lib/format/plural";
-import { isCalculable } from "@/lib/economics/types";
+import { isCalculable, isViable } from "@/lib/economics/types";
 import type { EconomicsResult } from "@/lib/economics/types";
 
 /**
@@ -32,17 +32,41 @@ export function HeroResults({
     );
   }
 
+  // Positive savings are not the same as a sound investment: `economical` is set by
+  // annualSavingsUsd > 0 alone, so it stays true when the discounted cash flows never recover
+  // the CAPEX. Celebrating that case put the hero in direct contradiction with the results
+  // panel below it, which was already saying «не окупается в пределах горизонта».
+  const viable = isViable(result);
+
   return (
-    <div className="md:col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-6 py-5 text-center">
-      <div className="text-xs font-medium uppercase tracking-wide text-primary">
-        Окупается за
+    <div
+      className={
+        viable
+          ? "md:col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-6 py-5 text-center"
+          : "md:col-span-2 rounded-lg border bg-muted/40 px-6 py-5 text-center"
+      }
+    >
+      <div
+        className={
+          viable
+            ? "text-xs font-medium uppercase tracking-wide text-primary"
+            : "text-xs font-medium uppercase tracking-wide text-muted-foreground"
+        }
+      >
+        {viable ? "Окупается за" : "Простой срок окупаемости"}
       </div>
-      <div className="mt-1 text-4xl font-bold text-primary">
+      <div className={viable ? "mt-1 text-4xl font-bold text-primary" : "mt-1 text-4xl font-bold"}>
         {formatYearsRu(result.simplePaybackYears)}
       </div>
       {/* Label the headline as the simple (undiscounted) payback, consistent with the A3 honesty
           discipline used everywhere else — the number is real but must not imply a discounted claim. */}
-      <div className="text-xs text-muted-foreground">простой срок окупаемости</div>
+      {viable ? (
+        <div className="text-xs text-muted-foreground">простой срок окупаемости</div>
+      ) : (
+        <div className="mt-1 text-sm font-medium text-amber-700">
+          С учётом дисконтирования не окупается в пределах горизонта — NPV отрицательный
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-foreground">
         <span>
           NPV <b>{formatCost(result.npvUsd, usdToRub)}</b>

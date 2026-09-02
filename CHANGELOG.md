@@ -6,6 +6,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **The hero band celebrated solutions the results panel called unprofitable.** `economical` is
+  set by `annualSavingsUsd > 0` alone, so it stays true when discounted cash flows never recover
+  the CAPEX — and three UI surfaces read it as "good investment". MediCarry M1 rendered the
+  celebratory «ОКУПАЕТСЯ ЗА 4.9 года» with «NPV −7 908 985 ₽» beneath it, while the panel below
+  said «не окупается в пределах горизонта» and the recommendation starred it ★ as best. 2 of the
+  13 seeded solutions. Adds `isViable()` — NPV ≥ 0 **and** a discounted payback inside the
+  horizon — gating the hero's celebratory treatment and the ★. Non-viable results now show a
+  neutral panel headed «Простой срок окупаемости» with the caveat spelled out. Presentational
+  only: the engine's discriminant and every number are unchanged.
 - **Assumptions are now bounded — a mistyped digit could produce an authoritative nonsense
   figure and save it into a client report.** Nothing constrained the «Допущения» inputs: no
   `max`, no clamp, no check in `validateAssumptions`. Typing `5` into «Замещение труда (доля)»

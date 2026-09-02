@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCost } from "@/lib/format/currency";
 import { formatYearsRu } from "@/lib/format/plural";
 import type { RankedSolution } from "@/lib/economics/recommend";
+import { isViable } from "@/lib/economics/types";
 
 export function RecommendationPanel({
   ranked,
@@ -15,7 +16,9 @@ export function RecommendationPanel({
   onSelect: (id: string) => void;
 }) {
   if (ranked.length < 2) return null;
-  const bestId = ranked[0].result.economical ? ranked[0].id : null;
+  // ★ marks a recommendation, so it needs the discounted test, not just positive savings —
+  // otherwise the leader of an all-unviable category is starred as "best" with a negative NPV.
+  const bestId = isViable(ranked[0].result) ? ranked[0].id : null;
 
   return (
     <Card className="md:col-span-2">
