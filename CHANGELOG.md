@@ -6,6 +6,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Two controls kept asserting things the model had stopped agreeing with.** The region select
+  was uncontrolled, so after picking «Москва» and then editing the labour rate it still claimed
+  Москва while the numbers were no longer that region's — it now derives its selection from the
+  current assumptions and falls back to «свои значения» once they diverge. And «Сохранено»
+  persisted after any edit, inviting a second save in the belief the first had covered the new
+  figures; the message is now tied to the inputs it was produced for. The report link stays
+  either way, since that analysis genuinely was saved.
 - **Number fields could not be cleared to retype.** `NumField` bound its value straight to the
   number and committed `Number(e.target.value)` on every keystroke — and `Number("")` is `0`, so
   emptying a box to enter a new figure instantly rewrote it to `0` and recomputed the whole

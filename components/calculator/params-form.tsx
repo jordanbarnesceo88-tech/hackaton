@@ -33,7 +33,12 @@ export function ParamsForm({
         <CardTitle as="h2">Параметры объекта</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <RegionSelect usdToRub={usdToRub} onPick={onPickRegion} />
+        <RegionSelect
+          usdToRub={usdToRub}
+          laborCostPerHourUsd={assumptions.laborCostPerHourUsd}
+          energyCostFactor={assumptions.energyCostFactor}
+          onPick={onPickRegion}
+        />
         {/* U1: area does not enter the economics — it only sizes the Step-4 scene. Labelled so
             no field silently fails to move the result. */}
         <NumField id="areaM2" label="Площадь, м² (только визуализация)" value={params.areaM2}
