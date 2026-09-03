@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { saveAnalysisAction } from "@/lib/analyses/actions";
+
+const SAVE_FAILED = "Ошибка сохранения";
 import type {
   FacilityParams,
   AssumptionValues,
@@ -34,11 +36,13 @@ export function SaveControl({
   // «Сохранено» describes a specific set of numbers. Once anything is edited it is no longer
   // true of what is on screen, and leaving it up invites a second save in the belief the first
   // already covered the new figures. The report link stays — that analysis really was saved.
-  // "unauth" is exempt: «Сохранено» describes a particular set of numbers, but "you need an
-  // account to save" stays true no matter what the user edits. Gating it on the snapshot meant a
-  // logged-out user clicked save, saw the login prompt, adjusted one figure, and the only
-  // indication that they needed an account silently vanished.
-  const currentMsg = saveMsg === "unauth" || msgFor === snapshot ? saveMsg : null;
+  // Only «Сохранено» is about a particular set of numbers, so only it expires when they change.
+  // The other two describe the ATTEMPT and stay true regardless of subsequent edits: "you need
+  // an account to save", and "that save failed". Expiring the failure was the worse of the two —
+  // the user nudges a field to retry, the error disappears, and with savedId still null nothing
+  // on screen says the save never happened.
+  const describesAttempt = saveMsg === "unauth" || saveMsg === SAVE_FAILED;
+  const currentMsg = describesAttempt || msgFor === snapshot ? saveMsg : null;
 
   async function handleSave() {
     if (saving) return; // guard against double-submit while a save is in flight
@@ -61,7 +65,7 @@ export function SaveControl({
         setSavedId(res.id);
         setSaveMsg("Сохранено");
       } else if (res.reason === "unauthenticated") setSaveMsg("unauth");
-      else setSaveMsg("Ошибка сохранения");
+      else setSaveMsg(SAVE_FAILED);
     } finally {
       setSaving(false);
     }

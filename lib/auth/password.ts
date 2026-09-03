@@ -50,3 +50,22 @@ export function needsRehash(hash: string): boolean {
   const cost = hashCost(hash);
   return cost !== null && cost < COST;
 }
+
+/**
+ * Floor for a rejected login, in ms. Comfortably above a cost-12 comparison (~279 ms here) so
+ * every failure path costs the same wall-clock time regardless of what happened inside it.
+ *
+ * A decoy hash alone is not enough, which is the mistake this replaces. It equalises the two
+ * paths only while every stored hash shares the decoy's cost — and this table deliberately holds
+ * a mix, because raising COST leaves existing hashes at the cost they were written with. So
+ * probing a legacy cost-10 account with a wrong password returned in 115 ms against 322 ms for
+ * an unknown address: a 2.8x gap, measured, and one that would reopen on any future cost change.
+ * Padding to a fixed floor is indifferent to all of that.
+ */
+export const MIN_REJECTED_LOGIN_MS = 400;
+
+/** Resolve no earlier than `floorMs` after `startedAt`. */
+export async function holdUntilFloor(startedAt: number, floorMs = MIN_REJECTED_LOGIN_MS) {
+  const remaining = floorMs - (Date.now() - startedAt);
+  if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+}

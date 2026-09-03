@@ -6,6 +6,20 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Second review round — five findings, four of them regressions from this branch.** The
+  account-enumeration oracle was **still open**: the upgrade-on-verify rehash only runs on a
+  *successful* login, while the probe uses a wrong password and returns before it — measured
+  **115 ms** for a legacy cost-10 account against **322 ms** for an unknown address, a 2.8x gap
+  that would have persisted for the entire pre-existing user base. Replaced with a constant-time
+  floor on every rejection, which is indifferent to hash cost: now **1.9% spread** across legacy,
+  current and unknown. Reduced-motion users saw «Накопленная экономия (за год): 0 ₽» permanently
+  beside a panel reporting 6 075 000 ₽ — the pause gate also froze `setElapsed`, and that figure
+  appears nowhere else, so the canvas label's promise that the numbers are given as text was
+  false for them. The region drift fixed one commit earlier was still reachable in the other
+  order (pick «Москва», *then* change the rate → 22% overstatement); the selection is now tracked
+  by id and the wage re-derived. «Ошибка сохранения» expired when the user nudged a field to
+  retry, leaving nothing on screen to say the save had failed. And the `dark:` variant lacked the
+  `.light` escape hatch its own token block has.
 - **The ROI report printed near-black for dark-mode users.** Making the dark tokens reachable
   (B3, previous commit) applied them to `print` media too, and `.report-block` sets
   `print-color-adjust: exact` — so the browser would faithfully lay down the dark background

@@ -15,6 +15,7 @@ export function ParamsForm({
   capacity,
   capacityUnit,
   assumptions,
+  selectedRegionId,
   onPickRegion,
   usdToRub,
 }: {
@@ -23,7 +24,8 @@ export function ParamsForm({
   capacity: SolutionCapacity;
   capacityUnit: string;
   assumptions: AssumptionValues;
-  onPickRegion: (labor: number, energyFactor: number) => void;
+  selectedRegionId: string | null;
+  onPickRegion: (id: string, labor: number, energyFactor: number) => void;
   usdToRub: number;
 }) {
   const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
@@ -35,8 +37,7 @@ export function ParamsForm({
       <CardContent className="flex flex-col gap-3">
         <RegionSelect
           usdToRub={usdToRub}
-          laborCostPerHourUsd={assumptions.laborCostPerHourUsd}
-          energyCostFactor={assumptions.energyCostFactor}
+          selectedRegionId={selectedRegionId}
           onPick={onPickRegion}
         />
         {/* U1: area does not enter the economics — it only sizes the Step-4 scene. Labelled so

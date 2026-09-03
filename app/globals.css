@@ -7,7 +7,22 @@
    `.dark` block below was unreachable, while the brand pass's CHANGELOG claimed "light + dark".
    Honouring prefers-color-scheme makes those values live for users who have already asked their
    OS for dark, and keeps the class arm so a future toggle (#5d) still overrides it. */
-@custom-variant dark (&:is(.dark *, .dark), @media screen and (prefers-color-scheme: dark));
+@custom-variant dark {
+  /* An explicit .dark wins outright. */
+  &:is(.dark *, .dark) {
+    @slot;
+  }
+  /* The OS preference applies on screen only — paper is white, see the @media print block —
+     and yields to an explicit .light, so the #5d toggle can turn dark OFF for a user whose OS
+     asks for it. The token block below carries the same `:not(.light)` guard; without this arm
+     matching it, a light-toggled user on OS-dark would get light custom properties while every
+     `dark:` utility stayed dark. */
+  @media screen and (prefers-color-scheme: dark) {
+    &:not(.light *, .light) {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --color-background: var(--background);

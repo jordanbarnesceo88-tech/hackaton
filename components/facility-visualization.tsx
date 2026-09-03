@@ -174,7 +174,13 @@ export function FacilityVisualization({
     ? deployedCapacity(result.quantity, capacity.capacityPerUnit)
     : null;
   const savings = result.economical ? result.annualSavingsUsd : 0;
-  const accrued = result.economical ? roiAccrued(elapsed, LOOP_MS, savings) : 0;
+  // Paused shows the completed year, not zero. The bar fills 0 → annual purely as illustration
+  // — the number it lands on is the real figure, and the label already says «за год». Leaving it
+  // at 0 while paused meant a reduced-motion user (who starts paused) permanently read
+  // «Накопленная экономия (за год): 0 ₽» beside a panel reporting 6 075 000 ₽, and this readout
+  // appears nowhere else, so the canvas label's promise that the numbers are also given as text
+  // was not true for them.
+  const accrued = !result.economical ? 0 : paused ? savings : roiAccrued(elapsed, LOOP_MS, savings);
   const accruedFrac = savings > 0 ? accrued / savings : 0;
 
   return (

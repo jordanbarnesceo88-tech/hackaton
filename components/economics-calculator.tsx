@@ -15,6 +15,7 @@ import { computeEconomics } from "@/lib/economics/calculate";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
 import { sensitivity } from "@/lib/economics/sensitivity";
+import { REGION_PRESETS, regionLaborCostUsd } from "@/lib/economics/regions";
 import { formatCost } from "@/lib/format/currency";
 import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
 
@@ -57,6 +58,39 @@ export function EconomicsCalculator({
     }
   );
   const [assumptions, setAssumptions] = useState<AssumptionValues>(initialAssumptions);
+  // Which region the labour rate came from, if any. Remembering the id — rather than inferring
+  // it by matching the derived USD figure — is what lets the rate stay in sync: the wage is
+  // cited in rubles, so editing «Курс USD→RUB» has to re-derive the dollar value. Without this
+  // the assumption kept the dollars fixed and the implied wage drifted 22% at 110 ₽/$, which is
+  // the very defect regions.ts was changed to remove, just reached in the other order.
+  const [regionId, setRegionId] = useState<string | null>(null);
+  const region = regionId ? REGION_PRESETS.find((r) => r.id === regionId) ?? null : null;
+  const derivedLabor = region ? regionLaborCostUsd(region, assumptions.usdToRub) : null;
+  const effectiveAssumptions =
+    derivedLabor !== null && derivedLabor !== assumptions.laborCostPerHourUsd
+      ? { ...assumptions, laborCostPerHourUsd: derivedLabor }
+      : assumptions;
+
+  /**
+   * Editing either figure a region preset owns releases the region. Without this the derived
+   * value would overwrite the user's own on the next render — the control fighting the person
+   * using it — and the selector would keep naming a region whose numbers no longer applied.
+   * Editing anything else (the horizon, the discount rate) keeps the region, so a later change
+   * to «Курс USD→RUB» still re-derives the wage from its ruble citation.
+   */
+  const setAssumptionsAndReleaseRegion: typeof setAssumptions = (update) => {
+    setAssumptions((prev) => {
+      const base = derivedLabor !== null ? { ...prev, laborCostPerHourUsd: derivedLabor } : prev;
+      const next = typeof update === "function" ? update(base) : update;
+      if (
+        next.laborCostPerHourUsd !== base.laborCostPerHourUsd ||
+        next.energyCostFactor !== base.energyCostFactor
+      ) {
+        setRegionId(null);
+      }
+      return next;
+    });
+  };
 
   // After every hook: an early return above would change the hook order between renders,
   // which is what the rules-of-hooks lint (now failing the build) exists to catch.
@@ -70,9 +104,9 @@ export function EconomicsCalculator({
 
   const capacity = toSolutionCapacity(primary);
 
-  const result = computeEconomics(capacity, params, assumptions);
-  const ranked = rankSolutions(categorySolutions, params, assumptions);
-  const bars = sensitivity(capacity, params, assumptions);
+  const result = computeEconomics(capacity, params, effectiveAssumptions);
+  const ranked = rankSolutions(categorySolutions, params, effectiveAssumptions);
+  const bars = sensitivity(capacity, params, effectiveAssumptions);
 
   return (
     <div className="flex flex-col gap-6">
@@ -118,15 +152,17 @@ export function EconomicsCalculator({
         setParams={setParams}
         capacity={capacity}
         capacityUnit={primary.capacityUnit}
-        assumptions={assumptions}
-        usdToRub={assumptions.usdToRub}
-        onPickRegion={(labor, energyFactor) =>
+        assumptions={effectiveAssumptions}
+        usdToRub={effectiveAssumptions.usdToRub}
+        selectedRegionId={regionId}
+        onPickRegion={(id, labor, energyFactor) => {
+          setRegionId(id);
           setAssumptions((prev) => ({
             ...prev,
             laborCostPerHourUsd: labor,
             energyCostFactor: energyFactor,
-          }))
-        }
+          }));
+        }}
       />
       <ResultsPanel result={result} usdToRub={assumptions.usdToRub} />
       <RecommendationPanel
@@ -144,8 +180,8 @@ export function EconomicsCalculator({
         result={result}
       />
       <AssumptionsPanel
-        assumptions={assumptions}
-        setAssumptions={setAssumptions}
+        assumptions={effectiveAssumptions}
+        setAssumptions={setAssumptionsAndReleaseRegion}
         capacityBasis={primary.capacityBasis}
       />
       <FacilityVisualization

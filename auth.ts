@@ -1,7 +1,13 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db/client";
-import { verifyPassword, decoyHash, hashPassword, needsRehash } from "@/lib/auth/password";
+import {
+  verifyPassword,
+  decoyHash,
+  hashPassword,
+  needsRehash,
+  holdUntilFloor,
+} from "@/lib/auth/password";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 
 // Login throttling, two buckets both enforced per 15-min window:
@@ -24,9 +30,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       credentials: { email: {}, password: {} },
       authorize: async (creds, request) => {
+        const startedAt = Date.now();
         const email = String(creds?.email ?? "").toLowerCase().trim();
         const password = String(creds?.password ?? "");
-        if (!email || !password) return null;
+        // Every rejection leaves through here, so they all cost the same wall-clock time.
+        const reject = async () => {
+          await holdUntilFloor(startedAt);
+          return null;
+        };
+        if (!email || !password) return reject();
 
         // Throttle credential-stuffing. Over either limit → treat as a failed login (return
         // null), giving no signal that the account exists or that a limit was hit.
@@ -39,25 +51,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           limit: LOGIN_IP_LIMIT,
           windowMs: LOGIN_WINDOW_MS,
         });
-        if (!perAccount.ok || !perIp.ok) return null;
+        if (!perAccount.ok || !perIp.ok) return reject();
 
         const user = await prisma.user.findUnique({ where: { email } });
-        // Always run a bcrypt comparison, even when the account does not exist. Returning early
-        // on a miss made the two outcomes trivially distinguishable by response time — measured
-        // at 71 ms for a real account versus 2.9 ms for an unknown one, a 25x gap that turns the
-        // login form into an account-enumeration oracle. Comparing against a decoy hash of the
-        // same cost puts both paths on the same footing.
+        // Always run a comparison, even when the account does not exist, so a miss does real
+        // work rather than returning immediately. The decoy equalises the two paths only while
+        // every stored hash shares its cost, which is not true here — see MIN_REJECTED_LOGIN_MS.
+        // The floor in `reject()` is what actually makes the outcomes indistinguishable.
         const ok = user
           ? await verifyPassword(password, user.passwordHash)
           : await verifyPassword(password, await decoyHash());
-        if (!user || !ok) return null;
+        if (!user || !ok) return reject();
 
-        // Upgrade-on-verify. Raising COST without this left the two paths unequal again, just
-        // inverted: the decoy is built at the current cost (~279 ms) while every account created
-        // before the bump still verifies its own cost-10 hash (~69 ms). Measured, that is a 3.9x
-        // gap — an enumeration oracle for exactly the pre-existing user base. Rehashing here
-        // closes it per account as people sign in, and costs nothing for accounts already
-        // current. A failure must never block a valid login, so it is logged and swallowed.
+        // Upgrade-on-verify: migrate legacy hashes to the current cost as their owners sign in.
+        // This is housekeeping, not the timing fix — it only runs on a SUCCESSFUL login, whereas
+        // the enumeration probe uses a wrong password and never reaches here. Mistaking it for
+        // the fix is exactly how the 2.8x gap survived the first attempt.
+        // A failure must never block a valid login, so it is logged and swallowed.
         if (needsRehash(user.passwordHash)) {
           try {
             await prisma.user.update({
