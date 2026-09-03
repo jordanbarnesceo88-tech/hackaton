@@ -128,7 +128,7 @@ export default async function ComparePage({
                         {s.priceEstimated && s.priceLowUsd != null && s.priceHighUsd != null ? (
                           <span title={s.priceBasis ?? undefined}>
                             {money(s.priceLowUsd)}–{money(s.priceHighUsd)}{" "}
-                            <sup className="text-[10px] text-amber-700">оценка</sup>
+                            <sup className="text-[10px] text-caution">оценка</sup>
                           </span>
                         ) : (
                           money(s.priceUsd)

@@ -234,7 +234,7 @@ export function FacilityVisualization({
               <>
                 <div className="h-3 w-full overflow-hidden rounded bg-muted">
                   <div
-                    className="h-full bg-emerald-500 transition-[width] duration-100"
+                    className="h-full bg-positive transition-[width] duration-100"
                     style={{ width: `${Math.round(accruedFrac * 100)}%` }}
                   />
                 </div>

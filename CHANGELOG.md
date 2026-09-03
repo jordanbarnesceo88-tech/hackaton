@@ -6,6 +6,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **The brand pass's four unfinished pieces (#5c/#5d backlog).**
+  **B1** — `--chart-1..5` were a single-hue blue→cyan *sequential* ramp sitting in shadcn's
+  *categorical* slots: chart-5 measured 1.80:1 on white (3:1 is the minimum for graphical
+  objects) and adjacent steps were ΔE 7.4 apart against a 15 floor, i.e. indistinguishable to
+  full-colour vision. Replaced with a validated categorical palette — blue stays first so a
+  single-series chart still reads as the brand — selected separately for each surface and checked
+  with the dataviz validator: lightness band, chroma floor, CVD separation, normal-vision
+  separation and contrast all pass in **both** modes, no warnings.
+  **B2** — `--destructive` darkened. It is only ever ink or a light tint here, never a fill
+  behind light text, so a darker step is a pure gain: the hero's «не окупается» panel measured
+  **4.36:1** on its own 5% tint, under AA, for the one message whose job is delivering bad news
+  legibly. Now **6.08:1**.
+  **B3** — the `.dark` block was unreachable. `@custom-variant dark` keyed on a `.dark` class
+  nothing sets, so every dark value was dead code while the CHANGELOG claimed "light + dark". It
+  now also answers `prefers-color-scheme`, with the class arm kept for the #5d toggle.
+  **B4** — added the `--positive` / `--caution` semantics that commit message named but never
+  created, and replaced the 20 hardcoded `emerald`/`amber` utilities that no theme could reach.
+  Provenance badges keep their distinct data-source hues by design, and gained dark steps.
+  Verified by rendering both schemes: every text/background pair measured passes AA.
 - **Years rendered with a Latin decimal point in a Russian UI.** `formatYearsRu` used
   `toFixed(1)`, which emits `.` in every locale, so «4.9 года» appeared beside the money
   formatter's «4 500 000 ₽» and the assumption inputs' «0,15» — three conventions on one screen,

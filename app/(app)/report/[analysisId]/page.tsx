@@ -103,7 +103,7 @@ export default async function ReportPage({
         {solution.priceEstimated &&
           solution.priceLowUsd != null &&
           solution.priceHighUsd != null && (
-            <p className="mt-1 text-xs text-amber-700">
+            <p className="mt-1 text-xs text-caution">
               Оценка цены: {money(solution.priceLowUsd)}–{money(solution.priceHighUsd)} · CAPEX по
               середине диапазона.
             </p>
@@ -118,7 +118,7 @@ export default async function ReportPage({
 
       <footer className="mt-6 border-t pt-3 text-xs text-muted-foreground">
         {dataChanged && (
-          <p className="mb-1 text-amber-700">
+          <p className="mb-1 text-caution">
             Данные решения или модель расчёта изменились с момента сохранения — показатели
             пересчитаны по актуальным данным.
           </p>

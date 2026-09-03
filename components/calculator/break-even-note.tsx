@@ -39,9 +39,9 @@ export function BreakEvenNote({
           окупается при ставке труда ≥ <b>{formatCost(rate, usdToRub)}/час</b> (сейчас{" "}
           {formatCost(current, usdToRub)})
           {current >= rate ? (
-            <span className="text-emerald-700"> · запас прочности ×{(current / rate).toFixed(1)}</span>
+            <span className="text-positive"> · запас прочности ×{(current / rate).toFixed(1)}</span>
           ) : (
-            <span className="text-amber-700"> · текущая ставка ниже точки безубыточности</span>
+            <span className="text-caution"> · текущая ставка ниже точки безубыточности</span>
           )}
         </>
       )}

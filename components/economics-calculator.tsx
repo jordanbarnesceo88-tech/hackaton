@@ -86,7 +86,7 @@ export function EconomicsCalculator({
           {primary.vendor} · {facilityTypeName} ({industryName})
         </p>
         {primary.priceEstimated && primary.priceLowUsd != null && primary.priceHighUsd != null && (
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-caution">
             оценка цены: {formatCost(primary.priceLowUsd, assumptions.usdToRub)}–
             {formatCost(primary.priceHighUsd, assumptions.usdToRub)} · CAPEX по середине диапазона
             {primary.sourceUrl ? (
@@ -101,7 +101,7 @@ export function EconomicsCalculator({
         )}
       </div>
       {dataChanged && (
-        <div className="rounded-md border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
           Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
           актуальным данным, он может отличаться от сохранённого.
         </div>

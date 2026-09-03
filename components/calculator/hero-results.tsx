@@ -25,7 +25,7 @@ export function HeroResults({
         <div className="text-lg font-semibold text-destructive">
           Не окупается при текущих параметрах
         </div>
-        <div className="mt-1 text-sm text-destructive/80">
+        <div className="mt-1 text-sm text-destructive">
           Годовая экономия не покрывает затраты — измените параметры или решение.
         </div>
       </div>
@@ -63,7 +63,7 @@ export function HeroResults({
       {viable ? (
         <div className="text-xs text-muted-foreground">простой срок окупаемости</div>
       ) : (
-        <div className="mt-1 text-sm font-medium text-amber-700">
+        <div className="mt-1 text-sm font-medium text-caution">
           {/* Word this off the condition that is actually true. `isViable` is false as soon as
               NPV is negative, and a negative NPV with a real discounted payback is reachable
               whenever assetLifeYears < roiHorizonYears: re-CAPEX pushes the cumulative back
@@ -84,7 +84,7 @@ export function HeroResults({
         </span>
       </div>
       {priceEstimated && (
-        <div className="mt-1 text-xs text-amber-700">
+        <div className="mt-1 text-xs text-caution">
           Цена решения оценочная — показатели по середине диапазона.
         </div>
       )}

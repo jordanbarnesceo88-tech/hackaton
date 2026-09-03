@@ -2,7 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Match BOTH an explicit `.dark` ancestor and the OS preference. Only the class was matched
+   before, and nothing in the app ever sets it — no theme provider, no toggle — so the entire
+   `.dark` block below was unreachable, while the brand pass's CHANGELOG claimed "light + dark".
+   Honouring prefers-color-scheme makes those values live for users who have already asked their
+   OS for dark, and keeps the class arm so a future toggle (#5d) still overrides it. */
+@custom-variant dark (&:is(.dark *, .dark), @media (prefers-color-scheme: dark));
 
 @theme inline {
   --color-background: var(--background);
@@ -23,6 +28,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-caution: var(--caution);
+  --color-caution-foreground: var(--caution-foreground);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -63,15 +72,34 @@
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.96 0.02 250); /* faint blue surface (hovers/subtle) */
   --accent-foreground: oklch(0.42 0.17 264);
-  --destructive: oklch(0.577 0.245 27.325);
+  /* Darkened from L .577. --destructive is only ever ink or a light tint here (never a solid
+     fill behind light text), so a darker step is a pure gain: on its own 5% tint the hero's
+     "не окупается" panel measured 4.36:1, under the 4.5 AA floor for the very message whose
+     job is to deliver bad news legibly. Now 6.07:1, and 6.64:1 on plain white. */
+  --destructive: oklch(0.50 0.200 27.3);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.55 0.15 264); /* visible brand-blue focus ring */
-  --chart-1: oklch(0.42 0.17 264); /* blue → cyan ramp */
-  --chart-2: oklch(0.55 0.13 240);
-  --chart-3: oklch(0.65 0.12 210);
-  --chart-4: oklch(0.72 0.11 195);
-  --chart-5: oklch(0.80 0.09 190);
+  /* Categorical, not a ramp. These sit in shadcn's categorical chart slots, so a single-hue
+     blue→cyan sequence was the wrong shape twice over: it encoded identity as magnitude, and
+     the pale end failed contrast (chart-5 was 1.80:1 on white, against a 3:1 minimum for
+     graphical objects) while adjacent steps were indistinguishable (ΔE 7.4 against a 15 floor
+     — hard to tell apart even with normal colour vision). Validated with the dataviz palette
+     checker against this theme's own card surface: lightness band, chroma floor, CVD
+     separation, normal-vision separation and contrast all pass. Blue stays first so a
+     single-series chart still reads as the brand. */
+  --chart-1: oklch(0.575 0.163 255.5); /* #2a78d6 blue    — 4.42:1 */
+  --chart-2: oklch(0.671 0.175 40.6);  /* #eb6834 orange  — 3.20:1 */
+  --chart-3: oklch(0.644 0.140 162.3); /* #01a773 aqua    — 3.10:1 */
+  --chart-4: oklch(0.671 0.145 70.2);  /* #cd8300 yellow  — 3.07:1 */
+  --chart-5: oklch(0.681 0.141 357.5); /* #dc7099 magenta — 3.08:1 */
+
+  /* B4: the semantics the brand pass claimed but never added, which left «экономия» and
+     «оценка» as hardcoded emerald/amber utilities that no theme could reach. */
+  --positive: oklch(0.52 0.13 158);
+  --positive-foreground: oklch(0.985 0 0);
+  --caution: oklch(0.52 0.12 75);
+  --caution-foreground: oklch(0.985 0 0);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -102,11 +130,17 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.62 0.16 264);
-  --chart-1: oklch(0.62 0.16 264);
-  --chart-2: oklch(0.66 0.13 235);
-  --chart-3: oklch(0.72 0.12 205);
-  --chart-4: oklch(0.78 0.11 195);
-  --chart-5: oklch(0.84 0.09 190);
+  /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
+     re-validated against oklch(0.205 0 0). */
+  --chart-1: oklch(0.659 0.163 256.0); /* #4792f3 — 5.70:1 */
+  --chart-2: oklch(0.526 0.173 37.9);  /* #b83800 — 3.08:1 */
+  --chart-3: oklch(0.660 0.141 162.0); /* #14ac77 — 6.14:1 */
+  --chart-4: oklch(0.524 0.124 59.1);  /* #9d5500 — 3.19:1 */
+  --chart-5: oklch(0.660 0.140 357.2); /* #d46a93 — 5.36:1 */
+  --positive: oklch(0.70 0.15 158);
+  --positive-foreground: oklch(0.145 0 0);
+  --caution: oklch(0.75 0.14 75);
+  --caution-foreground: oklch(0.145 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -115,6 +149,52 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* The same values under the OS preference. Duplicated on purpose and kept adjacent: CSS cannot
+   share a declaration block across a media-query boundary, and this is the pattern Tailwind v4
+   and shadcn use for automatic dark. `:not(.light)` leaves room for an explicit light override
+   when the #5d toggle lands. If you edit one block, edit the other. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.62 0.16 264); /* brand blue (dark) */
+    --primary-foreground: oklch(0.145 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.30 0.03 250);
+    --accent-foreground: oklch(0.90 0.03 240);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.62 0.16 264);
+    /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
+       re-validated against oklch(0.205 0 0). */
+    --chart-1: oklch(0.659 0.163 256.0); /* #4792f3 — 5.70:1 */
+    --chart-2: oklch(0.526 0.173 37.9);  /* #b83800 — 3.08:1 */
+    --chart-3: oklch(0.660 0.141 162.0); /* #14ac77 — 6.14:1 */
+    --chart-4: oklch(0.524 0.124 59.1);  /* #9d5500 — 3.19:1 */
+    --chart-5: oklch(0.660 0.140 357.2); /* #d46a93 — 5.36:1 */
+    --positive: oklch(0.70 0.15 158);
+    --positive-foreground: oklch(0.145 0 0);
+    --caution: oklch(0.75 0.14 75);
+    --caution-foreground: oklch(0.145 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
 }
 
 @layer base {
