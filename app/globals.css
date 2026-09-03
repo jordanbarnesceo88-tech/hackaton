@@ -7,7 +7,7 @@
    `.dark` block below was unreachable, while the brand pass's CHANGELOG claimed "light + dark".
    Honouring prefers-color-scheme makes those values live for users who have already asked their
    OS for dark, and keeps the class arm so a future toggle (#5d) still overrides it. */
-@custom-variant dark (&:is(.dark *, .dark), @media (prefers-color-scheme: dark));
+@custom-variant dark (&:is(.dark *, .dark), @media screen and (prefers-color-scheme: dark));
 
 @theme inline {
   --color-background: var(--background);
@@ -155,7 +155,7 @@
    share a declaration block across a media-query boundary, and this is the pattern Tailwind v4
    and shadcn use for automatic dark. `:not(.light)` leaves room for an explicit light override
    when the #5d toggle lands. If you edit one block, edit the other. */
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root:not(.light) {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
@@ -215,6 +215,21 @@
 @media print {
   .no-print {
     display: none !important;
+  }
+  /* Paper is white. The dark token block is scoped to `screen`, which covers the
+     prefers-color-scheme path; this covers the explicit `.dark` class a future toggle (#5d)
+     would set. Without it a dark-mode user printing the ROI report gets a near-black page —
+     and `.report-block` sets print-color-adjust: exact, so the browser would faithfully lay
+     down all that ink instead of dropping the background as it normally would. The report is
+     the artefact a client is handed; it prints light regardless of how the app is being read. */
+  .dark {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
   }
 }
 

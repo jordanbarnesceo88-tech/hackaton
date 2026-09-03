@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **The ROI report printed near-black for dark-mode users.** Making the dark tokens reachable
+  (B3, previous commit) applied them to `print` media too, and `.report-block` sets
+  `print-color-adjust: exact` — so the browser would faithfully lay down the dark background
+  instead of dropping it as it normally does. The report is the artefact a client is handed. The
+  dark tokens are now scoped to `screen`, and an explicit `.dark` (a future #5d toggle) is reset
+  for print, so the PDF is white however the app is being read. Also swept the five pages not
+  previously checked in dark — `/analyses`, `/report`, `/login`, `/signup`, `/onboarding` — with
+  no AA failures on any of them.
 - **The brand pass's four unfinished pieces (#5c/#5d backlog).**
   **B1** — `--chart-1..5` were a single-hue blue→cyan *sequential* ramp sitting in shadcn's
   *categorical* slots: chart-5 measured 1.80:1 on white (3:1 is the minimum for graphical
