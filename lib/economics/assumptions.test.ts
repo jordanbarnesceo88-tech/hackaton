@@ -130,3 +130,41 @@ describe("withParamDefaults", () => {
     expect(withParamDefaults("nonsense")).toEqual({ areaM2: 1000, opsPerDay: 500, staffCount: 10 });
   });
 });
+
+describe("withAssumptionDefaults range enforcement on read", () => {
+  it("clamps an out-of-range value from an older saved analysis", () => {
+    // The gap the input clamp and the save-time validator both missed: a blob written before
+    // the bounds existed still rendered its figure in the report.
+    expect(withAssumptionDefaults({ ...DEFAULT_ASSUMPTIONS, laborReplacementPct: 5 })
+      .laborReplacementPct).toBe(1);
+    expect(withAssumptionDefaults({ ...DEFAULT_ASSUMPTIONS, discountRate: -0.99 })
+      .discountRate).toBe(0);
+  });
+
+  it("leaves an in-range blob untouched", () => {
+    expect(withAssumptionDefaults(DEFAULT_ASSUMPTIONS)).toEqual(DEFAULT_ASSUMPTIONS);
+  });
+
+  it("still backfills a missing key", () => {
+    const { energyCostFactor, ...old } = DEFAULT_ASSUMPTIONS;
+    void energyCostFactor;
+    expect(withAssumptionDefaults(old).energyCostFactor).toBe(1.0);
+  });
+
+  it("everything it returns is in range, by construction", () => {
+    expect(assumptionsInRange(withAssumptionDefaults({ laborReplacementPct: 99, discountRate: -5 })))
+      .toBe(true);
+  });
+});
+
+describe("bounds keep every divisor away from zero", () => {
+  it.each(["hoursPerYear", "workingDaysPerYear", "operatingHoursPerDay", "opsPerWorkerPerYear", "turnoverPerDay"] as const)(
+    "%s cannot be clamped to 0",
+    (k) => {
+      // Each of these divides something in the engine; a permitted 0 makes the whole
+      // calculator collapse to «Проверьте параметры расчёта» with nothing indicating why.
+      expect(ASSUMPTION_BOUNDS[k].min).toBeGreaterThanOrEqual(1);
+      expect(clampAssumption(k, 0)).toBeGreaterThanOrEqual(1);
+    }
+  );
+});

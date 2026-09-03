@@ -5,6 +5,8 @@ import {
   decoyHash,
   passwordByteLength,
   MAX_PASSWORD_BYTES,
+  hashCost,
+  needsRehash,
 } from "./password";
 
 describe("password hashing", () => {
@@ -67,5 +69,35 @@ describe("hashPassword cost", () => {
     // bcrypt reads the cost from the hash itself, so raising COST needs no migration.
     const legacy = "$2b$10$K7L1OJ0/9L2h0kQ0K1wEeuJ5cVJgLhk8kQKQ2vJ1Zx1qKQ8Q1YJ2u";
     expect(typeof (await verifyPassword("anything", legacy))).toBe("boolean");
+  });
+});
+
+describe("upgrade-on-verify", () => {
+  it("reads the work factor out of a stored hash", () => {
+    expect(hashCost("$2b$10$abcdefghijklmnopqrstuv")).toBe(10);
+    expect(hashCost("$2a$12$abcdefghijklmnopqrstuv")).toBe(12);
+    expect(hashCost("not-a-hash")).toBeNull();
+    expect(hashCost("x")).toBeNull(); // two such rows exist in the dev database
+  });
+
+  it("flags a legacy cost-10 hash for rehashing", () => {
+    // Without this, raising COST left the miss path (decoy at cost 12, ~279 ms) slower than
+    // every pre-existing account (~69 ms) — the enumeration oracle re-opened, inverted.
+    expect(needsRehash("$2b$10$abcdefghijklmnopqrstuv")).toBe(true);
+  });
+
+  it("leaves a current hash alone", async () => {
+    expect(needsRehash(await hashPassword("password12345"))).toBe(false);
+  });
+
+  it("never flags something that is not a bcrypt hash", () => {
+    expect(needsRehash("x")).toBe(false);
+    expect(needsRehash("")).toBe(false);
+  });
+
+  it("a rehashed password still verifies", async () => {
+    const upgraded = await hashPassword("password12345");
+    expect(await verifyPassword("password12345", upgraded)).toBe(true);
+    expect(await verifyPassword("wrong", upgraded)).toBe(false);
   });
 });

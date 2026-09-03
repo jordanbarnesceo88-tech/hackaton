@@ -6,6 +6,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Code-review follow-ups — nine defects, four of them introduced by earlier commits on this
+  branch.** Raising the bcrypt cost re-opened the enumeration oracle *inverted*: the decoy hash
+  is built at cost 12 (~274 ms) while every pre-existing account still verified its own cost-10
+  hash (~69 ms), a measured **3.9x** gap. Login now rehashes on successful verify, so accounts
+  migrate as people sign in. `withAssumptionDefaults` clamped nothing, so an analysis saved
+  before the bounds existed still rendered `laborReplacementPct: 5` as an NPV of 3 803 215 in the
+  client report. The hero's non-viable caption claimed the solution never pays back inside the
+  horizon, but `isViable` is false on negative NPV alone — with `assetLifeYears < roiHorizonYears`
+  a negative NPV can coexist with a real discounted payback, so the hero contradicted the panel
+  again, in the opposite direction. `NumField` showed `5` while the page computed from the
+  clamped `1`. Plus: a hydration mismatch on the pause button, accrued savings resetting to zero
+  on resume, the canvas not repainting when the fleet size changed while paused, the login prompt
+  vanishing when a logged-out user edited anything, `turnoverPerDay` permitting the zero it is
+  divided by, and `check:sources` — the one script whose job is to refuse — passing an
+  unparseable date as `ok NaNd` with exit 0.
 - **Saved facility params are now backfilled like assumptions were.** A saved analysis had its
   `assumptions` defensively repaired on every read (`withAssumptionDefaults`) while `params` was
   cast straight out of jsonb — an asymmetry, given both come from the same blob. The engine's

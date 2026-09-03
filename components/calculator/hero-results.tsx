@@ -64,7 +64,15 @@ export function HeroResults({
         <div className="text-xs text-muted-foreground">простой срок окупаемости</div>
       ) : (
         <div className="mt-1 text-sm font-medium text-amber-700">
-          С учётом дисконтирования не окупается в пределах горизонта — NPV отрицательный
+          {/* Word this off the condition that is actually true. `isViable` is false as soon as
+              NPV is negative, and a negative NPV with a real discounted payback is reachable
+              whenever assetLifeYears < roiHorizonYears: re-CAPEX pushes the cumulative back
+              below zero after an early crossing (e.g. life 4 / horizon 5 -> NPV −19 296 with a
+              2.9-year discounted payback). Claiming "не окупается в пределах горизонта" there
+              contradicted the panel directly below, which printed «2.9 года». */}
+          {result.discountedPaybackYears === null
+            ? "С учётом дисконтирования не окупается в пределах горизонта — NPV отрицательный"
+            : "С учётом дисконтирования решение не окупается — NPV отрицательный"}
         </div>
       )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-foreground">

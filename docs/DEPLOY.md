@@ -62,8 +62,9 @@ deferred to deploy time because they need production infrastructure or config:
 
 ## 6. Known `npm audit` findings — assessed, not actionable
 
-`npm audit` reports **4 high-severity advisories**. Both are reachable only through the Prisma
-CLI and neither is exploitable here; check this list before spending time on them again:
+`npm audit` reports **4 high-severity findings**, which are **two distinct advisories** counted
+across the packages they affect. Both are reachable only through the Prisma CLI and neither is
+exploitable here; check this list before spending time on them again:
 
 | Advisory | Package | Why it does not apply |
 |---|---|---|

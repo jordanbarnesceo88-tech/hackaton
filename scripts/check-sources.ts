@@ -9,7 +9,12 @@
 // RELATIVE import: this runs under tsx, which does not resolve the "@/" tsconfig alias.
 import { WAREHOUSE_REAL } from "./parse-sources/warehouse-real";
 
-const MAX_AGE_DAYS = Number(process.env.MAX_SOURCE_AGE_DAYS ?? 180);
+const rawMax = Number(process.env.MAX_SOURCE_AGE_DAYS ?? 180);
+if (!Number.isFinite(rawMax) || rawMax <= 0) {
+  console.error(`MAX_SOURCE_AGE_DAYS must be a positive number, got "${process.env.MAX_SOURCE_AGE_DAYS}".`);
+  process.exit(2);
+}
+const MAX_AGE_DAYS = rawMax;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const now = Date.now();
@@ -17,11 +22,16 @@ let stale = 0;
 
 console.log(`Citation freshness (threshold ${MAX_AGE_DAYS} days)\n`);
 for (const s of WAREHOUSE_REAL) {
-  const ageDays = Math.floor((now - new Date(s.lastVerified).getTime()) / DAY_MS);
-  const over = ageDays > MAX_AGE_DAYS;
+  const parsed = new Date(s.lastVerified).getTime();
+  // An unparseable date produced NaN, and `NaN > MAX_AGE_DAYS` is false — so the one script
+  // whose entire job is to refuse printed "ok NaNd" and exited 0. Treat it as the worst case.
+  const ageDays = Number.isFinite(parsed) ? Math.floor((now - parsed) / DAY_MS) : null;
+  const over = ageDays === null || ageDays > MAX_AGE_DAYS;
   if (over) stale++;
+  const age = ageDays === null ? "  ??" : String(ageDays).padStart(4);
   console.log(
-    `  ${over ? "STALE" : "ok   "} ${String(ageDays).padStart(4)}d  ${s.name.padEnd(26)} ${s.sourceUrl}`
+    `  ${over ? "STALE" : "ok   "} ${age}d  ${s.name.padEnd(26)} ${s.sourceUrl}` +
+      (ageDays === null ? `  <- unparseable lastVerified: "${s.lastVerified}"` : "")
   );
 }
 

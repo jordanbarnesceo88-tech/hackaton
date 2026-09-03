@@ -38,3 +38,15 @@ export function decoyHash(): Promise<string> {
   dummyHash ??= bcrypt.hash(randomUUID(), COST);
   return dummyHash;
 }
+
+/** The work factor a stored hash was created with, or null if it is not a bcrypt hash. */
+export function hashCost(hash: string): number | null {
+  const m = /^\$2[aby]\$(\d{2})\$/.exec(hash);
+  return m ? Number(m[1]) : null;
+}
+
+/** True when a stored hash predates the current work factor and should be upgraded. */
+export function needsRehash(hash: string): boolean {
+  const cost = hashCost(hash);
+  return cost !== null && cost < COST;
+}

@@ -42,7 +42,7 @@ export const ASSUMPTION_BOUNDS: Record<keyof AssumptionValues, { min: number; ma
   laborReplacementPct: { min: 0, max: 1 }, // a fraction
   residualSupervisionPct: { min: 0, max: 1 }, // a fraction
   opsPerWorkerPerYear: { min: 1, max: 10_000_000 },
-  turnoverPerDay: { min: 0, max: 1000 },
+  turnoverPerDay: { min: 1, max: 1000 }, // a divisor in resolvePeakConcurrent — 0 blanks the page
   roiHorizonYears: { min: 1, max: 30 },
   discountRate: { min: 0, max: 1 }, // 0..100% cost of capital
   assetLifeYears: { min: 1, max: 50 },
@@ -116,7 +116,12 @@ export function withAssumptionDefaults(raw: unknown): AssumptionValues {
   const out = { ...DEFAULT_ASSUMPTIONS };
   for (const k of Object.keys(out) as (keyof AssumptionValues)[]) {
     const v = src[k];
-    if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+    // Clamp, don't just check finiteness. Bounds were enforced when a value is typed and when
+    // it is written, but not when one is read back — so an analysis saved before those bounds
+    // existed (or written by any other means) still rendered its out-of-range figure in the
+    // client-facing report: laborReplacementPct 5 came back as 5 and produced an NPV of
+    // 3 803 215 against a legitimate 299 373.
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = clampAssumption(k, v);
   }
   return out;
 }

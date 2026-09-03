@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateLayout } from "@/lib/scene/layout";
 import { spawnRobots, stepRobots } from "@/lib/scene/simulate";
@@ -14,6 +14,16 @@ import type {
   AssumptionValues,
   EconomicsResult,
 } from "@/lib/economics/types";
+
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+function subscribeToReducedMotion(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_MOTION_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+function getReducedMotion() {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
 
 const MAX_RENDERED = 24;
 const LOOP_MS = 20000;
@@ -39,15 +49,25 @@ export function FacilityVisualization({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const robotsRef = useRef<RobotState[]>([]);
+  // Lives in a ref so it survives the draw effect re-running (pause/resume, layout changes).
+  const elapsedRef = useRef(0);
   const [elapsed, setElapsed] = useState(0);
-  // SC 2.2.2 (Pause, Stop, Hide) — Level A: motion that starts by itself, runs longer than five
-  // seconds and sits alongside other content needs a user-operable way to stop it. Starts paused
-  // when the OS asks for reduced motion, which the rAF loop could not otherwise honour (a CSS
-  // media query cannot reach a canvas animation).
-  const [paused, setPaused] = useState(() =>
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  // A media query is an external store, and the server has no snapshot of it. Reading it in a
+  // useState initializer made the SSR markup («❚❚ Пауза», aria-pressed false) disagree with
+  // what a reduced-motion client hydrates to; reading it in an effect meant setState during
+  // mount. useSyncExternalStore is the API for this: it takes an explicit server snapshot, and
+  // it keeps up if the preference changes while the page is open. A CSS media query cannot
+  // reach a requestAnimationFrame loop, so this has to be read in JS either way.
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotion,
+    () => false
   );
+  // SC 2.2.2 (Pause, Stop, Hide) — Level A: motion that starts by itself, runs longer than five
+  // seconds and sits alongside other content needs a user-operable way to stop it. null means
+  // "no explicit choice yet", so the OS preference decides until the user overrides it.
+  const [userPaused, setUserPaused] = useState<boolean | null>(null);
+  const paused = userPaused ?? prefersReducedMotion;
 
   // The engine returns a typed `invalid_inputs` variant (no numeric fields) for degenerate
   // inputs; `isCalculable` detects it and narrows the union. Fall back to 1 robot in that case
@@ -82,7 +102,6 @@ export function FacilityVisualization({
 
     let raf = 0;
     let last = performance.now();
-    const start = performance.now();
     // Fixed illustrative speed: per the plan's "numbers are real, motion is illustrative"
     // line, robot speed is decorative and intentionally not tied to throughput (that would
     // read as a physical simulation we don't claim to be). The real figures live in the KPIs.
@@ -97,7 +116,11 @@ export function FacilityVisualization({
       // advancing. Hiding it would lose the layout, which is the informative part.
       if (!paused) {
         robotsRef.current = stepRobots(robotsRef.current, dt, speed);
-        setElapsed(now - start);
+        // Accumulate rather than measuring from an effect-local start time. The effect re-runs
+        // on pause/resume, so a local `start` was reset on every resume and the «Накопленная
+        // экономия» bar snapped back to zero instead of carrying on.
+        elapsedRef.current += dt;
+        setElapsed(elapsedRef.current);
       }
 
       const W = canvas.width;
@@ -142,7 +165,7 @@ export function FacilityVisualization({
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [layout, paused]);
+  }, [layout, paused, renderCount]);
 
   const util = hasNumbers
     ? utilizationPct(capacity, params, assumptions, result.quantity)
@@ -183,7 +206,7 @@ export function FacilityVisualization({
           )}
           <button
             type="button"
-            onClick={() => setPaused((v) => !v)}
+            onClick={() => setUserPaused(!paused)}
             aria-pressed={paused}
             className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white"
           >

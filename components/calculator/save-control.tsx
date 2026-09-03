@@ -34,7 +34,11 @@ export function SaveControl({
   // «Сохранено» describes a specific set of numbers. Once anything is edited it is no longer
   // true of what is on screen, and leaving it up invites a second save in the belief the first
   // already covered the new figures. The report link stays — that analysis really was saved.
-  const currentMsg = msgFor === snapshot ? saveMsg : null;
+  // "unauth" is exempt: «Сохранено» describes a particular set of numbers, but "you need an
+  // account to save" stays true no matter what the user edits. Gating it on the snapshot meant a
+  // logged-out user clicked save, saw the login prompt, adjusted one figure, and the only
+  // indication that they needed an account silently vanished.
+  const currentMsg = saveMsg === "unauth" || msgFor === snapshot ? saveMsg : null;
 
   async function handleSave() {
     if (saving) return; // guard against double-submit while a save is in flight
