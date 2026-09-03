@@ -6,6 +6,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Years rendered with a Latin decimal point in a Russian UI.** `formatYearsRu` used
+  `toFixed(1)`, which emits `.` in every locale, so «4.9 года» appeared beside the money
+  formatter's «4 500 000 ₽» and the assumption inputs' «0,15» — three conventions on one screen,
+  in the client-facing report. It now uses a pinned `ru-RU` formatter, matching how money is
+  handled (server and client must agree byte-for-byte or hydration breaks). Rounding happens
+  before the noun is chosen, so 4.95 reads «5,0 лет» rather than taking the fractional form.
 - **Code-review follow-ups — nine defects, four of them introduced by earlier commits on this
   branch.** Raising the bcrypt cost re-opened the enumeration oracle *inverted*: the decoy hash
   is built at cost 12 (~274 ms) while every pre-existing account still verified its own cost-10

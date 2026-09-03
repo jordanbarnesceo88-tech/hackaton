@@ -26,14 +26,35 @@ describe("pluralRu", () => {
 
 describe("formatYearsRu", () => {
   it("agrees for whole-number years", () => {
-    expect(formatYearsRu(1)).toBe("1.0 год");
-    expect(formatYearsRu(2)).toBe("2.0 года");
-    expect(formatYearsRu(5)).toBe("5.0 лет");
-    expect(formatYearsRu(21)).toBe("21.0 год");
+    expect(formatYearsRu(1)).toBe("1,0 год");
+    expect(formatYearsRu(2)).toBe("2,0 года");
+    expect(formatYearsRu(5)).toBe("5,0 лет");
+    expect(formatYearsRu(21)).toBe("21,0 год");
   });
   it("uses the genitive singular for fractional years", () => {
-    expect(formatYearsRu(0.3)).toBe("0.3 года");
-    expect(formatYearsRu(1.5)).toBe("1.5 года");
-    expect(formatYearsRu(12.7)).toBe("12.7 года");
+    expect(formatYearsRu(0.3)).toBe("0,3 года");
+    expect(formatYearsRu(1.5)).toBe("1,5 года");
+    expect(formatYearsRu(12.7)).toBe("12,7 года");
+  });
+});
+
+describe("formatYearsRu decimal separator", () => {
+  it("uses the Russian decimal comma, like the money formatter beside it", () => {
+    // The UI is Russian: "4.9 года" sat next to «4 500 000 ₽» and assumption inputs showing
+    // "0,15" — three conventions on one screen. toFixed emits a Latin point in every locale.
+    expect(formatYearsRu(4.9)).toBe("4,9 года");
+    expect(formatYearsRu(4.9)).not.toContain(".");
+  });
+
+  it("rounds to one decimal before deciding the noun", () => {
+    // 4.95 renders as 5,0 and so must take the plural that 5 takes, not the fractional form.
+    expect(formatYearsRu(4.95)).toBe("5,0 лет");
+    expect(formatYearsRu(4.94)).toBe("4,9 года");
+  });
+
+  it("keeps the count rules for whole numbers", () => {
+    expect(formatYearsRu(1)).toBe("1,0 год");
+    expect(formatYearsRu(3)).toBe("3,0 года");
+    expect(formatYearsRu(11)).toBe("11,0 лет");
   });
 });
