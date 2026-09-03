@@ -183,6 +183,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   `npm ci` fail for anyone without a `.env`.
 
 ### Changed
+- **`SavedAnalysis.solutionId` is now a real foreign key** (`onDelete: Restrict`, plus an index).
+  It was a bare `String`, so nothing stopped a saved analysis from pointing at a solution that no
+  longer exists — and `seed.ts`'s prune deletes any warehouse row missing from the curated set,
+  so renaming a product was one step away from silently orphaning users' analyses and 404-ing
+  their reports with no explanation. `Restrict` rather than `Cascade`: a saved analysis is the
+  user's data and must not vanish with a catalogue change. The seed's prune now checks for
+  referencing analyses first, keeps those rows and logs which and why, instead of aborting the
+  whole seed on the constraint. Applied cleanly — no orphans existed. Migration
+  `20260903172455_saved_analysis_solution_fk`.
 - **`noUncheckedIndexedAccess` enabled**, which surfaced two genuine unguarded assumptions
   behind 39 type errors. `spawnRobots`/`stepRobots` indexed `path[segment]` with no floor on
   path length — an empty path makes `segment % 0` NaN, `path[NaN]` undefined, and `lerp` would

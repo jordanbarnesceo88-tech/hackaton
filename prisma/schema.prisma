@@ -74,6 +74,7 @@ model Solution {
   lastVerified       DateTime?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
+  savedAnalyses      SavedAnalysis[]
 
   @@unique([solutionCategoryId, name])
 }
@@ -112,12 +113,18 @@ model SavedAnalysis {
   name             String
   facilityTypeSlug String
   solutionId       String
+  // Restrict, not Cascade: a user's saved analysis is their data, and deleting a solution must
+  // not silently take it with them. Without any relation at all, seed.ts's prune could delete a
+  // renamed product and leave the analysis pointing at nothing — the report then 404s with no
+  // explanation. Restrict turns that into a loud failure at the point of deletion instead.
+  solution         Solution @relation(fields: [solutionId], references: [id], onDelete: Restrict)
   params           Json
   assumptions      Json
   results          Json
   createdAt        DateTime @default(now())
 
   @@index([userId])
+  @@index([solutionId])
 }
 
 // Fixed-window rate-limit counter for auth endpoints (login/signup). DB-backed so it works on

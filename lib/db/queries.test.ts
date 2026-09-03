@@ -62,8 +62,11 @@ describe("saved analyses (user-scoped)", () => {
     const b = await prisma.user.create({
       data: { email: `b-${Date.now()}@test.local`, passwordHash: "x" },
     });
+    // A real solution id: SavedAnalysis.solutionId is a foreign key, so the placeholder "sol1"
+    // this used to pass is now rejected by the database — which is the point of the constraint.
+    const solution = await prisma.solution.findFirstOrThrow({ select: { id: true } });
     const saved = await createSavedAnalysis(a.id, {
-      name: "test", facilityTypeSlug: "warehouse", solutionId: "sol1",
+      name: "test", facilityTypeSlug: "warehouse", solutionId: solution.id,
       params: { opsPerDay: 100 }, assumptions: { laborCostPerHourUsd: 15 }, results: { quantity: 2 },
     });
     const listA = await getSavedAnalyses(a.id);
@@ -91,5 +94,36 @@ describe("getSiblingSolutions", () => {
   });
   it("returns [] for an unknown solution id", async () => {
     expect(await getSiblingSolutions("does-not-exist")).toEqual([]);
+  });
+});
+
+describe("SavedAnalysis -> Solution referential integrity", () => {
+  it("refuses an analysis pointing at a solution that does not exist", async () => {
+    const user = await prisma.user.create({
+      data: { email: `fk-${Date.now()}@test.local`, passwordHash: "x" },
+    });
+    await expect(
+      createSavedAnalysis(user.id, {
+        name: "dangling", facilityTypeSlug: "warehouse", solutionId: "no-such-solution",
+        params: {}, assumptions: {}, results: {},
+      })
+    ).rejects.toThrow();
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+
+  it("refuses to delete a solution a saved analysis still references", async () => {
+    // The failure this prevents: seed.ts's prune removes a renamed product, the reference
+    // dangles, and the user's report 404s with nothing explaining why.
+    const user = await prisma.user.create({
+      data: { email: `fk2-${Date.now()}@test.local`, passwordHash: "x" },
+    });
+    const solution = await prisma.solution.findFirstOrThrow({ select: { id: true } });
+    const saved = await createSavedAnalysis(user.id, {
+      name: "keeps the solution alive", facilityTypeSlug: "warehouse", solutionId: solution.id,
+      params: {}, assumptions: {}, results: {},
+    });
+    await expect(prisma.solution.delete({ where: { id: solution.id } })).rejects.toThrow();
+    await prisma.savedAnalysis.delete({ where: { id: saved.id } });
+    await prisma.user.delete({ where: { id: user.id } });
   });
 });

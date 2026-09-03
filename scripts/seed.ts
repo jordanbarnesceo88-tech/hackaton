@@ -427,13 +427,29 @@ async function main() {
     // which would wipe the vertical); and never touch ORGANIZER data (future real imports).
     const keep = WAREHOUSE_REAL.map((s) => s.name);
     if (keep.length > 0) {
-      await prisma.solution.deleteMany({
+      const prunable = await prisma.solution.findMany({
         where: {
           solutionCategory: { facilityType: { slug: "warehouse" } },
           source: { in: [SolutionSource.SEED, SolutionSource.PARSED] },
           name: { notIn: keep },
         },
+        select: { id: true, name: true, _count: { select: { savedAnalyses: true } } },
       });
+      // SavedAnalysis.solutionId is now a real foreign key with onDelete: Restrict, so deleting
+      // a solution somebody has saved an analysis against would throw and abort the whole seed.
+      // Skip those and say so: a stale demo row is a much smaller problem than either destroying
+      // a user's saved analysis or leaving the reference dangling, which is what happened before
+      // the constraint existed (the report then 404s with no explanation).
+      const referenced = prunable.filter((s) => s._count.savedAnalyses > 0);
+      const deletable = prunable.filter((s) => s._count.savedAnalyses === 0);
+      if (deletable.length > 0) {
+        await prisma.solution.deleteMany({ where: { id: { in: deletable.map((s) => s.id) } } });
+      }
+      for (const s of referenced) {
+        console.warn(
+          `  kept "${s.name}": ${s._count.savedAnalyses} saved analysis/analyses reference it`
+        );
+      }
     }
   }
 
