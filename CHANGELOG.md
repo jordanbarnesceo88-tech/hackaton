@@ -183,6 +183,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   `npm ci` fail for anyone without a `.env`.
 
 ### Changed
+- **Region presets hold the cited ruble wage and convert at the live rate.** ⚠ **Changes output
+  numbers for anyone who picks a region preset.** Each preset stored a USD figure derived once at
+  a hardcoded 90 ₽/$ — but `usdToRub` is an editable assumption, so the preset stopped matching
+  its own citation as soon as anyone touched the rate: at 110 ₽/$ «Москва» implied 1 320 ₽/h
+  against a cited 1 077, a 23% overstatement of a figure `data-provenance.md` presents as sourced.
+  The wage is now held in rubles (the unit the source publishes) and divided by the live rate.
+  **Delta at the default 90 ₽/$: −0.4% to +1.1%** on NPV, pure rounding — except «СКФО», where a
+  −$1 154 absolute change reads as −12.2% because its NPV sits near zero. At 110 ₽/$ the changes
+  are 26–37%, which *is* the correction. Users who never open the region selector are unaffected.
 - **`SavedAnalysis.solutionId` is now a real foreign key** (`onDelete: Restrict`, plus an index).
   It was a bare `String`, so nothing stopped a saved analysis from pointing at a solution that no
   longer exists — and `seed.ts`'s prune deletes any warehouse row missing from the curated set,

@@ -62,16 +62,20 @@ The calculator offers opt-in **Regional presets** that set both `laborCostPerHou
 `energyCostFactor` by selecting a region. Picking a region is entirely optional; users can always
 edit both figures independently below the selector.
 
-| Region | Avg. monthly wage (₽, 2025) | Labor/hour (USD) | Energy factor | Source |
+| Region | Avg. monthly wage (₽, 2025) | Labor/hour (₽) | Energy factor | Source |
 |---|---|---|---|---|
-| Москва | ~180,860 | $12.0 | 1.0 (reference) | Rosstat-based average; energy tariff baseline |
-| Санкт-Петербург | ~121,475 | $8.0 | 0.95 | Rosstat-based average; regional tariff ~5% lower |
-| РФ — среднее | ~100,360 | $6.6 | 0.9 | Rosstat-based 2025 RF average; tariff ~10% lower |
-| Низкозатратный регион (СКФО) | ~46,281 | $3.1 | 0.8 | North Caucasus (e.g. Ingushetia, Chechnya) low-cost reference; ~20% lower tariff |
+| Москва | ~180,860 | 1,077 ₽ | 1.0 (reference) | Rosstat-based average; energy tariff baseline |
+| Санкт-Петербург | ~121,475 | 723 ₽ | 0.95 | Rosstat-based average; regional tariff ~5% lower |
+| РФ — среднее | ~100,360 | 597 ₽ | 0.9 | Rosstat-based 2025 RF average; tariff ~10% lower |
+| Низкозатратный регион (СКФО) | ~46,281 | 275 ₽ | 0.8 | North Caucasus (e.g. Ingushetia, Chechnya) low-cost reference; ~20% lower tariff |
 
 **Derivation:**
-- **Labor cost per hour:** cited 2025 average monthly wage (Rosstat) ÷ ~168 working hours/month ÷ 90
-  (the app's USD→RUB reference rate), rounded.
+- **Labor cost per hour:** cited 2025 average monthly wage (Rosstat) ÷ ~168 working hours/month,
+  held **in rubles** — the unit the source publishes — and converted to USD at whatever
+  `usdToRub` the user currently has set. The table previously listed a USD figure derived once at
+  90 ₽/$, which stopped matching its own citation the moment that editable assumption changed: at
+  110 ₽/$ the Москва preset implied 1,320 ₽/h against the cited 1,077, a 23% overstatement of a
+  figure this document presents as sourced.
 - **Energy factor:** approximate regional index relative to Москва = 1.0, based on RF industrial
   electricity-tariff variation (~±30% typical). This is a *multiplier* on the annual energy cost
   estimate, not a per-kWh rate. Regional tariffs vary; this figure is an order-of-magnitude
