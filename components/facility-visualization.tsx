@@ -6,6 +6,7 @@ import { generateLayout } from "@/lib/scene/layout";
 import { spawnRobots, stepRobots } from "@/lib/scene/simulate";
 import { deployedCapacity, utilizationPct, roiAccrued } from "@/lib/scene/kpi";
 import { formatCost } from "@/lib/format/currency";
+import { pluralRu } from "@/lib/format/plural";
 import { isCalculable } from "@/lib/economics/types";
 import type { FacilityKind, RobotState } from "@/lib/scene/types";
 import type {
@@ -209,9 +210,13 @@ export function FacilityVisualization({
             width={720}
             height={360}
             role="img"
-            aria-label={`Иллюстрация работы решения: ${renderCount} ${
-              renderCount === 1 ? "робот" : "роботов"
-            } на схеме объекта. Движение декоративное; показатели приведены рядом текстом.`}
+            // pluralRu, not a two-branch guess: Russian needs the genitive singular for 2–4
+            // (and 22–24, …), so `renderCount === 1 ? … : "роботов"` announced "2 роботов".
+            aria-label={`Иллюстрация работы решения: ${renderCount} ${pluralRu(renderCount, [
+              "робот",
+              "робота",
+              "роботов",
+            ])} на схеме объекта. Движение декоративное; показатели приведены рядом текстом.`}
             className="w-full rounded-md border"
             style={{ aspectRatio: "2 / 1" }}
           />

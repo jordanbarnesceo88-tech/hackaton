@@ -6,6 +6,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Fourth review round — five findings (one medium, four low).** Choosing «— свои значения —»
+  silently rewound the labour rate: detaching the preset dropped the derivation without
+  committing it, so the rate reverted to whatever it had been when the region was picked and
+  every figure moved with it (NPV −28 259 → −20 479). The region-derived rate was also the one
+  write path never clamped — at `usdToRub = 1` «Москва» derives 1076.55 against a max of 1000,
+  which rendered fine and then made every save fail with an unexplained «Ошибка сохранения». The
+  FK migration had no orphan cleanup, so it would abort a deploy on any database still carrying
+  a dangling row — the exact state it exists to prevent. Blank-credential logins were padded to
+  the rejection floor despite sitting ahead of the rate limiter and carrying no enumeration
+  signal. And the canvas label said «2 роботов» where Russian needs «2 робота» — `pluralRu` was
+  already in the repo for precisely this.
 - **Third review round — eight findings.** «— свои значения —» could not release a region: the
   select became controlled when the parent took ownership, so the `if (r)` guard swallowed the
   empty value and React re-rendered the previous region straight back. `resultsDiverged` reported

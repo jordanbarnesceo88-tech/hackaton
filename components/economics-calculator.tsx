@@ -16,6 +16,7 @@ import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
 import { sensitivity } from "@/lib/economics/sensitivity";
 import { REGION_PRESETS, regionLaborCostUsd } from "@/lib/economics/regions";
+import { clampAssumption } from "@/lib/economics/assumptions";
 import { formatCost } from "@/lib/format/currency";
 import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
 
@@ -65,7 +66,13 @@ export function EconomicsCalculator({
   // the very defect regions.ts was changed to remove, just reached in the other order.
   const [regionId, setRegionId] = useState<string | null>(null);
   const region = regionId ? REGION_PRESETS.find((r) => r.id === regionId) ?? null : null;
-  const derivedLabor = region ? regionLaborCostUsd(region, assumptions.usdToRub) : null;
+  // Clamped like every other write path. usdToRub may legitimately be as low as 1, and at that
+  // rate the Москва preset derives 1076.55 — over laborCostPerHourUsd's max of 1000. Unclamped,
+  // that rendered fine and then made every save fail with a generic «Ошибка сохранения»,
+  // because validateAssumptions rejects out-of-range values.
+  const derivedLabor = region
+    ? clampAssumption("laborCostPerHourUsd", regionLaborCostUsd(region, assumptions.usdToRub))
+    : null;
   // NOTE: `effectiveAssumptions` is what the whole subtree must read. `assumptions` is the raw
   // state and exists only for the setter — it can lag behind by exactly the region re-derivation
   // above. Passing the raw object to SaveControl persisted the pre-derivation labour rate, so a
@@ -168,7 +175,15 @@ export function EconomicsCalculator({
         assumptions={effectiveAssumptions}
         usdToRub={effectiveAssumptions.usdToRub}
         selectedRegionId={regionId}
-        onClearRegion={() => setRegionId(null)}
+        onClearRegion={() => {
+          // Commit what is on screen before detaching. `effectiveAssumptions` carries the
+          // rate-derived labour cost; the raw state still holds whatever it was when the region
+          // was picked. Dropping the region without committing reverted the labour rate — and
+          // every figure derived from it — to a value the user had not seen since they changed
+          // the exchange rate. Detaching a preset should keep your numbers, not rewind them.
+          setAssumptions(effectiveAssumptions);
+          setRegionId(null);
+        }}
         onPickRegion={(id, labor, energyFactor) => {
           setRegionId(id);
           setAssumptions((prev) => ({

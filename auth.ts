@@ -38,7 +38,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           await holdUntilFloor(startedAt);
           return null;
         };
-        if (!email || !password) return reject();
+        // Not padded, and deliberately so: this returns before any account lookup, so it
+        // carries no enumeration signal — and it sits ahead of the rate limiter, so padding it
+        // would let blank-password requests each hold a slot for the floor without ever being
+        // counted. Same reasoning as the throttled path below.
+        if (!email || !password) return null;
 
         // Throttle credential-stuffing. Over either limit → treat as a failed login (return
         // null), giving no signal that the account exists or that a limit was hit.
