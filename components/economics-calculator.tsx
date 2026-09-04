@@ -66,6 +66,11 @@ export function EconomicsCalculator({
   const [regionId, setRegionId] = useState<string | null>(null);
   const region = regionId ? REGION_PRESETS.find((r) => r.id === regionId) ?? null : null;
   const derivedLabor = region ? regionLaborCostUsd(region, assumptions.usdToRub) : null;
+  // NOTE: `effectiveAssumptions` is what the whole subtree must read. `assumptions` is the raw
+  // state and exists only for the setter — it can lag behind by exactly the region re-derivation
+  // above. Passing the raw object to SaveControl persisted the pre-derivation labour rate, so a
+  // user who picked a region, adjusted «Курс USD→RUB», then saved got a client-facing report
+  // reporting 4 425 300 ₽ against the 2 267 100 ₽ they had just been looking at.
   const effectiveAssumptions =
     derivedLabor !== null && derivedLabor !== assumptions.laborCostPerHourUsd
       ? { ...assumptions, laborCostPerHourUsd: derivedLabor }
@@ -121,8 +126,8 @@ export function EconomicsCalculator({
         </p>
         {primary.priceEstimated && primary.priceLowUsd != null && primary.priceHighUsd != null && (
           <p className="text-xs text-caution">
-            оценка цены: {formatCost(primary.priceLowUsd, assumptions.usdToRub)}–
-            {formatCost(primary.priceHighUsd, assumptions.usdToRub)} · CAPEX по середине диапазона
+            оценка цены: {formatCost(primary.priceLowUsd, effectiveAssumptions.usdToRub)}–
+            {formatCost(primary.priceHighUsd, effectiveAssumptions.usdToRub)} · CAPEX по середине диапазона
             {primary.sourceUrl ? (
               <>
                 {" "}
@@ -143,10 +148,15 @@ export function EconomicsCalculator({
       <div className="grid gap-6 md:grid-cols-2">
       <HeroResults
         result={result}
-        usdToRub={assumptions.usdToRub}
+        usdToRub={effectiveAssumptions.usdToRub}
         priceEstimated={primary.priceEstimated}
       />
-      <BreakEvenNote capacity={capacity} params={params} assumptions={assumptions} result={result} />
+      <BreakEvenNote
+        capacity={capacity}
+        params={params}
+        assumptions={effectiveAssumptions}
+        result={result}
+      />
       <ParamsForm
         params={params}
         setParams={setParams}
@@ -164,19 +174,19 @@ export function EconomicsCalculator({
           }));
         }}
       />
-      <ResultsPanel result={result} usdToRub={assumptions.usdToRub} />
+      <ResultsPanel result={result} usdToRub={effectiveAssumptions.usdToRub} />
       <RecommendationPanel
         ranked={ranked}
         selectedId={selectedSolutionId}
-        usdToRub={assumptions.usdToRub}
+        usdToRub={effectiveAssumptions.usdToRub}
         onSelect={setSelectedSolutionId}
       />
-      <SensitivityChart bars={bars} usdToRub={assumptions.usdToRub} />
+      <SensitivityChart bars={bars} usdToRub={effectiveAssumptions.usdToRub} />
       <SaveControl
         facilitySlug={facilitySlug}
         solutionId={selectedSolutionId}
         params={params}
-        assumptions={assumptions}
+        assumptions={effectiveAssumptions}
         result={result}
       />
       <AssumptionsPanel
@@ -187,7 +197,7 @@ export function EconomicsCalculator({
       <FacilityVisualization
         facilityKind={mapKind(facilitySlug)}
         params={params}
-        assumptions={assumptions}
+        assumptions={effectiveAssumptions}
         capacity={capacity}
         capacityUnit={primary.capacityUnit}
         result={result}

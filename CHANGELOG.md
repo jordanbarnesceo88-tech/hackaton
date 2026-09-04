@@ -6,6 +6,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Saved reports could contain different numbers than the screen they were saved from.**
+  Introduced by the region fix one commit earlier: `effectiveAssumptions` re-derives the labour
+  rate from its ruble citation when `usdToRub` changes, but five surfaces — including
+  `SaveControl` — still read the raw state. Picking «Москва», adjusting the rate, then saving
+  produced a client-facing report reporting **4 425 300 ₽ against the 2 267 100 ₽ on screen**,
+  and a «Стоимость труда» of US$12/час where the calculator showed US$9.79. Every read now goes
+  through the derived object; the raw state exists only for the setter. The e2e parity spec now
+  walks the region path before snapshotting, since it had been green throughout — it never
+  touched those two controls.
 - **Second review round — five findings, four of them regressions from this branch.** The
   account-enumeration oracle was **still open**: the upgrade-on-verify rehash only runs on a
   *successful* login, while the probe uses a wrong password and returns before it — measured

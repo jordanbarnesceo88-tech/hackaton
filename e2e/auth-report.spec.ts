@@ -58,6 +58,17 @@ test("report figures match the calculator panel exactly", async ({ page }) => {
     }
     return rows;
   };
+  // Walk the region path before saving. The panel/report parity assertion below only caught a
+  // stale-assumptions bug when something actually made the two diverge, and picking a region and
+  // then moving the exchange rate is exactly that: the labour rate is re-derived from a ruble
+  // citation, so a surface reading the raw state instead of the derived one silently persists
+  // the pre-derivation figure. That shipped once — the report said 4 425 300 ₽ against the
+  // 2 267 100 ₽ on screen — with this spec green, because it never touched these two controls.
+  await page.locator("#region").selectOption("moscow");
+  await page.locator("#usdToRub").fill("110");
+  await page.locator("#usdToRub").blur();
+  await expect(page.locator("#laborCostPerHourUsd")).not.toHaveValue("15");
+
   const panel = await readRows("Результаты");
   expect(panel.size).toBeGreaterThan(4);
 
