@@ -7,6 +7,8 @@ import {
   MAX_PASSWORD_BYTES,
   hashCost,
   needsRehash,
+  holdUntilFloor,
+  MIN_REJECTED_LOGIN_MS,
 } from "./password";
 
 describe("password hashing", () => {
@@ -99,5 +101,31 @@ describe("upgrade-on-verify", () => {
     const upgraded = await hashPassword("password12345");
     expect(await verifyPassword("password12345", upgraded)).toBe(true);
     expect(await verifyPassword("wrong", upgraded)).toBe(false);
+  });
+});
+
+describe("constant-time rejection floor", () => {
+  it("holds until the floor when the work finished early", async () => {
+    const t0 = Date.now();
+    await holdUntilFloor(t0, 120);
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(115); // timer granularity
+  });
+
+  it("does not delay work that already exceeded the floor", async () => {
+    const t0 = Date.now() - 500;
+    const started = Date.now();
+    await holdUntilFloor(t0, 120);
+    expect(Date.now() - started).toBeLessThan(40);
+  });
+
+  it("leaves real headroom over a verify at the current cost", async () => {
+    // The floor only equalises the paths while it is ABOVE the slowest thing it has to hide.
+    // Raising COST without raising the floor would silently reopen the oracle — a cost-14 hash
+    // takes ~1.1 s here — so pin the relationship rather than trusting a constant to stay true.
+    const hash = await hashPassword("password12345");
+    const t0 = Date.now();
+    await verifyPassword("wrong", hash);
+    const verifyMs = Date.now() - t0;
+    expect(verifyMs).toBeLessThan(MIN_REJECTED_LOGIN_MS * 0.75);
   });
 });
