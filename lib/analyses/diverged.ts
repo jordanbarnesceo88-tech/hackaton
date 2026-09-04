@@ -19,7 +19,11 @@ export function resultsDiverged(stored: unknown, recomputed: EconomicsResult): b
     // before the numeric branch — skipping it on `typeof v !== "number"` silently treated
     // "used to pay back, now never does" as unchanged.
     if (v === null || then === null) {
-      if (v !== then) return true;
+      // `== null` on purpose: a stored blob written before this field existed has `undefined`
+      // here, which is absent, not a different conclusion. Comparing with `!==` reported every
+      // such analysis as diverged the moment it recomputed to "never pays back" — a banner
+      // saying the model changed when nothing had.
+      if ((v ?? null) !== (then ?? null)) return true;
       continue;
     }
     if (typeof v !== "number") continue;

@@ -99,7 +99,11 @@ export function assumptionsToValues(
   const out = { ...DEFAULT_ASSUMPTIONS };
   for (const k of Object.keys(out) as (keyof AssumptionValues)[]) {
     const v = byKey.get(k);
-    if (typeof v === "number") out[k] = v;
+    // Clamp here too — this was the last entry point that did not. The panel clamps on input,
+    // withAssumptionDefaults clamps on read, and validateAssumptions REJECTS out of range on
+    // save; a DB row edited to something out of bounds therefore rendered happily and then made
+    // every save fail with a generic «Ошибка сохранения» and nothing on screen explaining why.
+    if (typeof v === "number") out[k] = clampAssumption(k, v);
   }
   return out;
 }

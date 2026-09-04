@@ -84,17 +84,20 @@ export function EconomicsCalculator({
    * to «Курс USD→RUB» still re-derives the wage from its ruble citation.
    */
   const setAssumptionsAndReleaseRegion: typeof setAssumptions = (update) => {
-    setAssumptions((prev) => {
-      const base = derivedLabor !== null ? { ...prev, laborCostPerHourUsd: derivedLabor } : prev;
-      const next = typeof update === "function" ? update(base) : update;
-      if (
-        next.laborCostPerHourUsd !== base.laborCostPerHourUsd ||
-        next.energyCostFactor !== base.energyCostFactor
-      ) {
-        setRegionId(null);
-      }
-      return next;
-    });
+    // Computed in the handler, not inside the updater. A state updater must be pure — React
+    // runs it during render, double-invokes it in StrictMode and re-runs it when rebasing — so
+    // calling setRegionId from within it was a render-phase update of a sibling atom. It happens
+    // to be idempotent today, which is exactly the kind of thing that stops being true later.
+    // `effectiveAssumptions` already carries the derivation, so `prev` is not needed.
+    const base = effectiveAssumptions;
+    const next = typeof update === "function" ? update(base) : update;
+    if (
+      next.laborCostPerHourUsd !== base.laborCostPerHourUsd ||
+      next.energyCostFactor !== base.energyCostFactor
+    ) {
+      setRegionId(null);
+    }
+    setAssumptions(next);
   };
 
   // After every hook: an early return above would change the hook order between renders,
@@ -165,6 +168,7 @@ export function EconomicsCalculator({
         assumptions={effectiveAssumptions}
         usdToRub={effectiveAssumptions.usdToRub}
         selectedRegionId={regionId}
+        onClearRegion={() => setRegionId(null)}
         onPickRegion={(id, labor, energyFactor) => {
           setRegionId(id);
           setAssumptions((prev) => ({

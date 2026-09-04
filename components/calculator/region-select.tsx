@@ -8,10 +8,12 @@ export function RegionSelect({
   usdToRub,
   selectedRegionId,
   onPick,
+  onClear,
 }: {
   usdToRub: number;
   selectedRegionId: string | null;
   onPick: (id: string, laborCostPerHourUsd: number, energyCostFactor: number) => void;
+  onClear: () => void;
 }) {
   // Derive the selection from the assumptions rather than remembering the last click. The
   // select was uncontrolled, so after picking «Москва» and then editing the labour rate below
@@ -31,6 +33,14 @@ export function RegionSelect({
         value={selected}
         className="rounded-md border px-3 py-2 text-sm"
         onChange={(e) => {
+          // «— свои значения —» is a real choice, not a no-op. The select became controlled
+          // when the parent took ownership of the selection, so bailing out here left
+          // selectedRegionId set and React re-rendered the previous region straight back —
+          // there was no way to leave a region except by hand-editing the rate it had set.
+          if (e.target.value === "") {
+            onClear();
+            return;
+          }
           const r = REGION_PRESETS.find((x) => x.id === e.target.value);
           if (r) onPick(r.id, regionLaborCostUsd(r, usdToRub), r.energyCostFactor);
         }}

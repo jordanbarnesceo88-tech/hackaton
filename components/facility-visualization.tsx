@@ -180,7 +180,17 @@ export function FacilityVisualization({
   // «Накопленная экономия (за год): 0 ₽» beside a panel reporting 6 075 000 ₽, and this readout
   // appears nowhere else, so the canvas label's promise that the numbers are also given as text
   // was not true for them.
-  const accrued = !result.economical ? 0 : paused ? savings : roiAccrued(elapsed, LOOP_MS, savings);
+  // Only a scene that never ran shows the completed year. An explicit pause freezes wherever
+  // the loop had got to — jumping the bar from 40% to full on ❚❚ and back on ▶ would be its own
+  // small lie. The reduced-motion case (no explicit choice, animation never started) is the one
+  // that needs the full figure, because otherwise that reader sees 0 ₽ and this number appears
+  // nowhere else on the page.
+  const neverRan = userPaused === null && prefersReducedMotion;
+  const accrued = !result.economical
+    ? 0
+    : neverRan
+      ? savings
+      : roiAccrued(elapsed, LOOP_MS, savings);
   const accruedFrac = savings > 0 ? accrued / savings : 0;
 
   return (

@@ -8,9 +8,13 @@
    Honouring prefers-color-scheme makes those values live for users who have already asked their
    OS for dark, and keeps the class arm so a future toggle (#5d) still overrides it. */
 @custom-variant dark {
-  /* An explicit .dark wins outright. */
-  &:is(.dark *, .dark) {
-    @slot;
+  /* An explicit .dark wins outright — on screen. Scoped to `screen` for the same reason as the
+     media arm below: paper is white, and .report-block's print-color-adjust: exact would
+     otherwise force a `.dark` page's near-black fills onto it. */
+  @media screen {
+    &:is(.dark *, .dark) {
+      @slot;
+    }
   }
   /* The OS preference applies on screen only — paper is white, see the @media print block —
      and yields to an explicit .light, so the #5d toggle can turn dark OFF for a user whose OS
@@ -237,14 +241,37 @@
      and `.report-block` sets print-color-adjust: exact, so the browser would faithfully lay
      down all that ink instead of dropping the background as it normally would. The report is
      the artefact a client is handed; it prints light regardless of how the app is being read. */
+  /* Every token the light theme defines, not just the surfaces — --primary, --destructive,
+     --caution, --positive and the chart ramp were all still dark here, so a `.dark` page would
+     have printed dark ink on a white page. */
   .dark {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.42 0.17 264);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.96 0.02 250);
+    --accent-foreground: oklch(0.42 0.17 264);
+    --destructive: oklch(0.50 0.200 27.3);
     --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.55 0.15 264);
+    --positive: oklch(0.52 0.13 158);
+    --positive-foreground: oklch(0.985 0 0);
+    --caution: oklch(0.52 0.12 75);
+    --caution-foreground: oklch(0.985 0 0);
+    --chart-1: oklch(0.575 0.163 255.5);
+    --chart-2: oklch(0.671 0.175 40.6);
+    --chart-3: oklch(0.644 0.140 162.3);
+    --chart-4: oklch(0.671 0.145 70.2);
+    --chart-5: oklch(0.681 0.141 357.5);
   }
 }
 

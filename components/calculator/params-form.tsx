@@ -17,6 +17,7 @@ export function ParamsForm({
   assumptions,
   selectedRegionId,
   onPickRegion,
+  onClearRegion,
   usdToRub,
 }: {
   params: FacilityParams;
@@ -26,6 +27,7 @@ export function ParamsForm({
   assumptions: AssumptionValues;
   selectedRegionId: string | null;
   onPickRegion: (id: string, labor: number, energyFactor: number) => void;
+  onClearRegion: () => void;
   usdToRub: number;
 }) {
   const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
@@ -39,6 +41,7 @@ export function ParamsForm({
           usdToRub={usdToRub}
           selectedRegionId={selectedRegionId}
           onPick={onPickRegion}
+          onClear={onClearRegion}
         />
         {/* U1: area does not enter the economics — it only sizes the Step-4 scene. Labelled so
             no field silently fails to move the result. */}

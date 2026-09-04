@@ -6,6 +6,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Third review round — eight findings.** «— свои значения —» could not release a region: the
+  select became controlled when the parent took ownership, so the `if (r)` guard swallowed the
+  empty value and React re-rendered the previous region straight back. `resultsDiverged` reported
+  a false "model changed" banner for any analysis saved before `discountedPaybackYears` existed,
+  because my own null fix compared `null !== undefined`. `assumptionsToValues` was the last
+  entry point not clamped, so a DB row edited out of range rendered fine and then made every save
+  fail with an unexplained «Ошибка сохранения». The rejection floor is now derived from a
+  measured verify rather than a constant only ~120 ms above one — on slower hardware the oracle
+  would have reopened with no code change. Throttled requests no longer occupy 400 ms of
+  concurrency during a stuffing burst. An explicit pause now freezes the accrued figure in place
+  instead of jumping it to the full year. The print reset now covers every token and the `.dark`
+  class arm, not just surfaces. And `setRegionId` moved out of a state updater, which must be pure.
 - **Saved reports could contain different numbers than the screen they were saved from.**
   Introduced by the region fix one commit earlier: `effectiveAssumptions` re-derives the labour
   rate from its ruble citation when `usdToRub` changes, but five surfaces — including

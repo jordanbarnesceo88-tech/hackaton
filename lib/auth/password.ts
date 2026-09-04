@@ -64,8 +64,33 @@ export function needsRehash(hash: string): boolean {
  */
 export const MIN_REJECTED_LOGIN_MS = 400;
 
-/** Resolve no earlier than `floorMs` after `startedAt`. */
-export async function holdUntilFloor(startedAt: number, floorMs = MIN_REJECTED_LOGIN_MS) {
-  const remaining = floorMs - (Date.now() - startedAt);
+/**
+ * The floor actually used, measured on the machine this is running on.
+ *
+ * A hardcoded 400 ms is only ~120 ms above a cost-12 verify on this hardware, and bcrypt is far
+ * slower on a small container or a shared CI runner. Where a verify exceeds the constant, the
+ * unknown-account path (decoy at the current cost) runs past the floor while a legacy cost-10
+ * account still returns at exactly 400 ms — the oracle reopens, needing nothing but slower
+ * hardware. So time one verify at startup and floor at whichever is greater. Measured once,
+ * lazily, on the first rejected login; the cost is one hash the process was going to pay anyway.
+ */
+let measuredFloor: Promise<number> | null = null;
+async function rejectionFloorMs(): Promise<number> {
+  measuredFloor ??= (async () => {
+    const hash = await decoyHash();
+    const t0 = Date.now();
+    await bcrypt.compare("timing-probe", hash);
+    const verifyMs = Date.now() - t0;
+    // 1.4x the observed verify leaves room for ordinary variance without being so generous that
+    // a failed login feels broken.
+    return Math.max(MIN_REJECTED_LOGIN_MS, Math.ceil(verifyMs * 1.4));
+  })();
+  return measuredFloor;
+}
+
+/** Resolve no earlier than the rejection floor after `startedAt`. */
+export async function holdUntilFloor(startedAt: number, floorMs?: number) {
+  const floor = floorMs ?? (await rejectionFloorMs());
+  const remaining = floor - (Date.now() - startedAt);
   if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
 }

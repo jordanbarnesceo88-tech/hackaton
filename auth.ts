@@ -51,7 +51,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           limit: LOGIN_IP_LIMIT,
           windowMs: LOGIN_WINDOW_MS,
         });
-        if (!perAccount.ok || !perIp.ok) return reject();
+        // Deliberately NOT padded: the limiter exists to shed load cheaply during a stuffing
+        // burst, and holding every blocked attempt open for the floor would hand an attacker
+        // 400 ms of server concurrency per request. It leaks nothing either — the throttle fires
+        // on the request count for that key, which is identical whether or not the account
+        // exists, so the timing of a throttled response says nothing about the address.
+        if (!perAccount.ok || !perIp.ok) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         // Always run a comparison, even when the account does not exist, so a miss does real
