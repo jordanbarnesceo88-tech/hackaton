@@ -1,5 +1,9 @@
 # Deployment Runbook
 
+> Deploying for the first time? Follow [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md) — the
+> ordered GitHub → Neon → Vercel path, with the pooled/direct URL split and the smoke tests.
+> This file is the reference behind it: security posture, rate limiting, `npm audit`.
+
 The app is deploy-ready. Steps marked **[needs your account]** require your own
 Postgres/hosting credentials and are not automatable.
 

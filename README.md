@@ -21,4 +21,8 @@ The DB must be up and seeded first: `docker compose up -d` then `npm run db:seed
 - [docs/00-idea-brief.md](./docs/00-idea-brief.md) — original task/idea (fixed)
 - [docs/01-prd.md](./docs/01-prd.md) — product requirements
 - [docs/02-execution-plan.md](./docs/02-execution-plan.md) — tech stack, architecture, build order
+- [docs/DEPLOY-QUICKSTART.md](./docs/DEPLOY-QUICKSTART.md) — the ordered path to a public URL
+  (GitHub → Neon → Vercel), with the Netlify caveat and what to smoke-test
+- [docs/DEPLOY.md](./docs/DEPLOY.md) — full runbook: security posture, rate limiting, the
+  assessed `npm audit` findings
 - [CHANGELOG.md](./CHANGELOG.md) — running log of all changes made during development
