@@ -15,7 +15,11 @@ import { INDUSTRIES } from "./seed-data/taxonomy";
 import { CATEGORIES } from "./seed-data/categories";
 import { APPLICABILITY } from "./seed-data/applicability";
 import { VENDOR_SOLUTIONS } from "./seed-data/vendor-solutions";
+import { SOLUTION_CLASSES } from "./seed-data/solution-classes";
+import { TYPICAL_PARAMS } from "./seed-data/taxonomy";
 
+
+const TYPICAL_EXAMPLE_NAME = "Типовой объект";
 
 async function main() {
   let industryCount = 0;
@@ -62,6 +66,22 @@ async function main() {
         create: { slug: ft.slug, name: ft.name, isGeneric: ft.isGeneric, industryId: industry.id },
       });
       facilityTypeCount++;
+    }
+  }
+
+  // Типовые параметры объекта: шаг ввода стартует с них, а не с пустых полей.
+  for (const [slug, tp] of Object.entries(TYPICAL_PARAMS)) {
+    const ft = await prisma.facilityType.findUnique({ where: { slug } });
+    if (!ft) throw new Error(`Нет типа объекта ${slug} для типовых параметров`);
+    const existing = await prisma.facilityExample.findFirst({
+      where: { facilityTypeId: ft.id, name: TYPICAL_EXAMPLE_NAME },
+    });
+    if (existing) {
+      await prisma.facilityExample.update({ where: { id: existing.id }, data: { params: tp } });
+    } else {
+      await prisma.facilityExample.create({
+        data: { name: TYPICAL_EXAMPLE_NAME, facilityTypeId: ft.id, params: tp },
+      });
     }
   }
 
@@ -113,6 +133,40 @@ async function main() {
     solutionCount++;
   }
 
+  // Классы решений: диапазоны вместо точных цифр, середина уходит в поля, которые читает
+  // движок, — та же конвенция, что уже применяется к CAPEX «по середине диапазона».
+  for (const c of SOLUTION_CLASSES) {
+    const category = await prisma.solutionCategory.findUnique({ where: { slug: c.categorySlug } });
+    if (!category) throw new Error(`Нет категории ${c.categorySlug} для класса ${c.slug}`);
+    const data = {
+      vendor: "—",
+      isClass: true,
+      priceEstimated: true,
+      priceLowUsd: c.priceLowUsd,
+      priceHighUsd: c.priceHighUsd,
+      priceUsd: (c.priceLowUsd + c.priceHighUsd) / 2,
+      priceBasis: "середина диапазона по открытым источникам",
+      capacityLow: c.capacityLow,
+      capacityHigh: c.capacityHigh,
+      capacityPerUnit: (c.capacityLow + c.capacityHigh) / 2,
+      capacityUnit: c.capacityUnit,
+      capacityBasis: c.capacityBasis,
+      maintenanceUsdYear: c.maintenanceUsdYear,
+      energyUsdYear: c.energyUsdYear,
+      licensingUsdYear: c.licensingUsdYear,
+      specs: { capacitySourceUrl: c.capacitySourceUrl },
+      source: SolutionSource.SEED,
+      sourceUrl: c.sourceUrl,
+      lastVerified: new Date(c.lastVerified),
+    };
+    await prisma.solution.upsert({
+      where: { solutionCategoryId_name: { solutionCategoryId: category.id, name: c.name } },
+      update: data,
+      create: { ...data, name: c.name, solutionCategoryId: category.id },
+    });
+    solutionCount++;
+  }
+
   // Real, cited warehouse products (source: PARSED) — replaces the demo warehouse rows.
   const warehouse = await prisma.facilityType.findUnique({ where: { slug: "warehouse" } });
   if (warehouse) {
@@ -149,6 +203,10 @@ async function main() {
           // question about the join, not about a column on the category.
           solutionCategory: { facilityTypes: { some: { facilityType: { slug: "warehouse" } } } },
           source: { in: [SolutionSource.SEED, SolutionSource.PARSED] },
+          // Классы — не устаревшие демо-строки склада, а сквозной каталог: они применимы к
+          // складу через join и попали бы под эту чистку, хотя она существует ради замены
+          // выдуманных вендорских строк на решения с реальными источниками.
+          isClass: false,
           name: { notIn: keep },
         },
         select: { id: true, name: true, _count: { select: { savedAnalyses: true } } },

@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 
 test("anonymous flow: onboarding → compare → calculate", async ({ page }) => {
   await page.goto("/onboarding");
-  await page.getByText("Торговля", { exact: true }).click();
+  // Подпись отрасли — «Торговля и e-commerce» после расширения справочника. Slug остался
+  // `retail`, поэтому сохранённые расчёты не тронуты; поменялось только то, что видит человек.
+  await page.getByText("Торговля и e-commerce", { exact: true }).click();
   await page.getByText("Склад", { exact: true }).click();
   await page.getByRole("button", { name: "Перейти к сравнению решений" }).click();
 

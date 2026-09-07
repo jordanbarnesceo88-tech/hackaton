@@ -8,6 +8,7 @@
 //
 // RELATIVE import: this runs under tsx, which does not resolve the "@/" tsconfig alias.
 import { WAREHOUSE_REAL } from "./parse-sources/warehouse-real";
+import { SOLUTION_CLASSES } from "./seed-data/solution-classes";
 
 const rawMax = Number(process.env.MAX_SOURCE_AGE_DAYS ?? 180);
 if (!Number.isFinite(rawMax) || rawMax <= 0) {
@@ -20,8 +21,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const now = Date.now();
 let stale = 0;
 
+// A class of solution carries TWO independent claims — a price range and a throughput range —
+// taken from two different pages. Either can rot on its own, so both are listed separately
+// rather than one row per row of data.
+type Citation = { label: string; url: string; lastVerified: string };
+const citations: Citation[] = [
+  ...WAREHOUSE_REAL.map((s) => ({ label: s.name, url: s.sourceUrl, lastVerified: s.lastVerified })),
+  ...SOLUTION_CLASSES.flatMap((c) => [
+    { label: `${c.slug} (цена)`, url: c.sourceUrl, lastVerified: c.lastVerified },
+    { label: `${c.slug} (произв.)`, url: c.capacitySourceUrl, lastVerified: c.lastVerified },
+  ]),
+];
+const width = Math.max(...citations.map((c) => c.label.length));
+
 console.log(`Citation freshness (threshold ${MAX_AGE_DAYS} days)\n`);
-for (const s of WAREHOUSE_REAL) {
+for (const s of citations) {
   const parsed = new Date(s.lastVerified).getTime();
   // An unparseable date produced NaN, and `NaN > MAX_AGE_DAYS` is false — so the one script
   // whose entire job is to refuse printed "ok NaNd" and exited 0. Treat it as the worst case.
@@ -30,7 +44,7 @@ for (const s of WAREHOUSE_REAL) {
   if (over) stale++;
   const age = ageDays === null ? "  ??" : String(ageDays).padStart(4);
   console.log(
-    `  ${over ? "STALE" : "ok   "} ${age}d  ${s.name.padEnd(26)} ${s.sourceUrl}` +
+    `  ${over ? "STALE" : "ok   "} ${age}d  ${s.label.padEnd(width)}  ${s.url}` +
       (ageDays === null ? `  <- unparseable lastVerified: "${s.lastVerified}"` : "")
   );
 }
@@ -42,4 +56,4 @@ if (stale > 0) {
   );
   process.exit(1);
 }
-console.log(`\nAll ${WAREHOUSE_REAL.length} citations are within ${MAX_AGE_DAYS} days.`);
+console.log(`\nAll ${citations.length} citations are within ${MAX_AGE_DAYS} days.`);

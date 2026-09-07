@@ -13,9 +13,12 @@ import { prisma } from "./client";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
 
 describe("getIndustries", () => {
-  it("returns all 4 seeded industries with their facility types", async () => {
+  it("returns the seeded industries with their facility types", async () => {
+    // Было ровно 4. Расширение таксономии — намеренное изменение данных, а не поломка:
+    // проверяем нижнюю границу и сохранность исходной ветки, а не точное число, чтобы
+    // следующее пополнение справочника не красило тест без причины.
     const industries = await getIndustries();
-    expect(industries).toHaveLength(4);
+    expect(industries.length).toBeGreaterThanOrEqual(12);
     const retail = industries.find((i) => i.slug === "retail");
     expect(retail).toBeDefined();
     expect(retail!.facilityTypes.map((f) => f.slug)).toContain("warehouse");
