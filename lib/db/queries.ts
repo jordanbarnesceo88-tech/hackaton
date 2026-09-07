@@ -50,6 +50,29 @@ export async function getSolutionApplicability(solutionId: string): Promise<stri
   return rows.map((r) => r.facilityType.slug);
 }
 
+/**
+ * Типовые параметры объекта — то, с чего стартует шаг ввода.
+ *
+ * Пустые поля здесь хуже приблизительных: человек, впервые открывший расчёт, не знает, сколько
+ * операций в сутки у «типового» распределительного центра, и уходит вместо того, чтобы
+ * поправить цифру под себя.
+ */
+export async function getTypicalParams(
+  facilityTypeSlug: string
+): Promise<{ areaM2: number; opsPerDay: number; staffCount: number } | null> {
+  const ft = await prisma.facilityType.findUnique({
+    where: { slug: facilityTypeSlug },
+    select: { facilityExamples: { where: { name: "Типовой объект" }, select: { params: true }, take: 1 } },
+  });
+  const raw = ft?.facilityExamples[0]?.params;
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const areaM2 = num(p.areaM2), opsPerDay = num(p.opsPerDay), staffCount = num(p.staffCount);
+  if (areaM2 === null || opsPerDay === null || staffCount === null) return null;
+  return { areaM2, opsPerDay, staffCount };
+}
+
 export async function getFacilityTypeBySlug(slug: string) {
   return prisma.facilityType.findUnique({
     where: { slug },

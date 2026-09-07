@@ -1,12 +1,21 @@
 import { test, expect } from "@playwright/test";
 
 test("anonymous flow: onboarding → compare → calculate", async ({ page }) => {
+  // Подбор стал пошаговым: отрасль → тип объекта → параметры → решения. Параметры
+  // спрашиваются ДО сравнения, иначе сравнению нечем ранжировать, кроме абстрактной цены
+  // за единицу производительности.
   await page.goto("/onboarding");
-  // Подпись отрасли — «Торговля и e-commerce» после расширения справочника. Slug остался
-  // `retail`, поэтому сохранённые расчёты не тронуты; поменялось только то, что видит человек.
-  await page.getByText("Торговля и e-commerce", { exact: true }).click();
-  await page.getByText("Склад", { exact: true }).click();
-  await page.getByRole("button", { name: "Перейти к сравнению решений" }).click();
+  await page.getByRole("radio", { name: /Торговля и e-commerce/ }).click();
+  await page.getByRole("link", { name: "Далее" }).click();
+
+  await expect(page).toHaveURL(/\/onboarding\/facility/);
+  await page.getByRole("radio", { name: /^А?\s*Склад$/ }).first().click();
+  await page.getByRole("link", { name: "Далее" }).click();
+
+  await expect(page).toHaveURL(/\/onboarding\/params/);
+  // Поля предзаполнены типовыми значениями — пустые поля здесь хуже приблизительных.
+  await expect(page.locator("#opsPerDay")).not.toHaveValue("0");
+  await page.getByRole("link", { name: "Показать решения" }).click();
 
   await expect(page).toHaveURL(/\/compare\/warehouse/);
   // Real sourced products + honesty markers.
