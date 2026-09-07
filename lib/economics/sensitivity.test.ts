@@ -91,3 +91,23 @@ describe("whole-year perturbation for the floored assumptions", () => {
     );
   });
 });
+
+describe("each bar records the perturbation it was measured at", () => {
+  // The chart used to have «±25%» typed into its caption and its per-bar tooltip while this is
+  // a parameter with a default. Carrying it on the bar is what keeps the label and the maths
+  // the same number.
+  it("carries the default deltaPct on percent bars and null on whole-year ones", () => {
+    const bars = sensitivity(cap, params, a);
+    expect(bars.find((b) => b.key === "laborCostPerHourUsd")!.deltaPct).toBe(0.25);
+    expect(bars.find((b) => b.key === "roiHorizonYears")!.deltaPct).toBeNull();
+  });
+
+  it("carries a caller-supplied deltaPct, and the bar is measured at it", () => {
+    const bars = sensitivity(cap, params, a, 0.1);
+    const bar = bars.find((b) => b.key === "laborCostPerHourUsd")!;
+    expect(bar.deltaPct).toBe(0.1);
+    expect(bar.lowNpv).toBe(
+      npvForScenario(cap, params, { ...a, laborCostPerHourUsd: a.laborCostPerHourUsd * 0.9 })
+    );
+  });
+});

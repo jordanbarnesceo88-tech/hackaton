@@ -12,6 +12,16 @@ export function resultsDiverged(stored: unknown, recomputed: EconomicsResult): b
   if (s.economical !== now.economical) return true;
   if (now.reason !== undefined && s.reason !== now.reason) return true;
   for (const [k, v] of Object.entries(now)) {
+    // A key the recompute produces and the stored blob doesn't have means the blob predates
+    // the field — which is precisely what the banner says («модель расчёта изменилась»), so
+    // report it, once, for every field type. The numeric branch below has always done this
+    // (`typeof then !== "number"` on an absent key returns true); the null branch used to
+    // forgive it, so a legacy blob was "unchanged" when the recompute said null and "changed"
+    // when it said 0.64. Nothing real hinged on the difference — `npvUsd` and
+    // `discountedPaybackYears` were added by the same commit (2d3b6c1), so any blob missing
+    // one is missing the other and was already flagged by the numeric branch — but one rule
+    // beats two.
+    if (!(k in s)) return true;
     const then = s[k];
     // `discountedPaybackYears` is `number | null`, and null is a conclusion, not a missing
     // value: it means the investment never recovers inside the ROI horizon. A flip in either
@@ -19,11 +29,7 @@ export function resultsDiverged(stored: unknown, recomputed: EconomicsResult): b
     // before the numeric branch — skipping it on `typeof v !== "number"` silently treated
     // "used to pay back, now never does" as unchanged.
     if (v === null || then === null) {
-      // `== null` on purpose: a stored blob written before this field existed has `undefined`
-      // here, which is absent, not a different conclusion. Comparing with `!==` reported every
-      // such analysis as diverged the moment it recomputed to "never pays back" — a banner
-      // saying the model changed when nothing had.
-      if ((v ?? null) !== (then ?? null)) return true;
+      if (v !== then) return true;
       continue;
     }
     if (typeof v !== "number") continue;

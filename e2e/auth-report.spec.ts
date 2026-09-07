@@ -47,9 +47,21 @@ test("report figures match the calculator panel exactly", async ({ page }) => {
   await page.getByRole("link", { name: /Рассчитать/ }).first().click();
   await expect(page).toHaveURL(/\/calculate\//);
 
-  // Read the panel's «label: value» pairs.
+  // Read a surface's «label: value» pairs, scoped to the block the heading titles.
+  //
+  // `xpath=../..` was wrong on one of the two surfaces and silently so. On the panel the
+  // heading is a CardTitle inside a CardHeader, so two levels up is the Card. On the report it
+  // is an `<h2>` that is a direct child of `<section class="report-block">`, so two levels up
+  // is the whole report container — the Map was then built from every «x: y» line on the page
+  // (parameters, assumptions, the solution block) and, since it keys by label, quietly kept
+  // the *last* value for any label that appears twice. A real drift in a duplicated label
+  // could have been masked by a matching line from somewhere else on the page.
+  //
+  // Climb to the nearest enclosing card or section instead, which is the block in both cases.
   const readRows = async (sectionHeading: string) => {
-    const block = page.getByText(sectionHeading, { exact: true }).locator("xpath=../..");
+    const block = page
+      .getByRole("heading", { name: sectionHeading, exact: true })
+      .locator("xpath=ancestor::*[@data-slot='card' or self::section][1]");
     const text = await block.innerText();
     const rows = new Map<string, string>();
     for (const line of text.split("\n")) {
@@ -79,6 +91,13 @@ test("report figures match the calculator panel exactly", async ({ page }) => {
   await expect(page).toHaveURL(/\/report\//);
 
   const report = await readRows("Экономика");
+
+  // Pin the scoping itself. `xpath=../..` climbed to the whole report container here, so the
+  // Map was built from every «x: y» line on the page — parameters, assumptions, the solution
+  // block — and keyed by label, silently keeping the last of any duplicate. Neither of these
+  // labels belongs to the block its heading titles.
+  expect(report.has("Персонал (замещаемый)"), "report block leaked a parameters row").toBe(false);
+  expect(panel.has("Ставка дисконтирования"), "panel block leaked an assumptions row").toBe(false);
 
   // Labels shared verbatim by both surfaces must carry identical values.
   for (const label of [

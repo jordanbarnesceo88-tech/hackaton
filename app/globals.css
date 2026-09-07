@@ -77,6 +77,13 @@
 }
 
 :root {
+  /* UA-drawn chrome — number-input spinners, the <select> arrow and its popup, scrollbars,
+     focus rings and Chrome's autofill fill — is painted by the browser from `color-scheme`,
+     not from these custom properties. Without it every one of those stayed light-on-light
+     inside the dark theme: 14 spinner arrows on the calculator, the #region select and its
+     popup, and the autofilled email/password fields on /login and /signup. Declared in all
+     three token blocks so it tracks the theme exactly as the tokens do. */
+  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -131,6 +138,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -176,6 +184,7 @@
    when the #5d toggle lands. If you edit one block, edit the other. */
 @media screen and (prefers-color-scheme: dark) {
   :root:not(.light) {
+    color-scheme: dark;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
@@ -245,6 +254,7 @@
      --caution, --positive and the chart ramp were all still dark here, so a `.dark` page would
      have printed dark ink on a white page. */
   .dark {
+    color-scheme: light;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);

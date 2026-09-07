@@ -6,6 +6,33 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **Fifth review round — six of seven findings (two medium, four low; one verified and
+  rejected).** Nothing in the app declared `color-scheme`, so every control the *browser* draws
+  — the 14 number-input spinners, the `#region` select and its popup, Chrome's autofill fill on
+  `/login` and `/signup` — stayed light inside the dark theme, where the CSS custom properties
+  cannot reach them. Declared in all four token blocks (`:root`, `.dark`, the
+  `prefers-color-scheme` arm, and the print reset) and verified in the emitted bundle and in the
+  browser across all six paths, including the `.light` escape hatch and print. The pause button
+  carried both a name that flipped with the action *and* `aria-pressed`, announcing
+  «Продолжить, кнопка-переключатель, нажато» — a name saying "resume" beside a state saying
+  "on"; the name now carries it alone, which is one of the two shapes APG allows. The parity
+  spec's `readRows` climbed two levels from the heading, which is the enclosing Card on the
+  panel but the *whole report* on the report side, so that Map was built from every «x: y» line
+  on the page and, keyed by label, kept the last duplicate; it now climbs to the nearest card or
+  section, and two assertions pin the scoping (they fail under the old xpath). `resultsDiverged`
+  read a missing key two ways — absent + recomputed `null` was "unchanged", absent + recomputed
+  `0.64` was "changed"; absence is a property of the stored blob, so it now reports the same way
+  either way. The sensitivity chart had «±25%» typed into its caption and every tooltip while
+  `sensitivity()` takes `deltaPct` as a parameter; each bar now records the perturbation it was
+  measured at and the labels read it off the bar. And `tmp-vr.mjs`, a Playwright scratch file,
+  was committed in `f6fa4df` — the cleanup was `rm -f tmp-*.ts` and that session's scratch file
+  was `.mjs`; deleted, with an extension-agnostic `/tmp-*` gitignore rule so `git add -A` can't
+  sweep the next one.
+  *Rejected after checking:* pressing ▶ from the never-ran (reduced-motion) state drops the
+  accrued readout from the full year to 0, and that is not removable — `roiAccrued` is
+  `(elapsed % loopMs) / loopMs`, so every fill from "complete" passes through the wrap and the
+  suggested seed of `LOOP_MS` lands on exactly 0 as well. The annual figure it restarts from
+  stays on screen in the results panel throughout. Documented in place so it isn't re-raised.
 - **Fourth review round — five findings (one medium, four low).** Choosing «— свои значения —»
   silently rewound the labour rate: detaching the preset dropped the derivation without
   committing it, so the rate reverted to whatever it had been when the region was picked and

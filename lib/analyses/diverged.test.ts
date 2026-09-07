@@ -72,4 +72,15 @@ describe("null <-> number transitions on discountedPaybackYears", () => {
     };
     expect(resultsDiverged(withoutKey, recomputed)).toBe(true);
   });
+
+  it("flags a missing key the same way whatever the recompute says", () => {
+    // The same blob, the same absence — the only difference is what today's model computes.
+    // It used to decide the answer: absent + null was "unchanged", absent + 0.64 was
+    // "changed". Absence is a property of the stored blob, so it reads the same either way.
+    const { ...withoutKey } = { economical: true, ...common };
+    const recomputed: EconomicsResult = {
+      economical: true, ...common, discountedPaybackYears: null,
+    };
+    expect(resultsDiverged(withoutKey, recomputed)).toBe(true);
+  });
 });

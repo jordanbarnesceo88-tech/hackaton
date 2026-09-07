@@ -45,3 +45,8 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 /playwright/.cache/
+
+# scratch files — throwaway scripts used to check something once and then deleted by hand.
+# `tmp-vr.mjs` reached master this way: the cleanup was `rm -f tmp-*.ts`, the scratch file that
+# session was `.mjs`, and `git add -A` swept it into the commit. Extension-agnostic on purpose.
+/tmp-*

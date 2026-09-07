@@ -186,6 +186,13 @@ export function FacilityVisualization({
   // small lie. The reduced-motion case (no explicit choice, animation never started) is the one
   // that needs the full figure, because otherwise that reader sees 0 ₽ and this number appears
   // nowhere else on the page.
+  // Pressing ▶ from the never-ran state does drop this readout from the full year to 0, and
+  // that is not removable: `roiAccrued` is `(elapsed % loopMs) / loopMs`, so every fill from
+  // "complete" must pass through the wrap — seeding `elapsedRef` to LOOP_MS lands on exactly 0
+  // too. Deferring it by one frame would not make it read differently. It is also not a loss
+  // of information: the annual figure this restarts from stays on screen in the results panel
+  // («Годовая экономия») the whole time, and a counter visibly climbing from 0 next to it is
+  // what an accrual animation is. Left as is deliberately — don't "fix" it by seeding.
   const neverRan = userPaused === null && prefersReducedMotion;
   const accrued = !result.economical
     ? 0
@@ -225,10 +232,16 @@ export function FacilityVisualization({
               показано {MAX_RENDERED} из {q}
             </span>
           )}
+          {/* Two ways to expose a play/pause control are correct (APG, Button (Toggle)): a
+              stable name plus `aria-pressed`, or a name that changes with the action and no
+              `aria-pressed`. Doing both announced «Продолжить, кнопка-переключатель, нажато» —
+              a name saying "resume" beside a state saying "on". The visible label is the
+              affordance here, so the label flips and the state attribute is gone; the name
+              alone carries what pressing it will do, and it still matches the visible text
+              (SC 2.5.3, Label in Name). */}
           <button
             type="button"
             onClick={() => setUserPaused(!paused)}
-            aria-pressed={paused}
             className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white"
           >
             {paused ? "▶ Продолжить" : "❚❚ Пауза"}

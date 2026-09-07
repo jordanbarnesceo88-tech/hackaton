@@ -16,6 +16,13 @@ export function npvForScenario(
 export type SensitivityBar = {
   key: keyof AssumptionValues;
   kind: PerturbationKind;
+  /**
+   * The perturbation actually applied to this bar: the fraction for `percent` bars, `null` for
+   * the whole-year ones. Carried on the bar rather than left for the chart to restate, because
+   * the chart had «±25%» typed into its caption and its per-bar tooltip while `deltaPct` was a
+   * parameter with a default — a caller passing 0.1 would have got bars labelled ±25%.
+   */
+  deltaPct: number | null;
   baseNpv: number;
   lowNpv: number;
   highNpv: number;
@@ -71,6 +78,7 @@ export function sensitivity(
     bars.push({
       key,
       kind: wholeYear ? "whole-year" : "percent",
+      deltaPct: wholeYear ? null : deltaPct,
       baseNpv,
       lowNpv,
       highNpv,
