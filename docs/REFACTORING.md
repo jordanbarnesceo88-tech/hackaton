@@ -94,6 +94,20 @@ Re-verified and NOT acted on:
 
 - Pre-production **security hardening** (rate-limiting, security headers): `docs/DEPLOY.md §5`.
 - Deferred economics/viz findings for future feature work: `docs/02-execution-plan.md §8`.
-- Other minor fast-follows noted in reviews: save-button double-submit disable; "лет"→"года"
-  RU pluralization in the viz; canvas devicePixelRatio scaling; zod-validate the saved-analysis
-  payload; engine-side guard for zero-valued assumption divisors.
+- Minor fast-follows noted in reviews — re-checked against the tree on 2026-09-07, four of five
+  closed:
+  - **Save-button double-submit disable** — DONE (`save-control.tsx`, `disabled={saving}`).
+  - **RU pluralization in the viz** — DONE; `pluralRu` drives the canvas `aria-label`
+    («2 робота», not «2 роботов») and `formatYearsRu` the year figures.
+  - **Validate the saved-analysis payload** — DONE, hand-rolled rather than with zod
+    (`lib/analyses/validate.ts`), so it shares `ASSUMPTION_BOUNDS` with the engine instead of
+    restating the ranges in a second schema.
+  - **Engine-side guard for zero-valued assumption divisors** — DONE via `ASSUMPTION_BOUNDS`
+    (`turnoverPerDay` min is 1, not 0) plus `clampAssumption` on every read path.
+  - **Canvas devicePixelRatio scaling — STILL OPEN.** The canvas has a fixed 720×360 backing
+    store displayed at whatever width the grid gives it (~470 px), so it is ~1.5× oversampled:
+    sharper than 1× but soft on a 2× display. The fix is to size the backing store from the
+    element's measured CSS box × `devicePixelRatio` (ResizeObserver) and draw in CSS pixels,
+    which also means re-checking the robot dot radius, currently 5 *backing* pixels. Cosmetic
+    only — no figure it displays is affected. This file is the one with no test coverage, so
+    do it with a screenshot check in hand.

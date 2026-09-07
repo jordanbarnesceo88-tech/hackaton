@@ -235,4 +235,10 @@ in [docs/superpowers/specs/2026-08-25-economics-model-revision.md](./superpowers
 - **D1 — provenance → PARTIAL.** Solution rows now show a source badge (демо/организатор/
   открытый источник) in the comparison table; the import-side validator (require
   capacityBasis/sourceUrl for non-SEED rows) stays deferred until real organizer data exists.
-- Still open (deferred): SEC1 login/signup rate-limiting (needs a deploy-time shared store).
+- **SEC1 — login/signup rate-limiting → RESOLVED.** Deferred here on the assumption it needed a
+  deploy-time shared store (Upstash/Redis); it didn't. `lib/auth/rate-limit.ts` is a DB-backed
+  fixed-window limiter over a `RateLimit` table, written with an atomic
+  `INSERT … ON CONFLICT DO UPDATE … RETURNING`, so it holds under a parallel burst and works
+  unchanged on one Docker instance or many serverless ones. Signup 5/IP/15 min, login
+  10/(email+IP) and 50/IP per 15 min. Details and the proxy `X-Forwarded-For` requirement:
+  [DEPLOY.md §5](./DEPLOY.md).
