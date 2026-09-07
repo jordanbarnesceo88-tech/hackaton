@@ -8,7 +8,11 @@ The app is deploy-ready. Steps marked **[needs your account]** require your own
 Postgres/hosting credentials and are not automatable.
 
 ## 1. Provision a managed Postgres  **[needs your account]**
-Use Neon or Vercel Postgres. Copy the **pooled** connection string.
+Use Neon or Vercel Postgres. Copy **both** connection strings — they are not interchangeable:
+the **pooled** one (host contains `-pooler`) is what the app runs on, and the **direct** one is
+what migrations run over. `@prisma/adapter-pg` opens a pool per serverless instance, so the
+runtime needs the pooler; `prisma migrate deploy` takes advisory locks that a transaction-mode
+pooler can drop, so migrations must not go through it.
 
 ## 2. Environment variables
 Set on the host (Vercel project settings, or the Docker runtime):
@@ -18,9 +22,13 @@ Set on the host (Vercel project settings, or the Docker runtime):
 
 ## 3. Migrate + seed (once, against the managed DB)
 ```bash
-DATABASE_URL="<pooled url>" npx prisma migrate deploy
-DATABASE_URL="<pooled url>" npm run db:seed
+DATABASE_URL="<DIRECT url>" npx prisma migrate deploy
+DATABASE_URL="<DIRECT url>" npm run db:seed
+DATABASE_URL="<DIRECT url>" npx prisma migrate status   # expect "up to date"
 ```
+Both are idempotent (the seed upserts, and skips pruning any demo row a saved analysis
+references). Keep this manual: putting `migrate deploy` in a host build command runs it on every
+preview deploy, over the pooled URL.
 
 ## 4a. Deploy on Vercel  **[needs your account]**
 Connect the GitHub repo, set the env vars from step 2, deploy. The build runs
