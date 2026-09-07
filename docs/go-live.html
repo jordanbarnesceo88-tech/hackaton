@@ -1,0 +1,655 @@
+<title>ROI Platform Go-Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@450;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #f6f7f9;
+    --surface: #ffffff;
+    --ink: #14181f;
+    --ink-soft: #4d5765;
+    --ink-faint: #79828f;
+    --rule: #dde1e8;
+    --rule-soft: #e8ebf0;
+    --brand: #2b3fb5;
+    --brand-soft: #e7eaf8;
+    --caution: #8a5300;
+    --caution-soft: #fbf1e0;
+    --danger: #a52f26;
+    --danger-soft: #fbeae8;
+    --positive: #0e6d4c;
+    --positive-soft: #e3f2eb;
+    --code-bg: #eceff4;
+    --code-ink: #1b2430;
+    --shadow: 0 1px 2px rgba(20, 24, 31, .05), 0 8px 24px -16px rgba(20, 24, 31, .25);
+
+    --f-ui: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-body: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper: #10141b;
+      --surface: #171c25;
+      --ink: #e8ecf2;
+      --ink-soft: #a5aebc;
+      --ink-faint: #7d879a;
+      --rule: #2a323f;
+      --rule-soft: #222a35;
+      --brand: #8fa4f5;
+      --brand-soft: #1c2340;
+      --caution: #e5a851;
+      --caution-soft: #2c2314;
+      --danger: #f08a80;
+      --danger-soft: #2e1a18;
+      --positive: #58c79b;
+      --positive-soft: #12291f;
+      --code-bg: #0c1017;
+      --code-ink: #d7dee8;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -20px rgba(0, 0, 0, .8);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #10141b;
+    --surface: #171c25;
+    --ink: #e8ecf2;
+    --ink-soft: #a5aebc;
+    --ink-faint: #7d879a;
+    --rule: #2a323f;
+    --rule-soft: #222a35;
+    --brand: #8fa4f5;
+    --brand-soft: #1c2340;
+    --caution: #e5a851;
+    --caution-soft: #2c2314;
+    --danger: #f08a80;
+    --danger-soft: #2e1a18;
+    --positive: #58c79b;
+    --positive-soft: #12291f;
+    --code-bg: #0c1017;
+    --code-ink: #d7dee8;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -20px rgba(0, 0, 0, .8);
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 56px;
+  }
+  @media (min-width: 1060px) {
+    .wrap { grid-template-columns: minmax(0, 70ch) 210px; }
+    .masthead, main { grid-column: 1; }
+    .rail { grid-column: 2; grid-row: 2; }
+  }
+
+  /* ---- masthead ---- */
+  .masthead { padding: 64px 0 34px; border-bottom: 1px solid var(--rule); }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--brand);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-family: var(--f-ui);
+    font-weight: 700;
+    font-size: clamp(34px, 5.5vw, 50px);
+    line-height: 1.06;
+    letter-spacing: -.022em;
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+  .deck {
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 30px;
+    max-width: 60ch;
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .fact {
+    padding: 13px 16px;
+    border-right: 1px solid var(--rule-soft);
+    border-top: 1px solid var(--rule-soft);
+  }
+  .fact:nth-child(-n + 2) { border-top: 0; }
+  .fact:nth-child(2n) { border-right: 0; }
+  @media (min-width: 720px) {
+    .facts { grid-template-columns: repeat(4, 1fr); }
+    .fact { border-top: 0; border-right: 1px solid var(--rule-soft); }
+    .fact:last-child { border-right: 0; }
+  }
+  .fact dt {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 4px;
+  }
+  .fact dd {
+    margin: 0;
+    font-family: var(--f-ui);
+    font-weight: 600;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ok { color: var(--positive); }
+
+  /* ---- rail ---- */
+  .rail { padding-top: 46px; }
+  @media (min-width: 1060px) {
+    .rail-inner { position: sticky; top: 28px; }
+  }
+  .rail h2 {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+  .rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+  .rail a {
+    font-family: var(--f-ui);
+    font-size: 13.5px;
+    line-height: 1.35;
+    color: var(--ink-soft);
+    text-decoration: none;
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    border-radius: 2px;
+  }
+  .rail a:hover { color: var(--brand); }
+  .rail a:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+  .rail .n { font-family: var(--f-mono); color: var(--ink-faint); font-size: 12px; }
+
+  /* ---- steps ---- */
+  main { display: grid; gap: 0; min-width: 0; }
+  .masthead, .step-body, section { min-width: 0; }
+  section { padding: 44px 0; border-bottom: 1px solid var(--rule-soft); }
+  section:last-of-type { border-bottom: 0; }
+  .step-head { display: grid; grid-template-columns: 46px 1fr; align-items: baseline; }
+  .step-n {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    color: var(--brand);
+    padding-top: 6px;
+  }
+  h2.step {
+    font-family: var(--f-ui);
+    font-weight: 600;
+    font-size: 25px;
+    letter-spacing: -.015em;
+    line-height: 1.22;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .step-body { padding-left: 0; }
+  @media (min-width: 700px) { .step-body { padding-left: 46px; } }
+  h3 {
+    font-family: var(--f-ui);
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -.005em;
+    margin: 28px 0 8px;
+  }
+  p { margin: 14px 0; max-width: 66ch; }
+  .lede { color: var(--ink-soft); }
+  a { color: var(--brand); text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  em.term { font-style: normal; font-family: var(--f-mono); font-size: .88em; }
+  code {
+    font-family: var(--f-mono);
+    font-size: .86em;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: .12em .38em;
+    border-radius: 2px;
+  }
+  pre {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    line-height: 1.68;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--brand);
+    border-radius: 2px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 18px 0;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre .c { color: var(--ink-faint); }
+  ul, ol.plain { margin: 14px 0; padding-left: 20px; max-width: 66ch; }
+  li { margin: 7px 0; }
+
+  /* ---- tables ---- */
+  .tw { overflow-x: auto; margin: 20px 0; border: 1px solid var(--rule); border-radius: 3px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-family: var(--f-ui); }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  td code { font-size: .84em; }
+
+  /* ---- callouts: three kinds, each meaning something different ---- */
+  .note {
+    margin: 22px 0;
+    padding: 14px 18px;
+    border-radius: 2px;
+    border-left: 3px solid var(--ink-faint);
+    background: var(--surface);
+  }
+  .note p { margin: 8px 0; }
+  .note p:first-of-type { margin-top: 0; }
+  .note p:last-child { margin-bottom: 0; }
+  .note .tag {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .bite { border-left-color: var(--caution); background: var(--caution-soft); }
+  .bite .tag { color: var(--caution); }
+  .stop { border-left-color: var(--danger); background: var(--danger-soft); }
+  .stop .tag { color: var(--danger); }
+  .done { border-left-color: var(--positive); background: var(--positive-soft); }
+  .done .tag { color: var(--positive); }
+
+  .acct {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 2px 6px;
+    margin-left: 8px;
+    white-space: nowrap;
+    vertical-align: 3px;
+  }
+
+  /* ---- smoke checklist ---- */
+  .checks { display: grid; gap: 0; margin: 20px 0; border: 1px solid var(--rule); border-radius: 3px; background: var(--surface); }
+  .check { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 15px 16px; border-bottom: 1px solid var(--rule-soft); }
+  .check:last-child { border-bottom: 0; }
+  .check .box {
+    width: 17px; height: 17px; margin-top: 4px;
+    border: 1.5px solid var(--ink-faint); border-radius: 2px;
+  }
+  .check b { font-family: var(--f-ui); font-weight: 600; font-size: 15px; display: block; }
+  .check span { font-size: 15px; color: var(--ink-soft); }
+
+  footer {
+    padding: 40px 0 0;
+    border-top: 1px solid var(--rule);
+    font-size: 14.5px;
+    color: var(--ink-faint);
+    font-family: var(--f-ui);
+  }
+  footer p { max-width: 66ch; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">robotization-roi-platform · runbook · 7 sep 2026</p>
+    <h1>ROI Platform Go-Live</h1>
+    <p class="deck">
+      The ordered path from a local branch to a URL a client can open: GitHub, Neon, Vercel —
+      and the four things that actually bite. Roughly 30–45 minutes, most of it waiting on builds.
+    </p>
+    <dl class="facts">
+      <div class="fact"><dt>Branch</dt><dd>refactor-pass</dd></div>
+      <div class="fact"><dt>Ahead of master</dt><dd>44 commits</dd></div>
+      <div class="fact"><dt>Gate</dt><dd class="ok">238 tests · all green</dd></div>
+      <div class="fact"><dt>Stack</dt><dd>Next 16.3.1 · Prisma 7</dd></div>
+    </dl>
+  </header>
+
+  <nav class="rail" aria-label="Steps">
+    <div class="rail-inner">
+      <h2>Steps</h2>
+      <ol>
+        <li><a href="#needs"><span class="n">00</span><span>What it needs</span></a></li>
+        <li><a href="#preflight"><span class="n">01</span><span>Pre-flight gate</span></a></li>
+        <li><a href="#branch"><span class="n">02</span><span>What ships</span></a></li>
+        <li><a href="#github"><span class="n">03</span><span>Push to GitHub</span></a></li>
+        <li><a href="#postgres"><span class="n">04</span><span>Provision Postgres</span></a></li>
+        <li><a href="#vercel"><span class="n">05</span><span>Deploy on Vercel</span></a></li>
+        <li><a href="#others"><span class="n">06</span><span>Netlify · Pages</span></a></li>
+        <li><a href="#smoke"><span class="n">07</span><span>Smoke-test</span></a></li>
+        <li><a href="#chores"><span class="n">08</span><span>Two chores</span></a></li>
+        <li><a href="#rollback"><span class="n">09</span><span>Rolling back</span></a></li>
+        <li><a href="#review"><span class="n">—</span><span>For reviewers</span></a></li>
+      </ol>
+    </div>
+  </nav>
+
+  <main>
+    <section id="needs">
+      <div class="step-head"><div class="step-n">00</div><h2 class="step">What this app actually needs</h2></div>
+      <div class="step-body">
+        <p class="lede">Read this before choosing a host — it rules two popular options out.</p>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Requirement</th><th>Consequence</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Every route server-rendered — all 10 marked <code>ƒ</code> by <code>next build</code></td>
+                <td><strong>Static hosting is impossible.</strong> No GitHub Pages, no S3, no Netlify “static site”.</td>
+              </tr>
+              <tr>
+                <td>Server Actions + Auth.js credentials login</td>
+                <td>Needs a real Node runtime, not an edge or CDN-only tier.</td>
+              </tr>
+              <tr>
+                <td>Postgres through the Prisma driver adapter <code>@prisma/adapter-pg</code></td>
+                <td>Needs <code>DATABASE_URL</code> at runtime, and a <strong>pooled</strong> one on serverless.</td>
+              </tr>
+              <tr>
+                <td><code>prisma migrate deploy</code> then <code>npm run db:seed</code></td>
+                <td>The database must be migrated <em>and</em> seeded, or the catalog is empty and the app looks broken rather than unconfigured.</td>
+              </tr>
+              <tr>
+                <td>Two secrets</td>
+                <td><code>DATABASE_URL</code>, <code>AUTH_SECRET</code>. That is the whole list.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Node 20.9 or newer — the Docker image pins <code>node:20-alpine</code>; local dev runs on 22.</p>
+      </div>
+    </section>
+
+    <section id="preflight">
+      <div class="step-head"><div class="step-n">01</div><h2 class="step">Prove the tree is green</h2></div>
+      <div class="step-body">
+        <pre><code>cd ~/robotization-roi-platform
+docker compose up -d                       <span class="c"># local DB on host port 5433</span>
+lsof -ti:3000 | xargs kill -9 2>/dev/null  <span class="c"># a stale dev server makes e2e test the OLD build</span>
+
+npx tsc --noEmit                    <span class="c"># 0 errors</span>
+npx --yes vitest run &lt; /dev/null    <span class="c"># 238 passing / 24 files</span>
+npm run lint -- --max-warnings=0    <span class="c"># silent = pass</span>
+npm run build                       <span class="c"># 0 errors</span>
+npx playwright test                 <span class="c"># 4 passing</span></code></pre>
+        <div class="note bite">
+          <span class="tag">This one bites</span>
+          <p>Both comments on the first two lines are load-bearing. A dev server left on
+          <code>:3000</code> is reused by Playwright, which then tests a build from an hour ago and
+          reports failures that have nothing to do with your change. And <code>&lt; /dev/null</code>
+          on vitest is not decoration — without it the runner waits on stdin and looks hung.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="branch">
+      <div class="step-head"><div class="step-n">02</div><h2 class="step">Decide what ships</h2></div>
+      <div class="step-body">
+        <p>The work is 44 commits on <code>refactor-pass</code>, unmerged — the branch rule requires
+        sign-off before a <code>--no-ff</code> merge. Pick one:</p>
+        <pre><code><span class="c"># (a) sign off and merge — deploy master</span>
+git checkout master &amp;&amp; git merge --no-ff refactor-pass &amp;&amp; git checkout refactor-pass
+
+<span class="c"># (b) or leave master alone and point the host at the branch</span>
+<span class="c">#     Vercel → Settings → Git → Production Branch → refactor-pass</span></code></pre>
+        <p>Option (b) is the honest one for a review deploy: peers see the branch, master stays
+        the last signed-off state.</p>
+      </div>
+    </section>
+
+    <section id="github">
+      <div class="step-head"><div class="step-n">03</div><h2 class="step">Push to GitHub <span class="acct">needs your account</span></h2></div>
+      <div class="step-body">
+        <p>There is no remote configured yet — which is also why CI has never actually run.</p>
+        <pre><code>gh repo create robotization-roi-platform --private --source=. --remote=origin
+git push -u origin master          <span class="c"># and/or: git push -u origin refactor-pass</span></code></pre>
+        <p>Nothing secret is in the tree: <code>.env*</code> is gitignored and <code>.env.example</code>
+        holds placeholders. Confirm before pushing anyway —</p>
+        <pre><code>git ls-files | grep -E '^\.env'    <span class="c"># expect only .env.example</span></code></pre>
+        <div class="note done">
+          <span class="tag">Already handled</span>
+          <p><code>.github/workflows/ci.yml</code> starts running the moment the remote exists.
+          It has been inert this whole time, so the first push is also the first real CI run —
+          expect it to reproduce the §01 gate exactly.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="postgres">
+      <div class="step-head"><div class="step-n">04</div><h2 class="step">Provision Postgres <span class="acct">needs your account</span></h2></div>
+      <div class="step-body">
+        <p><a href="https://neon.tech">neon.tech</a> → new project → copy <strong>both</strong>
+        connection strings.</p>
+        <div class="tw">
+          <table>
+            <thead><tr><th>String</th><th>Recognise it by</th><th>Used for</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Pooled</strong></td><td>host contains <code>-pooler</code></td><td><code>DATABASE_URL</code> on the host — what the running app uses</td></tr>
+              <tr><td><strong>Direct</strong></td><td>no <code>-pooler</code></td><td>migrations and the seed, run from your laptop</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note bite">
+          <span class="tag">This one bites</span>
+          <p>They are not interchangeable. <code>@prisma/adapter-pg</code> opens a connection pool
+          per serverless instance, so the runtime needs the pooler. But <code>prisma migrate
+          deploy</code> takes advisory locks that a transaction-mode pooler can drop, so migrations
+          must not go through it. Using the wrong one fails in a way that looks like a network
+          flake.</p>
+        </div>
+        <pre><code>DATABASE_URL="&lt;DIRECT url&gt;" npx prisma migrate deploy
+DATABASE_URL="&lt;DIRECT url&gt;" npm run db:seed
+DATABASE_URL="&lt;DIRECT url&gt;" npx prisma migrate status   <span class="c"># expect "up to date"</span></code></pre>
+        <p>Both are idempotent: the seed upserts, and it skips pruning any demo row a saved
+        analysis references rather than tripping the <code>onDelete: Restrict</code> foreign key.
+        Safe to re-run.</p>
+      </div>
+    </section>
+
+    <section id="vercel">
+      <div class="step-head"><div class="step-n">05</div><h2 class="step">Deploy on Vercel <span class="acct">needs your account</span></h2></div>
+      <div class="step-body">
+        <ol class="plain">
+          <li><a href="https://vercel.com/new">vercel.com/new</a> → import the repo. The framework
+          preset auto-detects as Next.js; <strong>change nothing</strong> in Build &amp; Output Settings.</li>
+          <li>Add two environment variables, to Production and Preview:</li>
+        </ol>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Name</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td><code>DATABASE_URL</code></td><td>the <strong>pooled</strong> Neon URL</td></tr>
+              <tr><td><code>AUTH_SECRET</code></td><td><code>openssl rand -base64 32</code> — generate a fresh one, don’t reuse the dev value</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><code>AUTH_URL</code> is not needed: <code>auth.ts</code> sets <code>trustHost: true</code>
+        and Vercel supplies the host. Then deploy.</p>
+
+        <div class="note done">
+          <span class="tag">Already handled — don’t configure these</span>
+          <p><code>postinstall: prisma generate</code> runs on every install, so Vercel’s dependency
+          cache can’t serve a stale Prisma client. That is the classic Vercel + Prisma failure and
+          it is closed.</p>
+          <p><code>output: "standalone"</code> in <code>next.config.ts</code> exists for the Docker
+          image; Vercel’s builder produces its own output and ignores it. If a build ever objects,
+          deleting that single line is the entire fix — nothing but the Dockerfile depends on it.</p>
+          <p>CSP, HSTS, X-Frame-Options, X-Content-Type-Options and Referrer-Policy ship from
+          <code>next.config.ts</code> rather than host config, so they survive a change of host.</p>
+        </div>
+
+        <div class="note stop">
+          <span class="tag">Don’t</span>
+          <p>Do not add <code>prisma migrate deploy</code> to the Build Command. It would run on
+          every preview deploy, against the pooled URL — both of the things §04 says not to do.
+          Migrations stay manual and deliberate: there is one migration path and you decide when it
+          runs.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="others">
+      <div class="step-head"><div class="step-n">06</div><h2 class="step">Netlify, and why not GitHub Pages</h2></div>
+      <div class="step-body">
+        <p>Netlify works, with one caveat worth weighing before spending an evening on it. Next’s own
+        deployment docs — the copy shipped inside the installed package, at
+        <code>node_modules/next/dist/docs/01-app/01-getting-started/17-deploying.md</code> — list
+        <strong>Vercel and Bun as verified adapters</strong> that run the full Next.js compatibility
+        suite, and place Netlify under <em>“not built on the public Adapter API and not verified by
+        the Next.js team, so feature support and compatibility may vary.”</em> This app is Next
+        <strong>16.3.1</strong>, new enough that runtime lag is a live risk rather than a theoretical
+        one.</p>
+        <p>If you deploy there anyway: import from GitHub, build command <code>npm run build</code>,
+        publish directory <code>.next</code>, let Netlify install its Next.js runtime plugin, same two
+        environment variables. Then smoke-test <strong>login specifically</strong> — cookie handling
+        on Server Actions in a Lambda-backed runtime is where an unverified adapter breaks first.</p>
+        <div class="note stop">
+          <span class="tag">Not possible</span>
+          <p><strong>GitHub Pages cannot host this app.</strong> It serves static files, and every
+          route here renders on the server. GitHub’s role in this stack is the git remote and CI.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="smoke">
+      <div class="step-head"><div class="step-n">07</div><h2 class="step">Smoke-test the live URL</h2></div>
+      <div class="step-body">
+        <p class="lede">Five minutes. Do all four — two of them exercise paths that only break in
+        production.</p>
+        <div class="checks">
+          <div class="check">
+            <div class="box" aria-hidden="true"></div>
+            <div><b><code>/</code> loads and the industry picker renders</b>
+            <span>Environment variables are set and the database is reachable.</span></div>
+          </div>
+          <div class="check">
+            <div class="box" aria-hidden="true"></div>
+            <div><b><code>/compare/warehouse</code> lists solutions</b>
+            <span>The seed ran. An empty table here means §04 was skipped, or it ran against a
+            different database.</span></div>
+          </div>
+          <div class="check">
+            <div class="box" aria-hidden="true"></div>
+            <div><b>Sign up, log out, log back in</b>
+            <span><code>AUTH_SECRET</code> is set and cookies work over HTTPS. Logging in is the
+            half that fails; signing up alone proves nothing.</span></div>
+          </div>
+          <div class="check">
+            <div class="box" aria-hidden="true"></div>
+            <div><b>Calculate → «Сохранить расчёт» → «Открыть отчёт» → print preview</b>
+            <span>The report must print <strong>light</strong> even with the OS in dark mode, and its
+            figures must match the calculator panel exactly. Both have regressed before; both are
+            now covered by tests, and this is the human check on top.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="chores">
+      <div class="step-head"><div class="step-n">08</div><h2 class="step">Two chores, once</h2></div>
+      <div class="step-body">
+        <h3>Verify the cited figures before showing anyone</h3>
+        <pre><code>npm run check:sources     <span class="c"># non-zero if any citation is older than 180 days</span></code></pre>
+        <p><code>docs/data-provenance.md</code> promises every real figure is checked before it is
+        shown; this is that gate. It is deliberately <em>not</em> in CI — a check that fails when a
+        date rolls over would turn the build red for something no commit caused.</p>
+
+        <h3>Schedule a prune of the rate-limit table</h3>
+        <p>One row accumulates per (email + IP) and per IP. A credential-stuffing burst against
+        random addresses can add a great many.</p>
+        <pre><code>DELETE FROM "RateLimit" WHERE "windowStart" &lt; now() - interval '1 day';</code></pre>
+        <p>Daily is plenty. Neon can run it as a scheduled query; a Vercel Cron hitting a small
+        protected route works too.</p>
+        <div class="note bite">
+          <span class="tag">If you put a proxy in front</span>
+          <p>The limiter reads the client IP from <code>X-Forwarded-For</code>, so your proxy must
+          <strong>overwrite</strong> that header, not append to it — otherwise a client spoofs the
+          leftmost hop and rotates it to walk straight past the limit. Vercel and most CDNs overwrite
+          by default. On nginx that means <code>proxy_set_header X-Forwarded-For $remote_addr;</code>,
+          <em>not</em> <code>$proxy_add_x_forwarded_for</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="rollback">
+      <div class="step-head"><div class="step-n">09</div><h2 class="step">Rolling back</h2></div>
+      <div class="step-body">
+        <p>Vercel keeps every deployment: Deployments → the previous one → <strong>Promote to
+        Production</strong>. Instant, no rebuild.</p>
+        <div class="note bite">
+          <span class="tag">This one bites</span>
+          <p>That rolls back <em>code</em>, not the database. If the deploy included a migration, roll
+          the code back first and decide about the schema separately. One migration in the history is
+          destructive by design — <code>20260903172455_saved_analysis_solution_fk</code> deletes
+          orphaned rows before adding the foreign key — and re-running an older build does not undo
+          it.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="review">
+      <div class="step-head"><div class="step-n">—</div><h2 class="step">For reviewers</h2></div>
+      <div class="step-body">
+        <p class="lede">Three judgment calls in here are arguable. If you disagree with any of them,
+        that is the useful feedback.</p>
+        <ul>
+          <li><strong>Migrations are manual, not in the build command.</strong> The trade is a
+          deliberate human step against the risk of preview deploys migrating production over a
+          pooler. On a team with more than one deployer, the calculus changes.</li>
+          <li><strong>Netlify is documented but not recommended.</strong> Based on Next 16’s own
+          verified-adapter list rather than a failure I actually reproduced. If someone has shipped
+          Next 16 on Netlify recently, that beats the docs.</li>
+          <li><strong>Vercel Hobby forbids commercial use.</strong> If this gets shown to paying
+          clients, that is the Pro plan — not a technicality to wave through. Neon’s free tier and
+          Vercel Hobby otherwise carry this comfortably.</li>
+        </ul>
+        <p>One known cosmetic gap, tracked and open: the visualization canvas has a fixed 720×360
+        backing store displayed at roughly 470 px, so it is about 1.5× oversampled — sharper than 1×
+        but soft on a 2× display. It affects no figure the app reports.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Source of record: <code>docs/DEPLOY-QUICKSTART.md</code> in the repo, with the security
+    posture, the rate-limit design and the assessed <code>npm audit</code> findings in
+    <code>docs/DEPLOY.md</code>. If this page and the repo disagree, the repo is right.</p>
+  </footer>
+</div>
