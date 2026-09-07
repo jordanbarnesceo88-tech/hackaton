@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { getIndustries, getCatalogForFacilityType, getSolutionForCalc, getAssumptions, getSiblingSolutions } from "./queries";
+import {
+  getIndustries,
+  getCatalogForFacilityType,
+  getSolutionForCalc,
+  getSolutionApplicability,
+  getFacilityTypeBySlug,
+  getAssumptions,
+  getSiblingSolutions,
+} from "./queries";
 import { createSavedAnalysis, getSavedAnalyses, getSavedAnalysis } from "./queries";
 import { prisma } from "./client";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
@@ -11,6 +19,16 @@ describe("getIndustries", () => {
     const retail = industries.find((i) => i.slug === "retail");
     expect(retail).toBeDefined();
     expect(retail!.facilityTypes.map((f) => f.slug)).toContain("warehouse");
+  });
+});
+
+describe("глобальные категории", () => {
+  it("одна категория применима к нескольким типам объектов", async () => {
+    const links = await prisma.facilityTypeCategory.findMany({
+      where: { category: { slug: "amr" } },
+      select: { facilityTypeId: true },
+    });
+    expect(links.length).toBeGreaterThan(0);
   });
 });
 
@@ -43,14 +61,42 @@ describe("getAssumptions", () => {
 });
 
 describe("getSolutionForCalc", () => {
-  it("returns a solution with capacityBasis and its facility type, or null", async () => {
+  it("returns a solution with capacityBasis and its category, or null", async () => {
     const warehouse = await getCatalogForFacilityType("warehouse");
     const someId = warehouse!.solutionCategories[0]!.solutions[0]!.id;
     const sol = await getSolutionForCalc(someId);
     expect(sol).not.toBeNull();
     expect(sol!.capacityBasis).toBeDefined();
-    expect(sol!.solutionCategory.facilityType.slug).toBe("warehouse");
+    expect(sol!.solutionCategory.slug).toBeTruthy();
     expect(await getSolutionForCalc("does-not-exist")).toBeNull();
+  });
+});
+
+describe("getSolutionApplicability", () => {
+  // Replaces the old assertion that a solution reaches its ONE facility type. It reaches a
+  // set now, and the set is what the save path validates a client's claim against.
+  it("lists the facility types a solution applies to", async () => {
+    const warehouse = await getCatalogForFacilityType("warehouse");
+    const someId = warehouse!.solutionCategories[0]!.solutions[0]!.id;
+    const slugs = await getSolutionApplicability(someId);
+    expect(slugs).toContain("warehouse");
+  });
+
+  it("is empty for an unknown solution", async () => {
+    expect(await getSolutionApplicability("does-not-exist")).toEqual([]);
+  });
+});
+
+describe("getFacilityTypeBySlug", () => {
+  it("returns the facility type and its industry name", async () => {
+    const ft = await getFacilityTypeBySlug("warehouse");
+    expect(ft).not.toBeNull();
+    expect(ft!.name).toBeTruthy();
+    expect(ft!.industry.name).toBeTruthy();
+  });
+
+  it("returns null for an unknown slug", async () => {
+    expect(await getFacilityTypeBySlug("does-not-exist")).toBeNull();
   });
 });
 

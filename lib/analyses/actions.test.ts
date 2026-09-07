@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { prisma } from "@/lib/db/client";
+import { getSolutionApplicability } from "@/lib/db/queries";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
 
 // saveAnalysisAction is the app's write boundary: it decides what a client may persist, and it
@@ -23,11 +24,11 @@ beforeEach(async () => {
     create: { email: TEST_EMAIL, passwordHash: "x" },
   });
   userId = user.id;
-  const sol = await prisma.solution.findFirstOrThrow({
-    include: { solutionCategory: { include: { facilityType: true } } },
-  });
+  const sol = await prisma.solution.findFirstOrThrow();
   solutionId = sol.id;
-  realSlug = sol.solutionCategory.facilityType.slug;
+  // A solution no longer has ONE facility type — it has a set, via its category. The first
+  // applicable slug stands in for "a facility type this solution is legitimately used in".
+  realSlug = (await getSolutionApplicability(sol.id))[0]!;
   mockAuth.mockResolvedValue({ user: { id: userId } });
 });
 
@@ -37,7 +38,10 @@ afterAll(async () => {
 
 const payload = (over: Record<string, unknown> = {}) => ({
   name: "test analysis",
-  facilityTypeSlug: "whatever-the-client-claims",
+  // Was "whatever-the-client-claims" back when the server ignored this field and derived the
+  // slug instead. The server now validates it against the solution's applicable set, so the
+  // default has to be a real one; the rejection is asserted explicitly below.
+  facilityTypeSlug: realSlug,
   solutionId,
   params: { areaM2: 1000, opsPerDay: 500, staffCount: 10 },
   assumptions: { ...DEFAULT_ASSUMPTIONS },
@@ -59,12 +63,22 @@ describe("saveAnalysisAction", () => {
     });
   });
 
-  it("derives facilityTypeSlug from the solution, ignoring the client's claim", async () => {
+  // The guarantee under test is unchanged — a client cannot get an arbitrary facility type
+  // stored against an analysis. Only the mechanism changed: the server used to derive the slug
+  // and ignore the claim; now it rejects a claim outside the solution's applicable set,
+  // because a category serves many facility types and there is no single one to derive.
+  it("rejects a facility type the solution does not apply to", async () => {
     const res = await saveAnalysisAction(payload({ facilityTypeSlug: "attacker-supplied" }));
+    expect(res.ok).toBe(false);
+  });
+
+  it("stores an applicable facility type exactly as claimed", async () => {
+    const applicable = await getSolutionApplicability(solutionId);
+    expect(applicable.length).toBeGreaterThan(0);
+    const res = await saveAnalysisAction(payload({ facilityTypeSlug: applicable[0]! }));
     if (!res.ok) throw new Error("expected the save to succeed");
     const saved = await prisma.savedAnalysis.findUniqueOrThrow({ where: { id: res.id } });
-    expect(saved.facilityTypeSlug).toBe(realSlug);
-    expect(saved.facilityTypeSlug).not.toBe("attacker-supplied");
+    expect(saved.facilityTypeSlug).toBe(applicable[0]);
   });
 
   it("stores the analysis against the session user, not any id in the payload", async () => {

@@ -1,7 +1,12 @@
 "use server";
 
 import { auth } from "@/auth";
-import { createSavedAnalysis, getSolutionForCalc, type SavedAnalysisInput } from "@/lib/db/queries";
+import {
+  createSavedAnalysis,
+  getSolutionForCalc,
+  getSolutionApplicability,
+  type SavedAnalysisInput,
+} from "@/lib/db/queries";
 import {
   sanitizeName,
   validateParams,
@@ -31,11 +36,17 @@ export async function saveAnalysisAction(input: SavedAnalysisInput): Promise<Sav
     return { ok: false, reason: "invalid" };
   }
 
-  // Verify the solution exists and derive the facility slug from it — don't trust the
-  // client-sent slug (prevents storing a mismatched or dangling reference).
+  // The facility slug used to be DERIVED from the solution precisely so the client-sent one
+  // was never trusted. A category now serves many facility types, so there is nothing single
+  // to derive — but the guarantee has to survive the schema change, not the mechanism. The
+  // claimed slug must belong to the set the solution actually applies to; anything else is
+  // rejected rather than stored.
   const solution = await getSolutionForCalc(input.solutionId);
   if (!solution) return { ok: false, reason: "invalid" };
-  const facilityTypeSlug = solution.solutionCategory.facilityType.slug;
+  const applicable = await getSolutionApplicability(input.solutionId);
+  const claimed = typeof input.facilityTypeSlug === "string" ? input.facilityTypeSlug : "";
+  if (!applicable.includes(claimed)) return { ok: false, reason: "invalid" };
+  const facilityTypeSlug = claimed;
 
   try {
     const saved = await createSavedAnalysis(session.user.id, {

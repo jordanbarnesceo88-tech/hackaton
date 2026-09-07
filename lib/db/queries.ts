@@ -13,19 +13,47 @@ export async function getIndustries() {
 }
 
 export async function getCatalogForFacilityType(facilityTypeSlug: string) {
-  return prisma.facilityType.findUnique({
+  const facilityType = await prisma.facilityType.findUnique({
     where: { slug: facilityTypeSlug },
     include: {
       industry: true,
-      solutionCategories: {
-        orderBy: { name: "asc" },
-        include: {
-          solutions: {
-            orderBy: { name: "asc" },
-          },
-        },
+      categories: {
+        // `order` alone is not an order: it defaults to 0 for every row, so ties fell back to
+        // whatever the database returned and the catalogue reshuffled between deploys. Name is
+        // the tiebreaker, which is also the ordering this page had before the inversion.
+        orderBy: [{ order: "asc" }, { category: { name: "asc" } }],
+        include: { category: { include: { solutions: { orderBy: { name: "asc" } } } } },
       },
     },
+  });
+  if (!facilityType) return null;
+
+  // The response shape deliberately matches the pre-inversion one — `solutionCategories` with
+  // their solutions — so the comparison page doesn't move in the same change that moves the
+  // schema. It is rewritten by the wizard plan, not this one.
+  const { categories, ...rest } = facilityType;
+  return { ...rest, solutionCategories: categories.map((link) => link.category) };
+}
+
+/**
+ * Facility types a solution applies to, via its category and the applicability join.
+ *
+ * Replaces deriving a single facility type from the solution. After the inversion a solution
+ * has no one facility type — but a client-supplied one still must not be taken on trust, so
+ * the set it has to belong to stays checkable.
+ */
+export async function getSolutionApplicability(solutionId: string): Promise<string[]> {
+  const rows = await prisma.facilityTypeCategory.findMany({
+    where: { category: { solutions: { some: { id: solutionId } } } },
+    select: { facilityType: { select: { slug: true } } },
+  });
+  return rows.map((r) => r.facilityType.slug);
+}
+
+export async function getFacilityTypeBySlug(slug: string) {
+  return prisma.facilityType.findUnique({
+    where: { slug },
+    select: { slug: true, name: true, industry: { select: { name: true } } },
   });
 }
 
@@ -34,11 +62,12 @@ export async function getAssumptions() {
 }
 
 export async function getSolutionForCalc(id: string) {
+  // No longer reaches through to a facility type: a category serves many of them now. Callers
+  // take the facility type from where it actually belongs — the saved analysis for a report,
+  // the URL for a live calculation — and validate it against getSolutionApplicability().
   return prisma.solution.findUnique({
     where: { id },
-    include: {
-      solutionCategory: { include: { facilityType: { include: { industry: true } } } },
-    },
+    include: { solutionCategory: { select: { id: true, slug: true, name: true } } },
   });
 }
 

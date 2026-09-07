@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import {
   getSolutionForCalc,
+  getSolutionApplicability,
+  getFacilityTypeBySlug,
   getAssumptions,
   getSavedAnalysis,
   getSiblingSolutions,
@@ -18,17 +20,25 @@ export default async function CalculatePage({
   searchParams,
 }: {
   params: Promise<{ solutionId: string }>;
-  searchParams: Promise<{ analysis?: string; obj?: string }>;
+  searchParams: Promise<{ analysis?: string; obj?: string; facility?: string }>;
 }) {
   const { solutionId } = await params;
-  const { analysis: analysisId, obj } = await searchParams;
+  const { analysis: analysisId, obj, facility } = await searchParams;
   const objectName = obj?.trim().slice(0, 80) || null; // M4: echo the "Other" object name
-  const [solution, assumptionRows, categorySolutions] = await Promise.all([
+  const [solution, assumptionRows, categorySolutions, applicable] = await Promise.all([
     getSolutionForCalc(solutionId),
     getAssumptions(),
     getSiblingSolutions(solutionId),
+    getSolutionApplicability(solutionId),
   ]);
   if (!solution) notFound();
+
+  // The facility type is no longer reachable through the solution — a category serves many.
+  // Take it from the URL when it is one the solution actually applies to, and otherwise fall
+  // back to the first applicable one rather than showing a facility the numbers aren't for.
+  const facilitySlug = facility && applicable.includes(facility) ? facility : applicable[0];
+  const facilityType = facilitySlug ? await getFacilityTypeBySlug(facilitySlug) : null;
+  if (!facilityType) notFound();
 
   const capacity = toSolutionCapacity(solution);
 
@@ -56,9 +66,9 @@ export default async function CalculatePage({
         categorySolutions={categorySolutions}
         initialSelectedId={solution.id}
         initialAssumptions={initialAssumptions}
-        facilitySlug={solution.solutionCategory.facilityType.slug}
-        facilityTypeName={solution.solutionCategory.facilityType.name}
-        industryName={solution.solutionCategory.facilityType.industry.name}
+        facilitySlug={facilityType.slug}
+        facilityTypeName={facilityType.name}
+        industryName={facilityType.industry.name}
         objectName={objectName}
         dataChanged={dataChanged}
         initialParams={initialParams}

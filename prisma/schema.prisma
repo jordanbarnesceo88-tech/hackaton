@@ -14,29 +14,43 @@ model Industry {
 }
 
 model FacilityType {
-  id                 String              @id @default(cuid())
-  slug               String              @unique
-  name               String
-  isGeneric          Boolean             @default(false)
-  industryId         String
-  industry           Industry            @relation(fields: [industryId], references: [id])
-  solutionCategories SolutionCategory[]
-  facilityExamples   FacilityExample[]
+  id               String                 @id @default(cuid())
+  slug             String                 @unique
+  name             String
+  isGeneric        Boolean                @default(false)
+  industryId       String
+  industry         Industry               @relation(fields: [industryId], references: [id])
+  categories       FacilityTypeCategory[]
+  facilityExamples FacilityExample[]
 }
 
 model SolutionCategory {
-  id             String       @id @default(cuid())
-  slug           String
-  name           String
-  description    String
-  facilityTypeId String
-  facilityType   FacilityType @relation(fields: [facilityTypeId], references: [id])
-  solutions      Solution[]
+  id String @id @default(cuid())
 
-  // slug is unique PER facility type, not globally: two facility types may legitimately
-  // share a category slug (e.g. both a warehouse and an airport having "agv"). A global
-  // @unique would collide once organizer data with repeated category names is imported.
-  @@unique([facilityTypeId, slug])
+  // slug was unique PER facility type while a category belonged to one. It no longer does:
+  // a category is a global catalogue of solution kinds ("AMR", "AS/RS", "паллетайзер"), and
+  // applicability moved to FacilityTypeCategory. Keeping the per-type shape would have meant
+  // re-creating every category for every one of ~45 facility types and duplicating each
+  // solution class into all of them.
+  slug          String                 @unique
+  name          String
+  description   String
+  solutions     Solution[]
+  facilityTypes FacilityTypeCategory[]
+}
+
+/// Which kinds of solution apply to which facility type. Explicit rather than implied: a
+/// palletiser does not belong in a hospital ward, and a link that says otherwise lies to the
+/// user on the one screen the product exists for.
+model FacilityTypeCategory {
+  facilityTypeId String
+  facilityType   FacilityType     @relation(fields: [facilityTypeId], references: [id], onDelete: Cascade)
+  categoryId     String
+  category       SolutionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  order          Int              @default(0)
+
+  @@id([facilityTypeId, categoryId])
+  @@index([categoryId])
 }
 
 enum SolutionSource {

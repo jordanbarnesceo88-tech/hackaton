@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getSavedAnalysis, getSolutionForCalc } from "@/lib/db/queries";
+import { getSavedAnalysis, getSolutionForCalc, getFacilityTypeBySlug } from "@/lib/db/queries";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { withAssumptionDefaults, withParamDefaults } from "@/lib/economics/assumptions";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
@@ -38,7 +38,10 @@ export default async function ReportPage({
   const dataChanged = resultsDiverged(saved.results, result);
   const money = (usd: number) => formatCost(usd, a.usdToRub);
   const hasNumbers = isCalculable(result);
-  const ft = solution.solutionCategory.facilityType;
+  // The report must name the facility the analysis was RUN for, which is stored on the
+  // analysis itself — not whichever facility the solution happens to serve today. Those can
+  // legitimately differ now that a category serves many facility types.
+  const ft = await getFacilityTypeBySlug(saved.facilityTypeSlug);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -59,7 +62,7 @@ export default async function ReportPage({
       <section className="report-block mt-4">
         <h2 className="text-sm font-semibold text-muted-foreground">Объект и решение</h2>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-          <span>{ft.name} ({ft.industry.name})</span>
+          <span>{ft ? `${ft.name} (${ft.industry.name})` : saved.facilityTypeSlug}</span>
           <span>·</span>
           <b>{solution.name}</b>
           <span className="text-muted-foreground">{solution.vendor}</span>

@@ -333,26 +333,26 @@ async function main() {
       facilityTypeCount++;
 
       for (const categorySeed of facilityTypeSeed.categories) {
+        // The category is now a global catalogue entry keyed by its bare slug; which facility
+        // types it serves is a separate join row, upserted right after.
         const category = await prisma.solutionCategory.upsert({
-          // Category slug is unique per facility type (@@unique([facilityTypeId, slug])),
-          // so the upsert key is the composite, not the bare slug.
-          where: {
-            facilityTypeId_slug: {
-              facilityTypeId: facilityType.id,
-              slug: categorySeed.slug,
-            },
-          },
-          update: {
-            name: categorySeed.name,
-            description: categorySeed.description,
-            facilityTypeId: facilityType.id,
-          },
+          where: { slug: categorySeed.slug },
+          update: { name: categorySeed.name, description: categorySeed.description },
           create: {
             slug: categorySeed.slug,
             name: categorySeed.name,
             description: categorySeed.description,
-            facilityTypeId: facilityType.id,
           },
+        });
+        await prisma.facilityTypeCategory.upsert({
+          where: {
+            facilityTypeId_categoryId: {
+              facilityTypeId: facilityType.id,
+              categoryId: category.id,
+            },
+          },
+          update: {},
+          create: { facilityTypeId: facilityType.id, categoryId: category.id },
         });
         categoryCount++;
 
@@ -402,7 +402,7 @@ async function main() {
   if (warehouse) {
     for (const s of WAREHOUSE_REAL) {
       const category = await prisma.solutionCategory.findUnique({
-        where: { facilityTypeId_slug: { facilityTypeId: warehouse.id, slug: s.categorySlug } },
+        where: { slug: s.categorySlug },
       });
       if (!category) continue;
       const data = {
@@ -429,7 +429,9 @@ async function main() {
     if (keep.length > 0) {
       const prunable = await prisma.solution.findMany({
         where: {
-          solutionCategory: { facilityType: { slug: "warehouse" } },
+          // A category serves many facility types now, so "belongs to the warehouse" is a
+          // question about the join, not about a column on the category.
+          solutionCategory: { facilityTypes: { some: { facilityType: { slug: "warehouse" } } } },
           source: { in: [SolutionSource.SEED, SolutionSource.PARSED] },
           name: { notIn: keep },
         },
