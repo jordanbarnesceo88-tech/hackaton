@@ -72,6 +72,25 @@ describe("getSolutionForCalc", () => {
   });
 });
 
+describe("классы решений", () => {
+  // Проходит вхолостую, пока классов нет — наполнение отдельной задачей. Смысл теста в том,
+  // чтобы форма была под тестом РАНЬШЕ данных: класс обязан нести диапазон и признавать себя
+  // оценкой, иначе он выдаёт себя за конкретный продукт с точной ценой.
+  it("класс помечен оценкой и несёт диапазон, накрывающий середину", async () => {
+    const classes = await prisma.solution.findMany({ where: { isClass: true } });
+    for (const c of classes) {
+      expect(c.priceEstimated, `${c.name}: класс без пометки «оценка»`).toBe(true);
+      expect(c.capacityLow, `${c.name}: нет нижней границы производительности`).not.toBeNull();
+      expect(c.capacityHigh).not.toBeNull();
+      expect(c.capacityPerUnit).toBeGreaterThanOrEqual(c.capacityLow!);
+      expect(c.capacityPerUnit).toBeLessThanOrEqual(c.capacityHigh!);
+      expect(c.priceLowUsd).not.toBeNull();
+      expect(c.priceHighUsd).not.toBeNull();
+      expect(c.sourceUrl, `${c.name}: класс без источника`).toBeTruthy();
+    }
+  });
+});
+
 describe("getSolutionApplicability", () => {
   // Replaces the old assertion that a solution reaches its ONE facility type. It reaches a
   // set now, and the set is what the save path validates a client's claim against.

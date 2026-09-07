@@ -76,6 +76,16 @@ model Solution {
   priceLowUsd        Float?
   priceHighUsd       Float?
   priceBasis         String?
+
+  /// A class of solution rather than a specific model — a kind of machine, given as ranges
+  /// instead of exact figures. The UI must say so: a class quoted as if it were a product
+  /// with a real price is exactly the fabrication the provenance rules forbid.
+  isClass            Boolean          @default(false)
+  /// Throughput range, mirroring the price range. The midpoint lives in capacityPerUnit, so
+  /// the engine consumes a class through the same toSolutionCapacity() as a vendor model.
+  capacityLow        Float?
+  capacityHigh       Float?
+
   capacityPerUnit    Float
   capacityUnit       String
   capacityBasis      CapacityBasis    @default(PER_DAY_FLOW)
