@@ -1,0 +1,18 @@
+# Vercel uses this instead of .gitignore when it exists, so it must also cover the
+# directories .gitignore was handling — the first deploy uploaded .env despite being
+# gitignored, and the build logged "Detected .env file".
+node_modules
+.next
+.git
+
+# Never ship local secrets. Production values come from Vercel's own env store; an uploaded
+# .env would put the localhost:5433 dev credentials inside the deployment bundle.
+.env
+.env.*
+
+# Not part of the running app.
+e2e
+test-results
+playwright-report
+docs
+tmp-*

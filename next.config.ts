@@ -28,7 +28,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone output is for the Docker image (the runner stage copies `.next/standalone`).
+  // It must NOT be set when Vercel builds: their `onBuildComplete` step reads
+  // `.next/next-server.js.nft.json`, which standalone mode relocates, and the build dies with
+  // `ENOENT ... next-server.js.nft.json` after compiling successfully. Vercel produces its own
+  // traced output, so the setting is redundant there as well as fatal.
+  output: process.env.VERCEL ? undefined : "standalone",
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

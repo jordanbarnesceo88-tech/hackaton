@@ -455,14 +455,20 @@ git push -u origin master          <span class="c"># and/or: git push -u origin 
     <section id="postgres">
       <div class="step-head"><div class="step-n">04</div><h2 class="step">Provision Postgres <span class="acct">needs your account</span></h2></div>
       <div class="step-body">
-        <p><a href="https://neon.tech">neon.tech</a> → new project → copy <strong>both</strong>
-        connection strings.</p>
+        <p>Provision it <em>through Vercel</em> rather than signing up for Neon separately —
+        one account, and the connection strings are injected into the project for you:</p>
+        <pre><code>vercel install neon --name roi-db -e production -e preview</code></pre>
+        <p>The first run stops with <code>integration_terms_acceptance_required</code> and a
+        <code>verification_uri</code>: accept the marketplace terms in the browser once, then
+        re-run the same command. Needs Vercel CLI <strong>v59+</strong> — the flags don’t exist on
+        older CLIs and <code>npx vercel</code> may pin an old one, so use
+        <code>npx vercel@latest</code>. It sets nineteen variables; two matter:</p>
         <div class="tw">
           <table>
             <thead><tr><th>String</th><th>Recognise it by</th><th>Used for</th></tr></thead>
             <tbody>
-              <tr><td><strong>Pooled</strong></td><td>host contains <code>-pooler</code></td><td><code>DATABASE_URL</code> on the host — what the running app uses</td></tr>
-              <tr><td><strong>Direct</strong></td><td>no <code>-pooler</code></td><td>migrations and the seed, run from your laptop</td></tr>
+              <tr><td><strong>Pooled</strong></td><td><code>DATABASE_URL</code></td><td>what the running app uses</td></tr>
+              <tr><td><strong>Direct</strong></td><td><code>DATABASE_URL_UNPOOLED</code></td><td>migrations and the seed, run from your laptop</td></tr>
             </tbody>
           </table>
         </div>
@@ -474,9 +480,20 @@ git push -u origin master          <span class="c"># and/or: git push -u origin 
           must not go through it. Using the wrong one fails in a way that looks like a network
           flake.</p>
         </div>
-        <pre><code>DATABASE_URL="&lt;DIRECT url&gt;" npx prisma migrate deploy
-DATABASE_URL="&lt;DIRECT url&gt;" npm run db:seed
-DATABASE_URL="&lt;DIRECT url&gt;" npx prisma migrate status   <span class="c"># expect "up to date"</span></code></pre>
+        <pre><code>vercel env pull .env.deploy --environment=production --yes
+
+DATABASE_URL="&lt;DATABASE_URL_UNPOOLED&gt;" npx prisma migrate deploy
+DATABASE_URL="&lt;DATABASE_URL_UNPOOLED&gt;" npm run db:seed
+DATABASE_URL="&lt;DATABASE_URL_UNPOOLED&gt;" npx prisma migrate status   <span class="c"># "up to date"</span></code></pre>
+        <div class="note bite">
+          <span class="tag">This one bites</span>
+          <p>Pull into <code>.env.deploy</code>, <strong>never</strong> <code>.env.local</code>.
+          Next loads <code>.env.local</code> ahead of <code>.env</code>, so production values
+          landing there silently repoint local <code>npm run dev</code> — and
+          <code>npx vitest run</code>, which talks to a real database and creates and deletes
+          users — at production. Vercel’s own bootstrap guidance says to use
+          <code>.env.local</code>; for this repo, don’t.</p>
+        </div>
         <p>Both are idempotent: the seed upserts, and it skips pruning any demo row a saved
         analysis references rather than tripping the <code>onDelete: Restrict</code> foreign key.
         Safe to re-run.</p>
@@ -508,11 +525,30 @@ DATABASE_URL="&lt;DIRECT url&gt;" npx prisma migrate status   <span class="c"># 
           <p><code>postinstall: prisma generate</code> runs on every install, so Vercel’s dependency
           cache can’t serve a stale Prisma client. That is the classic Vercel + Prisma failure and
           it is closed.</p>
-          <p><code>output: "standalone"</code> in <code>next.config.ts</code> exists for the Docker
-          image; Vercel’s builder produces its own output and ignores it. If a build ever objects,
-          deleting that single line is the entire fix — nothing but the Dockerfile depends on it.</p>
+          <p>Security headers ride along in the same file, so they survive a change of host.</p>
           <p>CSP, HSTS, X-Frame-Options, X-Content-Type-Options and Referrer-Policy ship from
-          <code>next.config.ts</code> rather than host config, so they survive a change of host.</p>
+          <code>next.config.ts</code> rather than host config.</p>
+        </div>
+
+        <div class="note stop">
+          <span class="tag">Corrected — this document was wrong</span>
+          <p>The first version of this page said Vercel ignores <code>output: "standalone"</code>.
+          <strong>It does not.</strong> The build compiles, then Vercel’s <code>onBuildComplete</code>
+          step opens <code>.next/next-server.js.nft.json</code> — which standalone mode relocates —
+          and the deploy fails with <code>ENOENT: no such file or directory</code>. Deleting the
+          line would fix Vercel and break the Docker image, whose runner stage copies
+          <code>.next/standalone</code>. It is now conditional:
+          <code>process.env.VERCEL ? undefined : "standalone"</code>, verified both ways.</p>
+        </div>
+
+        <div class="note bite">
+          <span class="tag">This one bites</span>
+          <p>Deploying from the directory rather than from Git needs a <code>.vercelignore</code>.
+          The first deploy uploaded <code>.env</code> despite it being gitignored — the build log
+          says <em>“Detected .env file”</em> — which puts localhost dev credentials inside the
+          bundle. Note that once <code>.vercelignore</code> exists it <em>replaces</em>
+          <code>.gitignore</code>, so it must also list <code>node_modules</code> and
+          <code>.next</code> or your upload balloons.</p>
         </div>
 
         <div class="note stop">

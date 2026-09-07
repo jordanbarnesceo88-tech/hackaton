@@ -75,29 +75,59 @@ until now.
 
 ## 4. Provision Postgres **[needs your account]**
 
-[neon.tech](https://neon.tech) → new project → **copy both connection strings**:
+Provision it *through Vercel* rather than signing up for Neon separately — one account, and the
+connection strings are injected into the project for you:
 
-- the **pooled** one (host contains `-pooler`) → this becomes `DATABASE_URL` on the host;
-- the **direct** one → used only for migrations, from your laptop.
+```bash
+vercel install neon --name roi-db -e production -e preview
+```
+
+The first run stops with `integration_terms_acceptance_required` and a `verification_uri`;
+accept the marketplace terms in the browser once, then re-run the same command. This needs
+Vercel CLI **v59 or newer** — the flags don't exist on older CLIs, and `npx vercel` may pin an
+old one, so use `npx vercel@latest`.
+
+It sets nineteen variables, of which two matter here:
+
+- `DATABASE_URL` — **pooled**, what the app runs on;
+- `DATABASE_URL_UNPOOLED` — **direct**, what migrations run over.
 
 They are not interchangeable. `@prisma/adapter-pg` opens a pool per serverless instance, so the
 runtime needs the pooler; `prisma migrate deploy` takes advisory locks that a transaction-mode
 pooler can drop, so migrations go over the direct URL.
 
-Migrate and seed once, from your machine:
+Pull the values into a file Next does **not** load, then migrate and seed from your machine:
 
 ```bash
-DATABASE_URL="<DIRECT url>" npx prisma migrate deploy
-DATABASE_URL="<DIRECT url>" npm run db:seed
-DATABASE_URL="<DIRECT url>" npx prisma migrate status   # expect "up to date"
+vercel env pull .env.deploy --environment=production --yes
 ```
+
+```bash
+DATABASE_URL="<DATABASE_URL_UNPOOLED>" npx prisma migrate deploy
+DATABASE_URL="<DATABASE_URL_UNPOOLED>" npm run db:seed
+DATABASE_URL="<DATABASE_URL_UNPOOLED>" npx prisma migrate status   # expect "up to date"
+```
+
+**Pull into `.env.deploy`, never `.env.local`.** Next loads `.env.local` ahead of `.env`, so
+production values landing there silently repoint local `npm run dev` — and `npx vitest run`,
+which talks to a real database and creates and deletes users — at production. `.env.deploy` is
+not a filename Next loads, so localhost:5433 stays the only database local commands can reach.
+(Vercel's own bootstrap guidance says to pull into `.env.local`. Don't, for this repo.)
 
 The seed is idempotent — safe to re-run.
 
 ## 5. Deploy on Vercel **[needs your account]**
 
-1. [vercel.com/new](https://vercel.com/new) → import the GitHub repo. Framework preset
-   auto-detects as Next.js; **change nothing** in Build & Output Settings.
+1. Either import the GitHub repo at [vercel.com/new](https://vercel.com/new), or skip GitHub
+   entirely and deploy this directory: `vercel link --yes --project <name>` then
+   `vercel deploy --prod --yes`. Framework preset auto-detects as Next.js; **change nothing**
+   in Build & Output Settings.
+
+   If you deploy from the directory, add a `.vercelignore`. The CLI honours `.gitignore` only
+   until a `.vercelignore` exists — but the first deploy here uploaded `.env` anyway and the
+   build logged *"Detected .env file"*, putting the localhost dev credentials in the bundle. The
+   committed `.vercelignore` excludes `.env*` and re-states `node_modules`/`.next`, which
+   `.gitignore` had been covering.
 2. Environment Variables (Production + Preview):
 
    | Name | Value |
@@ -112,9 +142,14 @@ Three things that are already handled, so you don't have to configure them:
 
 - `postinstall: prisma generate` runs on every install, so Vercel's dependency cache can't
   serve a stale Prisma client — the classic Vercel/Prisma failure.
-- `output: "standalone"` in `next.config.ts` is for the Docker image. Vercel's builder produces
-  its own output and ignores it. If a build ever objects, deleting that one line is the entire
-  fix and nothing else depends on it except the Dockerfile.
+- `output: "standalone"` is now conditional — `process.env.VERCEL ? undefined : "standalone"`.
+  **This was wrong in the first version of this document, which said Vercel ignores the
+  setting.** It does not: the build compiles, then Vercel's `onBuildComplete` step opens
+  `.next/next-server.js.nft.json`, which standalone mode relocates, and the deploy dies with
+  `ENOENT: no such file or directory`. Deleting the line outright would fix Vercel and break the
+  Docker image, whose runner stage copies `.next/standalone` — hence the condition. Verified
+  both ways: local `npm run build` still emits `.next/standalone/server.js`, and the Vercel build
+  passes.
 - Security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) ship
   from `next.config.ts`, not from host config, so they survive a host change.
 
