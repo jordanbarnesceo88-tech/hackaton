@@ -74,7 +74,7 @@ export default async function ComparePage({
   const calcQuery = objectName ? `?obj=${encodeURIComponent(objectName)}` : "";
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8 py-12">
+    <div className="surface-data flex flex-col gap-8 py-12">
       <div>
         <h1>
           Сравнение решений: {objectName ? `«${objectName}»` : catalog.name} ({catalog.industry.name})

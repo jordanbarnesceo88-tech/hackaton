@@ -61,7 +61,7 @@ export default async function CalculatePage({
   }
 
   return (
-    <div className="mx-auto max-w-3xl py-12">
+    <div className="surface-data py-12">
       <EconomicsCalculator
         categorySolutions={categorySolutions}
         initialSelectedId={solution.id}

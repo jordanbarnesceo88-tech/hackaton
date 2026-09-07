@@ -12,7 +12,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check:sources": "tsx scripts/check-sources.ts"
+    "check:sources": "tsx scripts/check-sources.ts",
+    "check:contrast": "tsx scripts/check-contrast.ts"
   },
   "prisma": {
     "seed": "tsx scripts/seed.ts"

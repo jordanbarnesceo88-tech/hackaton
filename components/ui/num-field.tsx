@@ -51,7 +51,14 @@ export function NumField({
         min={min}
         max={max}
         step={step}
-        className="rounded-md border px-3 py-2 text-sm"
+        // Подчёркивание вместо рамки: поле перестаёт быть коробкой и становится строкой,
+        // в которую пишут. Фокус при этом обязан остаться видимым — без рамки его больше
+        // нечем показать, и клавиатурная навигация иначе слепнет (SC 2.4.7).
+        className="w-full border-0 border-b-2 border-input bg-transparent px-1 py-2 text-base
+          tabular-nums transition-colors outline-none
+          hover:border-muted-foreground
+          focus-visible:border-primary focus-visible:ring-0
+          aria-invalid:border-destructive"
         // Keep the raw string while the field is mid-edit so it can be cleared and retyped.
         // Binding straight to the number meant `Number("")` was 0: clearing the box to type a
         // new figure instantly rewrote it to 0, and you had to select-all instead.

@@ -8,7 +8,7 @@ export default async function AnalysesPage() {
   if (!session?.user?.id) redirect("/login");
   const analyses = await getSavedAnalyses(session.user.id);
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4 py-12">
+    <div className="surface-prose flex flex-col gap-4 py-12">
       <h1>Мои расчёты</h1>
       {analyses.length === 0 ? (
         <p className="text-sm text-muted-foreground">Пока нет сохранённых расчётов.</p>

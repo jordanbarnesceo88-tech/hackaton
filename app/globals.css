@@ -84,7 +84,11 @@
      popup, and the autofilled email/password fields on /login and /signup. Declared in all
      three token blocks so it tracks the theme exactly as the tokens do. */
   color-scheme: light;
-  --background: oklch(1 0 0);
+  /* Не чистый белый: под насыщенным синим акцентом он читается как отсутствие решения, а не
+     как решение. Карточка при этом остаётся белой — так она отделяется от фона сама, без
+     границы и тени, что и есть язык, к которому мы идём. Оттенок взят от акцента (264), чтобы
+     нейтраль была выбранной, а не унаследованной. */
+  --background: oklch(0.978 0.004 264);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -95,7 +99,10 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* 0.556 давало 4.74:1 на чистом белом и 4.46:1 на тонированном фоне — под порогом
+     4.5 для текста. Затемнено ровно настолько, чтобы вернуться выше него; проверяется
+     скриптом npm run check:contrast, а не на глаз. */
+  --muted-foreground: oklch(0.542 0 0);
   --accent: oklch(0.96 0.02 250); /* faint blue surface (hovers/subtle) */
   --accent-foreground: oklch(0.42 0.17 264);
   /* Darkened from L .577. --destructive is only ever ink or a light tint here (never a solid
@@ -275,9 +282,38 @@
   }
 }
 
+@layer components {
+  /* Ширина выбирается по РОЛИ поверхности, а не одна на всё приложение.
+     «Везде 100vw» — не ответ: строка длиннее ~75 знаков теряется при переходе на следующую,
+     и вопрос во всю ширину монитора не читается. Но и max-w-3xl на калькуляторе оставлял две
+     трети экрана пустыми, а таблицу сравнения жал в колонку с обрезанными столбцами. */
+
+  /* Проза, формы, шаги опроса. */
+  .surface-prose {
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+
+  /* Данные: таблицы и панели занимают монитор, но не липнут к краям. */
+  .surface-data {
+    width: 100%;
+    max-width: 96rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.5rem, 4vw, 4rem);
+  }
+}
+
 @media print {
   .no-print {
     display: none !important;
+  }
+  /* Фон страницы на экране тонирован, чтобы белая карточка отделялась от него сама. Бумага
+     так не работает: тонировать её нечем и незачем. Возвращаем чистый белый безусловно, а не
+     только для .dark ниже. */
+  :root {
+    --background: oklch(1 0 0);
   }
   /* Paper is white. The dark token block is scoped to `screen`, which covers the
      prefers-color-scheme path; this covers the explicit `.dark` class a future toggle (#5d)
