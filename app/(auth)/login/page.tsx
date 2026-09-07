@@ -26,7 +26,7 @@ export default async function LoginPage({
   }
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-4 py-16">
-      <h1 className="text-2xl font-semibold">Вход</h1>
+      <h1>Вход</h1>
       {error && <p className="text-sm text-destructive">Неверный email или пароль</p>}
       <form action={login} className="flex flex-col gap-3">
         {/* A placeholder is not a label (WCAG 2.2 SC 3.3.2 / 1.3.1): it disappears the moment

@@ -127,7 +127,7 @@ export function EconomicsCalculator({
     <div className="flex flex-col gap-6">
       {/* Header lives here (not the server page) so the title/vendor follow an in-place switch. */}
       <div>
-        <h1 className="text-2xl font-semibold">
+        <h1>
           Расчёт экономики: {primary.name}
           {objectName ? ` — объект «${objectName}»` : ""}
         </h1>

@@ -10,7 +10,7 @@ export default function SignupPage() {
   const [state, action, pending] = useActionState(signUpAction, initial);
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-4 py-16">
-      <h1 className="text-2xl font-semibold">Регистрация</h1>
+      <h1>Регистрация</h1>
       {/* The signup error arrives via useActionState — no navigation, so it needs announcing.
           role="alert" (assertive) rather than status: the submission failed and the user is
           about to retry. */}

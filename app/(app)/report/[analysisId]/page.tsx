@@ -53,6 +53,9 @@ export default async function ReportPage({
         <div className="text-xs font-medium uppercase tracking-wide text-primary">
           Robotization ROI
         </div>
+        {/* Размеры заголовков здесь заданы явно и НЕ подчиняются экранной шкале: отчёт
+            печатается на A4, где 40-пиксельный заголовок съедает четверть первой страницы,
+            а секционные подписи работают как рубрикатор, а не как заголовки раздела. */}
         <h1 className="text-2xl font-semibold">Отчёт ROI: {saved.name}</h1>
         <div className="text-xs text-muted-foreground">
           Сформировано {new Date().toLocaleDateString("ru-RU")}

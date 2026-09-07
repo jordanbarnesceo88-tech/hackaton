@@ -45,7 +45,9 @@ function CardTitle({
     <Tag
       data-slot="card-title"
       className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        // Размер задаёт шкала в @layer base по тегу (as="h2"/"h3"); здесь только начертание,
+        // иначе карточка перебивает шкалу и заголовки внутри неё остаются мелкими.
+        "font-heading leading-snug group-data-[size=sm]/card:text-sm",
         className
       )}
       {...props}

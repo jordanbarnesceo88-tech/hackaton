@@ -76,7 +76,7 @@ export default async function ComparePage({
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 py-12">
       <div>
-        <h1 className="text-2xl font-semibold">
+        <h1>
           Сравнение решений: {objectName ? `«${objectName}»` : catalog.name} ({catalog.industry.name})
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -88,7 +88,7 @@ export default async function ComparePage({
       {catalog.solutionCategories.map((category) => (
         <section key={category.id} className="flex flex-col gap-3">
           <div>
-            <h2 className="text-xl font-medium">{category.name}</h2>
+            <h2>{category.name}</h2>
             <p className="text-sm text-muted-foreground">{category.description}</p>
           </div>
           <div className="overflow-x-auto rounded-md border">

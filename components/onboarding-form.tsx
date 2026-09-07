@@ -44,7 +44,7 @@ export function OnboardingForm({ industries }: { industries: Industry[] }) {
     <div className="mx-auto flex max-w-2xl flex-col gap-6 py-12">
       {/* This page had no heading of any kind, so screen-reader users landed on the entry
           point of the app with no document outline to orient by (WCAG SC 1.3.1 / 2.4.6). */}
-      <h1 className="text-2xl font-semibold">Подбор роботизированного решения</h1>
+      <h1>Подбор роботизированного решения</h1>
       <Card>
         <CardHeader>
           <CardTitle as="h2">1. Выберите отрасль</CardTitle>

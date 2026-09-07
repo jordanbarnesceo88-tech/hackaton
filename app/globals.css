@@ -31,9 +31,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -235,8 +235,43 @@
   html {
     @apply font-sans;
   }
-  h1, h2 {
-    @apply font-semibold tracking-tight;
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  /* Контраст размеров был 20px против 14px — отношение 1.43, при котором глаз читает
+     страницу одним сплошным блоком, и никакая палитра этого не исправит. Опросные
+     интерфейсы, на которые мы равняемся, держатся примерно на 2.5. */
+  h1 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.5rem);
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  /* Денежные колонки: цифры одной ширины. Иначе столбец «дышит» при каждом пересчёте, и
+     это читается как дефект, а не как обновление. */
+  b,
+  strong,
+  td,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 

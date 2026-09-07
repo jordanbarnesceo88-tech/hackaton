@@ -9,7 +9,7 @@ export default async function AnalysesPage() {
   const analyses = await getSavedAnalyses(session.user.id);
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4 py-12">
-      <h1 className="text-2xl font-semibold">Мои расчёты</h1>
+      <h1>Мои расчёты</h1>
       {analyses.length === 0 ? (
         <p className="text-sm text-muted-foreground">Пока нет сохранённых расчётов.</p>
       ) : (
