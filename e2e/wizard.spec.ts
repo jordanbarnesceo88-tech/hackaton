@@ -26,9 +26,15 @@ test("NPV в списке решений совпадает с NPV в расчё
   // того, что шаг 3 не собирает данные, которые никто не читает.
   await expect(page.getByRole("columnheader", { name: "NPV" }).first()).toBeVisible();
 
+  // Колонку ищем по заголовку, а не по позиции: тест, привязанный к индексу, ломается от
+  // любой перестановки колонок — а перестановка их порядка это как раз то, что улучшает
+  // продукт, и ронять из-за неё паритет-тест значит наказывать за улучшение.
+  const headers = await page.locator("thead th").first().locator("..").locator("th").allInnerTexts();
+  const npvIndex = headers.findIndex((h) => h.trim() === "NPV");
+  expect(npvIndex, `в заголовке нет колонки NPV: ${headers.join(" | ")}`).toBeGreaterThanOrEqual(0);
+
   const firstRow = page.locator("tbody tr").first();
-  const cells = firstRow.locator("td");
-  const npvInList = (await cells.last().locator("..").locator("td").nth(-2).innerText()).trim();
+  const npvInList = (await firstRow.locator("td").nth(npvIndex).innerText()).trim();
   expect(npvInList).not.toBe("");
 
   await firstRow.getByRole("link", { name: /Рассчитать/ }).click();
@@ -42,4 +48,21 @@ test("NPV в списке решений совпадает с NPV в расчё
   const npvInCalc = (await npvRow.innerText()).split(":")[1]!.trim();
 
   expect(npvInCalc, `список: ${npvInList}, расчёт: ${npvInCalc}`).toBe(npvInList);
+});
+
+test("ответ виден без горизонтальной прокрутки", async ({ page }) => {
+  await page.goto("/compare/warehouse?industry=retail&facility=warehouse&area=10000&ops=5000&staff=40");
+
+  // Блок лучшего решения отвечает на вопрос до таблицы.
+  const best = page.getByTestId("best-solution");
+  await expect(best).toBeVisible();
+  await expect(best).toContainText(/Окупается за|Не окупается/);
+
+  // И колонка окупаемости попадает в видимую область, а не уезжает за край: подпись
+  // обещает сортировку по NPV, и человек должен увидеть то, что ему обещали.
+  const header = page.getByRole("columnheader", { name: "Окупаемость" }).first();
+  const box = await header.boundingBox();
+  const width = page.viewportSize()!.width;
+  expect(box, "колонка окупаемости не отрисована").not.toBeNull();
+  expect(box!.x + box!.width, "колонка окупаемости уехала за правый край").toBeLessThanOrEqual(width);
 });

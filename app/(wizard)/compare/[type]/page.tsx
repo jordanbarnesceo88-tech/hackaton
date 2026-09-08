@@ -10,6 +10,7 @@ import { isCalculable } from "@/lib/economics/types";
 import { formatYearsRu } from "@/lib/format/plural";
 import { parseWizardParams, buildWizardQuery } from "@/lib/wizard/steps";
 import { ProvenanceBadge } from "@/components/provenance-badge";
+import { BestSolution, type Candidate } from "@/components/calculator/best-solution";
 import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
 
 const BASIS_LABEL: Record<CapacityBasis, string> = {
@@ -97,6 +98,28 @@ export default async function ComparePage({
   const economicsFor = (s: SolutionRow) =>
     wizard.complete ? computeEconomics(toSolutionCapacity(s), wizard.params, a) : null;
 
+  // Кандидаты собираются по всем категориям сразу: человек спрашивал «что окупится у меня»,
+  // а не «что лучшее среди AS/RS». Деление на категории — способ разложить таблицу, а не
+  // граница, внутри которой имеет смысл выбирать.
+  const candidates: Candidate[] = wizard.complete
+    ? catalog.solutionCategories.flatMap((c) =>
+        c.solutions.map((s) => ({
+          id: s.id,
+          name: s.name,
+          vendor: s.vendor,
+          isClass: s.isClass,
+          result: computeEconomics(toSolutionCapacity(s as SolutionRow), wizard.params, a),
+        }))
+      )
+    : [];
+
+  const paramsHref = `/onboarding/params?${buildWizardQuery({
+    industry: wizard.industry,
+    facility: type,
+    objectName,
+    params: wizard.complete ? wizard.params : null,
+  })}`;
+
   return (
     <div className="surface-data flex flex-col gap-8 py-12">
       <div>
@@ -110,6 +133,15 @@ export default async function ComparePage({
         </p>
       </div>
 
+      {wizard.complete && (
+        <BestSolution
+          candidates={candidates}
+          usdToRub={a.usdToRub}
+          calcHref={(id) => `/calculate/${id}${calcSuffix}`}
+          backHref={paramsHref}
+        />
+      )}
+
       {catalog.solutionCategories.map((category) => (
         <section key={category.id} className="flex flex-col gap-3">
           <div>
@@ -120,18 +152,22 @@ export default async function ComparePage({
             <table className="w-full border-collapse text-sm">
               <thead className="border-b bg-muted/50 text-muted-foreground">
                 <tr>
+                  {/* Порядок колонок — это порядок вопросов, а не порядок происхождения
+                      данных. Окупаемость и NPV стояли одиннадцатыми из двенадцати и уезжали
+                      за правый край, пока подпись над таблицей обещала сортировку по NPV.
+                      Остальное нужно тому, кто копает, и стоит после ответа. */}
                   <Th>Решение</Th>
+                  {wizard.complete && <Th className="text-right">Окупаемость</Th>}
+                  {wizard.complete && <Th className="text-right">NPV</Th>}
+                  {wizard.complete && <Th className="text-right">Единиц</Th>}
                   <Th className="text-right">Цена</Th>
                   <Th>Производительность</Th>
                   <Th className="text-right">Годовая произв.</Th>
+                  <Th className="text-right">OPEX/год</Th>
                   <Th className="text-right">Обслуж./год</Th>
                   <Th className="text-right">Энергия/год</Th>
                   <Th className="text-right">Лицензии/год</Th>
-                  <Th className="text-right">OPEX/год</Th>
                   <Th className="text-right">Цена за 1000 ед./год</Th>
-                  {wizard.complete && <Th className="text-right">Единиц</Th>}
-                  {wizard.complete && <Th className="text-right">Окупаемость</Th>}
-                  {wizard.complete && <Th className="text-right">NPV</Th>}
                   <Th />
                 </tr>
               </thead>
@@ -172,6 +208,25 @@ export default async function ComparePage({
                           <ProvenanceBadge source={s.source} sourceUrl={s.sourceUrl} />
                         </div>
                       </Td>
+                      {wizard.complete && (
+                        <Td className="text-right whitespace-nowrap font-medium">
+                          {!calculable
+                            ? "—"
+                            : !viable || viable.discountedPaybackYears === null
+                              ? "не окупается"
+                              : formatYearsRu(viable.discountedPaybackYears)}
+                        </Td>
+                      )}
+                      {wizard.complete && (
+                        <Td className="text-right whitespace-nowrap font-medium">
+                          {viable ? money(viable.npvUsd) : "—"}
+                        </Td>
+                      )}
+                      {wizard.complete && (
+                        <Td className="text-right whitespace-nowrap">
+                          {calculable ? calculable.quantity : "—"}
+                        </Td>
+                      )}
                       <Td className="text-right whitespace-nowrap">
                         {s.priceEstimated && s.priceLowUsd != null && s.priceHighUsd != null ? (
                           <span title={s.priceBasis ?? undefined}>
@@ -193,32 +248,13 @@ export default async function ComparePage({
                           ? "—"
                           : `${annual.toLocaleString("ru-RU")} ${s.capacityUnit.split("/")[0]}/год`}
                       </Td>
+                      <Td className="text-right whitespace-nowrap font-medium">{money(opex)}</Td>
                       <Td className="text-right whitespace-nowrap">{money(s.maintenanceUsdYear)}</Td>
                       <Td className="text-right whitespace-nowrap">{money(s.energyUsdYear)}</Td>
                       <Td className="text-right whitespace-nowrap">{money(s.licensingUsdYear)}</Td>
-                      <Td className="text-right whitespace-nowrap font-medium">{money(opex)}</Td>
                       <Td className="text-right whitespace-nowrap">
                         {normPrice === null ? "—" : money(normPrice)}
                       </Td>
-                      {wizard.complete && (
-                        <Td className="text-right whitespace-nowrap">
-                          {calculable ? calculable.quantity : "—"}
-                        </Td>
-                      )}
-                      {wizard.complete && (
-                        <Td className="text-right whitespace-nowrap">
-                          {!calculable
-                            ? "—"
-                            : !viable || viable.discountedPaybackYears === null
-                              ? "не окупается"
-                              : formatYearsRu(viable.discountedPaybackYears)}
-                        </Td>
-                      )}
-                      {wizard.complete && (
-                        <Td className="text-right whitespace-nowrap font-medium">
-                          {viable ? money(viable.npvUsd) : "—"}
-                        </Td>
-                      )}
                       <Td>
                         <Link
                           href={`/calculate/${s.id}${calcSuffix}`}
