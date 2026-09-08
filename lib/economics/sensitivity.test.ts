@@ -111,3 +111,14 @@ describe("each bar records the perturbation it was measured at", () => {
     );
   });
 });
+
+describe("возмущение упирается в границу, а не роняет столбец", () => {
+  it("горизонт ROI в один год не исчезает из диаграммы", () => {
+    // Находка ревью: «минус один год» от границы 1 давало 0, baseEconomics возвращал null, и
+    // столбец молча пропадал — пользователь видел торнадо без рычага, которым только что
+    // двигал, и ничто не говорило, что его пропустили.
+    const atBound = makeAssumptions({ roiHorizonYears: 1 });
+    const bars = sensitivity(cap, params, atBound);
+    expect(bars.map((b) => b.key)).toContain("roiHorizonYears");
+  });
+});

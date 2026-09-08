@@ -1,5 +1,6 @@
 import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
 import { baseEconomics } from "./calculate";
+import { ASSUMPTION_BOUNDS } from "./assumptions";
 import { projectFinance } from "./finance";
 
 /** NPV for a scenario, allowing negative savings (real negative NPV). null only if invalid. */
@@ -72,7 +73,12 @@ export function sensitivity(
   for (const key of PERTURBED_KEYS) {
     const wholeYear = WHOLE_YEAR_KEYS.has(key);
     const delta = wholeYear ? 1 : a[key] * deltaPct;
-    const lowNpv = npvForScenario(cap, params, { ...a, [key]: a[key] - delta });
+    // Нижняя нога упирается в границу допущения, а не проваливается под неё. При горизонте
+    // ROI в один год «минус год» давало ноль, baseEconomics возвращал null, и столбец МОЛЧА
+    // исчезал из диаграммы: пользователь видел торнадо без самого рычага, которым он только
+    // что двигал, и ничто не сообщало, что столбец пропущен.
+    const low = Math.max(a[key] - delta, ASSUMPTION_BOUNDS[key]?.min ?? a[key] - delta);
+    const lowNpv = npvForScenario(cap, params, { ...a, [key]: low });
     const highNpv = npvForScenario(cap, params, { ...a, [key]: a[key] + delta });
     if (lowNpv === null || highNpv === null) continue;
     bars.push({

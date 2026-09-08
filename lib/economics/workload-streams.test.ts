@@ -76,3 +76,24 @@ describe("парк размеряется по тому же потоку, чт�
     expect(r.simplePaybackYears).toBeGreaterThan(0.3);
   });
 });
+
+describe("нулевая пиковая нагрузка у stock-решения", () => {
+  // Находка ревью: coverageOf и computeQuantity по-разному понимали peak ≤ 0 — одна говорила
+  // «работы нет», другая всё равно давала одну единицу и полный CAPEX. Это не расхождение
+  // формул, а два разных ответа на один вопрос, и его надо было закрепить явно.
+  const stock: SolutionCapacity = {
+    capacityPerUnit: 50, capacityBasis: "CONCURRENT_STOCK", workloadStream: "OPERATION_FLOW",
+    priceUsd: 60000, maintenanceUsdYear: 5000, energyUsdYear: 1000, licensingUsdYear: 2000,
+  };
+
+  it("нулевой пик означает «работы нет»: ничего не замещается, но техника куплена", () => {
+    const r = computeEconomics(stock, makeParams({ peakConcurrent: 0, staffCount: 40 }), makeAssumptions());
+    if (!("displacedFte" in r)) throw new Error("ожидался считаемый результат");
+    // Нечего обслуживать — некого и замещать. Это вывод, а не вырожденный ввод.
+    expect(r.displacedFte).toBe(0);
+    // Но парк нельзя купить нулевым: одна единица и её стоимость остаются на балансе.
+    expect(r.quantity).toBe(1);
+    expect(r.capexUsd).toBeGreaterThan(0);
+    expect(r.economical).toBe(false);
+  });
+});

@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getSavedAnalysis, getSolutionForCalc, getFacilityTypeBySlug } from "@/lib/db/queries";
 import { computeEconomics } from "@/lib/economics/calculate";
-import { withAssumptionDefaults, withParamDefaults } from "@/lib/economics/assumptions";
+import { withAssumptionDefaults } from "@/lib/economics/assumptions";
+import { validateParams } from "@/lib/analyses/validate";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { sensitivity } from "@/lib/economics/sensitivity";
 import { resultsDiverged } from "@/lib/analyses/diverged";
@@ -28,7 +29,29 @@ export default async function ReportPage({
   const solution = await getSolutionForCalc(saved.solutionId);
   if (!solution) notFound();
 
-  const p = withParamDefaults(saved.params);
+  // Отчёт — документ, который отдают клиенту, и подставлять в него выдуманные параметры
+  // нельзя. withParamDefaults для отсутствующего или испорченного поля подставляет
+  // 1000 м² / 500 операций / 10 человек, и отчёт молча строился бы на чужих числах, ничего
+  // об этом не говоря. Здесь параметры обязаны быть теми, с которыми расчёт сохраняли:
+  // validateParams либо подтверждает их, либо отказывает.
+  const validated = validateParams(saved.params);
+  if (!validated) {
+    return (
+      <div className="surface-prose flex flex-col gap-4 py-12">
+        <h1>Отчёт нельзя построить</h1>
+        <p className="text-muted-foreground">
+          Параметры объекта в этом сохранённом расчёте повреждены или относятся к более
+          старой версии модели. Показать отчёт на подставленных значениях мы не можем: это
+          был бы документ с числами, которых вы не вводили.
+        </p>
+        <p className="text-muted-foreground">
+          Откройте расчёт заново и сохраните его ещё раз — данные решения при этом
+          пересчитаются по актуальной модели.
+        </p>
+      </div>
+    );
+  }
+  const p = validated;
   // Backfill defaults so a pre-existing saved analysis (missing a newer assumption like
   // energyCostFactor) doesn't recompute to NaN/invalid in the report.
   const a = withAssumptionDefaults(saved.assumptions);
