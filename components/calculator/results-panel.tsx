@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isCalculable } from "@/lib/economics/types";
 import type { EconomicsResult } from "@/lib/economics/types";
 import { economicsRows, PANEL_LABELS } from "./economics-rows";
+import { EXPLANATIONS } from "@/lib/economics/explanations";
+import { Disclosure } from "@/components/ui/disclosure";
 
 export function ResultsPanel({
   result,
@@ -28,6 +30,10 @@ export function ResultsPanel({
             {economicsRows(result, usdToRub, PANEL_LABELS).map((row) => (
               <div key={row.key}>
                 {row.label}: <b>{row.value}</b>
+                <Disclosure
+                  title={EXPLANATIONS[row.key].title}
+                  body={EXPLANATIONS[row.key].body}
+                />
               </div>
             ))}
             {!result.economical && (

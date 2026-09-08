@@ -2,7 +2,27 @@ import { formatCost } from "@/lib/format/currency";
 import { formatYearsRu } from "@/lib/format/plural";
 import type { CalculableResult } from "@/lib/economics/types";
 
-export type EconomicsRow = { key: string; label: string; value: string };
+/**
+ * Идентификаторы показателей, которые рендерят обе поверхности — панель расчёта и отчёт.
+ *
+ * Union, а не `string`, ради одной вещи: реестр объяснений типизируется по этим ключам, и
+ * показатель без объяснения не компилируется. Одно нераскрываемое число компрометирует
+ * остальные — если у девяти цифр есть ответ «откуда», а у десятой нет, скептик решит, что
+ * именно её и прячут.
+ */
+export type EconomicsRowKey =
+  | "quantity"
+  | "displacedFte"
+  | "capex"
+  | "opex"
+  | "baseline"
+  | "savings"
+  | "simplePayback"
+  | "discountedPayback"
+  | "roi"
+  | "npv";
+
+export type EconomicsRow = { key: EconomicsRowKey; label: string; value: string };
 
 /**
  * The canonical ordered label/value rows of a calculable economics result. The interactive
