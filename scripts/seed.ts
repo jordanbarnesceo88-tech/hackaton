@@ -36,12 +36,14 @@ async function main() {
     { key: "laborReplacementPct", label: "Замещение труда роботами", value: 0.5, unit: "доля", order: 6 },
     { key: "residualSupervisionPct", label: "Остаточный надзор персоналом", value: 0.1, unit: "доля", order: 7 },
     { key: "opsPerWorkerPerYear", label: "Операций на сотрудника в год", value: 12500, unit: "операций", order: 8 },
-    { key: "turnoverPerDay", label: "Оборотов в сутки (для stock-решений)", value: 8, unit: "раз", order: 9 },
-    { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 10 },
-    { key: "discountRate", label: "Ставка дисконтирования", value: 0.12, unit: "доля", order: 11 },
-    { key: "assetLifeYears", label: "Срок службы техники", value: 7, unit: "лет", order: 12 },
-    { key: "usdToRub", label: "Курс USD→RUB", value: 90, unit: "₽/$", order: 13 },
-    { key: "energyCostFactor", label: "Множитель энергозатрат (регион)", value: 1.0, unit: "коэф.", order: 14 },
+    { key: "areaPerCleanerPerYear", label: "Площадь на уборщика в год", value: 600000, unit: "м²/год", description: "Порядок величины (≈300 м²/час × 2000 часов), а не цитата из источника", order: 9 },
+    { key: "cleaningsPerDay", label: "Уборок площади в сутки", value: 1, unit: "раз", order: 10 },
+    { key: "turnoverPerDay", label: "Оборотов в сутки (для stock-решений)", value: 8, unit: "раз", order: 11 },
+    { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 12 },
+    { key: "discountRate", label: "Ставка дисконтирования", value: 0.12, unit: "доля", order: 13 },
+    { key: "assetLifeYears", label: "Срок службы техники", value: 7, unit: "лет", order: 14 },
+    { key: "usdToRub", label: "Курс USD→RUB", value: 90, unit: "₽/$", order: 15 },
+    { key: "energyCostFactor", label: "Множитель энергозатрат (регион)", value: 1.0, unit: "коэф.", order: 16 },
   ];
   for (const asmp of assumptions) {
     await prisma.assumption.upsert({
@@ -90,8 +92,13 @@ async function main() {
   for (const c of CATEGORIES) {
     await prisma.solutionCategory.upsert({
       where: { slug: c.slug },
-      update: { name: c.name, description: c.description },
-      create: { slug: c.slug, name: c.name, description: c.description },
+      update: { name: c.name, description: c.description, workloadStream: c.workloadStream },
+      create: {
+        slug: c.slug,
+        name: c.name,
+        description: c.description,
+        workloadStream: c.workloadStream,
+      },
     });
     categoryCount++;
   }

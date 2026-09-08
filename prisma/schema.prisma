@@ -35,6 +35,12 @@ model SolutionCategory {
   slug          String                 @unique
   name          String
   description   String
+
+  /// Спрос и предел замещения считаются по этому потоку. Значение по умолчанию существует
+  /// ради миграции существующих строк, а не ради авторов данных: тест требует, чтобы каждая
+  /// категория в seed задавала поток явно.
+  workloadStream WorkloadStream        @default(OPERATION_FLOW)
+
   solutions     Solution[]
   facilityTypes FacilityTypeCategory[]
 }
@@ -57,6 +63,14 @@ enum SolutionSource {
   SEED
   ORGANIZER
   PARSED
+}
+
+/// Какую работу объекта делает вид решения. Принадлежит КАТЕГОРИИ, а не отдельной модели:
+/// все паллетайзеры считаются одинаково, и различать их по строкам значило бы завести
+/// пятнадцать возможностей ошибиться там, где хватает двух.
+enum WorkloadStream {
+  OPERATION_FLOW
+  FLOOR_AREA
 }
 
 enum CapacityBasis {

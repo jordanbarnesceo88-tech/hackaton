@@ -32,7 +32,11 @@ export default async function ReportPage({
   // Backfill defaults so a pre-existing saved analysis (missing a newer assumption like
   // energyCostFactor) doesn't recompute to NaN/invalid in the report.
   const a = withAssumptionDefaults(saved.assumptions);
-  const capacity = toSolutionCapacity(solution);
+  const capacity = toSolutionCapacity({
+    ...solution,
+    // Поток хранится у категории; движку он нужен на решении.
+    workloadStream: solution.solutionCategory.workloadStream,
+  });
   const result = computeEconomics(capacity, p, a);
   const bars = sensitivity(capacity, p, a);
   const dataChanged = resultsDiverged(saved.results, result);

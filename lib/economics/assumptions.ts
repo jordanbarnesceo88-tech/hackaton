@@ -8,7 +8,12 @@ export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
   installPctOfCapex: 0.15,
   laborReplacementPct: 0.5, // A2 (was 0.7)
   residualSupervisionPct: 0.1, // A2
-  opsPerWorkerPerYear: 12500, // A1
+  opsPerWorkerPerYear: 12500, // A1 — делитель предела замещения для потока OPERATION_FLOW
+  // Делитель того же предела для потока FLOOR_AREA. ПОРЯДОК ВЕЛИЧИНЫ, а не цитата:
+  // ≈300 м²/час × 2000 часов. Редактируется, как и всё остальное.
+  areaPerCleanerPerYear: 600000,
+  // Без него площадь — разовая величина, а не поток: объект убирают каждый день, а не однажды.
+  cleaningsPerDay: 1,
   turnoverPerDay: 8,
   roiHorizonYears: 5,
   discountRate: 0.12, // A3
@@ -43,6 +48,10 @@ export const ASSUMPTION_BOUNDS: Record<keyof AssumptionValues, { min: number; ma
   residualSupervisionPct: { min: 0, max: 1 }, // a fraction
   opsPerWorkerPerYear: { min: 1, max: 10_000_000 },
   turnoverPerDay: { min: 1, max: 1000 }, // a divisor in resolvePeakConcurrent — 0 blanks the page
+  areaPerCleanerPerYear: { min: 10000, max: 5000000 },
+  // Нижняя граница 1, а не 0: ноль здесь обнуляет нагрузку потока, а не «отключает уборку», и
+  // решение молча становится бесконечно выгодным.
+  cleaningsPerDay: { min: 1, max: 24 },
   roiHorizonYears: { min: 1, max: 30 },
   discountRate: { min: 0, max: 1 }, // 0..100% cost of capital
   assetLifeYears: { min: 1, max: 50 },

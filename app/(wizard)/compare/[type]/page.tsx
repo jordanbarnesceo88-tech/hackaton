@@ -11,7 +11,7 @@ import { formatYearsRu } from "@/lib/format/plural";
 import { parseWizardParams, buildWizardQuery } from "@/lib/wizard/steps";
 import { ProvenanceBadge } from "@/components/provenance-badge";
 import { BestSolution, type Candidate } from "@/components/calculator/best-solution";
-import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
+import type { AssumptionValues, CapacityBasis, WorkloadStream } from "@/lib/economics/types";
 
 const BASIS_LABEL: Record<CapacityBasis, string> = {
   PER_HOUR_FLOW: "поток/час",
@@ -23,6 +23,9 @@ type SolutionRow = {
   id: string;
   name: string;
   vendor: string;
+  // Спускается с категории в getCatalogForFacilityType: движок принимает поток на решении.
+  workloadStream: WorkloadStream;
+  isClass: boolean;
   priceUsd: number;
   capacityPerUnit: number;
   capacityUnit: string;
@@ -205,7 +208,7 @@ export default async function ComparePage({
                         <div className="font-medium">{s.name}</div>
                         <div className="text-xs text-muted-foreground">{s.vendor}</div>
                         <div className="mt-1">
-                          <ProvenanceBadge source={s.source} sourceUrl={s.sourceUrl} />
+                          <ProvenanceBadge source={s.source} sourceUrl={s.sourceUrl} isClass={s.isClass} />
                         </div>
                       </Td>
                       {wizard.complete && (

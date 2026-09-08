@@ -4,7 +4,7 @@ import type {
   AssumptionValues,
   EconomicsResult,
 } from "./types";
-import { computeQuantity, demandPerYear } from "./normalize";
+import { computeQuantity, demandPerYear, workerOutputPerYear } from "./normalize";
 import { projectFinance } from "./finance";
 
 export type BaseEconomics = {
@@ -26,9 +26,13 @@ export function baseEconomics(
   a: AssumptionValues
 ): BaseEconomics | null {
   const quantity = computeQuantity(cap, params, a);
+  // Делитель предела замещения зависит от потока, поэтому проверяется тот, который реально
+  // используется. Общая проверка opsPerWorkerPerYear роняла бы решение потока площади в
+  // invalid_inputs из-за допущения, которого оно не касается.
+  const perWorker = workerOutputPerYear(a, cap.workloadStream);
   if (
     quantity === null ||
-    !(a.opsPerWorkerPerYear > 0) ||
+    !(perWorker > 0) ||
     !(a.roiHorizonYears >= 1) ||
     !(a.assetLifeYears >= 1) ||
     !(a.discountRate > -1)
@@ -37,7 +41,10 @@ export function baseEconomics(
   }
 
   const annualLaborCostPerFteUsd = a.laborCostPerHourUsd * a.hoursPerYear;
-  const maxDisplaceableFte = demandPerYear(params, a) / a.opsPerWorkerPerYear;
+  // A1 не переделан — он всё это время работал исправно и получал не ту нагрузку. Спрос и
+  // делитель теперь берутся по потоку решения, и абсурд («уборщик замещает сорок кладовщиков»)
+  // исчезает сам, без отдельного запрета.
+  const maxDisplaceableFte = demandPerYear(params, a, cap.workloadStream) / perWorker;
   const displacedFte = Math.max(0, Math.min(params.staffCount, maxDisplaceableFte));
   const baselineAnnualUsd = displacedFte * annualLaborCostPerFteUsd;
 

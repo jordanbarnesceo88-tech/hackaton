@@ -1,8 +1,22 @@
 export type CapacityBasis = "PER_HOUR_FLOW" | "PER_DAY_FLOW" | "CONCURRENT_STOCK";
 
+/**
+ * Какую работу объекта делает решение.
+ *
+ * Заведено потому, что движок этого не знал и сравнивал несравнимое: спрос всегда брался как
+ * `opsPerDay × дни`, кем бы ни было решение, поэтому робот-уборщик за $47 500 «замещал» сорок
+ * складских сотрудников — 5000 отборов заказов в сутки сопоставлялись с 2780 м² уборки в час
+ * как одна и та же величина.
+ *
+ * Потоков два, а не шесть: измерение заводится тогда, когда появляется решение, которое в нём
+ * считается. Заранее — это усложнение модели авансом.
+ */
+export type WorkloadStream = "OPERATION_FLOW" | "FLOOR_AREA";
+
 export type SolutionCapacity = {
   capacityPerUnit: number;
   capacityBasis: CapacityBasis;
+  workloadStream: WorkloadStream;
   priceUsd: number;
   maintenanceUsdYear: number;
   energyUsdYear: number;
@@ -29,6 +43,12 @@ export type AssumptionValues = {
   // A1: annual operations one human worker handles (same unit as facility demand). Caps how
   // many workers the fleet can realistically displace, so savings track workload not headcount.
   opsPerWorkerPerYear: number;
+  // Тот же предел, но для потока FLOOR_AREA: сколько площади обслуживает один уборщик за год.
+  // Сотрудник, обрабатывающий операции, и уборщик — разные величины, и делитель обязан быть
+  // разным, иначе A1 ограничивает нагрузку не той меркой.
+  areaPerCleanerPerYear: number;
+  // Сколько раз в сутки обслуживается площадь. Превращает площадь из разовой величины в поток.
+  cleaningsPerDay: number;
   turnoverPerDay: number;
   roiHorizonYears: number;
   // A3: time-value + lifecycle. discountRate drives NPV / discounted payback; assetLifeYears

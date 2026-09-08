@@ -9,6 +9,8 @@ export const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   laborReplacementPct: "Замещение труда (доля)",
   residualSupervisionPct: "Остаточный надзор (доля)",
   opsPerWorkerPerYear: "Операций на сотрудника в год",
+  areaPerCleanerPerYear: "Площадь на уборщика в год, м²",
+  cleaningsPerDay: "Уборок площади в сутки",
   turnoverPerDay: "Оборотов в сутки",
   roiHorizonYears: "Горизонт ROI (лет)",
   discountRate: "Ставка дисконтирования (доля)",

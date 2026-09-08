@@ -9,6 +9,7 @@ const base = {
   capacityBasis: "PER_DAY_FLOW" as const, capacityPerUnit: 400, capacityUnit: "паллет/день",
   maintenanceUsdYear: 6000, energyUsdYear: 1000, licensingUsdYear: 2000,
   priceEstimated: false, priceLowUsd: null, priceHighUsd: null, priceBasis: null, sourceUrl: null,
+  workloadStream: "OPERATION_FLOW" as const,
 };
 // cheaper price -> higher NPV; expensive -> lower; broken -> no_savings
 const cheap: SiblingSolution = { ...base, id: "cheap", name: "Cheap", vendor: "V", priceUsd: 40000 };

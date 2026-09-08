@@ -32,7 +32,18 @@ export async function getCatalogForFacilityType(facilityTypeSlug: string) {
   // their solutions — so the comparison page doesn't move in the same change that moves the
   // schema. It is rewritten by the wizard plan, not this one.
   const { categories, ...rest } = facilityType;
-  return { ...rest, solutionCategories: categories.map((link) => link.category) };
+  return {
+    ...rest,
+    solutionCategories: categories.map((link) => ({
+      ...link.category,
+      // Поток спускается с категории на каждое её решение: движок принимает его на решении,
+      // а хранить его на категории правильно — все паллетайзеры считаются одинаково.
+      solutions: link.category.solutions.map((s) => ({
+        ...s,
+        workloadStream: link.category.workloadStream,
+      })),
+    })),
+  };
 }
 
 /**
@@ -90,7 +101,9 @@ export async function getSolutionForCalc(id: string) {
   // the URL for a live calculation — and validate it against getSolutionApplicability().
   return prisma.solution.findUnique({
     where: { id },
-    include: { solutionCategory: { select: { id: true, slug: true, name: true } } },
+    include: {
+      solutionCategory: { select: { id: true, slug: true, name: true, workloadStream: true } },
+    },
   });
 }
 
@@ -108,10 +121,16 @@ export async function getSiblingSolutions(solutionId: string): Promise<SiblingSo
       capacityUnit: true, capacityBasis: true, maintenanceUsdYear: true,
       energyUsdYear: true, licensingUsdYear: true,
       priceEstimated: true, priceLowUsd: true, priceHighUsd: true,
-      priceBasis: true, sourceUrl: true,
+      priceBasis: true, sourceUrl: true, isClass: true,
+      // Поток живёт у категории, а движку он нужен на каждом решении: без него расчёт
+      // сравнивает несравнимое, и это не ошибка отображения, а неверное число.
+      solutionCategory: { select: { workloadStream: true } },
     },
   });
-  return rows;
+  return rows.map(({ solutionCategory, ...s }) => ({
+    ...s,
+    workloadStream: solutionCategory.workloadStream,
+  }));
 }
 
 export type SavedAnalysisInput = {

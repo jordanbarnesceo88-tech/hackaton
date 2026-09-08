@@ -45,7 +45,11 @@ export default async function CalculatePage({
   const facilityType = facilitySlug ? await getFacilityTypeBySlug(facilitySlug) : null;
   if (!facilityType) notFound();
 
-  const capacity = toSolutionCapacity(solution);
+  const capacity = toSolutionCapacity({
+    ...solution,
+    // Поток хранится у категории; движку он нужен на решении.
+    workloadStream: solution.solutionCategory.workloadStream,
+  });
 
   let initialAssumptions = assumptionsToValues(assumptionRows);
   // Параметры, собранные подбором, — стартовые для расчёта. Это и есть условие паритета:

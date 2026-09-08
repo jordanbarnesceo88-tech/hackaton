@@ -18,6 +18,9 @@ export function makeCapacity(
   overrides: Partial<SolutionCapacity> = {}
 ): SolutionCapacity {
   return {
+    // Поток по умолчанию — операции: так считаются тринадцать категорий из пятнадцати, и
+    // существующие тесты обязаны остаться зелёными до знака.
+    workloadStream: "OPERATION_FLOW",
     capacityPerUnit: 400,
     capacityBasis: "PER_DAY_FLOW",
     priceUsd: 50000,

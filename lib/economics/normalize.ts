@@ -1,14 +1,20 @@
-import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
+import type {
+  WorkloadStream,
+  SolutionCapacity,
+  FacilityParams,
+  AssumptionValues,
+} from "./types";
 
 /**
  * Project any solution-shaped record (a Prisma row, a `SiblingSolution`) down to exactly the
- * six fields the engine consumes. Callers hold wider objects — DB rows carry ids, names,
+ * fields the engine consumes. Callers hold wider objects — DB rows carry ids, names,
  * provenance — and every entry point was rebuilding this literal by hand, so a new cost field
  * on `SolutionCapacity` meant editing four call sites. Structural typing does the narrowing;
  * this just names it in one place.
  */
 export function toSolutionCapacity(s: SolutionCapacity): SolutionCapacity {
   return {
+    workloadStream: s.workloadStream,
     capacityPerUnit: s.capacityPerUnit,
     capacityBasis: s.capacityBasis,
     priceUsd: s.priceUsd,
@@ -47,8 +53,22 @@ export function resolvePeakConcurrent(
 }
 
 /** Annualized facility demand from daily operations. */
-export function demandPerYear(params: FacilityParams, a: AssumptionValues): number {
+export function demandPerYear(
+  params: FacilityParams,
+  a: AssumptionValues,
+  stream: WorkloadStream = "OPERATION_FLOW"
+): number {
+  // Значение по умолчанию — не удобство, а совместимость: тринадцать из пятнадцати категорий
+  // считаются потоком операций, и их числа обязаны остаться прежними до знака.
+  if (stream === "FLOOR_AREA") {
+    return params.areaM2 * a.cleaningsPerDay * a.workingDaysPerYear;
+  }
   return params.opsPerDay * a.workingDaysPerYear;
+}
+
+/** Сколько работы ЭТОГО потока делает один человек за год — делитель предела замещения (A1). */
+export function workerOutputPerYear(a: AssumptionValues, stream: WorkloadStream): number {
+  return stream === "FLOOR_AREA" ? a.areaPerCleanerPerYear : a.opsPerWorkerPerYear;
 }
 
 /**
