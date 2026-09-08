@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { WizardChrome } from "@/components/wizard/wizard-chrome";
+import { StepTransition } from "@/components/wizard/step-transition";
 
 /**
  * Route group `(wizard)` не влияет на URL — она даёт только эту оболочку. Благодаря этому
@@ -14,7 +15,7 @@ export default function WizardLayout({ children }: { children: React.ReactNode }
       <Suspense fallback={null}>
         <WizardChrome />
       </Suspense>
-      {children}
+      <StepTransition>{children}</StepTransition>
     </>
   );
 }

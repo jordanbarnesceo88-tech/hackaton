@@ -282,6 +282,29 @@
   }
 }
 
+/* Переход между шагами подбора. Подъём с растворением — общий для обоих направлений;
+   почему не направленный, объяснено в components/wizard/step-transition.tsx. */
+::view-transition-old(.wizard-step) {
+  animation: wizard-step-out 140ms ease-in both;
+}
+::view-transition-new(.wizard-step) {
+  animation: wizard-step-in 220ms ease-out both;
+}
+@keyframes wizard-step-out {
+  to { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes wizard-step-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+/* Второй рубеж обороны. Основной — в JS: React отменяет переход до того, как он начнётся.
+   Этот блок страхует случай, когда предпочтение сменили при уже открытой странице. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.wizard-step),
+  ::view-transition-new(.wizard-step) {
+    animation: none;
+  }
+}
+
 @layer components {
   /* Ширина выбирается по РОЛИ поверхности, а не одна на всё приложение.
      «Везде 100vw» — не ответ: строка длиннее ~75 знаков теряется при переходе на следующую,
