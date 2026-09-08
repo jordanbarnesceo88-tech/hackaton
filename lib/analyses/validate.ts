@@ -23,16 +23,46 @@ export function sanitizeName(raw: unknown): string | null {
   return t.slice(0, NAME_MAX_LEN);
 }
 
-/** Validate facility params: three required finite numbers + optional finite peakConcurrent. */
+/**
+ * Validate facility params: three required finite numbers, optional finite peakConcurrent, and
+ * the optional user overrides.
+ *
+ * Переопределения обязаны пройти отсюда до отчёта. Собирая объект из перечисленных полей, эта
+ * функция МОЛЧА отбрасывала всё остальное — и сохранённый отчёт показывал введённые руками
+ * количество и цену как вычисленные. Это ровно то, что спека переопределений запрещает: клиент
+ * получает документ, где число выдано за расчётное.
+ *
+ * Негодное значение отклоняет весь платёж, а не отбрасывается: так же ведёт себя
+ * peakConcurrent, и по той же причине — молча сохранить не то, что прислали, хуже, чем
+ * отказать.
+ */
 export function validateParams(raw: unknown): FacilityParams | null {
   if (!isPlainObject(raw)) return null;
   const { areaM2, opsPerDay, staffCount, peakConcurrent } = raw;
+  const { quantityOverride, capexPerUnitUsdOverride } = raw;
   if (!isFiniteNumber(areaM2) || !isFiniteNumber(opsPerDay) || !isFiniteNumber(staffCount)) {
     return null;
   }
   if (peakConcurrent !== undefined && !isFiniteNumber(peakConcurrent)) return null;
+  // Те же правила, что и в движке: целое ≥ 1 для количества, положительное для цены.
+  if (
+    quantityOverride !== undefined &&
+    !(typeof quantityOverride === "number" && Number.isInteger(quantityOverride) && quantityOverride >= 1)
+  ) {
+    return null;
+  }
+  if (
+    capexPerUnitUsdOverride !== undefined &&
+    !(isFiniteNumber(capexPerUnitUsdOverride) && capexPerUnitUsdOverride > 0)
+  ) {
+    return null;
+  }
   const out: FacilityParams = { areaM2, opsPerDay, staffCount };
   if (peakConcurrent !== undefined) out.peakConcurrent = peakConcurrent;
+  if (quantityOverride !== undefined) out.quantityOverride = quantityOverride;
+  if (capexPerUnitUsdOverride !== undefined) {
+    out.capexPerUnitUsdOverride = capexPerUnitUsdOverride;
+  }
   return out;
 }
 

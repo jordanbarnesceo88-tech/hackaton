@@ -66,3 +66,33 @@ test("ответ виден без горизонтальной прокрутк
   expect(box, "колонка окупаемости не отрисована").not.toBeNull();
   expect(box!.x + box!.width, "колонка окупаемости уехала за правый край").toBeLessThanOrEqual(width);
 });
+
+test("переопределения доезжают до сохранённого отчёта", async ({ page }) => {
+  // Свидетель настоящего бага: validateParams собирал объект из перечисленных полей и молча
+  // отбрасывал переопределения, поэтому клиент получал документ, где введённые руками
+  // количество и цена выглядели вычисленными. Это ровно то, что запрещает спека.
+  const email = `ovr+${Date.now()}@example.com`;
+  await page.goto("/signup");
+  await page.locator('input[name="email"]').fill(email);
+  await page.locator('input[name="password"]').fill("password123");
+  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+
+  await page.goto("/compare/warehouse?industry=retail&facility=warehouse&area=10000&ops=5000&staff=40");
+  await page.getByRole("link", { name: "Разобрать расчёт" }).click();
+  await expect(page).toHaveURL(/\/calculate\//);
+
+  const q = page.locator("#quantityOverride");
+  await q.scrollIntoViewIfNeeded();
+  await q.fill("6");
+  await q.blur();
+  await expect(page.getByText("задано вами").first()).toBeVisible();
+
+  await page.locator('input[placeholder*="Название"]').fill("переопределения");
+  await page.getByRole("button", { name: "Сохранить расчёт" }).click();
+  await expect(page.getByText("Сохранено")).toBeVisible();
+  await page.getByRole("link", { name: "Открыть отчёт" }).click();
+  await expect(page).toHaveURL(/\/report\//);
+
+  await expect(page.getByText(/задана вручную/)).toContainText("количество единиц — 6");
+});

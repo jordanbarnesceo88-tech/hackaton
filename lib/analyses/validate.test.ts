@@ -85,3 +85,29 @@ describe("validateAssumptions range checks", () => {
     expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, laborReplacementPct: 0 })).not.toBeNull();
   });
 });
+
+describe("переопределения на пути сохранения", () => {
+  const base = { areaM2: 1000, opsPerDay: 500, staffCount: 10 };
+
+  it("переносит количество и цену в сохраняемые параметры", () => {
+    // Свидетель настоящего бага: функция собирала объект из перечисленных полей и молча
+    // отбрасывала остальное, поэтому отчёт показывал введённые руками числа как вычисленные.
+    const r = validateParams({ ...base, quantityOverride: 6, capexPerUnitUsdOverride: 123000 });
+    expect(r).not.toBeNull();
+    expect(r!.quantityOverride).toBe(6);
+    expect(r!.capexPerUnitUsdOverride).toBe(123000);
+  });
+
+  it("отсутствие переопределений — это не ноль, а отсутствие", () => {
+    const r = validateParams(base);
+    expect(r!.quantityOverride).toBeUndefined();
+    expect(r!.capexPerUnitUsdOverride).toBeUndefined();
+  });
+
+  it("негодное переопределение отклоняет платёж, а не отбрасывается молча", () => {
+    expect(validateParams({ ...base, quantityOverride: 2.5 })).toBeNull();
+    expect(validateParams({ ...base, quantityOverride: 0 })).toBeNull();
+    expect(validateParams({ ...base, capexPerUnitUsdOverride: -1 })).toBeNull();
+    expect(validateParams({ ...base, capexPerUnitUsdOverride: "дорого" })).toBeNull();
+  });
+});
