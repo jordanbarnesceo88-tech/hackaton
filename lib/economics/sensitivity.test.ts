@@ -122,3 +122,21 @@ describe("возмущение упирается в границу, а не р�
     expect(bars.map((b) => b.key)).toContain("roiHorizonYears");
   });
 });
+
+describe("рычаги диаграммы зависят от потока решения", () => {
+  it("поток операций показывает свой делитель и не показывает чужой", () => {
+    const keys = sensitivity(cap, params, makeAssumptions()).map((b) => b.key);
+    expect(keys).toContain("opsPerWorkerPerYear");
+    expect(keys).not.toContain("areaPerCleanerPerYear");
+  });
+
+  it("поток площади показывает свой делитель и не показывает чужой", () => {
+    // Находка ревью: диаграмма рисовала «Операций на сотрудника в год» с размахом 0 ₽ —
+    // допущение, которое движок для этого потока не читает, — а настоящий делитель
+    // отсутствовал. Торнадо ранжировал не тот набор рычагов.
+    const areaCap = { ...cap, workloadStream: "FLOOR_AREA" as const };
+    const keys = sensitivity(areaCap, params, makeAssumptions()).map((b) => b.key);
+    expect(keys).toContain("areaPerCleanerPerYear");
+    expect(keys).not.toContain("opsPerWorkerPerYear");
+  });
+});

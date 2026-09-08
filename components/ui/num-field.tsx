@@ -31,6 +31,7 @@ export function NumField({
   min = 0,
   max,
   onChange,
+  onCommit,
 }: {
   id: string;
   label: string;
@@ -39,6 +40,13 @@ export function NumField({
   min?: number;
   max?: number;
   onChange: (n: number) => void;
+  /**
+   * Вызывается при уходе из поля. Нужен там, где значение надо привести к границам: делать
+   * это на каждом нажатии — значит сделать поле с большой нижней границей ненабираемым.
+   * У `areaPerCleanerPerYear` минимум 10 000: первая же цифра «4» превращалась в 10000 и
+   * переписывала ввод, следующая давала 100000, и добраться до 400000 было нельзя никак.
+   */
+  onCommit?: (n: number) => void;
 }) {
   // null = not being edited, show the model's value; a string = the user's in-progress text.
   const [draft, setDraft] = useState<string | null>(null);
@@ -71,7 +79,10 @@ export function NumField({
           // last good number in place rather than pushing NaN or 0 into the model.
           if (raw !== "" && Number.isFinite(Number(raw))) onChange(Number(raw));
         }}
-        onBlur={() => setDraft(null)}
+        onBlur={() => {
+          setDraft(null);
+          if (onCommit) onCommit(value);
+        }}
       />
     </div>
   );

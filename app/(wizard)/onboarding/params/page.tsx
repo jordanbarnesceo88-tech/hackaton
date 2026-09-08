@@ -33,7 +33,10 @@ export default async function ParamsStepPage({
       facility={state.facility}
       facilityName={facilityType.name}
       objectName={state.objectName}
-      typical={withParamDefaults(typical)}
+      // Уже введённое важнее типового: WizardChrome строит «Назад» с текущей query-строкой,
+      // и без этого возврат со сравнения молча стирал набранные цифры, подставляя обратно
+      // значения по умолчанию.
+      typical={state.complete ? state.params : withParamDefaults(typical)}
     />
   );
 }

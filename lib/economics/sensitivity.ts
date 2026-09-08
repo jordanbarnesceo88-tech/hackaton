@@ -1,4 +1,9 @@
-import type { SolutionCapacity, FacilityParams, AssumptionValues } from "./types";
+import type {
+  SolutionCapacity,
+  FacilityParams,
+  AssumptionValues,
+  WorkloadStream,
+} from "./types";
 import { baseEconomics } from "./calculate";
 import { ASSUMPTION_BOUNDS } from "./assumptions";
 import { projectFinance } from "./finance";
@@ -34,13 +39,22 @@ export type SensitivityBar = {
 const PERTURBED_KEYS: (keyof AssumptionValues)[] = [
   "laborCostPerHourUsd",
   "laborReplacementPct",
-  "opsPerWorkerPerYear",
   "residualSupervisionPct",
   "installPctOfCapex",
   "discountRate",
   "assetLifeYears",
   "roiHorizonYears",
 ];
+
+// Делитель предела замещения зависит от потока — и рычаг обязан зависеть от него же.
+// Иначе на решении потока площади диаграмма показывала «Операций на сотрудника в год» с
+// размахом 0 ₽ (движок его для этого потока не читает), а настоящий делитель —
+// «Площадь на уборщика в год» — в диаграмме отсутствовал. Торнадо заявляет, что ранжирует
+// рычаги, двигающие NPV; для этого потока он ранжировал не тот набор.
+const STREAM_KEYS: Record<WorkloadStream, (keyof AssumptionValues)[]> = {
+  OPERATION_FLOW: ["opsPerWorkerPerYear"],
+  FLOOR_AREA: ["areaPerCleanerPerYear", "cleaningsPerDay"],
+};
 
 /**
  * Assumptions `projectFinance` floors to whole years before using. A percentage perturbation on
@@ -70,7 +84,7 @@ export function sensitivity(
   if (baseNpv === null) return [];
 
   const bars: SensitivityBar[] = [];
-  for (const key of PERTURBED_KEYS) {
+  for (const key of [...PERTURBED_KEYS, ...STREAM_KEYS[cap.workloadStream]]) {
     const wholeYear = WHOLE_YEAR_KEYS.has(key);
     const delta = wholeYear ? 1 : a[key] * deltaPct;
     // Нижняя нога упирается в границу допущения, а не проваливается под неё. При горизонте

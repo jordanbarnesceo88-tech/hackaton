@@ -21,6 +21,11 @@ export function IndustryStep({
   useEffect(() => {
     if (!next) return;
     const onKey = (e: KeyboardEvent) => {
+      // Слушатель висит на window, поэтому Enter на сфокусированной ссылке или кнопке
+      // срабатывал ДВАЖДЫ: элемент делал свою навигацию, а этот обработчик — свою вперёд.
+      // Нажатие на «← Назад» уводило одновременно назад и вперёд.
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("a,button,[role=radio],select,textarea")) return;
       if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) router.push(next);
     };
     window.addEventListener("keydown", onKey);

@@ -34,14 +34,32 @@ export function WizardChrome() {
 
   const index = WIZARD_STEPS.findIndex((s) => s.key === step);
   const previous = index > 0 ? WIZARD_STEPS[index - 1] : null;
+  // Ветка для `solutions` отсутствовала, поэтому на шаге расчёта «Назад» превращалась в
+  // серую надпись: прогресс говорил «Шаг 5 из 5», а вернуться к списку решений было нельзя
+  // ничем, кроме кнопки браузера. Мёртвая ссылка хуже отсутствующей — она обещает.
+  //
+  // Query-строка передаётся целиком там, где это осмысленно: на шаг типа объекта уходит
+  // только отрасль, но вместе с названием объекта — оно введено человеком, и терять его при
+  // возврате значит терять ввод.
+  const facilityHref = () => {
+    const q = new URLSearchParams();
+    const industry = search.get("industry");
+    const obj = search.get("obj");
+    if (industry) q.set("industry", industry);
+    if (obj) q.set("obj", obj);
+    return `/onboarding/facility?${q.toString()}`;
+  };
+
   const backHref =
     previous?.key === "industry"
       ? "/onboarding"
       : previous?.key === "facility"
-        ? `/onboarding/facility?${new URLSearchParams({ industry: search.get("industry") ?? "" })}`
+        ? facilityHref()
         : previous?.key === "params"
           ? `/onboarding/params?${search.toString()}`
-          : null;
+          : previous?.key === "solutions"
+            ? `/compare/${search.get("facility") ?? ""}?${search.toString()}`
+            : null;
 
   return (
     <div className="border-b bg-card">

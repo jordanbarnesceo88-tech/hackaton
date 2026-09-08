@@ -53,7 +53,11 @@ export function OverrideField({
         label={label}
         value={overridden ? value : computed}
         step={step}
-        min={step < 1 ? 0 : 1}
+        // База шага у input[type=number] — это min, поэтому при step=1000 и min=1 допустимыми
+        // считались 1, 1001, 2001…, стрелка спиннера давала 48 001 вместо 48 500, а поле
+        // помечалось :invalid по stepMismatch на любой реальной цене. Для нецелых полей
+        // база должна быть кратна шагу.
+        min={integer ? 1 : 0}
         onChange={(n) => {
           if (accepts(n)) {
             setRejected(null);
@@ -78,7 +82,13 @@ export function OverrideField({
           <span className="text-muted-foreground">расчёт даёт {format(computed)}</span>
           <button
             type="button"
-            onClick={() => onChange(undefined)}
+            onClick={() => {
+              // И сообщение об отказе тоже: иначе красная надпись «Цена должна быть больше
+              // нуля» остаётся висеть под полем, в котором уже стоит корректное расчётное
+              // число, и утверждает неправду.
+              setRejected(null);
+              onChange(undefined);
+            }}
             className="tap-target underline underline-offset-2 text-muted-foreground
               transition-colors hover:text-foreground
               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

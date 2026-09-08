@@ -165,6 +165,19 @@ export function FacilityVisualization({
       if (!paused) raf = requestAnimationFrame(draw);
     };
 
+    // Подгонка буфера под размер и плотность живёт внутри draw, а на паузе draw вызывается
+    // ровно один раз — при монтировании эффекта. Пользователь с prefers-reduced-motion
+    // стартует на паузе, и после поворота телефона или изменения окна его сцена оставалась
+    // растянутой CSS с буфером прежнего размера: ровно то мыло, ради устранения которого
+    // подгонка и заводилась.
+    const onResize = () => {
+      if (paused) {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(draw);
+      }
+    };
+    window.addEventListener("resize", onResize);
+
     const onVis = () => {
       if (document.hidden) {
         cancelAnimationFrame(raf);
@@ -182,6 +195,7 @@ export function FacilityVisualization({
     if (!document.hidden) raf = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [layout, paused, renderCount]);

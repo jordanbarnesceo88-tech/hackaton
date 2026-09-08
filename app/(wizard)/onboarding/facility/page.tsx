@@ -25,6 +25,7 @@ export default async function FacilityStepPage({
         isGeneric: f.isGeneric,
       }))}
       initial={state.facility}
+      initialObjectName={state.objectName}
     />
   );
 }

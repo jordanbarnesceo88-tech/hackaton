@@ -58,7 +58,16 @@ export function AssumptionsPanel({
             // Clamp on the way in: `type=number` min/max only constrain the spinner, so a typed
             // or pasted value still arrives unbounded. Without this, «Замещение труда» = 5
             // yields a 12x NPV that renders with full confidence and can be saved to a report.
-            onChange={(n) => setAssumptions((a) => ({ ...a, [k]: clampAssumption(k, n) }))}
+            // Во время набора зажимаем только СВЕРХУ: верхняя граница защищает от абсурдных
+            // значений и никогда не мешает печатать, а нижняя во время набора нарушается
+            // всегда — первой же цифрой. Её применяем на уходе из поля.
+            onChange={(n) =>
+              setAssumptions((a) => ({
+                ...a,
+                [k]: Math.min(n, ASSUMPTION_BOUNDS[k]?.max ?? n),
+              }))
+            }
+            onCommit={(n) => setAssumptions((a) => ({ ...a, [k]: clampAssumption(k, n) }))}
           />
         ))}
       </CardContent>

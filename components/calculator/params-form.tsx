@@ -51,12 +51,31 @@ export function ParamsForm({
           onPick={onPickRegion}
           onClear={onClearRegion}
         />
-        {/* U1: area does not enter the economics — it only sizes the Step-4 scene. Labelled so
-            no field silently fails to move the result. */}
-        <NumField id="areaM2" label="Площадь, м² (только визуализация)" value={params.areaM2}
+        {/* Подпись зависит от ПОТОКА решения, а не от общего правила. Раньше здесь стояло
+            «только визуализация» — это было верно, пока площадь ни на что не влияла. Теперь
+            для решения потока площади она главный экономический вход: гонит спрос, парк,
+            покрытие, замещение и NPV. Оставить прежнюю подпись значило бы сказать человеку,
+            что решающее поле декоративно, — и это ровно тот инвариант («каждое видимое поле
+            влияет на результат»), ради которого в панель допущений добавлен фильтр по потоку. */}
+        <NumField
+          id="areaM2"
+          label={
+            capacity.workloadStream === "FLOOR_AREA"
+              ? "Площадь, м² — по ней считается вся работа"
+              : "Площадь, м² (только визуализация)"
+          }
+          value={params.areaM2}
           onChange={(n) => setParams((p) => ({ ...p, areaM2: n }))} />
-        <NumField id="opsPerDay" label="Объём операций в сутки" value={params.opsPerDay}
-          onChange={(n) => setParams((p) => ({ ...p, opsPerDay: n }))} />
+        <NumField
+          id="opsPerDay"
+          label={
+            capacity.workloadStream === "FLOOR_AREA"
+              ? "Объём операций в сутки (не влияет на это решение)"
+              : "Объём операций в сутки"
+          }
+          value={params.opsPerDay}
+          onChange={(n) => setParams((p) => ({ ...p, opsPerDay: n }))}
+        />
         {/* Ключевое поле для защищаемости числа, и единственное, где модель верит на слово.
             Подпись раньше называлась «Персонал, замещаемый решением», но мастер спрашивает
             его до того, как решение выбрано, поэтому человек поневоле вводил весь штат — и

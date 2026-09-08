@@ -96,7 +96,14 @@ export default async function ReportPage({
           <span>·</span>
           <b>{solution.name}</b>
           <span className="text-muted-foreground">{solution.vendor}</span>
-          <ProvenanceBadge source={solution.source} sourceUrl={solution.sourceUrl} />
+          {/* isClass обязателен и здесь. Пометку чинили на странице сравнения и забыли про
+              отчёт — то есть про единственный документ, который уходит клиенту: там класс с
+              двумя опубликованными источниками продолжал называться «демо-данные». */}
+          <ProvenanceBadge
+            source={solution.source}
+            sourceUrl={solution.sourceUrl}
+            isClass={solution.isClass}
+          />
         </div>
       </section>
 

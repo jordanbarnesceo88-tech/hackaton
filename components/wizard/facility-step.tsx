@@ -10,14 +10,18 @@ export function FacilityStep({
   industry,
   facilityTypes,
   initial,
+  initialObjectName,
 }: {
   industry: string;
   facilityTypes: { slug: string; name: string; isGeneric: boolean }[];
   initial: string | null;
+  initialObjectName: string | null;
 }) {
   const router = useRouter();
   const [slug, setSlug] = useState<string | null>(initial);
-  const [objectName, setObjectName] = useState("");
+  // Из URL, а не пустая строка: человек ввёл название, ушёл вперёд, вернулся — и оно должно
+  // быть на месте. Вместе с исправлением backHref в WizardChrome, который его выбрасывал.
+  const [objectName, setObjectName] = useState(initialObjectName ?? "");
   const selected = facilityTypes.find((f) => f.slug === slug) ?? null;
 
   const next = slug
@@ -33,7 +37,12 @@ export function FacilityStep({
   useEffect(() => {
     if (!next) return;
     const onKey = (e: KeyboardEvent) => {
+      // Слушатель висит на window, поэтому Enter на сфокусированной ссылке или кнопке
+      // срабатывал ДВАЖДЫ: элемент делал свою навигацию, а этот обработчик — свою вперёд.
+      // Нажатие на «← Назад» уводило одновременно назад и вперёд.
       const t = e.target as HTMLElement | null;
+      if (t?.closest("a,button,[role=radio],select,textarea")) return;
+      // Текстовое поле названия объекта: Enter в нём не должен уводить со страницы.
       if (t?.tagName === "INPUT" && t.getAttribute("type") === "text") return;
       if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) router.push(next);
     };
