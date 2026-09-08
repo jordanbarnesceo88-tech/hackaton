@@ -14,7 +14,8 @@ export default async function LoginPage({
       await signIn("credentials", {
         email: String(formData.get("email") ?? "").toLowerCase().trim(),
         password: String(formData.get("password") ?? ""),
-        redirectTo: "/",
+        // Как и после регистрации: вошедший продолжает работу, а не читает первый экран.
+        redirectTo: "/onboarding",
       });
     } catch (e) {
       // next-auth throws a redirect on success; re-throw those.

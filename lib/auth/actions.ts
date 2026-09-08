@@ -58,7 +58,10 @@ export async function signUpAction(
     throw e;
   }
   // signIn throws a redirect on success.
-  await signIn("credentials", { email, password, redirectTo: "/" });
+  // На "/" теперь первый экран, объясняющий продукт. Человек, только что заведший
+  // аккаунт, уже решил — вести его обратно к «а вот что это такое» значит возвращать
+  // на шаг назад. Регистрация продолжает поток, а не прерывает его.
+  await signIn("credentials", { email, password, redirectTo: "/onboarding" });
   return { error: null };
 }
 

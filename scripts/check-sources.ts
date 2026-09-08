@@ -7,8 +7,8 @@
 // before a demo or a deploy (see docs/DEPLOY.md).
 //
 // RELATIVE import: this runs under tsx, which does not resolve the "@/" tsconfig alias.
-import { WAREHOUSE_REAL } from "./parse-sources/warehouse-real";
-import { SOLUTION_CLASSES } from "./seed-data/solution-classes";
+// RELATIVE import: под tsx алиас "@/" не резолвится.
+import { ALL_CITATIONS, citationAgeDays } from "../lib/sources/registry";
 
 const rawMax = Number(process.env.MAX_SOURCE_AGE_DAYS ?? 180);
 if (!Number.isFinite(rawMax) || rawMax <= 0) {
@@ -16,36 +16,31 @@ if (!Number.isFinite(rawMax) || rawMax <= 0) {
   process.exit(2);
 }
 const MAX_AGE_DAYS = rawMax;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const now = Date.now();
 let stale = 0;
 
-// A class of solution carries TWO independent claims — a price range and a throughput range —
-// taken from two different pages. Either can rot on its own, so both are listed separately
-// rather than one row per row of data.
-type Citation = { label: string; url: string; lastVerified: string };
-const citations: Citation[] = [
-  ...WAREHOUSE_REAL.map((s) => ({ label: s.name, url: s.sourceUrl, lastVerified: s.lastVerified })),
-  ...SOLUTION_CLASSES.flatMap((c) => [
-    { label: `${c.slug} (цена)`, url: c.sourceUrl, lastVerified: c.lastVerified },
-    { label: `${c.slug} (произв.)`, url: c.capacitySourceUrl, lastVerified: c.lastVerified },
-  ]),
-];
+// Список берётся из общего реестра, а не собирается здесь заново: два определения «списка
+// источников» разъедутся, и разойдётся тот, который никто не открывает.
+const citations = ALL_CITATIONS.map((c) => ({
+  label: `${c.label} (${c.kind === "price" ? "цена" : "произв."})`,
+  url: c.url,
+  ageDays: citationAgeDays(c, now),
+  lastVerified: c.lastVerified,
+}));
+
 const width = Math.max(...citations.map((c) => c.label.length));
 
 console.log(`Citation freshness (threshold ${MAX_AGE_DAYS} days)\n`);
-for (const s of citations) {
-  const parsed = new Date(s.lastVerified).getTime();
-  // An unparseable date produced NaN, and `NaN > MAX_AGE_DAYS` is false — so the one script
-  // whose entire job is to refuse printed "ok NaNd" and exited 0. Treat it as the worst case.
-  const ageDays = Number.isFinite(parsed) ? Math.floor((now - parsed) / DAY_MS) : null;
-  const over = ageDays === null || ageDays > MAX_AGE_DAYS;
+for (const c of citations) {
+  // Непарсящаяся дата — худший случай, а не пропуск: скрипт, чья работа отказывать, однажды
+  // печатал "ok NaNd" и выходил с нулём.
+  const over = c.ageDays === null || c.ageDays > MAX_AGE_DAYS;
   if (over) stale++;
-  const age = ageDays === null ? "  ??" : String(ageDays).padStart(4);
+  const age = c.ageDays === null ? "  ??" : String(c.ageDays).padStart(4);
   console.log(
-    `  ${over ? "STALE" : "ok   "} ${age}d  ${s.label.padEnd(width)}  ${s.url}` +
-      (ageDays === null ? `  <- unparseable lastVerified: "${s.lastVerified}"` : "")
+    `  ${over ? "STALE" : "ok   "} ${age}d  ${c.label.padEnd(width)}  ${c.url}` +
+      (c.ageDays === null ? `  <- unparseable lastVerified: "${c.lastVerified}"` : "")
   );
 }
 

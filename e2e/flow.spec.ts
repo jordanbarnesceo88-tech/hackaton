@@ -31,3 +31,25 @@ test("anonymous flow: onboarding → compare → calculate", async ({ page }) =>
   await expect(page.getByText("CAPEX").first()).toBeVisible();
   await expect(page.getByText("Чувствительность NPV")).toBeVisible();
 });
+
+test("первый экран объясняет продукт и ведёт в подбор", async ({ page }) => {
+  await page.goto("/");
+  // Редиректа в опрос больше нет: судья, открывший ссылку, попадал сразу на вопрос
+  // «в какой вы отрасли?», не зная, зачем отвечать.
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Откуда цифры/ })).toBeVisible();
+
+  await page.getByRole("link", { name: "Проверить свой объект" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+});
+
+test("справочник показывает источники, выведенные из данных", async ({ page }) => {
+  await page.goto("/methodology");
+  await expect(page.getByRole("heading", { name: "Откуда цифры" })).toBeVisible();
+  // Семнадцать цитат: три вендорских решения плюс по два источника у каждого из семи классов.
+  // Число выведено из тех же модулей, что и сев, поэтому расходиться с ним не может.
+  const rows = page.locator("tbody tr");
+  await expect(rows).toHaveCount(17);
+  await expect(page.getByRole("heading", { name: "Чем мы не даём себе соврать" })).toBeVisible();
+});
