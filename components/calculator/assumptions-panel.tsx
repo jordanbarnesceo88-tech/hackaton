@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumField } from "@/components/ui/num-field";
-import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
+import type { AssumptionValues, CapacityBasis, WorkloadStream } from "@/lib/economics/types";
 import { ASSUMPTION_BOUNDS, clampAssumption } from "@/lib/economics/assumptions";
 import { ASSUMPTION_LABELS, RATIO_KEYS } from "./assumption-labels";
 
@@ -13,17 +13,32 @@ const BASIS_ONLY: Partial<Record<keyof AssumptionValues, CapacityBasis>> = {
   turnoverPerDay: "CONCURRENT_STOCK",
 };
 
+// Тот же принцип, но по потоку нагрузки, а не по базису ёмкости. Без этого решение потока
+// операций показывало «Площадь на уборщика в год» и «Уборок площади в сутки» — поля, которые
+// не двигают ни одно число на экране, — а решение потока площади показывало «Операций на
+// сотрудника в год», столь же бесполезное. Инвариант панели («каждое видимое поле влияет на
+// результат») держится обоими фильтрами, а не одним.
+const STREAM_ONLY: Partial<Record<keyof AssumptionValues, WorkloadStream>> = {
+  opsPerWorkerPerYear: "OPERATION_FLOW",
+  areaPerCleanerPerYear: "FLOOR_AREA",
+  cleaningsPerDay: "FLOOR_AREA",
+};
+
 export function AssumptionsPanel({
   assumptions,
   setAssumptions,
   capacityBasis,
+  workloadStream,
 }: {
   assumptions: AssumptionValues;
   setAssumptions: Dispatch<SetStateAction<AssumptionValues>>;
   capacityBasis: CapacityBasis;
+  workloadStream: WorkloadStream;
 }) {
   const visibleKeys = (Object.keys(ASSUMPTION_LABELS) as (keyof AssumptionValues)[]).filter(
-    (k) => !BASIS_ONLY[k] || BASIS_ONLY[k] === capacityBasis
+    (k) =>
+      (!BASIS_ONLY[k] || BASIS_ONLY[k] === capacityBasis) &&
+      (!STREAM_ONLY[k] || STREAM_ONLY[k] === workloadStream)
   );
   return (
     <Card className="md:col-span-2">

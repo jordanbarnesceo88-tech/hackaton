@@ -120,7 +120,16 @@ export function EconomicsCalculator({
   const capacity = toSolutionCapacity(primary);
 
   const result = computeEconomics(capacity, params, effectiveAssumptions);
-  const ranked = rankSolutions(categorySolutions, params, effectiveAssumptions);
+  // Соседи сравниваются БЕЗ переопределений. Переопределение — суждение о конкретном
+  // решении: «этому роботу я поставлю четыре штуки по своей цене». Применять его ко всем
+  // соседям значит ранжировать их по числу, которое к ним не относится, — и рекомендация
+  // сверху начинает опираться на чужую введённую руками цифру.
+  const rankingParams = {
+    ...params,
+    quantityOverride: undefined,
+    capexPerUnitUsdOverride: undefined,
+  };
+  const ranked = rankSolutions(categorySolutions, rankingParams, effectiveAssumptions);
   const bars = sensitivity(capacity, params, effectiveAssumptions);
 
   return (
@@ -198,7 +207,17 @@ export function EconomicsCalculator({
         ranked={ranked}
         selectedId={selectedSolutionId}
         usdToRub={effectiveAssumptions.usdToRub}
-        onSelect={setSelectedSolutionId}
+        onSelect={(id) => {
+          // Переопределения не переезжают на другое решение. Иначе цена, введённая для
+          // одного робота, молча применяется к другому, а поле продолжает утверждать
+          // «задано вами» — то есть пометка, ради которой всё делалось, начинает врать.
+          setSelectedSolutionId(id);
+          setParams((p) => ({
+            ...p,
+            quantityOverride: undefined,
+            capexPerUnitUsdOverride: undefined,
+          }));
+        }}
       />
       <SensitivityChart bars={bars} usdToRub={effectiveAssumptions.usdToRub} />
       <SaveControl
@@ -212,6 +231,7 @@ export function EconomicsCalculator({
         assumptions={effectiveAssumptions}
         setAssumptions={setAssumptionsAndReleaseRegion}
         capacityBasis={primary.capacityBasis}
+        workloadStream={primary.workloadStream}
       />
       <FacilityVisualization
         facilityKind={mapKind(facilitySlug)}

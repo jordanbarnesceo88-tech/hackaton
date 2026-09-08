@@ -95,6 +95,7 @@ export function ParamsForm({
           </p>
           <OverrideField
             id="quantityOverride"
+            integer
             label="Количество единиц"
             computed={computedQuantity ?? 1}
             value={params.quantityOverride}

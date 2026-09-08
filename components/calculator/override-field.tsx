@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { NumField } from "@/components/ui/num-field";
 
 /**
@@ -20,6 +21,7 @@ export function OverrideField({
   value,
   format = (n) => String(n),
   step = 1,
+  integer = false,
   onChange,
 }: {
   id: string;
@@ -30,9 +32,19 @@ export function OverrideField({
   value: number | undefined;
   format?: (n: number) => string;
   step?: number;
+  /** Целое ≥ 1 — как количество единиц. Иначе просто положительное. */
+  integer?: boolean;
   onChange: (n: number | undefined) => void;
 }) {
+  const [rejected, setRejected] = useState<string | null>(null);
   const overridden = value !== undefined;
+
+  // Предикат ровно тот же, что в движке и в валидации сохранения. Три места, решающие, что
+  // такое годное переопределение, обязаны решать одинаково: иначе поле помечает «задано
+  // вами» число, которым ничего не посчитано, а сохранение падает с общей «Ошибкой
+  // сохранения», ничего не объясняя.
+  const accepts = (n: number) =>
+    integer ? Number.isInteger(n) && n >= 1 : Number.isFinite(n) && n > 0;
 
   return (
     <div className="flex flex-col gap-1">
@@ -42,8 +54,22 @@ export function OverrideField({
         value={overridden ? value : computed}
         step={step}
         min={step < 1 ? 0 : 1}
-        onChange={(n) => onChange(n)}
+        onChange={(n) => {
+          if (accepts(n)) {
+            setRejected(null);
+            onChange(n);
+            return;
+          }
+          // Не принимаем и говорим почему. Молча округлить — значит показать число, которого
+          // человек не вводил; принять и сломать сохранение — значит соврать пометкой.
+          setRejected(
+            integer
+              ? "Количество единиц — целое число не меньше одной."
+              : "Цена должна быть больше нуля."
+          );
+        }}
       />
+      {rejected && <p className="text-xs text-destructive">{rejected}</p>}
       {overridden ? (
         <p className="flex flex-wrap items-center gap-x-2 text-xs">
           <span className="rounded bg-caution/15 px-1.5 py-0.5 font-medium text-caution">
