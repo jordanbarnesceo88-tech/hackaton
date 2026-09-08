@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/queries";
 import { assumptionsToValues, withAssumptionDefaults, withParamDefaults } from "@/lib/economics/assumptions";
 import { computeEconomics } from "@/lib/economics/calculate";
+import { parseWizardParams } from "@/lib/wizard/steps";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { resultsDiverged } from "@/lib/analyses/diverged";
 import { EconomicsCalculator } from "@/components/economics-calculator";
@@ -20,10 +21,14 @@ export default async function CalculatePage({
   searchParams,
 }: {
   params: Promise<{ solutionId: string }>;
-  searchParams: Promise<{ analysis?: string; obj?: string; facility?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { solutionId } = await params;
-  const { analysis: analysisId, obj, facility } = await searchParams;
+  const sp = await searchParams;
+  const wizard = parseWizardParams(sp);
+  const analysisId = typeof sp.analysis === "string" ? sp.analysis : undefined;
+  const obj = wizard.objectName ?? undefined;
+  const facility = wizard.facility ?? undefined;
   const objectName = obj?.trim().slice(0, 80) || null; // M4: echo the "Other" object name
   const [solution, assumptionRows, categorySolutions, applicable] = await Promise.all([
     getSolutionForCalc(solutionId),
@@ -43,7 +48,10 @@ export default async function CalculatePage({
   const capacity = toSolutionCapacity(solution);
 
   let initialAssumptions = assumptionsToValues(assumptionRows);
-  let initialParams: FacilityParams | undefined;
+  // Параметры, собранные подбором, — стартовые для расчёта. Это и есть условие паритета:
+  // шаг 4 считает на них же, поэтому первое показанное здесь число совпадает с тем, что
+  // человек видел в списке решений. Сохранённый анализ (ниже) их перекрывает — там свои.
+  let initialParams: FacilityParams | undefined = wizard.complete ? wizard.params : undefined;
   let dataChanged = false;
   if (analysisId) {
     const session = await auth();

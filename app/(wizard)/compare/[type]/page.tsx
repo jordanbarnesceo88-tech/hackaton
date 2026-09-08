@@ -4,6 +4,11 @@ import { getCatalogForFacilityType, getAssumptions } from "@/lib/db/queries";
 import { formatCost } from "@/lib/format/currency";
 import { capacityPerYear } from "@/lib/economics/normalize";
 import { assumptionsToValues } from "@/lib/economics/assumptions";
+import { computeEconomics } from "@/lib/economics/calculate";
+import { toSolutionCapacity } from "@/lib/economics/normalize";
+import { isCalculable } from "@/lib/economics/types";
+import { formatYearsRu } from "@/lib/format/plural";
+import { parseWizardParams, buildWizardQuery } from "@/lib/wizard/steps";
 import { ProvenanceBadge } from "@/components/provenance-badge";
 import type { AssumptionValues, CapacityBasis } from "@/lib/economics/types";
 
@@ -54,10 +59,11 @@ export default async function ComparePage({
   searchParams,
 }: {
   params: Promise<{ type: string }>;
-  searchParams: Promise<{ obj?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { type } = await params;
-  const { obj } = await searchParams;
+  const sp = await searchParams;
+  const wizard = parseWizardParams(sp);
   const [catalog, assumptionRows] = await Promise.all([
     getCatalogForFacilityType(type),
     getAssumptions(),
@@ -69,9 +75,27 @@ export default async function ComparePage({
 
   const a = assumptionsToValues(assumptionRows);
   const money = (usd: number) => formatCost(usd, a.usdToRub);
-  // M4: free-text object name from the "Other" path, echoed here and carried to Step 3.
-  const objectName = obj?.trim().slice(0, 80) || null;
-  const calcQuery = objectName ? `?obj=${encodeURIComponent(objectName)}` : "";
+  const objectName = wizard.objectName;
+
+  // Весь набор подбора уезжает в расчёт, а не только название объекта: шаг 5 обязан
+  // стартовать с ТЕХ ЖЕ входов, на которых посчитан этот список, иначе первое число там не
+  // совпадёт с числом здесь, и человек справедливо перестанет верить обоим.
+  const calcQuery = buildWizardQuery({
+    industry: wizard.industry,
+    facility: type,
+    objectName,
+    params: wizard.complete ? wizard.params : null,
+  });
+  const calcSuffix = calcQuery ? `?${calcQuery}` : "";
+
+  /**
+   * Экономика решения под параметры объекта.
+   *
+   * Считается на DEFAULT_ASSUMPTIONS из БД, без пользовательских правок — правки допущений
+   * живут на шаге расчёта. Это не деталь реализации, а условие паритета между экранами.
+   */
+  const economicsFor = (s: SolutionRow) =>
+    wizard.complete ? computeEconomics(toSolutionCapacity(s), wizard.params, a) : null;
 
   return (
     <div className="surface-data flex flex-col gap-8 py-12">
@@ -80,8 +104,9 @@ export default async function ComparePage({
           Сравнение решений: {objectName ? `«${objectName}»` : catalog.name} ({catalog.industry.name})
         </h1>
         <p className="text-sm text-muted-foreground">
-          Показатели по каждому типу решений — цена, полный OPEX и нормированная стоимость
-          единицы годовой производительности. Нормировка использует допущения по умолчанию.
+          {wizard.complete
+            ? "Окупаемость и NPV посчитаны под введённые вами параметры объекта, на допущениях по умолчанию — их можно поправить в расчёте. Решения отсортированы по NPV."
+            : "Показатели по каждому типу решений — цена, полный OPEX и нормированная стоимость единицы годовой производительности. Нормировка использует допущения по умолчанию."}
         </p>
       </div>
 
@@ -104,12 +129,35 @@ export default async function ComparePage({
                   <Th className="text-right">Лицензии/год</Th>
                   <Th className="text-right">OPEX/год</Th>
                   <Th className="text-right">Цена за 1000 ед./год</Th>
+                  {wizard.complete && <Th className="text-right">Единиц</Th>}
+                  {wizard.complete && <Th className="text-right">Окупаемость</Th>}
+                  {wizard.complete && <Th className="text-right">NPV</Th>}
                   <Th />
                 </tr>
               </thead>
               <tbody>
-                {category.solutions.map((s) => {
+                {[...category.solutions]
+                  .sort((x, y) => {
+                    // Пока параметров нет, порядок остаётся алфавитным: ранжировать по цене
+                    // за абстрактную единицу — это ранжировать по числу, которое ничего не
+                    // говорит про объект, и лучше не делать вид, что список отсортирован.
+                    if (!wizard.complete) return 0;
+                    const rx = economicsFor(x as SolutionRow);
+                    const ry = economicsFor(y as SolutionRow);
+                    // NPV есть только у экономичного варианта: «нет экономии» и «некорректные
+                    // входные» его не несут, и это разные вещи, а не отсутствие числа.
+                    const npv = (r: ReturnType<typeof economicsFor>) =>
+                      r && isCalculable(r) && r.economical ? r.npvUsd : -Infinity;
+                    return npv(ry) - npv(rx);
+                  })
+                  .map((s) => {
                   const opex = s.maintenanceUsdYear + s.energyUsdYear + s.licensingUsdYear;
+                  const economics = economicsFor(s as SolutionRow);
+                  const calculable = economics && isCalculable(economics) ? economics : null;
+                  // Ещё один шаг сужения: «нет экономии» — это тоже посчитанный результат, у
+                  // него есть количество единиц, но нет ни NPV, ни срока окупаемости. Показать
+                  // прочерк там, где ответ «не окупается», значило бы скрыть вывод.
+                  const viable = calculable && calculable.economical ? calculable : null;
                   const annual = annualThroughput(s as SolutionRow, a);
                   // Per 1000 units of annual throughput: the per-unit figure is sub-dollar for
                   // high-throughput solutions and would round to "US$0" under the whole-unit
@@ -152,9 +200,28 @@ export default async function ComparePage({
                       <Td className="text-right whitespace-nowrap">
                         {normPrice === null ? "—" : money(normPrice)}
                       </Td>
+                      {wizard.complete && (
+                        <Td className="text-right whitespace-nowrap">
+                          {calculable ? calculable.quantity : "—"}
+                        </Td>
+                      )}
+                      {wizard.complete && (
+                        <Td className="text-right whitespace-nowrap">
+                          {!calculable
+                            ? "—"
+                            : !viable || viable.discountedPaybackYears === null
+                              ? "не окупается"
+                              : formatYearsRu(viable.discountedPaybackYears)}
+                        </Td>
+                      )}
+                      {wizard.complete && (
+                        <Td className="text-right whitespace-nowrap font-medium">
+                          {viable ? money(viable.npvUsd) : "—"}
+                        </Td>
+                      )}
                       <Td>
                         <Link
-                          href={`/calculate/${s.id}${calcQuery}`}
+                          href={`/calculate/${s.id}${calcSuffix}`}
                           className="whitespace-nowrap text-sm font-medium underline underline-offset-4"
                         >
                           Рассчитать →
