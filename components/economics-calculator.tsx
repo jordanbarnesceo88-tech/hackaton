@@ -141,7 +141,7 @@ export function EconomicsCalculator({
             {primary.sourceUrl ? (
               <>
                 {" "}
-                <a href={primary.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                <a href={primary.sourceUrl} target="_blank" rel="noopener noreferrer" className="tap-target underline">
                   источник ↗
                 </a>
               </>

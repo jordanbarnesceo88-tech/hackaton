@@ -38,7 +38,7 @@ export default function SignupPage() {
         </button>
       </form>
       <p className="text-sm text-muted-foreground">
-        Уже есть аккаунт? <Link href="/login" className="underline">Войти</Link>
+        Уже есть аккаунт? <Link href="/login" className="tap-target underline">Войти</Link>
       </p>
     </div>
   );

@@ -6,7 +6,7 @@ export async function SiteHeader() {
   const session = await auth();
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3 text-sm no-print sm:px-6">
-      <Link href="/onboarding" className="mr-4 min-w-0 truncate font-semibold text-primary">
+      <Link href="/onboarding" className="tap-target mr-4 min-w-0 truncate font-semibold text-primary">
           Платформа оценки роботизации
         </Link>
       <nav className="flex min-w-0 items-center gap-4">
@@ -21,13 +21,13 @@ export async function SiteHeader() {
               {session.user.email}
             </span>
             <form action={logoutAction} className="shrink-0">
-              <button type="submit" className="underline">Выйти</button>
+              <button type="submit" className="tap-target underline">Выйти</button>
             </form>
           </>
         ) : (
           <>
-            <Link href="/login" className="underline">Войти</Link>
-            <Link href="/signup" className="underline">Регистрация</Link>
+            <Link href="/login" className="tap-target underline">Войти</Link>
+            <Link href="/signup" className="tap-target underline">Регистрация</Link>
           </>
         )}
       </nav>

@@ -104,7 +104,13 @@ Re-verified and NOT acted on:
     restating the ranges in a second schema.
   - **Engine-side guard for zero-valued assumption divisors** — DONE via `ASSUMPTION_BOUNDS`
     (`turnoverPerDay` min is 1, not 0) plus `clampAssumption` on every read path.
-  - **Canvas devicePixelRatio scaling — STILL OPEN.** The canvas has a fixed 720×360 backing
+  - **Canvas devicePixelRatio scaling — DONE (2026-09-08).** Буфер канвы подгоняется под её
+    фактический размер на экране, умноженный на `devicePixelRatio`, а рисование идёт в
+    CSS-пикселях через `setTransform` — иначе радиус робота пришлось бы умножать вручную в
+    каждом месте, и одно из них однажды забыли бы. Проверка на каждом кадре, а не
+    ResizeObserver: сравнение двух чисел дешевле подписки, а смена размера буфера очищает
+    канву, поэтому делается только при расхождении. Проверено: при deviceScaleFactor 2 буфер
+    1698×850 на канве шириной 849 CSS-пикселей. Прежний текст задачи: The canvas has a fixed 720×360 backing
     store displayed at whatever width the grid gives it (~470 px), so it is ~1.5× oversampled:
     sharper than 1× but soft on a 2× display. The fix is to size the backing store from the
     element's measured CSS box × `devicePixelRatio` (ResizeObserver) and draw in CSS pixels,

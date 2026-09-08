@@ -43,7 +43,7 @@ export default async function LoginPage({
         </button>
       </form>
       <p className="text-sm text-muted-foreground">
-        Нет аккаунта? <Link href="/signup" className="underline">Регистрация</Link>
+        Нет аккаунта? <Link href="/signup" className="tap-target underline">Регистрация</Link>
       </p>
     </div>
   );

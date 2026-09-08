@@ -70,7 +70,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t pt-6 text-sm">
-        <Link href="/methodology" className="font-medium underline underline-offset-4">
+        <Link href="/methodology" className="tap-target font-medium underline underline-offset-4">
           Откуда цифры и как считается модель
         </Link>
       </footer>

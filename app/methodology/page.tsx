@@ -159,7 +159,7 @@ export default function MethodologyPage() {
       </section>
 
       <footer className="border-t pt-6">
-        <Link href="/onboarding" className="font-medium underline underline-offset-4">
+        <Link href="/onboarding" className="tap-target font-medium underline underline-offset-4">
           Проверить свой объект →
         </Link>
       </footer>

@@ -261,7 +261,7 @@ export default async function ComparePage({
                       <Td>
                         <Link
                           href={`/calculate/${s.id}${calcSuffix}`}
-                          className="whitespace-nowrap text-sm font-medium underline underline-offset-4"
+                          className="tap-target whitespace-nowrap text-sm font-medium underline underline-offset-4"
                         >
                           Рассчитать →
                         </Link>

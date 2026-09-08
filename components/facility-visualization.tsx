@@ -124,8 +124,26 @@ export function FacilityVisualization({
         setElapsed(elapsedRef.current);
       }
 
-      const W = canvas.width;
-      const H = canvas.height;
+      // Буфер канвы подгоняется под её реальный размер на экране, умноженный на плотность
+      // пикселей устройства. Раньше он был фиксированным 720×360 и растягивался CSS до ширины
+      // колонки: на ретине это давало заметное мыло — на схеме объекта, которая и есть
+      // единственная картинка в продукте.
+      //
+      // Проверка на каждом кадре, а не ResizeObserver: сравнение двух чисел дешевле подписки,
+      // а изменение размера буфера очищает канву, поэтому делается только при расхождении.
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.clientWidth || 720;
+      const H = Math.round(W / 2); // aspect-ratio 2/1 задан стилем
+      const bw = Math.round(W * dpr);
+      const bh = Math.round(H * dpr);
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
+      }
+      // Рисуем в CSS-пикселях: всё ниже мыслит логическими координатами, а масштаб под
+      // плотность делает трансформация. Иначе радиус робота пришлось бы умножать вручную в
+      // каждом месте, и одно из них однажды забыли бы.
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, W, H);
@@ -214,6 +232,8 @@ export function FacilityVisualization({
               is lost. Labelled rather than aria-hidden so its purpose is still discoverable. */}
           <canvas
             ref={canvasRef}
+            // Размер буфера выставляется в кадре по фактической ширине и плотности пикселей;
+            // эти атрибуты — только стартовое значение до первого кадра.
             width={720}
             height={360}
             role="img"
