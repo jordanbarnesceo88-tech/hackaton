@@ -1,4 +1,4 @@
-import { capacityPerYear, demandPerYear } from "@/lib/economics/normalize";
+import { capacityPerYear, demandPerYear, resolvePeakConcurrent } from "@/lib/economics/normalize";
 import type {
   SolutionCapacity,
   FacilityParams,
@@ -22,12 +22,19 @@ export function utilizationPct(
   quantity: number
 ): number {
   if (cap.capacityBasis === "CONCURRENT_STOCK") {
-    const peak = params.peakConcurrent ?? Math.ceil(params.opsPerDay / a.turnoverPerDay);
+    // resolvePeakConcurrent, а не своя копия вывода: этот хелпер и заводился затем, чтобы
+    // интерфейс и движок отвечали на вопрос «против чего размерен парк» одинаково. Копия
+    // здесь молча расходилась бы с ним при любой правке.
+    const peak = resolvePeakConcurrent(params, a);
+    if (peak === null) return 0;
     const deployed = quantity * cap.capacityPerUnit;
     return deployed > 0 ? clamp((peak / deployed) * 100, 0, 100) : 0;
   }
   const deployed = quantity * capacityPerYear(cap, a);
-  const demand = demandPerYear(params, a);
+  // Спрос обязан браться по потоку решения. Без этого загрузка решения потока площади
+  // считалась как «операции в год ÷ квадратные метры в год» — число, у которого нет смысла,
+  // и на схеме объекта оно расходилось с панелью результатов.
+  const demand = demandPerYear(params, a, cap.workloadStream);
   return deployed > 0 ? clamp((demand / deployed) * 100, 0, 100) : 0;
 }
 

@@ -93,3 +93,48 @@ describe("классы решений", () => {
     }
   });
 });
+
+describe("поток нагрузки согласован с единицами решений", () => {
+  // Находка ревью: категория «дезинфекция» была помечена потоком площади, а оба её решения
+  // считают «помещений/день». Движок сравнивал помещения с квадратными метрами и делил на
+  // выработку уборщика в м² — решение из экономичного становилось убыточным на ровном месте.
+  //
+  // Сорок семь типов объектов и пятнадцать категорий — это столько же возможностей ошибиться
+  // в базисе, и глазами такое не ловится: числа остаются правдоподобными.
+  // Оба списка вместе: единственная категория потока площади — это класс уборки, которого в
+  // VENDOR_SOLUTIONS нет, и проверка только по вендорским решениям проходила бы вхолостую.
+  const ALL = [
+    ...VENDOR_SOLUTIONS.map((s) => ({ name: s.name, categorySlug: s.categorySlug, capacityUnit: s.capacityUnit })),
+    ...SOLUTION_CLASSES.map((c) => ({ name: c.name, categorySlug: c.categorySlug, capacityUnit: c.capacityUnit })),
+  ];
+
+  it("решения категории потока площади измеряются в площади", () => {
+    const areaCats = new Set(
+      CATEGORIES.filter((c) => c.workloadStream === "FLOOR_AREA").map((c) => c.slug)
+    );
+    const checked = ALL.filter((s) => areaCats.has(s.categorySlug));
+    // Страховка от вакуумности: если категорий площади не осталось, проверять нечего, и
+    // зелёный тест означал бы «не нашлось», а не «всё согласовано».
+    expect(checked.length, "нет ни одного решения потока площади — тест ничего не проверяет")
+      .toBeGreaterThan(0);
+    for (const s of checked) {
+      expect(
+        /м²|кв\.?\s*м/i.test(s.capacityUnit),
+        `${s.name}: категория ${s.categorySlug} считает площадь, а решение — «${s.capacityUnit}»`
+      ).toBe(true);
+    }
+  });
+
+  it("решения категории потока операций НЕ измеряются в площади", () => {
+    const flowCats = new Set(
+      CATEGORIES.filter((c) => c.workloadStream === "OPERATION_FLOW").map((c) => c.slug)
+    );
+    for (const s of ALL) {
+      if (!flowCats.has(s.categorySlug)) continue;
+      expect(
+        /м²|кв\.?\s*м/i.test(s.capacityUnit),
+        `${s.name}: категория ${s.categorySlug} считает поток, а решение — «${s.capacityUnit}»`
+      ).toBe(false);
+    }
+  });
+});

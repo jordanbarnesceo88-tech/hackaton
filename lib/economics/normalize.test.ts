@@ -82,7 +82,7 @@ describe("capacityPerYear / demandPerYear helpers", () => {
     expect(capacityPerYear(cap, a)).toBe(100000); // 400 * 1 * 250
   });
   it("annualizes demand from opsPerDay", () => {
-    expect(demandPerYear({ areaM2: 0, opsPerDay: 1600, staffCount: 0 }, a)).toBe(400000);
+    expect(demandPerYear({ areaM2: 0, opsPerDay: 1600, staffCount: 0 }, a, "OPERATION_FLOW")).toBe(400000);
   });
   it("считает спрос потока площади из areaM2, а не из opsPerDay", () => {
     // 10 000 м² × 1 уборка/сутки × 250 дней. opsPerDay намеренно другой: если он просочится

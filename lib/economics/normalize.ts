@@ -56,10 +56,15 @@ export function resolvePeakConcurrent(
 export function demandPerYear(
   params: FacilityParams,
   a: AssumptionValues,
-  stream: WorkloadStream = "OPERATION_FLOW"
+  // ОБЯЗАТЕЛЬНЫЙ параметр, и это не педантизм. Сначала здесь стояло значение по умолчанию
+  // «ради совместимости» — и оно немедленно спрятало пропуск: computeQuantity вызывал функцию
+  // без потока, поэтому парк для решения потока площади считался по потоку заказов, а
+  // покрытие — по площади. Две функции разошлись молча, и абсурд «один уборщик замещает
+  // склад» вернулся с другой стороны: парк из одной единицы там, где нужно три, покрытие
+  // 0,44 и 18,5 замещаемых человек за 0,22 года. Без умолчания компилятор перечисляет все
+  // места сам.
+  stream: WorkloadStream
 ): number {
-  // Значение по умолчанию — не удобство, а совместимость: тринадцать из пятнадцати категорий
-  // считаются потоком операций, и их числа обязаны остаться прежними до знака.
   if (stream === "FLOOR_AREA") {
     return params.areaM2 * a.cleaningsPerDay * a.workingDaysPerYear;
   }
@@ -129,5 +134,5 @@ export function computeQuantity(
 
   const perYear = capacityPerYear(cap, a);
   if (!(perYear > 0)) return null; // e.g. workingDaysPerYear or operatingHoursPerDay <= 0
-  return Math.max(1, Math.ceil(demandPerYear(params, a) / perYear));
+  return Math.max(1, Math.ceil(demandPerYear(params, a, cap.workloadStream) / perYear));
 }

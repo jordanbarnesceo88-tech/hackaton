@@ -52,7 +52,7 @@ export const CATEGORIES: CategorySeed[] = [
     "slug": "disinfection",
     "name": "Роботы дезинфекции",
     "description": "Автономные роботы для дезинфекции помещений",
-    workloadStream: WorkloadStream.FLOOR_AREA
+    workloadStream: WorkloadStream.OPERATION_FLOW
   },
   {
     "slug": "generic-mobile",
