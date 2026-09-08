@@ -98,6 +98,20 @@ export function withParamDefaults(raw: unknown): FacilityParams {
   if (typeof src.peakConcurrent === "number" && Number.isFinite(src.peakConcurrent)) {
     out.peakConcurrent = src.peakConcurrent;
   }
+  // Переопределения — по той же логике: отсутствие значит «считай сам», и это другая
+  // инструкция, чем любое число. Негодное значение не переносится, а не «чинится»: расчёт
+  // тогда вернётся к вычисленному, и пометка «задано вами» исчезнет вместе с ним — то есть
+  // экран не будет утверждать того, чего движок не делает.
+  if (typeof src.quantityOverride === "number" && Number.isInteger(src.quantityOverride) && src.quantityOverride >= 1) {
+    out.quantityOverride = src.quantityOverride;
+  }
+  if (
+    typeof src.capexPerUnitUsdOverride === "number" &&
+    Number.isFinite(src.capexPerUnitUsdOverride) &&
+    src.capexPerUnitUsdOverride > 0
+  ) {
+    out.capexPerUnitUsdOverride = src.capexPerUnitUsdOverride;
+  }
   return out;
 }
 

@@ -110,6 +110,20 @@ export default async function ReportPage({
             )}
           </div>
         )}
+        {/* Отчёт получает клиент, и он обязан видеть, что число задано, а не выведено.
+            Пометка в интерфейсе без пометки в отчёте — это пометка, которой нет там, где
+            она нужнее всего. */}
+        {(p.quantityOverride !== undefined || p.capexPerUnitUsdOverride !== undefined) && (
+          <p className="mt-2 rounded border-l-2 border-caution px-2 py-1 text-xs text-caution">
+            Часть входных данных задана вручную, а не рассчитана:
+            {p.quantityOverride !== undefined && ` количество единиц — ${p.quantityOverride}`}
+            {p.quantityOverride !== undefined && p.capexPerUnitUsdOverride !== undefined && ";"}
+            {p.capexPerUnitUsdOverride !== undefined &&
+              ` цена за единицу — ${money(p.capexPerUnitUsdOverride)}`}
+            .
+          </p>
+        )}
+
         {solution.priceEstimated &&
           solution.priceLowUsd != null &&
           solution.priceHighUsd != null && (

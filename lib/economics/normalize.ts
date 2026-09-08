@@ -77,6 +77,43 @@ export function workerOutputPerYear(a: AssumptionValues, stream: WorkloadStream)
  * annualization divisor) instead of throwing or producing Infinity — callers translate the
  * null into a typed `invalid_inputs` result rather than leaking a non-finite number.
  */
+/**
+ * Какую долю работы объекта закрывает парк из `quantity` единиц. 0..1.
+ *
+ * До появления переопределений покрытие было равно единице ПО ПОСТРОЕНИЮ: парк вычислялся как
+ * «ровно столько, чтобы покрыть спрос», и величина нигде не фигурировала. Как только
+ * количество задаёт человек, это перестаёт быть правдой — и замещение персонала обязано
+ * масштабироваться покрытием, иначе половина парка экономит столько же, сколько целый, а
+ * переопределение превращается в способ получить любой желаемый NPV.
+ *
+ * Ограничено единицей сверху: лишние роботы не создают работу, но стоят денег.
+ */
+export function coverageOf(
+  cap: SolutionCapacity,
+  params: FacilityParams,
+  a: AssumptionValues,
+  quantity: number
+): number | null {
+  if (!(cap.capacityPerUnit > 0) || !(quantity > 0)) return null;
+
+  // Нет работы — покрывать нечего, и это НЕ вырожденный ввод: отрицательный или нулевой
+  // спрос движок и раньше трактовал как «нечего экономить» (замещение обнуляется, результат
+  // становится no_savings), а не как invalid_inputs. Вернуть здесь null значило бы поменять
+  // типизированный ответ на другой типизированный ответ — существующий тест это и поймал.
+  if (cap.capacityBasis === "CONCURRENT_STOCK") {
+    const peak = resolvePeakConcurrent(params, a);
+    if (peak === null) return null; // например, turnoverPerDay <= 0 — вот это вырожденный ввод
+    if (!(peak > 0)) return 0;
+    return Math.min(1, (quantity * cap.capacityPerUnit) / peak);
+  }
+
+  const perYear = capacityPerYear(cap, a);
+  if (!(perYear > 0)) return null;
+  const demand = demandPerYear(params, a, cap.workloadStream);
+  if (!(demand > 0)) return 0;
+  return Math.min(1, (quantity * perYear) / demand);
+}
+
 export function computeQuantity(
   cap: SolutionCapacity,
   params: FacilityParams,

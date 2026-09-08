@@ -7,7 +7,8 @@ import type {
   SolutionCapacity,
   AssumptionValues,
 } from "@/lib/economics/types";
-import { resolvePeakConcurrent } from "@/lib/economics/normalize";
+import { resolvePeakConcurrent, computeQuantity } from "@/lib/economics/normalize";
+import { OverrideField } from "@/components/calculator/override-field";
 
 export function ParamsForm({
   params,
@@ -31,6 +32,13 @@ export function ParamsForm({
   usdToRub: number;
 }) {
   const isStock = capacity.capacityBasis === "CONCURRENT_STOCK";
+  // Считается БЕЗ переопределения: иначе «расчёт даёт» показывало бы то же число, которое
+  // человек только что ввёл, и пометка потеряла бы смысл.
+  const computedQuantity = computeQuantity(
+    capacity,
+    { ...params, quantityOverride: undefined },
+    assumptions
+  );
   return (
     <Card>
       <CardHeader>
@@ -74,6 +82,42 @@ export function ParamsForm({
         <p className="text-xs text-muted-foreground">
           Производительность решения: {capacity.capacityPerUnit} {capacityUnit}
         </p>
+
+        {/* Переопределения. Отделены линией и подписью намеренно: выше — то, что человек
+            знает про свой объект, ниже — то, чем он спорит с расчётом. Смешивать их в один
+            список значило бы стереть разницу между «мои данные» и «моя правка модели». */}
+        <div className="mt-2 flex flex-col gap-4 border-t pt-4">
+          <p className="text-sm font-medium">
+            Свои значения
+            <span className="ml-2 font-normal text-muted-foreground">
+              — если вы не согласны с расчётом
+            </span>
+          </p>
+          <OverrideField
+            id="quantityOverride"
+            label="Количество единиц"
+            computed={computedQuantity ?? 1}
+            value={params.quantityOverride}
+            onChange={(n) => setParams((p) => ({ ...p, quantityOverride: n }))}
+          />
+          <OverrideField
+            id="capexPerUnitUsdOverride"
+            label="Цена за единицу, USD"
+            computed={capacity.priceUsd}
+            step={1000}
+            format={(n) => `US$${Math.round(n).toLocaleString("en-US")}`}
+            value={params.capexPerUnitUsdOverride}
+            onChange={(n) => setParams((p) => ({ ...p, capexPerUnitUsdOverride: n }))}
+          />
+          {params.quantityOverride !== undefined &&
+            computedQuantity !== null &&
+            params.quantityOverride < computedQuantity && (
+              <p className="rounded-md border-l-2 border-caution bg-caution/5 px-3 py-2 text-xs">
+                Парк меньше расчётного закрывает не всю работу объекта, поэтому и экономия ниже
+                — модель уменьшает её пропорционально покрытию, а не оставляет прежней.
+              </p>
+            )}
+        </div>
       </CardContent>
     </Card>
   );

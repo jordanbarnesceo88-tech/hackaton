@@ -4,7 +4,7 @@ import type {
   AssumptionValues,
   EconomicsResult,
 } from "./types";
-import { computeQuantity, demandPerYear, workerOutputPerYear } from "./normalize";
+import { computeQuantity, coverageOf, demandPerYear, workerOutputPerYear } from "./normalize";
 import { projectFinance } from "./finance";
 
 export type BaseEconomics = {
@@ -25,7 +25,15 @@ export function baseEconomics(
   params: FacilityParams,
   a: AssumptionValues
 ): BaseEconomics | null {
-  const quantity = computeQuantity(cap, params, a);
+  const computedQuantity = computeQuantity(cap, params, a);
+
+  // Переопределение принимается только целым и положительным: двух с половиной роботов не
+  // бывает, а молча округлять чужой ввод — значит показать число, которого человек не вводил.
+  // Негодное значение игнорируется, а не роняет расчёт: это ввод, а не поломка.
+  const override = params.quantityOverride;
+  const quantityOverridden =
+    typeof override === "number" && Number.isInteger(override) && override >= 1;
+  const quantity = quantityOverridden ? override : computedQuantity;
   // Делитель предела замещения зависит от потока, поэтому проверяется тот, который реально
   // используется. Общая проверка opsPerWorkerPerYear роняла бы решение потока площади в
   // invalid_inputs из-за допущения, которого оно не касается.
@@ -40,15 +48,29 @@ export function baseEconomics(
     return null;
   }
 
+  // Покрытие: какую долю работы объекта закрывает этот парк. При расчётном количестве оно
+  // равно единице, и всё ниже вырождается в прежнюю формулу — числа без переопределения не
+  // меняются ни на знак.
+  const coverage = coverageOf(cap, params, a, quantity);
+  if (coverage === null) return null;
+
   const annualLaborCostPerFteUsd = a.laborCostPerHourUsd * a.hoursPerYear;
   // A1 не переделан — он всё это время работал исправно и получал не ту нагрузку. Спрос и
   // делитель теперь берутся по потоку решения, и абсурд («уборщик замещает сорок кладовщиков»)
   // исчезает сам, без отдельного запрета.
-  const maxDisplaceableFte = demandPerYear(params, a, cap.workloadStream) / perWorker;
+  const maxDisplaceableFte =
+    (demandPerYear(params, a, cap.workloadStream) * coverage) / perWorker;
   const displacedFte = Math.max(0, Math.min(params.staffCount, maxDisplaceableFte));
   const baselineAnnualUsd = displacedFte * annualLaborCostPerFteUsd;
 
-  const capexUsd = quantity * cap.priceUsd * (1 + a.installPctOfCapex);
+  // Цена за единицу переопределяется отдельно и меняет ТОЛЬКО CAPEX: сколько стоит машина и
+  // сколько работы она делает — разные утверждения, и цена не должна двигать второе.
+  const priceOverride = params.capexPerUnitUsdOverride;
+  const priceUsd =
+    typeof priceOverride === "number" && Number.isFinite(priceOverride) && priceOverride > 0
+      ? priceOverride
+      : cap.priceUsd;
+  const capexUsd = quantity * priceUsd * (1 + a.installPctOfCapex);
   const opexAnnualUsd =
     quantity *
     (cap.maintenanceUsdYear + cap.energyUsdYear * a.energyCostFactor + cap.licensingUsdYear);
