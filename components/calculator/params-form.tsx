@@ -49,8 +49,16 @@ export function ParamsForm({
           onChange={(n) => setParams((p) => ({ ...p, areaM2: n }))} />
         <NumField id="opsPerDay" label="Объём операций в сутки" value={params.opsPerDay}
           onChange={(n) => setParams((p) => ({ ...p, opsPerDay: n }))} />
-        <NumField id="staffCount" label="Персонал, замещаемый решением" value={params.staffCount}
+        {/* Ключевое поле для защищаемости числа, и единственное, где модель верит на слово.
+            Подпись раньше называлась «Персонал, замещаемый решением», но мастер спрашивает
+            его до того, как решение выбрано, поэтому человек поневоле вводил весь штат — и
+            один паллетайзер «замещал» сорок кладовщиков. Здесь решение уже известно. */}
+        <NumField id="staffCount" label="Сколько человек делает работу этого решения" value={params.staffCount}
           onChange={(n) => setParams((p) => ({ ...p, staffCount: n }))} />
+        <p className="-mt-4 text-xs text-muted-foreground">
+          Не весь штат объекта, а те, чью работу забирает именно это решение. Пока здесь весь
+          персонал, показатели ниже — верхняя граница, а не оценка.
+        </p>
         {isStock && (
           <NumField
             id="peakConcurrent"
