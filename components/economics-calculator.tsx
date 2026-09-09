@@ -29,6 +29,7 @@ export function EconomicsCalculator({
   industryName,
   objectName,
   dataChanged,
+  savedParamsBroken = false,
   initialParams,
 }: {
   categorySolutions: SiblingSolution[];
@@ -39,6 +40,7 @@ export function EconomicsCalculator({
   industryName: string;
   objectName: string | null;
   dataChanged: boolean;
+  savedParamsBroken?: boolean;
   initialParams?: FacilityParams;
 }) {
   const [selectedSolutionId, setSelectedSolutionId] = useState(initialSelectedId);
@@ -158,6 +160,12 @@ export function EconomicsCalculator({
           </p>
         )}
       </div>
+      {savedParamsBroken && (
+        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+          Параметры объекта из сохранённого расчёта восстановить не удалось — показаны обычные
+          значения по умолчанию, а не ваши. Проверьте их перед тем, как опираться на цифры.
+        </div>
+      )}
       {dataChanged && (
         <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
           Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
