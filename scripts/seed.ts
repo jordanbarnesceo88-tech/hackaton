@@ -190,7 +190,10 @@ async function main() {
       ...WAREHOUSE_REAL.map((s) => s.name),
     ]);
     const stale = await prisma.solution.findMany({
-      where: { source: SolutionSource.SEED, name: { notIn: [...seeded] } },
+      where: {
+        source: { in: [SolutionSource.SEED, SolutionSource.PARSED] },
+        name: { notIn: [...seeded] },
+      },
       select: { id: true, name: true, vendor: true, _count: { select: { savedAnalyses: true } } },
     });
     const deletable = stale.filter((s) => s._count.savedAnalyses === 0);
@@ -228,40 +231,32 @@ async function main() {
       solutionCount++;
     }
 
-    // Prune stale demo rows: delete warehouse SEED/PARSED solutions not in the curated set.
-    // Guards: skip entirely if the curated set is empty (Prisma treats `notIn: []` as "match all",
-    // which would wipe the vertical); and never touch ORGANIZER data (future real imports).
-    const keep = WAREHOUSE_REAL.map((s) => s.name);
-    if (keep.length > 0) {
-      const prunable = await prisma.solution.findMany({
-        where: {
-          // A category serves many facility types now, so "belongs to the warehouse" is a
-          // question about the join, not about a column on the category.
-          solutionCategory: { facilityTypes: { some: { facilityType: { slug: "warehouse" } } } },
-          source: { in: [SolutionSource.SEED, SolutionSource.PARSED] },
-          // Классы — не устаревшие демо-строки склада, а сквозной каталог: они применимы к
-          // складу через join и попали бы под эту чистку, хотя она существует ради замены
-          // выдуманных вендорских строк на решения с реальными источниками.
-          isClass: false,
-          name: { notIn: keep },
-        },
-        select: { id: true, name: true, _count: { select: { savedAnalyses: true } } },
-      });
-      // SavedAnalysis.solutionId is now a real foreign key with onDelete: Restrict, so deleting
-      // a solution somebody has saved an analysis against would throw and abort the whole seed.
-      // Skip those and say so: a stale demo row is a much smaller problem than either destroying
-      // a user's saved analysis or leaving the reference dangling, which is what happened before
-      // the constraint existed (the report then 404s with no explanation).
-      const referenced = prunable.filter((s) => s._count.savedAnalyses > 0);
-      const deletable = prunable.filter((s) => s._count.savedAnalyses === 0);
-      if (deletable.length > 0) {
-        await prisma.solution.deleteMany({ where: { id: { in: deletable.map((s) => s.id) } } });
-      }
-      for (const s of referenced) {
-        console.warn(
-          `  kept "${s.name}": ${s._count.savedAnalyses} saved analysis/analyses reference it`
-        );
-      }
+    // Складская чистка удалена: общая, выше, уже удаляет любую строку, которой нет ни в одном
+    // источнике сева, и делает это по имени, а не по вертикали. Складская же отбирала строки
+    // «применимые к складу», и после появления сквозных категорий начала съедать законные
+    // вендорские решения: Gausium лежит в категории уборки, применимой в том числе к складу,
+    // в складской список не входит — и исчезал из базы на каждом севе.
+  }
+
+  // Проверка, что сев действительно оставил в базе то, что в нём объявлено. Появилась после
+  // того, как складская чистка тихо удаляла Gausium на каждом севе: сев печатал успех, строка
+  // из базы исчезала, и заметно это было только при ручном запросе. Дешевле, чем ещё один
+  // такой раунд.
+  {
+    const expected = [
+      ...VENDOR_SOLUTIONS.map((s) => s.name),
+      ...SOLUTION_CLASSES.map((c) => c.name),
+      ...WAREHOUSE_REAL.map((s) => s.name),
+    ];
+    const present = new Set(
+      (await prisma.solution.findMany({ select: { name: true } })).map((s) => s.name)
+    );
+    const missing = expected.filter((name) => !present.has(name));
+    if (missing.length > 0) {
+      throw new Error(
+        `сев объявил решения, которых после него нет в базе: ${missing.join(", ")}. ` +
+          `Скорее всего, их удалила одна из чисток выше.`
+      );
     }
   }
 
