@@ -128,10 +128,20 @@ export default function MethodologyPage() {
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      <a href={c.url} target="_blank" rel="noopener noreferrer"
-                        className="break-all underline underline-offset-2">
-                        {new URL(c.url).hostname}
-                      </a>
+                      {/* Ссылки может не быть, и это не пропуск, а факт: цену на промышленных
+                          роботов производители не публикуют, поэтому у вендорских строк она
+                          оценка, чей источник назван словами. Показать здесь ссылку на
+                          спек-страницу значило бы приписать ей утверждение о цене. */}
+                      {c.url ? (
+                        <a href={c.url} target="_blank" rel="noopener noreferrer"
+                          className="break-all underline underline-offset-2">
+                          {new URL(c.url).hostname}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {c.basis ?? "оценка без публичной страницы"}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

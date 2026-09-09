@@ -3,7 +3,6 @@
 import { auth } from "@/auth";
 import {
   createSavedAnalysis,
-  getSolutionForCalc,
   getSolutionApplicability,
   type SavedAnalysisInput,
 } from "@/lib/db/queries";
@@ -41,8 +40,10 @@ export async function saveAnalysisAction(input: SavedAnalysisInput): Promise<Sav
   // to derive — but the guarantee has to survive the schema change, not the mechanism. The
   // claimed slug must belong to the set the solution actually applies to; anything else is
   // rejected rather than stored.
-  const solution = await getSolutionForCalc(input.solutionId);
-  if (!solution) return { ok: false, reason: "invalid" };
+  // Отдельная выборка решения здесь не нужна: getSolutionApplicability возвращает пустой
+  // список для несуществующего id, поэтому проверка ниже отсекает и этот случай. Раньше
+  // запрос делался только ради существования решения и добавлял лишний последовательный
+  // поход в базу на каждое сохранение.
   const applicable = await getSolutionApplicability(input.solutionId);
   const claimed = typeof input.facilityTypeSlug === "string" ? input.facilityTypeSlug : "";
   if (!applicable.includes(claimed)) return { ok: false, reason: "invalid" };

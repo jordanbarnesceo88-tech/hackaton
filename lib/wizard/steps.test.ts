@@ -64,3 +64,29 @@ describe("WIZARD_STEPS", () => {
     expect(keys.at(-1)).toBe("calc");
   });
 });
+
+describe("отказ от ввода различим и объясним", () => {
+  const base = { industry: "retail", facility: "warehouse", area: "1000", ops: "500" };
+
+  it("ноль в персонале не принимается: это вырожденный ввод, а не «мало»", () => {
+    // Находка ревью: с нулевым персоналом замещать некого, каждое решение становится
+    // убыточным, и экран уверенно объяснял это тем, что «объём операций слишком мал» —
+    // уверенное неверное объяснение вместо просьбы заполнить поле.
+    const s = parseWizardParams({ ...base, staff: "0" });
+    expect(s.complete).toBe(false);
+    expect(s.rejected).toContain("staff");
+  });
+
+  it("отличает «прислали негодное» от «не прислали»", () => {
+    expect(parseWizardParams({ ...base, staff: "-5" }).rejected).toEqual(["staff"]);
+    expect(parseWizardParams(base).rejected).toEqual([]);
+  });
+
+  it("считает набор полным без отрасли: она не входит в расчёт", () => {
+    // Ссылка, у которой отрасль потерялась при пересылке, не должна молча выбрасывать все
+    // три числа и стартовать с 1000/500/10, противореча тому, что видно в адресной строке.
+    const s = parseWizardParams({ facility: "warehouse", area: "1000", ops: "500", staff: "10" });
+    expect(s.complete).toBe(true);
+    expect(s.params.staffCount).toBe(10);
+  });
+});

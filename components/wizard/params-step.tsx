@@ -12,12 +12,15 @@ export function ParamsStep({
   facilityName,
   objectName,
   typical,
+  rejected,
 }: {
   industry: string;
   facility: string;
   facilityName: string;
   objectName: string | null;
   typical: FacilityParams;
+  /** Поля, присланные в ссылке и не принятые. */
+  rejected: ("area" | "ops" | "staff")[];
 }) {
   // Стартуем с типовых значений, а не с нулей: человек, впервые открывший расчёт, не знает,
   // сколько операций в сутки у типового объекта такого рода, и уходит вместо того, чтобы
@@ -33,6 +36,19 @@ export function ParamsStep({
       nextHref={next}
       nextLabel="Показать решения"
     >
+      {rejected.length > 0 && (
+        // Молча заменить негодное значение на типовое — значит показать человеку число,
+        // которого он не вводил, и не сказать об этом. Он набрал −5, увидит 500 и решит,
+        // что интерфейс его не услышал.
+        <p className="rounded-md border-l-2 border-caution bg-caution/5 px-3 py-2 text-sm text-caution">
+          {rejected.length === 1
+            ? "Одно из присланных значений не принято"
+            : "Несколько присланных значений не приняты"}
+          : эти поля должны быть положительными числами. Ниже подставлены типовые значения —
+          поправьте их под себя.
+        </p>
+      )}
+
       <div className="flex flex-col gap-6">
         <NumField
           id="opsPerDay"

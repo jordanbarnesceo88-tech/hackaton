@@ -37,6 +37,7 @@ export default async function ParamsStepPage({
       // и без этого возврат со сравнения молча стирал набранные цифры, подставляя обратно
       // значения по умолчанию.
       typical={state.complete ? state.params : withParamDefaults(typical)}
+      rejected={state.rejected}
     />
   );
 }

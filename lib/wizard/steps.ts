@@ -23,8 +23,19 @@ export type WizardState = {
   facility: string | null;
   objectName: string | null;
   params: FacilityParams;
-  /** Хватает ли собранного, чтобы считать экономику. */
+  /**
+   * Хватает ли собранного, чтобы считать экономику. Считается ТОЛЬКО по числам: движок
+   * потребляет `params`, а отрасль в расчёт не входит вовсе. Требовать её значило молча
+   * отбрасывать все три числа из ссылки, у которой отрасль потерялась при пересылке, —
+   * и стартовать с 1000/500/10, противореча тому, что человек видит в адресной строке.
+   */
   complete: boolean;
+  /**
+   * Поля, которые были присланы, но не приняты. Без этого «прислали −5» и «не прислали
+   * ничего» неотличимы: оба дают значение по умолчанию, и человек, набравший −5, видит на
+   * следующем экране 500 и не понимает, куда делось введённое.
+   */
+  rejected: ("area" | "ops" | "staff")[];
 };
 
 type Query = Record<string, string | string[] | undefined>;
@@ -47,7 +58,11 @@ function num(v: string | string[] | undefined): number | undefined {
   const s = one(v);
   if (s === null) return undefined;
   const n = Number(s);
-  return Number.isFinite(n) && n >= 0 ? n : undefined;
+  // Строго больше нуля. Ноль здесь — не «мало», а вырожденный ввод: при нулевом персонале
+  // замещать некого, базовые затраты равны нулю, и КАЖДОЕ решение становится убыточным —
+  // после чего экран уверенно объясняет это тем, что «объём операций слишком мал для
+  // автоматизации такого класса». Уверенное неверное объяснение хуже отказа принять ввод.
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 export function parseWizardParams(query: Query): WizardState {
@@ -60,15 +75,23 @@ export function parseWizardParams(query: Query): WizardState {
     opsPerDay: num(query.ops),
     staffCount: num(query.staff),
   });
-  const hasAll =
-    industry !== null && facility !== null &&
-    num(query.area) !== undefined && num(query.ops) !== undefined && num(query.staff) !== undefined;
+  const fields = [
+    ["area", query.area],
+    ["ops", query.ops],
+    ["staff", query.staff],
+  ] as const;
+  const rejected = fields
+    .filter(([, raw]) => one(raw) !== null && num(raw) === undefined)
+    .map(([name]) => name);
+  const hasAll = fields.every(([, raw]) => num(raw) !== undefined);
+
   return {
     industry,
     facility,
     objectName: one(query.obj)?.slice(0, 80) ?? null,
     params,
     complete: hasAll,
+    rejected: [...rejected],
   };
 }
 

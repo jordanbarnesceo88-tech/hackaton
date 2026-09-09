@@ -28,7 +28,42 @@ describe("реестр источников", () => {
     expect(citationAgeDays({ label: "x", kind: "price", url: "u", lastVerified: "не дата" })).toBeNull();
   });
 
-  it("все ссылки — https", () => {
-    for (const c of ALL_CITATIONS) expect(c.url).toMatch(/^https:\/\//);
+  it("ссылки — https там, где они есть", () => {
+    for (const c of ALL_CITATIONS) {
+      if (c.url !== null) expect(c.url).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("утверждение без ссылки обязано объяснять, на чём оно основано", () => {
+    // Отсутствие ссылки — это факт, а не пропуск: цены на промышленных роботов не
+    // публикуются. Но «источника нет» без объяснения читается как небрежность, поэтому
+    // такая строка обязана нести basis.
+    for (const c of ALL_CITATIONS) {
+      if (c.url === null) {
+        expect(c.basis, `${c.label} (${c.kind}): нет ни ссылки, ни обоснования`).toBeTruthy();
+      }
+    }
+  });
+
+  it("страница продукта числится источником производительности, а не цены", () => {
+    // Находка ревью: sourceUrl вендорского решения цитирует тоты в час, а регистрировался
+    // как источник цены — то есть странице приписывалось утверждение, которого она не
+    // делает, и ровно на той странице, что существует ради различения этих утверждений.
+    for (const s of WAREHOUSE_REAL) {
+      const byUrl = ALL_CITATIONS.filter((c) => c.url === s.sourceUrl);
+      expect(byUrl.length, `${s.name}: ссылка не зарегистрирована`).toBeGreaterThan(0);
+      for (const c of byUrl) expect(c.kind).toBe("capacity");
+    }
+  });
+
+  it("дата из будущего не считается свежей", () => {
+    // Опечатка в годе или дата, сдвинутая вперёд перед демонстрацией, давала отрицательный
+    // возраст, и гейт свежести молча отключался для источника навсегда.
+    expect(citationAgeDays({ label: "x", kind: "price", url: null, basis: "b", lastVerified: "2099-01-01" })).toBeNull();
+  });
+
+  it("не-ISO дата отвергается, а не разбирается наугад", () => {
+    // new Date разбирает «07.09.2026» как 9 июля — правдоподобный, но неверный возраст.
+    expect(citationAgeDays({ label: "x", kind: "price", url: null, basis: "b", lastVerified: "07.09.2026" })).toBeNull();
   });
 });

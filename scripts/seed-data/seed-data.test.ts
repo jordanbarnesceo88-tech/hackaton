@@ -37,6 +37,17 @@ describe("целостность посевных данных", () => {
     expect(new Set(inds).size, "дубли среди отраслей").toBe(inds.length);
   });
 
+  it("каждая категория достижима хотя бы из одного типа объекта", () => {
+    // Обратная сторона проверки ниже, и она не декоративная: решение в недостижимой
+    // категории имеет пустое множество применимых типов объекта, поэтому проверка на пути
+    // сохранения не может быть выполнена НИКОГДА — любое сохранение такого решения падает
+    // с общей «Ошибкой сохранения» без объяснения. Сегодня сирот нет; одна новая категория
+    // без строки применимости включает это молча.
+    const linked = new Set(APPLICABILITY.flatMap((a) => a.categories));
+    const orphans = CATEGORIES.map((c) => c.slug).filter((slug) => !linked.has(slug));
+    expect(orphans, `категории, недостижимые ни из одного объекта: ${orphans.join(", ")}`).toEqual([]);
+  });
+
   it("у каждого типа объекта есть хотя бы одна применимая категория", () => {
     const covered = new Set(APPLICABILITY.filter((a) => a.categories.length > 0).map((a) => a.facilityType));
     const uncovered = [...facilityTypes].filter((t) => !covered.has(t));

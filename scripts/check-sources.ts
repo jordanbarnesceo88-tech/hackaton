@@ -39,7 +39,7 @@ for (const c of citations) {
   if (over) stale++;
   const age = c.ageDays === null ? "  ??" : String(c.ageDays).padStart(4);
   console.log(
-    `  ${over ? "STALE" : "ok   "} ${age}d  ${c.label.padEnd(width)}  ${c.url}` +
+    `  ${over ? "STALE" : "ok   "} ${age}d  ${c.label.padEnd(width)}  ${c.url ?? "(оценка, без страницы)"}` +
       (c.ageDays === null ? `  <- unparseable lastVerified: "${c.lastVerified}"` : "")
   );
 }
