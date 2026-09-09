@@ -1,5 +1,6 @@
 import { WAREHOUSE_REAL } from "@/scripts/parse-sources/warehouse-real";
 import { SOLUTION_CLASSES } from "@/scripts/seed-data/solution-classes";
+import { VENDOR_SOLUTIONS } from "@/scripts/seed-data/vendor-solutions";
 
 export type Citation = {
   /** Что именно утверждает этот источник. */
@@ -34,6 +35,11 @@ export const ALL_CITATIONS: Citation[] = [
   // Регистрировать эту ссылку как источник цены значило приписывать странице утверждение,
   // которого она не делает, — и делать это на странице, существующей ради различения этих
   // двух утверждений.
+  // Вендорские строки не-складских вертикалей: у них ОБА источника есть, и оба реальные.
+  ...VENDOR_SOLUTIONS.flatMap((s) => [
+    { label: s.name, kind: "capacity" as const, url: s.sourceUrl, lastVerified: s.lastVerified },
+    { label: s.name, kind: "price" as const, url: s.priceSourceUrl, lastVerified: s.lastVerified },
+  ]),
   ...WAREHOUSE_REAL.flatMap((s) => [
     {
       label: s.name,

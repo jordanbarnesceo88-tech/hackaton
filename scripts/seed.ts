@@ -123,6 +123,11 @@ async function main() {
     const data = {
       vendor: sol.vendor,
       priceUsd: sol.priceUsd,
+      sourceUrl: sol.sourceUrl,
+      lastVerified: new Date(sol.lastVerified),
+      // Цена берётся у дистрибьютора и потому всегда оценка: производители прайс не публикуют.
+      priceEstimated: true,
+      priceBasis: `цена по странице дистрибьютора, проверена ${sol.lastVerified}`,
       capacityPerUnit: sol.capacityPerUnit,
       capacityUnit: sol.capacityUnit,
       capacityBasis: sol.capacityBasis,
@@ -172,6 +177,30 @@ async function main() {
       create: { ...data, name: c.name, solutionCategoryId: category.id },
     });
     solutionCount++;
+  }
+
+  // Строки, которых больше нет ни в одном источнике сева, удаляются — иначе upsert их
+  // сохраняет вечно, и удалённые из кода заглушки продолжают жить в базе. Та же осторожность,
+  // что и у складской чистки: решение, на которое ссылается чей-то сохранённый расчёт, не
+  // трогается — FK стоит на Restrict, и попытка обернулась бы падением всего сева.
+  {
+    const seeded = new Set([
+      ...VENDOR_SOLUTIONS.map((s) => s.name),
+      ...SOLUTION_CLASSES.map((c) => c.name),
+      ...WAREHOUSE_REAL.map((s) => s.name),
+    ]);
+    const stale = await prisma.solution.findMany({
+      where: { source: SolutionSource.SEED, name: { notIn: [...seeded] } },
+      select: { id: true, name: true, vendor: true, _count: { select: { savedAnalyses: true } } },
+    });
+    const deletable = stale.filter((s) => s._count.savedAnalyses === 0);
+    if (deletable.length > 0) {
+      await prisma.solution.deleteMany({ where: { id: { in: deletable.map((s) => s.id) } } });
+      console.log(`  удалено строк, которых больше нет в источниках: ${deletable.length}`);
+    }
+    for (const s of stale.filter((x) => x._count.savedAnalyses > 0)) {
+      console.warn(`  оставлено "${s.name}" (${s.vendor}): на него ссылаются сохранённые расчёты`);
+    }
   }
 
   // Real, cited warehouse products (source: PARSED) — replaces the demo warehouse rows.
