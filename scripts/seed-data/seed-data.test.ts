@@ -28,6 +28,43 @@ describe("целостность посевных данных", () => {
     }
   });
 
+  it("у каждой категории есть название-задача, и оно не скопировано из названия техники", () => {
+    for (const c of CATEGORIES) {
+      expect(c.taskLabel, `${c.slug}: нет taskLabel`).toBeTruthy();
+      // Название задачи описывает работу, а не железо: человек выбирает «Паллетирование
+      // коробок», а не «Роботы-паллетайзеры». Совпадение с name означает, что поле заполнили
+      // копированием, и экран сравнения задач снова заговорит на языке каталога техники.
+      expect(c.taskLabel, `${c.slug}: taskLabel скопирован из name`).not.toBe(c.name);
+    }
+  });
+
+  it("норматив выработки заводится только вместе со ссылкой", () => {
+    // То же правило двух концов, что у классов и вендорских строк. Норматив входит в
+    // предзаполнение занятости, а занятость — в КАЖДОЕ число этой задачи; число без
+    // источника здесь неотличимо от выдуманного.
+    for (const c of CATEGORIES) {
+      if (c.workerOutputPerYear === undefined) continue;
+      expect(c.workerOutputPerYear, `${c.slug}: норматив должен быть положительным`).toBeGreaterThan(0);
+      expect(c.workerOutputSourceUrl, `${c.slug}: норматив без источника`).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("задачи без найденного норматива не получают его тайком", () => {
+    // Задача 1 плана A: по паллетированию, инспекции и доставке открытой нормы
+    // производительности человека не нашлось (docs/data-provenance.md). Пока она не найдена,
+    // поле обязано оставаться пустым — предзаполнение правдоподобной цифрой и есть тот способ
+    // соврать, который здесь запрещён.
+    const withoutNorm = ["class-palletizer", "class-ai-inspection", "class-service-delivery"];
+    for (const slug of withoutNorm) {
+      const c = CATEGORIES.find((x) => x.slug === slug);
+      expect(c, `нет категории ${slug}`).toBeDefined();
+      expect(
+        c!.workerOutputPerYear,
+        `${slug}: норматив появился — если он найден, обнови docs/data-provenance.md и этот список`
+      ).toBeUndefined();
+    }
+  });
+
   it("slug'и типов объектов, категорий и отраслей уникальны", () => {
     const types = INDUSTRIES.flatMap((i) => i.facilityTypes.map((f) => f.slug));
     expect(new Set(types).size, "дубли среди типов объектов").toBe(types.length);

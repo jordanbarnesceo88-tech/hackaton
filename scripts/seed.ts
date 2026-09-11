@@ -92,12 +92,25 @@ async function main() {
   for (const c of CATEGORIES) {
     await prisma.solutionCategory.upsert({
       where: { slug: c.slug },
-      update: { name: c.name, description: c.description, workloadStream: c.workloadStream },
+      // Норматив прокидывается через `?? null`, а не пропуском: пропуск в update оставил бы в
+      // базе старое значение после того, как его убрали из источника, и снятый норматив
+      // продолжил бы предзаполнять занятость цифрой, которой больше нигде нет.
+      update: {
+        name: c.name,
+        description: c.description,
+        workloadStream: c.workloadStream,
+        taskLabel: c.taskLabel,
+        workerOutputPerYear: c.workerOutputPerYear ?? null,
+        workerOutputSourceUrl: c.workerOutputSourceUrl ?? null,
+      },
       create: {
         slug: c.slug,
         name: c.name,
         description: c.description,
         workloadStream: c.workloadStream,
+        taskLabel: c.taskLabel,
+        workerOutputPerYear: c.workerOutputPerYear ?? null,
+        workerOutputSourceUrl: c.workerOutputSourceUrl ?? null,
       },
     });
     categoryCount++;
@@ -236,6 +249,34 @@ async function main() {
     // «применимые к складу», и после появления сквозных категорий начала съедать законные
     // вендорские решения: Gausium лежит в категории уборки, применимой в том числе к складу,
     // в складской список не входит — и исчезал из базы на каждом севе.
+  }
+
+  // Названия-задачи: DEFAULT '' в миграции существует ради существующих строк, а не ради
+  // авторов данных. Тест в seed-data проверяет ИСТОЧНИК, а не базу, и пустую строку в базе он
+  // не увидит — а экран сравнения задач покажет безымянную строку.
+  {
+    const blank = await prisma.solutionCategory.findMany({
+      where: { taskLabel: "" },
+      select: { slug: true },
+    });
+    if (blank.length > 0) {
+      throw new Error(
+        `категории без названия-задачи после сева: ${blank.map((c) => c.slug).join(", ")}`
+      );
+    }
+  }
+
+  // Норматив без источника в базе означал бы, что предзаполнение занятости опирается на
+  // цифру, происхождение которой некому показать. Правило двух концов, проверенное на базе,
+  // а не только на источнике.
+  {
+    const orphan = await prisma.solutionCategory.findMany({
+      where: { workerOutputPerYear: { not: null }, workerOutputSourceUrl: null },
+      select: { slug: true },
+    });
+    if (orphan.length > 0) {
+      throw new Error(`норматив выработки без источника: ${orphan.map((c) => c.slug).join(", ")}`);
+    }
   }
 
   // Проверка, что сев действительно оставил в базе то, что в нём объявлено. Появилась после
