@@ -39,7 +39,7 @@ export function sanitizeName(raw: unknown): string | null {
 export function validateParams(raw: unknown): FacilityParams | null {
   if (!isPlainObject(raw)) return null;
   const { areaM2, opsPerDay, staffCount, peakConcurrent } = raw;
-  const { quantityOverride, capexPerUnitUsdOverride } = raw;
+  const { quantityOverride, capexPerUnitUsdOverride, taskStaffing } = raw;
   if (!isFiniteNumber(areaM2) || !isFiniteNumber(opsPerDay) || !isFiniteNumber(staffCount)) {
     return null;
   }
@@ -57,11 +57,24 @@ export function validateParams(raw: unknown): FacilityParams | null {
   ) {
     return null;
   }
+  // Занятость по задачам: на сохранении ОТКЛОНЯЕМ негодное, а не подчищаем. Подчистка означала
+  // бы, что сохранённый расчёт отличается от того, что человек отправил, и никто ему об этом не
+  // сказал. Ноль допустим — это ответ «никто не занят», а не пропуск.
+  if (taskStaffing !== undefined) {
+    if (!isPlainObject(taskStaffing)) return null;
+    for (const v of Object.values(taskStaffing)) {
+      if (!isFiniteNumber(v) || v < 0) return null;
+    }
+  }
+
   const out: FacilityParams = { areaM2, opsPerDay, staffCount };
   if (peakConcurrent !== undefined) out.peakConcurrent = peakConcurrent;
   if (quantityOverride !== undefined) out.quantityOverride = quantityOverride;
   if (capexPerUnitUsdOverride !== undefined) {
     out.capexPerUnitUsdOverride = capexPerUnitUsdOverride;
+  }
+  if (taskStaffing !== undefined) {
+    out.taskStaffing = taskStaffing as Record<string, number>;
   }
   return out;
 }

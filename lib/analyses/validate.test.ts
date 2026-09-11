@@ -104,6 +104,27 @@ describe("переопределения на пути сохранения", ()
     expect(r!.capexPerUnitUsdOverride).toBeUndefined();
   });
 
+  it("переносит занятость по задачам в сохраняемые параметры", () => {
+    // Тот же класс бага, что с переопределениями: занятость — вход расчёта, и если она не
+    // доедет до сохранённых параметров, отчёт покажет числа, посчитанные по нормативу, выдав
+    // их за посчитанные по ответу человека.
+    const r = validateParams({ ...base, taskStaffing: { "class-palletizer": 6, "class-cleaning": 0 } });
+    expect(r).not.toBeNull();
+    expect(r!.taskStaffing).toEqual({ "class-palletizer": 6, "class-cleaning": 0 });
+  });
+
+  it("отсутствие занятости — это не пустая карта, а отсутствие", () => {
+    // Отсутствие ключа значит «считай по нормативу», пустая карта значила бы то же самое,
+    // но пережила бы сериализацию как объект и начала отличаться от «ещё не спрашивали».
+    expect(validateParams(base)!.taskStaffing).toBeUndefined();
+  });
+
+  it("негодная занятость отклоняет сохранение, а не отбрасывается молча", () => {
+    for (const bad of [{ a: -1 }, { a: NaN }, { a: "шесть" }, { a: null }, [1, 2], "6"]) {
+      expect(validateParams({ ...base, taskStaffing: bad }), JSON.stringify(bad)).toBeNull();
+    }
+  });
+
   it("негодное переопределение отклоняет платёж, а не отбрасывается молча", () => {
     expect(validateParams({ ...base, quantityOverride: 2.5 })).toBeNull();
     expect(validateParams({ ...base, quantityOverride: 0 })).toBeNull();

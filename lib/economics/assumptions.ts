@@ -112,6 +112,22 @@ export function withParamDefaults(raw: unknown): FacilityParams {
   ) {
     out.capexPerUnitUsdOverride = src.capexPerUnitUsdOverride;
   }
+  // Занятость по задачам. На ЧТЕНИИ негодные значения выбрасываются, а не роняют расчёт: блоб
+  // мог быть записан до появления правила, и уронить из-за этого чужой сохранённый расчёт хуже,
+  // чем посчитать его по нормативу. Путь СОХРАНЕНИЯ ведёт себя иначе и отклоняет — там человеку
+  // надо сказать, что его ввод не принят.
+  //
+  // Пустая карта не создаётся: её отсутствие значит «считай по нормативу», и пустой объект,
+  // переживший сериализацию в jsonb, начал бы отличаться от «ещё не спрашивали» ничем, кроме
+  // формы.
+  if (src.taskStaffing && typeof src.taskStaffing === "object" && !Array.isArray(src.taskStaffing)) {
+    const clean: Record<string, number> = {};
+    for (const [slug, v] of Object.entries(src.taskStaffing as Record<string, unknown>)) {
+      if (typeof v === "number" && Number.isFinite(v) && v >= 0) clean[slug] = v;
+    }
+    if (Object.keys(clean).length > 0) out.taskStaffing = clean;
+  }
+
   return out;
 }
 

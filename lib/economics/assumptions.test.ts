@@ -95,6 +95,30 @@ describe("clampAssumption", () => {
 });
 
 describe("withParamDefaults", () => {
+  it("переносит заявленную занятость по задачам", () => {
+    const v = withParamDefaults({ areaM2: 1, opsPerDay: 1, staffCount: 80, taskStaffing: { "class-palletizer": 6 } });
+    expect(v.taskStaffing).toEqual({ "class-palletizer": 6 });
+  });
+
+  it("на ЧТЕНИИ негодные значения выбрасываются, а не роняют расчёт", () => {
+    // Путь чтения и путь сохранения ведут себя по-разному намеренно. Сохранение ОТКЛОНЯЕТ
+    // негодное — человеку надо сказать, что его ввод не принят. Чтение выбрасывает: блоб мог
+    // быть записан до того, как правило появилось, и ронять из-за этого старый расчёт хуже,
+    // чем посчитать его по нормативу.
+    const v = withParamDefaults({ areaM2: 1, opsPerDay: 1, staffCount: 80,
+      taskStaffing: { a: 6, b: NaN, c: -1, d: "7", e: null } });
+    expect(v.taskStaffing).toEqual({ a: 6 });
+  });
+
+  it("не создаёт пустую карту занятости, когда её нет", () => {
+    expect("taskStaffing" in withParamDefaults({ areaM2: 1, opsPerDay: 1, staffCount: 1 })).toBe(false);
+  });
+
+  it("карта, где не осталось годных значений, не создаётся вовсе", () => {
+    const v = withParamDefaults({ areaM2: 1, opsPerDay: 1, staffCount: 1, taskStaffing: { a: NaN } });
+    expect("taskStaffing" in v).toBe(false);
+  });
+
   it("passes a complete blob through untouched", () => {
     const p = { areaM2: 2000, opsPerDay: 750, staffCount: 12, peakConcurrent: 30 };
     expect(withParamDefaults(p)).toEqual(p);
