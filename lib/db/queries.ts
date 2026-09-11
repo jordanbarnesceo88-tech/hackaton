@@ -36,11 +36,15 @@ export async function getCatalogForFacilityType(facilityTypeSlug: string) {
     ...rest,
     solutionCategories: categories.map((link) => ({
       ...link.category,
-      // Поток спускается с категории на каждое её решение: движок принимает его на решении,
-      // а хранить его на категории правильно — все паллетайзеры считаются одинаково.
+      // Поток и контекст задачи спускаются с категории на каждое её решение: движок принимает
+      // их на решении, а хранить на категории правильно — все паллетайзеры считаются
+      // одинаково. categorySlug — ключ к заявленной занятости, workerOutputPerYear — норматив
+      // для отката, когда занятость не заявлена.
       solutions: link.category.solutions.map((s) => ({
         ...s,
         workloadStream: link.category.workloadStream,
+        categorySlug: link.category.slug,
+        workerOutputPerYear: link.category.workerOutputPerYear,
       })),
     })),
   };
@@ -102,7 +106,12 @@ export async function getSolutionForCalc(id: string) {
   return prisma.solution.findUnique({
     where: { id },
     include: {
-      solutionCategory: { select: { id: true, slug: true, name: true, workloadStream: true } },
+      solutionCategory: {
+        select: {
+          id: true, slug: true, name: true, workloadStream: true,
+          taskLabel: true, workerOutputPerYear: true,
+        },
+      },
     },
   });
 }
@@ -124,12 +133,16 @@ export async function getSiblingSolutions(solutionId: string): Promise<SiblingSo
       priceBasis: true, sourceUrl: true, isClass: true,
       // Поток живёт у категории, а движку он нужен на каждом решении: без него расчёт
       // сравнивает несравнимое, и это не ошибка отображения, а неверное число.
-      solutionCategory: { select: { workloadStream: true } },
+      solutionCategory: {
+        select: { workloadStream: true, slug: true, workerOutputPerYear: true },
+      },
     },
   });
   return rows.map(({ solutionCategory, ...s }) => ({
     ...s,
     workloadStream: solutionCategory.workloadStream,
+    categorySlug: solutionCategory.slug,
+    workerOutputPerYear: solutionCategory.workerOutputPerYear,
   }));
 }
 

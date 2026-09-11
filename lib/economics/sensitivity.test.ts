@@ -20,7 +20,10 @@ describe("npvForScenario", () => {
     expect(v!).toBeLessThan(0);
   });
   it("returns null for invalid inputs", () => {
-    expect(npvForScenario(cap, params, { ...a, opsPerWorkerPerYear: 0 })).toBeNull();
+    // Было: opsPerWorkerPerYear = 0. Движок это допущение больше не читает, поэтому
+    // вырожденность переехала на норматив задачи — диаграмма обязана не строиться там, где
+    // занятость неизвестна, а не показывать нули.
+    expect(npvForScenario({ ...cap, workerOutputPerYear: null }, params, a)).toBeNull();
   });
 });
 

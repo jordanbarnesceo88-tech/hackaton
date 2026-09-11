@@ -59,6 +59,8 @@ export default async function ReportPage({
     ...solution,
     // Поток хранится у категории; движку он нужен на решении.
     workloadStream: solution.solutionCategory.workloadStream,
+    categorySlug: solution.solutionCategory.slug,
+    workerOutputPerYear: solution.solutionCategory.workerOutputPerYear,
   });
   const result = computeEconomics(capacity, p, a);
   const bars = sensitivity(capacity, p, a);

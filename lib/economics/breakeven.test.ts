@@ -37,7 +37,9 @@ describe("breakEvenLaborRateUsd", () => {
     expect(breakEvenLaborRateUsd(cap, params, { ...a, residualSupervisionPct: 1 })).toBeNull();
   });
 
-  it("returns null for invalid inputs (opsPerWorkerPerYear = 0)", () => {
-    expect(breakEvenLaborRateUsd(cap, params, { ...a, opsPerWorkerPerYear: 0 })).toBeNull();
+  it("returns null when task staffing is unknowable", () => {
+    // Было: opsPerWorkerPerYear = 0. Точка безубыточности опирается на displacedFte, а он
+    // теперь берётся из занятости; без неё считать нечего.
+    expect(breakEvenLaborRateUsd({ ...cap, workerOutputPerYear: null }, params, a)).toBeNull();
   });
 });

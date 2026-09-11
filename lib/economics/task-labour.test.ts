@@ -49,6 +49,10 @@ describe("resolveTaskFte", () => {
     expect(resolveTaskFte({ ...base, demandPerYear: 0, declared: undefined })).toBe(0);
     expect(resolveTaskFte({ ...base, workerOutputPerYear: 0, declared: undefined })).toBeNull();
     expect(resolveTaskFte({ ...base, demandPerYear: NaN, declared: undefined })).toBeNull();
+    // Отрицательный спрос — «работы нет», а не «неизвестно»: ноль, а не null. Иначе движок
+    // отвечает «введите занятость» на отрицательном opsPerDay, то есть просит починить не то,
+    // что сломано.
+    expect(resolveTaskFte({ ...base, demandPerYear: -1000, declared: undefined })).toBe(0);
     expect(resolveTaskFte({ ...base, staffCount: 0, declared: undefined })).toBe(0);
     expect(resolveTaskFte({ ...base, staffCount: NaN, declared: 6 })).toBe(0);
   });

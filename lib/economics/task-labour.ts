@@ -42,6 +42,11 @@ export function resolveTaskFte(input: TaskLabourInput): number | null {
   }
 
   if (workerOutputPerYear === null || !(workerOutputPerYear > 0)) return null;
-  if (!Number.isFinite(demandPerYear) || demandPerYear < 0) return null;
+  // NaN спроса — это «неизвестно», и считать по нему нельзя. Отрицательный спрос — это «работы
+  // нет», а не «неизвестно»: он зажимается в ноль, и решение честно доходит до «нет экономии»
+  // с нулём замещённых вместо голого отказа. Различие не косметическое: null здесь означал бы,
+  // что человеку нечего исправлять, хотя исправлять надо отрицательное число операций.
+  if (!Number.isFinite(demandPerYear)) return null;
+  if (demandPerYear < 0) return 0;
   return Math.min(cap, demandPerYear / workerOutputPerYear);
 }

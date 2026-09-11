@@ -25,6 +25,10 @@ type SolutionRow = {
   vendor: string;
   // Спускается с категории в getCatalogForFacilityType: движок принимает поток на решении.
   workloadStream: WorkloadStream;
+  // Оттуда же и по той же причине: движку нужен ключ к заявленной занятости и норматив
+  // категории для отката, когда занятость не заявлена.
+  categorySlug: string;
+  workerOutputPerYear: number | null;
   isClass: boolean;
   priceUsd: number;
   capacityPerUnit: number;

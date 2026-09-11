@@ -17,6 +17,19 @@ export type SolutionCapacity = {
   capacityPerUnit: number;
   capacityBasis: CapacityBasis;
   workloadStream: WorkloadStream;
+
+  /**
+   * Контекст ЗАДАЧИ, а не машины. Лежит здесь по той же причине, что и workloadStream: движку
+   * нужно знать, против какой работы считать решение, и узнать это можно только вместе с
+   * решением. Вынести в отдельный аргумент нельзя — у sensitivity() четвёртый параметр уже
+   * занят deltaPct, а вызовы слишком разнородны, чтобы менять их механически.
+   *
+   * categorySlug — ключ, по которому движок находит заявленную человеком занятость в
+   * params.taskStaffing. workerOutputPerYear — норматив категории для отката, когда занятость
+   * не заявлена; null означает «норматива со ссылкой нет», и тогда расчёт отказывается считать.
+   */
+  categorySlug: string;
+  workerOutputPerYear: number | null;
   priceUsd: number;
   maintenanceUsdYear: number;
   energyUsdYear: number;
@@ -117,6 +130,14 @@ export type EconomicsResult =
   | {
       economical: false;
       reason: "invalid_inputs";
+    }
+  // Занятость задачи не заявлена, и норматива со ссылкой у категории нет. Это не вырожденный
+  // ввод, а ОТСУТСТВУЮЩИЙ ОТВЕТ: показать ноль экономии значило бы утверждать, что задачей
+  // никто не занят. Отдельная причина, а не invalid_inputs, потому что экран обязан сказать
+  // человеку, что именно от него требуется, — это единственный отказ, который он может снять.
+  | {
+      economical: false;
+      reason: "staffing_required";
     };
 
 /**

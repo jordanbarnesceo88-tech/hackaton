@@ -15,6 +15,8 @@ import type {
 export function toSolutionCapacity(s: SolutionCapacity): SolutionCapacity {
   return {
     workloadStream: s.workloadStream,
+    categorySlug: s.categorySlug,
+    workerOutputPerYear: s.workerOutputPerYear,
     capacityPerUnit: s.capacityPerUnit,
     capacityBasis: s.capacityBasis,
     priceUsd: s.priceUsd,
@@ -71,7 +73,18 @@ export function demandPerYear(
   return params.opsPerDay * a.workingDaysPerYear;
 }
 
-/** Сколько работы ЭТОГО потока делает один человек за год — делитель предела замещения (A1). */
+/**
+ * Сколько работы ЭТОГО потока делает один человек за год.
+ *
+ * БОЛЬШЕ НЕ ДЕЛИТЕЛЬ ПРЕДЕЛА ЗАМЕЩЕНИЯ. Движок его не читает: замещение считается от занятости,
+ * названной владельцем объекта (resolveTaskFte), а норматив живёт на категории и служит только
+ * предзаполнением поля в визарде, где значение видно и его можно поправить.
+ *
+ * Глобальные 12 500 операций в год — это 6 операций в час. Отраслевой бенчмарк по отбору
+ * заказов 80–120 в час, по укладке коробок 200–400: допущение занижено в 13–50 раз, и всегда в
+ * сторону завышения замещаемого персонала. Появление этой функции в calculate.ts — регрессия,
+ * ради которой писался подпроект A.
+ */
 export function workerOutputPerYear(a: AssumptionValues, stream: WorkloadStream): number {
   return stream === "FLOOR_AREA" ? a.areaPerCleanerPerYear : a.opsPerWorkerPerYear;
 }

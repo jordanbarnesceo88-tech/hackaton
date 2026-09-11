@@ -50,6 +50,8 @@ export default async function CalculatePage({
     ...solution,
     // Поток хранится у категории; движку он нужен на решении.
     workloadStream: solution.solutionCategory.workloadStream,
+    categorySlug: solution.solutionCategory.slug,
+    workerOutputPerYear: solution.solutionCategory.workerOutputPerYear,
   });
 
   let initialAssumptions = assumptionsToValues(assumptionRows);

@@ -5,12 +5,12 @@ import type { SolutionCapacity, FacilityParams } from "@/lib/economics/types";
 
 const a = makeAssumptions({ laborReplacementPct: 0.7, residualSupervisionPct: 0 });
 const flowCap: SolutionCapacity = {
-  workloadStream: "OPERATION_FLOW",
+  categorySlug: "test-task", workerOutputPerYear: 12500, workloadStream: "OPERATION_FLOW",
   capacityPerUnit: 400, capacityBasis: "PER_DAY_FLOW",
   priceUsd: 1, maintenanceUsdYear: 0, energyUsdYear: 0, licensingUsdYear: 0,
 };
 const stockCap: SolutionCapacity = {
-  workloadStream: "OPERATION_FLOW",
+  categorySlug: "test-task", workerOutputPerYear: 12500, workloadStream: "OPERATION_FLOW",
   capacityPerUnit: 12, capacityBasis: "CONCURRENT_STOCK",
   priceUsd: 1, maintenanceUsdYear: 0, energyUsdYear: 0, licensingUsdYear: 0,
 };

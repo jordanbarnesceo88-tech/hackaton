@@ -6,7 +6,7 @@ import type { SolutionCapacity } from "./types";
 
 // Класс «робот-уборщик»: середина диапазона 700–4860 м²/час.
 const cleaner: SolutionCapacity = {
-  capacityPerUnit: 2780,
+  categorySlug: "test-task", workerOutputPerYear: 600000, capacityPerUnit: 2780,
   capacityBasis: "PER_HOUR_FLOW",
   workloadStream: "FLOOR_AREA",
   priceUsd: 47500,
@@ -38,7 +38,7 @@ describe("уборщик считается против площади, а не
 describe("решения потока операций не задеты", () => {
   it("замещение по-прежнему ограничено потоком операций", () => {
     const amr: SolutionCapacity = {
-      capacityPerUnit: 95,
+      categorySlug: "test-task", workerOutputPerYear: 12500, capacityPerUnit: 95,
       capacityBasis: "PER_HOUR_FLOW",
       workloadStream: "OPERATION_FLOW",
       priceUsd: 87500,
@@ -82,7 +82,7 @@ describe("нулевая пиковая нагрузка у stock-решения
   // «работы нет», другая всё равно давала одну единицу и полный CAPEX. Это не расхождение
   // формул, а два разных ответа на один вопрос, и его надо было закрепить явно.
   const stock: SolutionCapacity = {
-    capacityPerUnit: 50, capacityBasis: "CONCURRENT_STOCK", workloadStream: "OPERATION_FLOW",
+    categorySlug: "test-task", workerOutputPerYear: 12500, capacityPerUnit: 50, capacityBasis: "CONCURRENT_STOCK", workloadStream: "OPERATION_FLOW",
     priceUsd: 60000, maintenanceUsdYear: 5000, energyUsdYear: 1000, licensingUsdYear: 2000,
   };
 

@@ -10,6 +10,7 @@ const base = {
   maintenanceUsdYear: 6000, energyUsdYear: 1000, licensingUsdYear: 2000,
   priceEstimated: false, priceLowUsd: null, priceHighUsd: null, priceBasis: null, sourceUrl: null,
   workloadStream: "OPERATION_FLOW" as const,
+  categorySlug: "test-task", workerOutputPerYear: 12500,
 };
 // cheaper price -> higher NPV; expensive -> lower; broken -> no_savings
 const cheap: SiblingSolution = { ...base, id: "cheap", name: "Cheap", vendor: "V", priceUsd: 40000 };

@@ -43,7 +43,7 @@ describe("computeEconomics", () => {
     // displacedFte = min(100, 0.8) = 0.8 (a huge headcount can't inflate savings)
     const params: FacilityParams = { areaM2: 1000, opsPerDay: 40, staffCount: 100 };
     const r = computeEconomics(cap, params, a);
-    if (!r.economical && r.reason === "invalid_inputs") throw new Error("unexpected invalid");
+    if (!r.economical && r.reason !== "no_savings") throw new Error(`unexpected ${r.reason}`);
     expect(r.displacedFte).toBeCloseTo(0.8, 6);
     if (r.economical) return; // tiny workload likely won't cover OPEX — either branch is fine
     expect(r.reason).toBe("no_savings");
@@ -58,12 +58,23 @@ describe("computeEconomics", () => {
     expect(r.opexAnnualUsd).toBeCloseTo(36000, 2);
   });
 
-  it("returns invalid_inputs when opsPerWorkerPerYear <= 0 (A1)", () => {
+  it("отказывается считать, когда занятость не заявлена и норматива у задачи нет", () => {
+    // Заменил тест на opsPerWorkerPerYear <= 0. То допущение было делителем предела замещения,
+    // и движок его больше не читает: замещение считается от занятости, названной человеком.
+    // Предохранитель переехал на задачу, и проверять надо его, а не опустевшее допущение.
     const params = makeParams();
-    expect(computeEconomics(cap, params, { ...a, opsPerWorkerPerYear: 0 })).toEqual({
+    expect(computeEconomics({ ...cap, workerOutputPerYear: null }, params, a)).toEqual({
       economical: false,
-      reason: "invalid_inputs",
+      reason: "staffing_required",
     });
+  });
+
+  it("заявленная занятость снимает отказ даже без норматива", () => {
+    // staffing_required — единственный отказ, который человек может снять сам. Если ввод его
+    // не снимает, сообщение врёт о том, что от человека требуется.
+    const params = makeParams({ taskStaffing: { "test-task": 4 } });
+    const r = computeEconomics({ ...cap, workerOutputPerYear: null }, params, a);
+    expect(r.economical || r.reason).not.toBe("staffing_required");
   });
 
   it("returns not-economical when savings <= 0 (C2), no payback/roi", () => {

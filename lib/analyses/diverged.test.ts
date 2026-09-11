@@ -5,7 +5,7 @@ import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
 import type { SolutionCapacity, FacilityParams, EconomicsResult } from "@/lib/economics/types";
 
 const cap: SolutionCapacity = {
-  workloadStream: "OPERATION_FLOW",
+  categorySlug: "test-task", workerOutputPerYear: 12500, workloadStream: "OPERATION_FLOW",
   capacityPerUnit: 400, capacityBasis: "PER_DAY_FLOW", priceUsd: 50000,
   maintenanceUsdYear: 6000, energyUsdYear: 1000, licensingUsdYear: 2000,
 };

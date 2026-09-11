@@ -5,6 +5,7 @@ import type {
   EconomicsResult,
 } from "./types";
 import { computeQuantity, coverageOf, demandPerYear, workerOutputPerYear } from "./normalize";
+import { resolveTaskFte } from "./task-labour";
 import { projectFinance } from "./finance";
 
 export type BaseEconomics = {
@@ -34,13 +35,8 @@ export function baseEconomics(
   const quantityOverridden =
     typeof override === "number" && Number.isInteger(override) && override >= 1;
   const quantity = quantityOverridden ? override : computedQuantity;
-  // Делитель предела замещения зависит от потока, поэтому проверяется тот, который реально
-  // используется. Общая проверка opsPerWorkerPerYear роняла бы решение потока площади в
-  // invalid_inputs из-за допущения, которого оно не касается.
-  const perWorker = workerOutputPerYear(a, cap.workloadStream);
   if (
     quantity === null ||
-    !(perWorker > 0) ||
     !(a.roiHorizonYears >= 1) ||
     !(a.assetLifeYears >= 1) ||
     !(a.discountRate > -1)
@@ -55,12 +51,25 @@ export function baseEconomics(
   if (coverage === null) return null;
 
   const annualLaborCostPerFteUsd = a.laborCostPerHourUsd * a.hoursPerYear;
-  // A1 не переделан — он всё это время работал исправно и получал не ту нагрузку. Спрос и
-  // делитель теперь берутся по потоку решения, и абсурд («уборщик замещает сорок кладовщиков»)
-  // исчезает сам, без отдельного запрета.
-  const maxDisplaceableFte =
-    (demandPerYear(params, a, cap.workloadStream) * coverage) / perWorker;
-  const displacedFte = Math.max(0, Math.min(params.staffCount, maxDisplaceableFte));
+
+  // Предел замещения больше НЕ выводится из спроса. Он выводился делением спроса на одно
+  // глобальное число на все задачи — 12 500 операций в год, то есть 6 операций в час. Для
+  // отбора заказов отраслевой бенчмарк 80–120 в час, для укладки коробок 200–400: допущение
+  // занижено в 13–50 раз, и всегда в сторону завышения замещаемого персонала. На пищевом
+  // производстве это давало «паллетайзер за $12 143 замещает весь штат комбината» и
+  // дисконтированную окупаемость 0,029 года — одиннадцать дней.
+  //
+  // Теперь занятость называет владелец объекта, а покрытие её масштабирует: парк, который
+  // закрывает половину работы, освобождает половину людей. Потолок штата остаётся: заявить
+  // больше людей, чем есть на объекте, нельзя.
+  const taskFte = resolveTaskFte({
+    declared: params.taskStaffing?.[cap.categorySlug],
+    demandPerYear: demandPerYear(params, a, cap.workloadStream),
+    workerOutputPerYear: cap.workerOutputPerYear,
+    staffCount: params.staffCount,
+  });
+  if (taskFte === null) return null;
+  const displacedFte = Math.max(0, Math.min(params.staffCount, taskFte * coverage));
   const baselineAnnualUsd = displacedFte * annualLaborCostPerFteUsd;
 
   // Цена за единицу переопределяется отдельно и меняет ТОЛЬКО CAPEX: сколько стоит машина и
@@ -93,8 +102,24 @@ export function computeEconomics(
   params: FacilityParams,
   a: AssumptionValues
 ): EconomicsResult {
+  // Два отказа различаются намеренно: вырожденный ввод человек снять не может, а отсутствующую
+  // занятость — может, введя число. Слить их в invalid_inputs значило бы оставить его без
+  // подсказки, что именно требуется.
+  //
+  // Условие — ровно «человек может это починить, введя число», а НЕ «resolveTaskFte вернул
+  // null». Второе шире: null там означает и «норматива нет», и «спрос вырожден». По второму
+  // поводу движок отвечал «введите занятость» на отрицательном opsPerDay — то есть просил
+  // человека починить не то, что сломано.
+  const declared = params.taskStaffing?.[cap.categorySlug];
+  const hasDeclared = typeof declared === "number" && Number.isFinite(declared) && declared >= 0;
+  const hasNorm = cap.workerOutputPerYear !== null && cap.workerOutputPerYear > 0;
   const base = baseEconomics(cap, params, a);
-  if (base === null) return { economical: false, reason: "invalid_inputs" };
+  if (base === null) {
+    return {
+      economical: false,
+      reason: !hasDeclared && !hasNorm ? "staffing_required" : "invalid_inputs",
+    };
+  }
 
   if (base.annualSavingsUsd <= 0) {
     return { economical: false, reason: "no_savings", ...base };
