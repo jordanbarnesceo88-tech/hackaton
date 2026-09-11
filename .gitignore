@@ -50,3 +50,4 @@ next-env.d.ts
 # `tmp-vr.mjs` reached master this way: the cleanup was `rm -f tmp-*.ts`, the scratch file that
 # session was `.mjs`, and `git add -A` swept it into the commit. Extension-agnostic on purpose.
 /tmp-*
+.firecrawl/
