@@ -184,6 +184,54 @@ describe("computeEconomics", () => {
       expect(r.npvUsd).toBeCloseTo(npv(a.discountRate, cfs), 2);
     });
 
+    // Ставка труда закреплена ЗДЕСЬ, а не берётся из DEFAULT_ASSUMPTIONS: эти три теста
+    // проверяют арифметику финансовой модели на известном сценарии, а не размер ставки. Место,
+    // где сдвиг ставки обязан быть замечен, — золотой снимок отрисованных строк.
+    const pinned = { ...a, laborCostPerHourUsd: 15, hoursPerYear: 2000 }; // -> savings 159 000
+
+    it("Ч-1: простая окупаемость меряется той же инвестицией, что и ROI", () => {
+      // Было: `capexUsd / annualSavingsUsd` = 57 500/159 000 = 0,362 года, тогда как стоящий
+      // рядом ROI делил на 172 500 — полную инвестицию с двумя докупками. Экран показывал
+      // окупаемость 0,36 года и ROI 360,9 % как два утверждения об одних деньгах.
+      // Стало: 172 500/159 000 = 1,085 года — втрое дольше и от той же суммы, что ROI.
+      const r = computeEconomics(cap, params, { ...pinned, assetLifeYears: 2 });
+      if (!r.economical) throw new Error("expected economical");
+      expect(r.annualSavingsUsd).toBeCloseTo(159000, 2);
+      expect(r.simplePaybackYears).toBeCloseTo((57500 * 3) / 159000, 6);
+      expect(r.simplePaybackYears).toBeCloseTo(1.0849, 4);
+      // Тождество, которое общая база делает обязательным.
+      expect(r.simpleRoiPct).toBeCloseTo((5 / r.simplePaybackYears - 1) * 100, 6);
+    });
+
+    it("Ч-2: не печатает срок окупаемости у проекта с отрицательным NPV", () => {
+      // Цена $500 000 -> capex $575 000, горизонт 8, срок службы 7 -> докупка на t=7.
+      // Накопленный приведённый поток пересекал ноль на 5,02 года, докупка загоняла его
+      // обратно, и панель печатала «окупается за 5,0 года» при NPV −$45 246.
+      const pricey: SolutionCapacity = { ...cap, priceUsd: 500_000 };
+      const r = computeEconomics(pricey, params, {
+        ...pinned,
+        roiHorizonYears: 8,
+        assetLifeYears: 7,
+      });
+      if (!r.economical) throw new Error("expected economical (savings still > 0)");
+      expect(r.npvUsd).toBeCloseTo(-45246, 0);
+      expect(r.discountedPaybackYears).toBeNull();
+    });
+
+    it("Ч-3: дробный горизонт и срок службы округляются к ближайшему целому, а не вниз", () => {
+      // Было `Math.floor`: 4,99 считалось как 4, а срок службы 1,99 — как 1, то есть докупка
+      // КАЖДЫЙ год. Человек правил поле и получал ответ для числа почти на год меньше.
+      const at = (o: Partial<typeof a>) => {
+        const r = computeEconomics(cap, params, { ...pinned, ...o });
+        if (!r.economical) throw new Error("expected economical");
+        return r.npvUsd;
+      };
+      expect(at({ roiHorizonYears: 4.99 })).toBeCloseTo(at({ roiHorizonYears: 5 }), 6);
+      expect(at({ roiHorizonYears: 4.99 })).not.toBeCloseTo(at({ roiHorizonYears: 4 }), 0);
+      expect(at({ assetLifeYears: 1.99 })).toBeCloseTo(at({ assetLifeYears: 2 }), 6);
+      expect(at({ assetLifeYears: 1.99 })).not.toBeCloseTo(at({ assetLifeYears: 1 }), 0);
+    });
+
     it("does NOT re-buy when asset life equals the horizon (assets last the whole horizon)", () => {
       // life 5 == horizon 5 -> no re-CAPEX; simple ROI must match the no-re-buy formula and
       // the default (life 7) result — the terminal-year over-count bug would have halved it.

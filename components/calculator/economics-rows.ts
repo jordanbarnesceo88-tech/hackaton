@@ -71,7 +71,10 @@ export function economicsRows(
       key: "discountedPayback",
       label: "Срок окупаемости (дисконт.)",
       // A3 honesty discipline: an investment that never recovers inside the horizon says so
-      // in words rather than showing a number the horizon does not support.
+      // in words rather than showing a number the horizon does not support. Ч-2 widened what
+      // `null` means: the engine now reports the LAST crossing of zero, so a project whose
+      // re-buy pushed the cumulative discounted flow back under water — and left it there —
+      // lands here too, instead of printing the year it briefly crossed on the way.
       value:
         result.discountedPaybackYears === null
           ? "не окупается в пределах горизонта"

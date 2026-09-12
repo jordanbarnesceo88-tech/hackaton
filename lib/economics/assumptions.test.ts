@@ -41,8 +41,15 @@ describe("withAssumptionDefaults", () => {
     expect(v.energyCostFactor).toBe(0.8);
   });
   it("falls back for a non-finite or non-number value", () => {
-    expect(withAssumptionDefaults({ laborCostPerHourUsd: NaN }).laborCostPerHourUsd).toBe(15);
-    expect(withAssumptionDefaults({ discountRate: "x" }).discountRate).toBe(0.12);
+    // Сверяемся с самим умолчанием, а не с его копией числом. Копия проверяла не то, что
+    // заявлено («подставилось умолчание»), а то, что умолчание равно пятнадцати, — и падала
+    // при смене ставки труда, хотя откат работал ровно как надо.
+    expect(withAssumptionDefaults({ laborCostPerHourUsd: NaN }).laborCostPerHourUsd).toBe(
+      DEFAULT_ASSUMPTIONS.laborCostPerHourUsd
+    );
+    expect(withAssumptionDefaults({ discountRate: "x" }).discountRate).toBe(
+      DEFAULT_ASSUMPTIONS.discountRate
+    );
   });
   it("returns all defaults for a null / non-object input", () => {
     expect(withAssumptionDefaults(null)).toEqual(DEFAULT_ASSUMPTIONS);
