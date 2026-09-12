@@ -92,7 +92,9 @@ export default async function ComparePage({
     industry: wizard.industry,
     facility: type,
     objectName,
-    params: wizard.complete ? wizard.params : null,
+    // Неполный набор больше не означает «параметров нет»: принятые числа едут дальше,
+    // иначе годные площадь и персонал теряются из-за отклонённого объёма операций.
+    params: wizard.complete ? wizard.params : wizard.provided,
   });
   const calcSuffix = calcQuery ? `?${calcQuery}` : "";
 
@@ -120,11 +122,20 @@ export default async function ComparePage({
       )
     : [];
 
+  const staffingHref = `/onboarding/staffing?${buildWizardQuery({
+    industry: wizard.industry,
+    facility: type,
+    objectName,
+    params: wizard.complete ? wizard.params : wizard.provided,
+  })}`;
+
   const paramsHref = `/onboarding/params?${buildWizardQuery({
     industry: wizard.industry,
     facility: type,
     objectName,
-    params: wizard.complete ? wizard.params : null,
+    // Неполный набор больше не означает «параметров нет»: принятые числа едут дальше,
+    // иначе годные площадь и персонал теряются из-за отклонённого объёма операций.
+    params: wizard.complete ? wizard.params : wizard.provided,
   })}`;
 
   return (
@@ -146,6 +157,7 @@ export default async function ComparePage({
           usdToRub={a.usdToRub}
           calcHref={(id) => `/calculate/${id}${calcSuffix}`}
           backHref={paramsHref}
+          staffingHref={staffingHref}
         />
       )}
 

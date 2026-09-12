@@ -87,3 +87,67 @@ export function NumField({
     </div>
   );
 }
+
+/**
+ * Числовое поле, которое умеет быть ПУСТЫМ.
+ *
+ * `NumField` пустым быть не может: он связан с `number`, и очищенная коробка означает либо
+ * ноль, либо прежнее значение. Для занятости по задачам это неверно по существу — «никто не
+ * занят» (ноль) и «я не знаю» (пусто) это разные ответы, и движок трактует их по-разному:
+ * по нулю он считает, что замещать некого, по отсутствию — берёт норматив категории.
+ *
+ * Поэтому здесь `null` — полноправное значение, а не «ещё не ввели».
+ */
+export function NullableNumField({
+  id,
+  label,
+  value,
+  placeholder,
+  min = 0,
+  max,
+  invalid = false,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number | null;
+  /** Что показывать в пустом поле — например, «по нормативу 6». */
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  invalid?: boolean;
+  onChange: (n: number | null) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft !== null ? draft : value === null ? "" : String(value);
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id}>{label}</Label>
+      <input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        step={1}
+        placeholder={placeholder}
+        aria-invalid={invalid || undefined}
+        className="w-full border-0 border-b-2 border-input bg-transparent px-1 py-2 text-base
+          tabular-nums transition-colors outline-none
+          hover:border-muted-foreground
+          focus-visible:border-primary focus-visible:ring-0
+          aria-invalid:border-destructive"
+        value={shown}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setDraft(raw);
+          // Пустая строка — это null, а НЕ ноль и не «оставить прежнее».
+          if (raw.trim() === "") return onChange(null);
+          const n = Number(raw);
+          if (Number.isFinite(n) && n >= min) onChange(n);
+        }}
+        onBlur={() => setDraft(null)}
+      />
+    </div>
+  );
+}

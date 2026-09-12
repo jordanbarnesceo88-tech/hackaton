@@ -19,7 +19,19 @@ test("NPV в списке решений совпадает с NPV в расчё
   await page.getByRole("link", { name: "Далее" }).click();
 
   await expect(page).toHaveURL(/\/onboarding\/params/);
+  await page.getByRole("link", { name: "Дальше: кто чем занят" }).click();
+
+  // Новый шаг: занятость по задачам. Движок считает замещение от неё, поэтому без этого шага
+  // решения без норматива отказываются считать (Р-1). Часть полей предзаполнена нормативом со
+  // ссылкой, остальные заполняем сами — как это сделал бы владелец объекта.
+  await expect(page).toHaveURL(/\/onboarding\/staffing/);
+  const staffingFields = page.locator('input[type="number"]');
+  for (let i = 0; i < (await staffingFields.count()); i++) {
+    const field = staffingFields.nth(i);
+    if ((await field.inputValue()) === "") await field.fill("4");
+  }
   await page.getByRole("link", { name: "Показать решения" }).click();
+
   await expect(page).toHaveURL(/\/compare\/warehouse/);
 
   // Колонки окупаемости и NPV появляются только когда параметры собраны — это и есть признак

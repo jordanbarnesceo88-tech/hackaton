@@ -20,6 +20,14 @@ import { clampAssumption } from "@/lib/economics/assumptions";
 import { formatCost } from "@/lib/format/currency";
 import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
 
+export type DefaultedParamField = "area" | "ops" | "staff";
+
+const DEFAULTED_PARAM_LABELS: Record<DefaultedParamField, string> = {
+  area: "площадь",
+  ops: "объём операций",
+  staff: "персонал",
+};
+
 export function EconomicsCalculator({
   categorySolutions,
   initialSelectedId,
@@ -31,6 +39,7 @@ export function EconomicsCalculator({
   dataChanged,
   savedParamsBroken = false,
   initialParams,
+  defaultedParams = [],
 }: {
   categorySolutions: SiblingSolution[];
   initialSelectedId: string;
@@ -42,6 +51,14 @@ export function EconomicsCalculator({
   dataChanged: boolean;
   savedParamsBroken?: boolean;
   initialParams?: FacilityParams;
+  /**
+   * Поля объекта, которых человек не назвал (или назвал негодно) и на месте которых стоит
+   * значение по умолчанию. Пустой массив — все числа его собственные.
+   *
+   * Подставлять умолчание молча нельзя: расчёт выглядит одинаково уверенно независимо от того,
+   * чьи это числа, и человек уносит ответ на вопрос, которого не задавал.
+   */
+  defaultedParams?: DefaultedParamField[];
 }) {
   const [selectedSolutionId, setSelectedSolutionId] = useState(initialSelectedId);
   // `?? categorySolutions[0]` assumed the list is never empty. It is non-empty in practice —
@@ -160,6 +177,14 @@ export function EconomicsCalculator({
           </p>
         )}
       </div>
+      {defaultedParams.length > 0 && (
+        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+          Не задано:{" "}
+          {defaultedParams.map((f) => DEFAULTED_PARAM_LABELS[f]).join(", ")} — здесь стоят
+          значения по умолчанию, а не ваши. Пока это так, числа ниже — пример, а не оценка
+          вашего объекта.
+        </div>
+      )}
       {savedParamsBroken && (
         <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
           Параметры объекта из сохранённого расчёта восстановить не удалось — показаны обычные

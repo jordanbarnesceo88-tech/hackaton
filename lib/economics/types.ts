@@ -158,6 +158,18 @@ export function isViable(r: EconomicsResult): boolean {
   return r.economical && r.npvUsd >= 0 && r.discountedPaybackYears !== null;
 }
 
+/**
+ * Отказ, который человек может снять сам, введя число.
+ *
+ * Заведено потому, что `isCalculable` ложен для ОБОИХ отказов, и интерфейс их не различал:
+ * «не хватает занятости» показывалось теми же словами, что «вы ввели ерунду» — «проверьте
+ * параметры расчёта». На семи решениях из одиннадцати это был обычный путь, а не край, и
+ * человек не мог догадаться, что от него требуется одно число.
+ */
+export function isStaffingRequired(r: EconomicsResult): boolean {
+  return !r.economical && "reason" in r && r.reason === "staffing_required";
+}
+
 /** Result variants that carry numeric fields (economical or no_savings) — i.e. not the
  *  `invalid_inputs` placeholder. Used to gate/narrow number rendering in the UI. */
 export type CalculableResult = Extract<EconomicsResult, { quantity: number }>;

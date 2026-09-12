@@ -57,6 +57,32 @@ export async function getCatalogForFacilityType(facilityTypeSlug: string) {
  * has no one facility type — but a client-supplied one still must not be taken on trust, so
  * the set it has to belong to stays checkable.
  */
+/**
+ * Задачи, применимые к типу объекта, — вход экрана «кто чем занят» (A-9).
+ *
+ * Отдельно от `getCatalogForFacilityType`, который тянет ещё и все решения каждой категории:
+ * экрану занятости они не нужны, а порядок обязан совпадать с тем, что человек увидит на
+ * сравнении, — поэтому сортировка здесь та же.
+ */
+export async function getTaskCategories(facilityTypeSlug: string) {
+  const links = await prisma.facilityTypeCategory.findMany({
+    where: { facilityType: { slug: facilityTypeSlug } },
+    orderBy: [{ order: "asc" }, { category: { name: "asc" } }],
+    select: {
+      category: {
+        select: {
+          slug: true,
+          taskLabel: true,
+          workloadStream: true,
+          workerOutputPerYear: true,
+          workerOutputSourceUrl: true,
+        },
+      },
+    },
+  });
+  return links.map((l) => l.category);
+}
+
 export async function getSolutionApplicability(solutionId: string): Promise<string[]> {
   const rows = await prisma.facilityTypeCategory.findMany({
     where: { category: { solutions: { some: { id: solutionId } } } },

@@ -15,6 +15,17 @@ test("anonymous flow: onboarding → compare → calculate", async ({ page }) =>
   await expect(page).toHaveURL(/\/onboarding\/params/);
   // Поля предзаполнены типовыми значениями — пустые поля здесь хуже приблизительных.
   await expect(page.locator("#opsPerDay")).not.toHaveValue("0");
+  await page.getByRole("link", { name: "Дальше: кто чем занят" }).click();
+
+  // Новый шаг: занятость по задачам. Движок считает замещение от неё, поэтому без этого шага
+  // решения без норматива отказываются считать (Р-1). Часть полей предзаполнена нормативом со
+  // ссылкой, остальные заполняем сами — как это сделал бы владелец объекта.
+  await expect(page).toHaveURL(/\/onboarding\/staffing/);
+  const staffingFields = page.locator('input[type="number"]');
+  for (let i = 0; i < (await staffingFields.count()); i++) {
+    const field = staffingFields.nth(i);
+    if ((await field.inputValue()) === "") await field.fill("4");
+  }
   await page.getByRole("link", { name: "Показать решения" }).click();
 
   await expect(page).toHaveURL(/\/compare\/warehouse/);
@@ -27,7 +38,12 @@ test("anonymous flow: onboarding → compare → calculate", async ({ page }) =>
   await expect(page).toHaveURL(/\/calculate\//);
 
   // Hero band + results + sensitivity render.
-  await expect(page.getByText(/Окупается за|Не окупается/).first()).toBeVisible();
+  // Состояний у героя ТРИ, а не два: «Окупается за» (проходит оба дисконтированных теста),
+  // «Простой срок окупаемости» (экономия положительна, но вложения не возвращаются внутри
+  // горизонта — герой намеренно не празднует такое) и «Не окупается».
+  await expect(
+    page.getByText(/Окупается за|Не окупается|Простой срок окупаемости/).first()
+  ).toBeVisible();
   await expect(page.getByText("CAPEX").first()).toBeVisible();
   await expect(page.getByText("Чувствительность NPV")).toBeVisible();
 });

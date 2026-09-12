@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatCost } from "@/lib/format/currency";
 import { formatYearsRu } from "@/lib/format/plural";
-import { isViable, isCalculable } from "@/lib/economics/types";
+import { isViable, isCalculable, isStaffingRequired } from "@/lib/economics/types";
 import type { EconomicsResult } from "@/lib/economics/types";
 
 export type Candidate = {
@@ -29,11 +29,14 @@ export function BestSolution({
   usdToRub,
   calcHref,
   backHref,
+  staffingHref,
 }: {
   candidates: Candidate[];
   usdToRub: number;
   calcHref: (id: string) => string;
   backHref: string;
+  /** Шаг «Кто чем занят» — единственное место, где снимается отказ по занятости. */
+  staffingHref: string;
 }) {
   const viable = candidates
     .filter((c) => isViable(c.result))
@@ -44,6 +47,38 @@ export function BestSolution({
     });
 
   const best = viable[0];
+
+  // «Не окупается» — это вывод, и делать его можно только когда есть из чего. Пока хотя бы одно
+  // решение отказывается считать без занятости, вывода нет: молчание движка объяснялось словами
+  // «объём операций слишком мал для автоматизации такого класса» — уверенное неверное
+  // объяснение там, где не хватало одного числа.
+  const awaitingStaffing = candidates.filter((c) => isStaffingRequired(c.result));
+  if (!best && awaitingStaffing.length > 0) {
+    const all = awaitingStaffing.length === candidates.length;
+    return (
+      <div
+        data-testid="best-solution"
+        className="rounded-lg border-2 border-border bg-muted/30 p-6"
+      >
+        <div className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+          Пока нечем считать
+        </div>
+        <p className="mt-2 max-w-prose">
+          {all
+            ? "Ни по одной из этих работ не указано, сколько человек ею занято."
+            : `По ${awaitingStaffing.length} из ${candidates.length} решений не указано, сколько человек занято их работой.`}{" "}
+          Замещение считается от занятости, поэтому без неё ответа нет — а показать ноль значило
+          бы утверждать, что работой никто не занят.
+        </p>
+        <Link
+          href={staffingHref}
+          className="mt-4 inline-block font-medium underline underline-offset-4"
+        >
+          Указать, кто чем занят
+        </Link>
+      </div>
+    );
+  }
 
   if (!best || !isCalculable(best.result) || !best.result.economical) {
     return (

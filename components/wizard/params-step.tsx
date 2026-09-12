@@ -27,14 +27,16 @@ export function ParamsStep({
   // поправить цифру под себя. Значения помечены типовыми прямо в подписи.
   const [params, setParams] = useState<FacilityParams>(typical);
 
-  const next = `/compare/${facility}?${buildWizardQuery({ industry, facility, objectName, params })}`;
+  // Дальше не сравнение, а занятость: движок считает замещение от неё, и без неё список
+  // решений наполовину состоял бы из отказов.
+  const next = `/onboarding/staffing?${buildWizardQuery({ industry, facility, objectName, params })}`;
 
   return (
     <StepShell
       question={`Расскажите про ваш ${objectName ? `объект «${objectName}»` : facilityName.toLowerCase()}`}
       hint="Значения подставлены типовые для этого типа объекта — поправьте под себя. По ним посчитается верхняя граница эффекта; сузить её до конкретного решения можно на следующем шаге."
       nextHref={next}
-      nextLabel="Показать решения"
+      nextLabel="Дальше: кто чем занят"
     >
       {rejected.length > 0 && (
         // Молча заменить негодное значение на типовое — значит показать человеку число,

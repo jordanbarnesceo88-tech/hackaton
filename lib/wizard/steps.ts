@@ -8,12 +8,22 @@ import type { FacilityParams } from "@/lib/economics/types";
  * должно терять введённое, а ссылку на шаг должно быть можно отправить коллеге. Цена этого —
  * query-строка это пользовательский ввод, и доверять ей нельзя.
  */
-export type WizardStepKey = "industry" | "facility" | "params" | "solutions" | "calc";
+export type WizardStepKey =
+  | "industry"
+  | "facility"
+  | "params"
+  | "staffing"
+  | "solutions"
+  | "calc";
 
 export const WIZARD_STEPS: { key: WizardStepKey; title: string }[] = [
   { key: "industry", title: "Отрасль" },
   { key: "facility", title: "Тип объекта" },
   { key: "params", title: "Параметры объекта" },
+  // Занятость стоит ПЕРЕД решениями, а не после: экран сравнения считает экономику всех
+  // решений сразу, и без занятости семь из одиннадцати ему отказывают. Спросить после —
+  // значит показать список, наполовину состоящий из отказов.
+  { key: "staffing", title: "Кто чем занят" },
   { key: "solutions", title: "Решения" },
   { key: "calc", title: "Расчёт" },
 ];
@@ -36,6 +46,18 @@ export type WizardState = {
    * следующем экране 500 и не понимает, куда делось введённое.
    */
   rejected: ("area" | "ops" | "staff")[];
+  /**
+   * ТОЛЬКО те числа, которые человек прислал и которые приняты. В `params` их не отличить:
+   * туда `withParamDefaults` уже подставил 1000 / 500 / 10 за всё недостающее, и «объект на
+   * 1000 м²» неотличимо от «площадь не назвали».
+   *
+   * Заведено потому, что `complete: false` вызывающие трактовали как «параметров нет» и
+   * передавали дальше `null`: человек вводил площадь 8000, персонал 25 и объём операций 0,
+   * ноль справедливо отклонялся — и вместе с ним пропадали оба годных числа, после чего
+   * калькулятор уверенно считал по 1000 / 500 / 10. Худший вид ошибки для продукта, который
+   * обещает защитимое число: ответ дан не на те данные, и на экране об этом ни слова.
+   */
+  provided: Partial<FacilityParams>;
 };
 
 type Query = Record<string, string | string[] | undefined>;
@@ -65,15 +87,65 @@ function num(v: string | string[] | undefined): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+/**
+ * Префикс ключей занятости в query-строке: `task_<slug категории>=<человек>`.
+ *
+ * Отдельные ключи, а не один упакованный параметр, — по той же причине, по которой площадь и
+ * персонал лежат отдельно: ссылку на шаг можно прочитать глазами и поправить руками, а
+ * упакованный blob этого не даёт.
+ */
+const TASK_PREFIX = "task_";
+
+/**
+ * Потолок на число задач в ссылке. Применимых категорий у типа объекта единицы, а query-строка
+ * это чужой ввод: без потолка подделанная ссылка кладёт в расчёт (и в сохранённый отчёт)
+ * произвольный объём произвольных ключей.
+ */
+const MAX_TASK_KEYS = 40;
+const MAX_TASK_SLUG_LEN = 200;
+
+/**
+ * Занятость из query-строки. Ноль ДОПУСТИМ и значим — «этой задачей никто не занят», — в
+ * отличие от площади и персонала, где ноль вырожден. Различие не косметическое: по отсутствию
+ * ключа движок берёт норматив категории, по нулю считает, что замещать некого.
+ */
+function taskNum(v: string | string[] | undefined): number | undefined {
+  const s = one(v);
+  if (s === null) return undefined;
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+function parseTaskStaffing(query: Query): Record<string, number> | undefined {
+  const out: Record<string, number> = {};
+  let count = 0;
+  for (const [key, raw] of Object.entries(query)) {
+    if (!key.startsWith(TASK_PREFIX)) continue;
+    if (count >= MAX_TASK_KEYS) break;
+    const slug = key.slice(TASK_PREFIX.length);
+    if (!slug || slug.length > MAX_TASK_SLUG_LEN) continue;
+    const n = taskNum(raw);
+    // Негодное значение отбрасывается вместе с ключом, а не превращается в ноль: ноль здесь
+    // означал бы «никто не занят», то есть утверждение, которого человек не делал.
+    if (n === undefined) continue;
+    out[slug] = n;
+    count++;
+  }
+  // Пустая карта не создаётся — её отсутствие это другая инструкция, чем пустота.
+  return count > 0 ? out : undefined;
+}
+
 export function parseWizardParams(query: Query): WizardState {
   const industry = one(query.industry);
   const facility = one(query.facility);
   // Валидация чисел — через тот же withParamDefaults, что защищает путь сохранения. Второго
   // пути не заводим: два места, решающих, что такое корректные параметры, неизбежно разъедутся.
+  const taskStaffing = parseTaskStaffing(query);
   const params = withParamDefaults({
     areaM2: num(query.area),
     opsPerDay: num(query.ops),
     staffCount: num(query.staff),
+    taskStaffing,
   });
   const fields = [
     ["area", query.area],
@@ -85,6 +157,21 @@ export function parseWizardParams(query: Query): WizardState {
     .map(([name]) => name);
   const hasAll = fields.every(([, raw]) => num(raw) !== undefined);
 
+  // Собирается из сырого query, а не из `params`: к этому моменту в `params` уже стоят
+  // умолчания, и принятое от подставленного там не отличить.
+  const provided: Partial<FacilityParams> = {};
+  const areaM2 = num(query.area);
+  const opsPerDay = num(query.ops);
+  const staffCount = num(query.staff);
+  if (areaM2 !== undefined) provided.areaM2 = areaM2;
+  if (opsPerDay !== undefined) provided.opsPerDay = opsPerDay;
+  if (staffCount !== undefined) provided.staffCount = staffCount;
+  // Занятость — тоже присланное человеком, и в `provided` ей место наравне с тремя числами.
+  // Без неё вызывающий, передающий дальше `provided` (неполный набор), молча терял ответы
+  // экрана «кто чем занят», и расчёт снова упирался в staffing_required — то есть починка
+  // одного места ломала соседнее.
+  if (taskStaffing) provided.taskStaffing = taskStaffing;
+
   return {
     industry,
     facility,
@@ -92,6 +179,7 @@ export function parseWizardParams(query: Query): WizardState {
     params,
     complete: hasAll,
     rejected: [...rejected],
+    provided,
   };
 }
 
@@ -109,5 +197,8 @@ export function buildWizardQuery(state: {
   if (p?.areaM2 !== undefined) q.set("area", String(p.areaM2));
   if (p?.opsPerDay !== undefined) q.set("ops", String(p.opsPerDay));
   if (p?.staffCount !== undefined) q.set("staff", String(p.staffCount));
+  for (const [slug, n] of Object.entries(p?.taskStaffing ?? {})) {
+    if (Number.isFinite(n) && n >= 0) q.set(`${TASK_PREFIX}${slug}`, String(n));
+  }
   return q.toString();
 }

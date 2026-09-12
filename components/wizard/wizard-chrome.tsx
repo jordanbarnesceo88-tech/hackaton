@@ -8,6 +8,7 @@ function stepFromPath(pathname: string): WizardStepKey | null {
   if (pathname === "/onboarding") return "industry";
   if (pathname.startsWith("/onboarding/facility")) return "facility";
   if (pathname.startsWith("/onboarding/params")) return "params";
+  if (pathname.startsWith("/onboarding/staffing")) return "staffing";
   if (pathname.startsWith("/compare/")) return "solutions";
   if (pathname.startsWith("/calculate/")) return "calc";
   return null;
@@ -57,9 +58,11 @@ export function WizardChrome() {
         ? facilityHref()
         : previous?.key === "params"
           ? `/onboarding/params?${search.toString()}`
-          : previous?.key === "solutions"
-            ? `/compare/${search.get("facility") ?? ""}?${search.toString()}`
-            : null;
+          : previous?.key === "staffing"
+            ? `/onboarding/staffing?${search.toString()}`
+            : previous?.key === "solutions"
+              ? `/compare/${search.get("facility") ?? ""}?${search.toString()}`
+              : null;
 
   return (
     <div className="border-b bg-card">

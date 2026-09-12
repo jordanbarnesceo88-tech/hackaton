@@ -8,13 +8,20 @@ import {
   getSavedAnalysis,
   getSiblingSolutions,
 } from "@/lib/db/queries";
-import { assumptionsToValues, withAssumptionDefaults } from "@/lib/economics/assumptions";
+import {
+  assumptionsToValues,
+  withAssumptionDefaults,
+  withParamDefaults,
+} from "@/lib/economics/assumptions";
 import { validateParams } from "@/lib/analyses/validate";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { parseWizardParams } from "@/lib/wizard/steps";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
 import { resultsDiverged } from "@/lib/analyses/diverged";
-import { EconomicsCalculator } from "@/components/economics-calculator";
+import {
+  EconomicsCalculator,
+  type DefaultedParamField,
+} from "@/components/economics-calculator";
 import type { FacilityParams } from "@/lib/economics/types";
 
 export default async function CalculatePage({
@@ -58,7 +65,23 @@ export default async function CalculatePage({
   // Параметры, собранные подбором, — стартовые для расчёта. Это и есть условие паритета:
   // шаг 4 считает на них же, поэтому первое показанное здесь число совпадает с тем, что
   // человек видел в списке решений. Сохранённый анализ (ниже) их перекрывает — там свои.
-  let initialParams: FacilityParams | undefined = wizard.complete ? wizard.params : undefined;
+  // Раньше здесь стояло `wizard.complete ? wizard.params : undefined`, и это теряло ГОДНЫЕ
+  // числа из-за негодного соседа: площадь 8000 и персонал 25 исчезали вместе с отклонённым
+  // нулём, а калькулятор молча считал по 1000 / 500 / 10. Теперь доезжает всё принятое, а
+  // недостающее названо на экране.
+  //
+  // Когда не прислано вообще ничего, параметры по-прежнему не передаются: у калькулятора свои
+  // умолчания, и для stock-решений они включают peakConcurrent, которого withParamDefaults
+  // не знает.
+  const defaultedParams: DefaultedParamField[] = [];
+  if (wizard.provided.areaM2 === undefined) defaultedParams.push("area");
+  if (wizard.provided.opsPerDay === undefined) defaultedParams.push("ops");
+  if (wizard.provided.staffCount === undefined) defaultedParams.push("staff");
+  const anyProvided = defaultedParams.length < 3;
+  let initialParams: FacilityParams | undefined = anyProvided
+    ? withParamDefaults(wizard.provided)
+    : undefined;
+  let paramsAreTheirs = defaultedParams.length === 0;
   let dataChanged = false;
   let savedParamsBroken = false;
   if (analysisId) {
@@ -74,6 +97,8 @@ export default async function CalculatePage({
         const restored = validateParams(saved.params);
         if (restored) {
           initialParams = restored;
+          // Восстановленные параметры — целиком его собственные, подставленного в них нет.
+          paramsAreTheirs = true;
         } else {
           savedParamsBroken = true;
         }
@@ -101,6 +126,7 @@ export default async function CalculatePage({
         dataChanged={dataChanged}
         savedParamsBroken={savedParamsBroken}
         initialParams={initialParams}
+        defaultedParams={paramsAreTheirs ? [] : defaultedParams}
       />
     </div>
   );

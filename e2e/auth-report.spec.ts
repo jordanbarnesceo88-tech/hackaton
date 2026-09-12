@@ -43,7 +43,14 @@ test("report figures match the calculator panel exactly", async ({ page }) => {
   await page.getByRole("button", { name: "Зарегистрироваться" }).click();
   await expect(page).toHaveURL(/\/onboarding/);
 
-  await page.goto("/compare/warehouse");
+  // Полное состояние подбора, включая занятость по задачам: без неё движок отказывается
+  // считать решения, у которых нет норматива (Р-1), и паритету нечего было бы сверять —
+  // на обеих поверхностях стояло бы одинаковое «не хватает занятости».
+  await page.goto(
+    "/compare/warehouse?industry=retail&facility=warehouse&area=10000&ops=5000&staff=40" +
+      "&task_asrs=4&task_amr=4&task_class-amr-transport=4" +
+      "&task_class-palletizer=4&task_class-cleaning=4"
+  );
   await page.getByRole("link", { name: /Рассчитать/ }).first().click();
   await expect(page).toHaveURL(/\/calculate\//);
 
