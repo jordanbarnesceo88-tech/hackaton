@@ -6,6 +6,7 @@ import { capacityPerYear } from "@/lib/economics/normalize";
 import { assumptionsToValues } from "@/lib/economics/assumptions";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
+import { detectUnitMismatch } from "@/lib/economics/commensurability";
 import { isCalculable } from "@/lib/economics/types";
 import { formatYearsRu } from "@/lib/format/plural";
 import { parseWizardParams, buildWizardQuery } from "@/lib/wizard/steps";
@@ -106,6 +107,15 @@ export default async function ComparePage({
    */
   const economicsFor = (s: SolutionRow) =>
     wizard.complete ? computeEconomics(toSolutionCapacity(s), wizard.params, a) : null;
+
+  // Единица производительности решения не сопоставима с «операцией объекта». Экран сравнения —
+  // то место, где это вреднее всего: он РАНЖИРУЕТ, и решение с самой мелкой единицей всегда
+  // окажется внизу, а с самой крупной — наверху, безотносительно к тому, что оно даёт.
+  const mismatchFor = (s: SolutionRow) => {
+    const r = economicsFor(s);
+    if (!r || !isCalculable(r)) return null;
+    return detectUnitMismatch(toSolutionCapacity(s), wizard.params, a, r.quantity);
+  };
 
   // Кандидаты собираются по всем категориям сразу: человек спрашивал «что окупится у меня»,
   // а не «что лучшее среди AS/RS». Деление на категории — способ разложить таблицу, а не
@@ -218,6 +228,7 @@ export default async function ComparePage({
                   // high-throughput solutions and would round to "US$0" under the whole-unit
                   // money formatter, making the headline comparison metric useless.
                   const normPrice = annual && annual > 0 ? (s.priceUsd * 1000) / annual : null;
+                  const mismatch = mismatchFor(s as SolutionRow);
                   return (
                     <tr key={s.id} className="border-b last:border-0">
                       <Td>
@@ -226,6 +237,18 @@ export default async function ComparePage({
                         <div className="mt-1">
                           <ProvenanceBadge source={s.source} sourceUrl={s.sourceUrl} isClass={s.isClass} />
                         </div>
+                        {mismatch && (
+                          <div
+                            className="mt-1 text-xs text-caution"
+                            title={
+                              mismatch.kind === "fleet"
+                                ? `Расчёт требует ${mismatch.quantity} единиц на объект: производительность измеряется в «${s.capacityUnit}», а работа объекта — в операциях.`
+                                : `Одна единица покрывает работу объекта примерно в ${Math.round(mismatch.ratio)} раз больше, чем её есть: производительность измеряется в «${s.capacityUnit}», а работа объекта — в операциях.`
+                            }
+                          >
+                            мерка работы другая — не сравнивать со строками выше
+                          </div>
+                        )}
                       </Td>
                       {wizard.complete && (
                         <Td className="text-right whitespace-nowrap font-medium">

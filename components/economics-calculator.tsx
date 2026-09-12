@@ -13,6 +13,8 @@ import { BreakEvenNote } from "@/components/calculator/break-even-note";
 import { mapKind } from "@/lib/scene/layout";
 import { computeEconomics } from "@/lib/economics/calculate";
 import { toSolutionCapacity } from "@/lib/economics/normalize";
+import { detectUnitMismatch } from "@/lib/economics/commensurability";
+import { isCalculable } from "@/lib/economics/types";
 import { rankSolutions, type SiblingSolution } from "@/lib/economics/recommend";
 import { sensitivity } from "@/lib/economics/sensitivity";
 import { REGION_PRESETS, regionLaborCostUsd } from "@/lib/economics/regions";
@@ -151,6 +153,13 @@ export function EconomicsCalculator({
   const ranked = rankSolutions(categorySolutions, rankingParams, effectiveAssumptions);
   const bars = sensitivity(capacity, params, effectiveAssumptions);
 
+  // Единица производительности решения не сопоставима с «операцией объекта», и здесь это
+  // видно в ответе. Молчать нельзя: число выглядит одинаково уверенно независимо от того,
+  // сравнивали мы сопоставимые величины или нет.
+  const mismatch = isCalculable(result)
+    ? detectUnitMismatch(capacity, params, effectiveAssumptions, result.quantity)
+    : null;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header lives here (not the server page) so the title/vendor follow an in-place switch. */}
@@ -183,6 +192,28 @@ export function EconomicsCalculator({
           {defaultedParams.map((f) => DEFAULTED_PARAM_LABELS[f]).join(", ")} — здесь стоят
           значения по умолчанию, а не ваши. Пока это так, числа ниже — пример, а не оценка
           вашего объекта.
+        </div>
+      )}
+      {mismatch && (
+        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+          {mismatch.kind === "fleet" ? (
+            <>
+              Расчёт требует <b>{mismatch.quantity}</b> единиц этого решения на один объект. Это
+              признак того, что его производительность измеряется в{" "}
+              <b>{primary.capacityUnit}</b>, а объём работы объекта — в операциях, и модель
+              сравнивает их напрямую.
+            </>
+          ) : (
+            <>
+              Одна единица этого решения покрывает работу объекта примерно в{" "}
+              <b>{Math.round(mismatch.ratio)}</b> раз больше, чем её есть. Это признак того, что
+              его производительность измеряется в <b>{primary.capacityUnit}</b>, а объём работы
+              объекта — в операциях, и модель сравнивает их напрямую.
+            </>
+          )}{" "}
+          Числа ниже посчитаны верно по своей формуле, но сопоставлять их с другими решениями
+          нельзя: у этого решения другая мерка работы. Мы это знаем и чиним — до тех пор
+          показываем предупреждение, а не тихий результат.
         </div>
       )}
       {savedParamsBroken && (
