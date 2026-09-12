@@ -89,9 +89,15 @@ export default function Home() {
         ))}
       </section>
 
-      <footer className="border-t pt-6 text-sm">
+      {/* Два входа в прозу, и второй нужен раньше первого: методика отвечает «откуда цифры»
+          тому, кто уже понимает слова, а словарь — тому, кто на «ЭПЗ» и «AS/RS» ещё
+          останавливается. Не знающий одного термина не спорит с экраном, он его пролистывает. */}
+      <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm">
         <Link href="/methodology" className="tap-target font-medium underline underline-offset-4">
           Откуда цифры и как считается модель
+        </Link>
+        <Link href="/glossary" className="tap-target font-medium underline underline-offset-4">
+          Словарь терминов
         </Link>
       </footer>
     </div>
