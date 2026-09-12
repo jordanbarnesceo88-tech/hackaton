@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChoiceTiles } from "./choice-tiles";
 import { StepShell } from "./step-shell";
 import { buildWizardQuery } from "@/lib/wizard/steps";
+import { facilityDescriptionText } from "@/lib/wizard/facility-descriptions";
 
 export function FacilityStep({
   industry,
@@ -52,9 +53,18 @@ export function FacilityStep({
 
   return (
     <StepShell question="Какой это объект?" nextHref={next}>
+      {/* Подпись под названием, а не вместо него: выбор человек делает по имени типа, а
+          описание отвечает на следующий вопрос — «это про меня?» и «что здесь вообще
+          автоматизируют». Оно приходит подсказкой (hint) и рисуется мелким приглушённым
+          текстом ВНУТРИ той же кнопки-радио, поэтому ни роли, ни roving tabindex, ни выбор
+          буквой не меняются: список остаётся одной остановкой в таб-порядке. */}
       <ChoiceTiles
         label="Тип объекта"
-        items={facilityTypes.map((f) => ({ value: f.slug, label: f.name }))}
+        items={facilityTypes.map((f) => ({
+          value: f.slug,
+          label: f.name,
+          hint: facilityDescriptionText(f.slug) ?? undefined,
+        }))}
         value={slug}
         onChange={setSlug}
       />
