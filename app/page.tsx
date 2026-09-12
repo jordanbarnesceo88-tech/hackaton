@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { exampleHref, EXAMPLE_OBJECT_NAME } from "@/lib/wizard/example-scenario";
 
 /**
  * Первый экран.
@@ -20,9 +21,14 @@ const OBJECTIONS = [
   {
     q: "«Почему замещается столько людей?»",
     a:
-      "Замещение ограничено фактической нагрузкой, а не штатным расписанием: сколько работы " +
-      "решение забирает, делённое на выработку одного человека. Решение, обслуживающее " +
-      "площадь, не «замещает» тех, кто собирает заказы — у них разная работа и разные мерки.",
+      "Потому что вы сами назвали, сколько человек делает каждую работу. Модель это число " +
+      "больше не выводит: она выводила его одним делителем на все задачи сразу, занижала " +
+      "выработку в десятки раз и получала паллетайзер, «замещающий» весь штат комбината с " +
+      "окупаемостью в одиннадцать дней. Где у работы есть опубликованный норматив, он " +
+      "подставлен подсказкой со ссылкой — и виден. Дальше результат масштабируется покрытием: " +
+      "парк, закрывающий половину работы, освобождает половину людей, а не всех. Решение, " +
+      "обслуживающее площадь, не «замещает» тех, кто собирает заказы — у них разная работа и " +
+      "разные мерки.",
   },
   {
     q: "«А если ставка и сроки другие?»",
@@ -45,17 +51,31 @@ export default function Home() {
         </p>
       </div>
 
-      <div>
-        <Link
-          href="/onboarding"
-          className="inline-block rounded-md bg-primary px-6 py-3 text-lg font-medium
-            text-primary-foreground transition-opacity hover:opacity-90
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          Проверить свой объект
-        </Link>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Пять шагов, без регистрации. Сохранить расчёт можно потом.
+      {/* Два входа, и второй важен не меньше первого: человек, который смотрит продукт, а не
+          считает свой объект, до опроса не дойдёт — ему нужно сразу увидеть, о чём речь.
+          Пример ведёт на посчитанные числа, а не на пустую форму. */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/onboarding"
+            className="inline-block rounded-md bg-primary px-6 py-3 text-lg font-medium
+              text-primary-foreground transition-opacity hover:opacity-90
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Проверить свой объект
+          </Link>
+          <Link
+            href={exampleHref()}
+            className="inline-block rounded-md border px-6 py-3 text-lg font-medium
+              transition-colors hover:border-primary hover:text-primary
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Посмотреть на готовом примере
+          </Link>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Шесть шагов, без регистрации — или сразу готовый расчёт для «{EXAMPLE_OBJECT_NAME}»:
+          шесть решений, из них окупается одно. Сохранить расчёт можно потом.
         </p>
       </div>
 

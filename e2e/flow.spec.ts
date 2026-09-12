@@ -48,6 +48,22 @@ test("anonymous flow: onboarding → compare → calculate", async ({ page }) =>
   await expect(page.getByText("Чувствительность NPV")).toBeVisible();
 });
 
+test("готовый пример ведёт прямо на посчитанные числа, без набора", async ({ page }) => {
+  // Путь, которым пойдёт судья: он смотрит двадцать проектов и опрос заполнять не будет.
+  // Если эта кнопка когда-нибудь приведёт на отказ или на умолчания, демонстрации нет.
+  await page.goto("/");
+  await page.getByRole("link", { name: "Посмотреть на готовом примере" }).click();
+
+  await expect(page).toHaveURL(/\/compare\/warehouse/);
+  // Состояние подбора полное, поэтому колонки с числами обязаны быть на месте.
+  await expect(page.getByRole("columnheader", { name: "NPV" }).first()).toBeVisible();
+  await expect(page.getByTestId("best-solution")).toBeVisible();
+  // И это должен быть реальный вывод, а не «пока нечем считать».
+  await expect(page.getByTestId("best-solution")).not.toContainText("Пока нечем считать");
+  // Название объекта из примера доезжает — значит показаны числа именно того объекта.
+  await expect(page.getByText(/Распределительный центр/).first()).toBeVisible();
+});
+
 test("первый экран объясняет продукт и ведёт в подбор", async ({ page }) => {
   await page.goto("/");
   // Редиректа в опрос больше нет: судья, открывший ссылку, попадал сразу на вопрос
