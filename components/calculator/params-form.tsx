@@ -172,7 +172,7 @@ export function ParamsForm({
             id="quantityOverride"
             integer
             label="Количество единиц"
-            computed={computedQuantity ?? 1}
+            computed={computedQuantity}
             value={params.quantityOverride}
             onChange={(n) => setParams((p) => ({ ...p, quantityOverride: n }))}
           />
