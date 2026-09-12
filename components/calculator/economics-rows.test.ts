@@ -14,6 +14,55 @@ function calculable(overrides = {}, paramOverrides = {}): CalculableResult {
   return r;
 }
 
+/**
+ * Золотой снимок отрисованных строк.
+ *
+ * Существует потому, что «паритет панели и отчёта» ничего не гарантировал по построению: обе
+ * поверхности зовут ОДИН `economicsRows`, поэтому e2e «report figures match the calculator panel
+ * exactly» сравнивал два отображения одного вызова. Разойтись там нечему, и тест ловил ровно два
+ * случая — разъехавшиеся подписи и не отрисовавшуюся поверхность.
+ *
+ * Гарантия появляется только от НЕЗАВИСИМО зафиксированного ответа. Отсюда снимок: любое
+ * изменение модели, которое двигает хоть одну цифру на экране, роняет этот тест — и обновить его
+ * можно только осознанно, отдельным действием. Это правило «МЕНЯЕТ ЧИСЛА» в виде теста, а не
+ * договорённости.
+ *
+ * Если тест упал, а число менять НЕ собирались — упало по делу.
+ */
+describe("золотой снимок: что видит человек на экране", () => {
+  // Пробел в русском формате чисел — узкий неразрывный (U+202F), и в исходнике теста он
+  // невидим: следующий, кто станет править снимок, скопирует обычный пробел и получит
+  // расхождение, которого не увидит глазами. Поэтому КЛАСС пробела намеренно вне снимка —
+  // пиннятся цифры, валюта и подписи. Смена пробела косметична; смена цифры — нет.
+  const norm = (rows: { key: string; label: string; value: string }[]) =>
+    rows.map((r) => ({ ...r, value: r.value.replace(/[\u00a0\u202f\u2009]/g, " ") }));
+
+  it("панель показывает ровно эти десять строк", () => {
+    expect(norm(economicsRows(calculable(), 90, PANEL_LABELS))).toEqual([
+      { key: "quantity", label: "Требуется единиц", value: "1" },
+      { key: "displacedFte", label: "Замещается персонала (ЭПЗ)", value: "8.0" },
+      { key: "capex", label: "CAPEX", value: "5 175 000 ₽ (US$57,500)" },
+      { key: "opex", label: "OPEX/год", value: "810 000 ₽ (US$9,000)" },
+      { key: "baseline", label: "Базовые затраты на труд/год", value: "21 600 000 ₽ (US$240,000)" },
+      { key: "savings", label: "Годовая экономия", value: "8 910 000 ₽ (US$99,000)" },
+      { key: "simplePayback", label: "Срок окупаемости (простой)", value: "0,6 года" },
+      { key: "discountedPayback", label: "Срок окупаемости (дисконт.)", value: "0,7 года" },
+      { key: "roi", label: "ROI (простой, без дисконтирования)", value: "761%" },
+      { key: "npv", label: "NPV (чистая приведённая стоимость)", value: "26 943 556 ₽ (US$299,373)" },
+    ]);
+  });
+
+  it("отчёт показывает ТЕ ЖЕ значения — расходятся только две подписи", () => {
+    // Настоящее содержание паритета: одинаковы ЧИСЛА, а не разметка. Подписи различаются
+    // намеренно — в отчёте они короче.
+    const panel = economicsRows(calculable(), 90, PANEL_LABELS);
+    const report = economicsRows(calculable(), 90, REPORT_LABELS);
+    expect(report.map((r) => r.value)).toEqual(panel.map((r) => r.value));
+    const differing = panel.filter((p, i) => p.label !== report[i]!.label).map((p) => p.key);
+    expect(differing).toEqual(["roi", "npv"]);
+  });
+});
+
 describe("economicsRows", () => {
   it("emits the ten figures in order for an economical result", () => {
     const rows = economicsRows(calculable(), 90, PANEL_LABELS);
