@@ -4,7 +4,7 @@ import type {
   AssumptionValues,
   EconomicsResult,
 } from "./types";
-import { computeQuantity, coverageOf, demandPerYear, workerOutputPerYear } from "./normalize";
+import { computeQuantity, coverageOf, demandPerYear } from "./normalize";
 import { resolveTaskFte } from "./task-labour";
 import { projectFinance } from "./finance";
 
@@ -97,6 +97,31 @@ export function baseEconomics(
   return { quantity, displacedFte, capexUsd, opexAnnualUsd, baselineAnnualUsd, annualSavingsUsd };
 }
 
+/**
+ * Снимет ли отказ введённое человеком число — единственный вопрос, на который отвечает
+ * `staffing_required`.
+ *
+ * Отвечаем прогоном, а не признаком: подставляем годную занятость и смотрим, перестал ли
+ * baseEconomics возвращать null. Признак «нет ни заявленной, ни норматива» описывает лишь ОДИН
+ * из путей к null, а их шесть, и остальные пять занятостью не чинятся. Значение пробы роли не
+ * играет — важно только, что оно годное: `resolveTaskFte` на нём заведомо не вернёт null, и
+ * дальше судьбу расчёта решают те самые остальные пять проверок.
+ */
+function staffingWouldUnblock(
+  cap: SolutionCapacity,
+  params: FacilityParams,
+  a: AssumptionValues,
+  hasDeclared: boolean,
+  hasNorm: boolean
+): boolean {
+  if (hasDeclared || hasNorm) return false;
+  const probed: FacilityParams = {
+    ...params,
+    taskStaffing: { ...params.taskStaffing, [cap.categorySlug]: 1 },
+  };
+  return baseEconomics(cap, probed, a) !== null;
+}
+
 export function computeEconomics(
   cap: SolutionCapacity,
   params: FacilityParams,
@@ -110,6 +135,13 @@ export function computeEconomics(
   // null». Второе шире: null там означает и «норматива нет», и «спрос вырожден». По второму
   // поводу движок отвечал «введите занятость» на отрицательном opsPerDay — то есть просил
   // человека починить не то, что сломано.
+  //
+  // Признака «нет ни заявленной занятости, ни норматива» для этого мало, и это была вторая
+  // половина той же ошибки: baseEconomics возвращает null задолго до занятости — на нулевой
+  // производительности, на горизонте меньше года, на неположительной цене. Решений без
+  // норматива семь из одиннадцати, поэтому на них ЛЮБАЯ вырожденность подписывалась «введите
+  // занятость», человек вводил число, и отказ не снимался. Проверяем не признак, а сам исход:
+  // снимет ли отказ подставленное число.
   const declared = params.taskStaffing?.[cap.categorySlug];
   const hasDeclared = typeof declared === "number" && Number.isFinite(declared) && declared >= 0;
   const hasNorm = cap.workerOutputPerYear !== null && cap.workerOutputPerYear > 0;
@@ -117,7 +149,9 @@ export function computeEconomics(
   if (base === null) {
     return {
       economical: false,
-      reason: !hasDeclared && !hasNorm ? "staffing_required" : "invalid_inputs",
+      reason: staffingWouldUnblock(cap, params, a, hasDeclared, hasNorm)
+        ? "staffing_required"
+        : "invalid_inputs",
     };
   }
 

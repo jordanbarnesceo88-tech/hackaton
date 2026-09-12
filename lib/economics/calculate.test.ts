@@ -77,6 +77,43 @@ describe("computeEconomics", () => {
     expect(r.economical || r.reason).not.toBe("staffing_required");
   });
 
+  // Отказ обязан называть то, что человек может починить. Признака «нет ни заявленной
+  // занятости, ни норматива» для этого мало: baseEconomics возвращает null и по причинам,
+  // которые занятостью не чинятся, а решений без норматива семь из одиннадцати — на них любая
+  // вырожденность превращалась в «введите занятость», то есть продукт просил починить не то,
+  // что сломано, и введённое число ничего не меняло.
+  describe("вырожденный ввод у задачи без норматива — это не «введите занятость»", () => {
+    const noNorm: SolutionCapacity = { ...cap, workerOutputPerYear: null };
+
+    it("нулевая производительность решения", () => {
+      expect(computeEconomics({ ...noNorm, capacityPerUnit: 0 }, makeParams(), a)).toEqual({
+        economical: false,
+        reason: "invalid_inputs",
+      });
+    });
+
+    it("неположительная цена", () => {
+      expect(computeEconomics({ ...noNorm, priceUsd: 0 }, makeParams(), a)).toEqual({
+        economical: false,
+        reason: "invalid_inputs",
+      });
+    });
+
+    it("горизонт меньше года", () => {
+      expect(computeEconomics(noNorm, makeParams(), { ...a, roiHorizonYears: 0 })).toEqual({
+        economical: false,
+        reason: "invalid_inputs",
+      });
+    });
+
+    it("а незаявленная занятость сама по себе по-прежнему staffing_required", () => {
+      expect(computeEconomics(noNorm, makeParams(), a)).toEqual({
+        economical: false,
+        reason: "staffing_required",
+      });
+    });
+  });
+
   it("returns not-economical when savings <= 0 (C2), no payback/roi", () => {
     // tiny staff (1) -> baseline 30000; savings = 30000*0.7 - 9000 = 21000-9000=12000 >0
     // push OPEX up via many robots: opsPerDay 4000 -> qty=10 -> opex=90000; savings=21000-90000<0
