@@ -4,6 +4,8 @@ import { NumField } from "@/components/ui/num-field";
 import type { AssumptionValues, CapacityBasis, WorkloadStream } from "@/lib/economics/types";
 import { ASSUMPTION_BOUNDS, clampAssumption } from "@/lib/economics/assumptions";
 import { ASSUMPTION_LABELS, RATIO_KEYS } from "./assumption-labels";
+import { ASSUMPTION_JUSTIFICATIONS } from "@/lib/economics/assumption-justifications";
+import { Disclosure } from "@/components/ui/disclosure";
 
 // U1: assumptions the engine only consumes for a specific capacity basis. Hidden for other
 // bases so every visible field actually affects the result (operatingHoursPerDay only
@@ -47,8 +49,8 @@ export function AssumptionsPanel({
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
         {visibleKeys.map((k) => (
+          <div key={k} className="flex flex-col gap-1">
           <NumField
-            key={k}
             id={k}
             label={ASSUMPTION_LABELS[k]}
             value={assumptions[k]}
@@ -69,6 +71,20 @@ export function AssumptionsPanel({
             }
             onCommit={(n) => setAssumptions((a) => ({ ...a, [k]: clampAssumption(k, n) }))}
           />
+          {/* Признак — на виду, обоснование — в раскрытии. Скептик сначала спрашивает не
+              «почему 15 %», а «это вы посчитали или откуда-то взяли», и ответ на второй
+              вопрос должен читаться без единого клика. «Наш выбор» рядом со ставкой
+              дисконтирования честнее любого текста: спорить с ней можно, проверить — нельзя. */}
+          <p className="text-xs text-muted-foreground">
+            <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
+              {ASSUMPTION_JUSTIFICATIONS[k].basis}
+            </span>
+            <Disclosure
+              title={ASSUMPTION_LABELS[k]}
+              body={ASSUMPTION_JUSTIFICATIONS[k].text}
+            />
+          </p>
+          </div>
         ))}
       </CardContent>
     </Card>

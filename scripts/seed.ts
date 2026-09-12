@@ -17,6 +17,8 @@ import { APPLICABILITY } from "./seed-data/applicability";
 import { VENDOR_SOLUTIONS } from "./seed-data/vendor-solutions";
 import { SOLUTION_CLASSES } from "./seed-data/solution-classes";
 import { TYPICAL_PARAMS } from "./seed-data/taxonomy";
+import { ASSUMPTION_JUSTIFICATIONS } from "../lib/economics/assumption-justifications";
+import type { AssumptionValues } from "../lib/economics/types";
 
 
 const TYPICAL_EXAMPLE_NAME = "Типовой объект";
@@ -36,7 +38,7 @@ async function main() {
     { key: "laborReplacementPct", label: "Замещение труда роботами", value: 0.5, unit: "доля", order: 6 },
     { key: "residualSupervisionPct", label: "Остаточный надзор персоналом", value: 0.1, unit: "доля", order: 7 },
     { key: "opsPerWorkerPerYear", label: "Операций на сотрудника в год", value: 12500, unit: "операций", order: 8 },
-    { key: "areaPerCleanerPerYear", label: "Площадь на уборщика в год", value: 600000, unit: "м²/год", description: "Порядок величины (≈300 м²/час × 2000 часов), а не цитата из источника", order: 9 },
+    { key: "areaPerCleanerPerYear", label: "Площадь на уборщика в год", value: 600000, unit: "м²/год", order: 9 },
     { key: "cleaningsPerDay", label: "Уборок площади в сутки", value: 1, unit: "раз", order: 10 },
     { key: "turnoverPerDay", label: "Оборотов в сутки (для stock-решений)", value: 8, unit: "раз", order: 11 },
     { key: "roiHorizonYears", label: "Горизонт расчёта ROI", value: 5, unit: "лет", order: 12 },
@@ -45,11 +47,26 @@ async function main() {
     { key: "usdToRub", label: "Курс USD→RUB", value: 90, unit: "₽/$", order: 15 },
     { key: "energyCostFactor", label: "Множитель энергозатрат (регион)", value: 1.0, unit: "коэф.", order: 16 },
   ];
+  // `description` НЕ дублируется здесь текстом: единственный источник правды —
+  // ASSUMPTION_JUSTIFICATIONS, он же выводится на экран. Две копии одного обоснования
+  // разъехались бы, и разъехавшееся обоснование хуже отсутствующего.
+  //
+  // И `description` обязан быть в `update`, а не только в `create`: без него сев никогда не
+  // обновлял обоснования на уже существующих строках, и всё написанное выше не доехало бы ни
+  // до одной живой базы — ровно та ошибка, из-за которой пустыми они и оставались.
   for (const asmp of assumptions) {
+    const j = ASSUMPTION_JUSTIFICATIONS[asmp.key as keyof AssumptionValues];
+    const description = j ? `[${j.basis}] ${j.text}` : "";
     await prisma.assumption.upsert({
       where: { key: asmp.key },
-      update: { label: asmp.label, value: asmp.value, unit: asmp.unit, order: asmp.order },
-      create: asmp,
+      update: {
+        label: asmp.label,
+        value: asmp.value,
+        unit: asmp.unit,
+        order: asmp.order,
+        description,
+      },
+      create: { ...asmp, description },
     });
   }
 
