@@ -103,20 +103,35 @@ The calculator offers opt-in **Regional presets** that set both `laborCostPerHou
 `energyCostFactor` by selecting a region. Picking a region is entirely optional; users can always
 edit both figures independently below the selector.
 
-| Region | Avg. monthly wage (₽, 2025) | Labor/hour (₽) | Energy factor | Source |
+| Region | Avg. monthly wage (₽, 2025) | Employer cost/hour (₽) | Energy factor | Source |
 |---|---|---|---|---|
-| Москва | ~180,860 | 1,077 ₽ | 1.0 (reference) | Rosstat-based average; energy tariff baseline |
-| Санкт-Петербург | ~121,475 | 723 ₽ | 0.95 | Rosstat-based average; regional tariff ~5% lower |
-| РФ — среднее | ~100,360 | 597 ₽ | 0.9 | Rosstat-based 2025 RF average; tariff ~10% lower |
-| Низкозатратный регион (СКФО) | ~46,281 | 275 ₽ | 0.8 | North Caucasus (e.g. Ingushetia, Chechnya) low-cost reference; ~20% lower tariff |
+| Москва | ~180,860 | 1,411 ₽ | 1.0 (reference) | Rosstat-based average; energy tariff baseline |
+| Санкт-Петербург | ~121,475 | 948 ₽ | 0.95 | Rosstat-based average; regional tariff ~5% lower |
+| РФ — среднее | ~100,360 | 783 ₽ | 0.9 | Rosstat-based 2025 RF average; tariff ~10% lower |
+| Низкозатратный регион (СКФО) | ~46,281 | 361 ₽ | 0.8 | North Caucasus (e.g. Ingushetia, Chechnya) low-cost reference; ~20% lower tariff |
 
 **Derivation:**
-- **Labor cost per hour:** cited 2025 average monthly wage (Rosstat) ÷ ~168 working hours/month,
-  held **in rubles** — the unit the source publishes — and converted to USD at whatever
-  `usdToRub` the user currently has set. The table previously listed a USD figure derived once at
-  90 ₽/$, which stopped matching its own citation the moment that editable assumption changed: at
-  110 ₽/$ the Москва preset implied 1,320 ₽/h against the cited 1,077, a 23% overstatement of a
-  figure this document presents as sourced.
+- **Labor cost per hour:** the *employer's* cost of an hour, by the same derivation as the global
+  `laborCostPerHourUsd` below (see «Стоимость труда»): cited 2025 average monthly wage (Rosstat)
+  **× 1.30** employer contributions (единый тариф 30 %, п. 3 ст. 425 НК РФ) **÷ 166.67 working
+  hours/month** (`hoursPerYear / 12`). Held **in rubles** — the unit the source publishes — and
+  converted to USD at whatever `usdToRub` the user currently has set. Two earlier defects, both
+  fixed and both pinned by `lib/economics/regions.test.ts`:
+  - the table once listed a USD figure derived once at 90 ₽/$, which stopped matching its own
+    citation the moment that editable assumption changed: at 110 ₽/$ the Москва preset implied
+    1,320 ₽/h against the cited 1,077, a 23% overstatement of a figure this document presents as
+    sourced;
+  - the presets then divided the bare wage by 168 — no contributions, and a second divisor for a
+    quantity this document already divides by 166.67. They therefore stated a **wage** while the
+    field they write into holds an **employer cost**, running ~31% low (Москва 1,077 instead of
+    1,411). The 168 is gone: 166.67 = `hoursPerYear / 12` is the one divisor, because the engine
+    annualises the rate as `laborCostPerHourUsd × hoursPerYear`, so only that divisor makes
+    `monthly wage × 1.30 × 12` and `₽/hour × hoursPerYear` the same number.
+- **Why these presets sit above the $6.7 default:** different wage input, same formula. The global
+  default is built from the five warehouse/production salary surveys below (65 000–90 000 ₽/mo);
+  the presets are Rosstat **all-sector regional averages**, so «РФ — среднее» (100 360 ₽/mo →
+  783 ₽/h → $8.70 at 90 ₽/$) is higher by construction. Neither figure is a correction of the
+  other, and a facility whose staff are pickers should keep the default rather than the preset.
 - **Energy factor:** approximate regional index relative to Москва = 1.0, based on RF industrial
   electricity-tariff variation (~±30% typical). This is a *multiplier* on the annual energy cost
   estimate, not a per-kWh rate. Regional tariffs vary; this figure is an order-of-magnitude
@@ -176,7 +191,13 @@ edit both figures independently below the selector.
 ```
 
 **Итог: `laborCostPerHourUsd` = 6,7; допустимый диапазон 5,6–7,8.**
-Нынешнее значение **15** — западная ставка, ошибка примерно в 2,2 раза.
+Это и есть действующее значение по умолчанию (`lib/economics/assumptions.ts`, посев
+`scripts/seed.ts`). Прежнее значение **15** — западная ставка, завышавшая каждое число продукта
+примерно в 2,2 раза; заменено вместе с региональными пресетами, которые считались по тому же
+окладу, но без взносов и с делителем 168, и потому занижали на 31 % — в противоположную сторону.
+Обе правки сделаны одним заходом намеренно: порознь любая из них выглядит произвольным скачком.
+Делитель ровно один — 166,67 ч/мес = `hoursPerYear / 12`; числа пришпилены тестами
+`lib/economics/regions.test.ts`.
 
 Арифметика показана целиком намеренно: цитируются оклад и тариф взносов, а перевод в часовую
 стоимость работодателя — наш, и он обязан быть проверяемым, а не выглядеть цитатой.

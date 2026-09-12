@@ -43,12 +43,12 @@ describe("золотой снимок: что видит человек на э�
       { key: "displacedFte", label: "Замещается персонала (ЭПЗ)", value: "8.0" },
       { key: "capex", label: "CAPEX", value: "5 175 000 ₽ (US$57,500)" },
       { key: "opex", label: "OPEX/год", value: "810 000 ₽ (US$9,000)" },
-      { key: "baseline", label: "Базовые затраты на труд/год", value: "21 600 000 ₽ (US$240,000)" },
-      { key: "savings", label: "Годовая экономия", value: "8 910 000 ₽ (US$99,000)" },
-      { key: "simplePayback", label: "Срок окупаемости (простой)", value: "0,6 года" },
-      { key: "discountedPayback", label: "Срок окупаемости (дисконт.)", value: "0,7 года" },
-      { key: "roi", label: "ROI (простой, без дисконтирования)", value: "761%" },
-      { key: "npv", label: "NPV (чистая приведённая стоимость)", value: "26 943 556 ₽ (US$299,373)" },
+      { key: "baseline", label: "Базовые затраты на труд/год", value: "9 648 000 ₽ (US$107,200)" },
+      { key: "savings", label: "Годовая экономия", value: "3 531 600 ₽ (US$39,240)" },
+      { key: "simplePayback", label: "Срок окупаемости (простой)", value: "1,5 года" },
+      { key: "discountedPayback", label: "Срок окупаемости (дисконт.)", value: "1,7 года" },
+      { key: "roi", label: "ROI (простой, без дисконтирования)", value: "241%" },
+      { key: "npv", label: "NPV (чистая приведённая стоимость)", value: "7 555 628 ₽ (US$83,951)" },
     ]);
   });
 

@@ -1,7 +1,12 @@
 import type { AssumptionValues, FacilityParams } from "./types";
 
 export const DEFAULT_ASSUMPTIONS: AssumptionValues = {
-  laborCostPerHourUsd: 15,
+  // З-1. МЕНЯЕТ ЧИСЛА. Было 15 — западная ставка в русскоязычном продукте, завышение примерно
+  // в 2,2 раза на самом сильном рычаге модели. 6,7 — центр собственного вывода проекта:
+  // 65 000–90 000 ₽/мес × 1,30 (взносы, п. 3 ст. 425 НК РФ) ÷ 166,67 ч/мес ÷ 90 ₽/$ =
+  // $5,6–7,8/час. Пять зарплатных обзоров и полная арифметика — docs/data-provenance.md,
+  // раздел «Стоимость труда»; тот же вывод применяют региональные пресеты (regions.ts).
+  laborCostPerHourUsd: 6.7,
   hoursPerYear: 2000,
   workingDaysPerYear: 250,
   operatingHoursPerDay: 16,

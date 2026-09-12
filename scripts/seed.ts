@@ -30,7 +30,7 @@ async function main() {
   let solutionCount = 0;
 
   const assumptions = [
-    { key: "laborCostPerHourUsd", label: "Стоимость труда (час)", value: 15, unit: "USD/час", order: 1 },
+    { key: "laborCostPerHourUsd", label: "Стоимость труда (час)", value: 6.7, unit: "USD/час", order: 1 },
     { key: "hoursPerYear", label: "Рабочих часов в году (на сотрудника)", value: 2000, unit: "часов", order: 2 },
     { key: "workingDaysPerYear", label: "Рабочих дней в году", value: 250, unit: "дней", order: 3 },
     { key: "operatingHoursPerDay", label: "Часов работы объекта в сутки", value: 16, unit: "часов", order: 4 },

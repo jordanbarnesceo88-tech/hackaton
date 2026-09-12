@@ -5,7 +5,22 @@ import { makeAssumptions, makeCapacity, makeParams } from "./fixtures";
 import type { SolutionCapacity, FacilityParams } from "./types";
 
 // residualSupervisionPct stays 0 so the pinned pre-A2 numbers below remain stable.
-const a = makeAssumptions({ laborReplacementPct: 0.7, residualSupervisionPct: 0 });
+//
+// Ставка труда закреплена ЗДЕСЬ, а не берётся из умолчаний, и это не про её величину. Этот
+// файл проверяет АРИФМЕТИКУ движка — что базовые затраты равны замещённым ЭПЗ × ставку ×
+// фонд времени, что замещение умножается на долю, что докупка попадает в ROI. Ни одно из этих
+// утверждений не зависит от того, сколько стоит час; но пока число приезжало из
+// DEFAULT_ASSUMPTIONS, смена ставки роняла шесть тестов, которые про ставку ничего не
+// утверждают, — и приходилось править шестнадцать литералов, каждый раз рискуя «починить»
+// ожидание под сломанный расчёт.
+//
+// Что ставка именно 6,7, закрепляет золотой снимок в economics-rows.test.ts: там это
+// осознанное решение с подписью, и там ему место.
+const a = makeAssumptions({
+  laborReplacementPct: 0.7,
+  residualSupervisionPct: 0,
+  laborCostPerHourUsd: 15,
+});
 
 // PER_DAY_FLOW, cap 400/day. opsPerDay 400 -> qty = ceil((400*250)/(400*250)) = 1.
 const cap = makeCapacity();
