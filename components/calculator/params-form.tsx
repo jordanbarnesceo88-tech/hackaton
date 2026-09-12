@@ -1,13 +1,18 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NumField } from "@/components/ui/num-field";
+import { NumField, NullableNumField } from "@/components/ui/num-field";
 import { RegionSelect } from "@/components/calculator/region-select";
 import type {
   FacilityParams,
   SolutionCapacity,
   AssumptionValues,
 } from "@/lib/economics/types";
-import { resolvePeakConcurrent, computeQuantity } from "@/lib/economics/normalize";
+import {
+  resolvePeakConcurrent,
+  computeQuantity,
+  demandPerYear,
+} from "@/lib/economics/normalize";
+import { resolveTaskFte } from "@/lib/economics/task-labour";
 import { OverrideField } from "@/components/calculator/override-field";
 
 export function ParamsForm({
@@ -39,6 +44,29 @@ export function ParamsForm({
     { ...params, quantityOverride: undefined },
     assumptions
   );
+
+  // Что сказал бы норматив, если человек не назовёт своё число. Считается тем же
+  // resolveTaskFte, которым считает движок, — плейсхолдер не имеет права обещать иное.
+  const byNorm = resolveTaskFte({
+    declared: undefined,
+    demandPerYear: demandPerYear(params, assumptions, capacity.workloadStream),
+    workerOutputPerYear: capacity.workerOutputPerYear,
+    staffCount: params.staffCount,
+  });
+
+  const setTaskFte = (n: number | null) =>
+    setParams((p) => {
+      const next = { ...(p.taskStaffing ?? {}) };
+      // Пустое поле СТИРАЕТ ключ, а не пишет ноль: отсутствие означает «считай по нормативу»,
+      // ноль — «этой работой никто не занят». Записать одно вместо другого значит подменить
+      // ответ человека.
+      if (n === null) delete next[capacity.categorySlug];
+      else next[capacity.categorySlug] = n;
+      return {
+        ...p,
+        taskStaffing: Object.keys(next).length > 0 ? next : undefined,
+      };
+    });
   return (
     <Card>
       <CardHeader>
@@ -76,15 +104,43 @@ export function ParamsForm({
           value={params.opsPerDay}
           onChange={(n) => setParams((p) => ({ ...p, opsPerDay: n }))}
         />
-        {/* Ключевое поле для защищаемости числа, и единственное, где модель верит на слово.
-            Подпись раньше называлась «Персонал, замещаемый решением», но мастер спрашивает
-            его до того, как решение выбрано, поэтому человек поневоле вводил весь штат — и
-            один паллетайзер «замещал» сорок кладовщиков. Здесь решение уже известно. */}
-        <NumField id="staffCount" label="Сколько человек делает работу этого решения" value={params.staffCount}
-          onChange={(n) => setParams((p) => ({ ...p, staffCount: n }))} />
+        {/* Р-2. Здесь стояло ОДНО поле, подписанное «сколько человек делает работу этого
+            решения», но привязанное к staffCount — то есть ко всему штату объекта. Подпись
+            обещала занятость по задаче, посевное значение означало весь штат (у склада 40),
+            а движок трактовал его третьим способом. После подпроекта A рядом появился
+            taskStaffing, который спрашивает ровно то же самое, и два поля стали дублировать
+            друг друга.
+
+            Разведено honestly: занятость задачи — это taskStaffing, и она пишется сюда;
+            staffCount возвращается к своему посевному смыслу — весь штат объекта, потолок
+            замещения и основание строки «остальные N человек не роботизируем». */}
+        <NullableNumField
+          id="taskStaffing"
+          label="Сколько человек делает работу этого решения"
+          value={params.taskStaffing?.[capacity.categorySlug] ?? null}
+          max={params.staffCount}
+          placeholder={
+            byNorm === null
+              ? "норматива нет — назовите число"
+              : `по нормативу ${Math.round(byNorm * 10) / 10}`
+          }
+          onChange={setTaskFte}
+        />
         <p className="-mt-4 text-xs text-muted-foreground">
-          Не весь штат объекта, а те, чью работу забирает именно это решение. Пока здесь весь
-          персонал, показатели ниже — верхняя граница, а не оценка.
+          Те, чью работу забирает именно это решение, а не весь штат. От этого числа считается
+          замещение, поэтому от него зависит каждый показатель ниже.{" "}
+          {byNorm === null
+            ? "Открытого норматива по этой работе у нас нет, поэтому без вашего числа расчёта не будет."
+            : "Оставьте поле пустым, чтобы считать по нормативу."}
+        </p>
+        <NumField
+          id="staffCount"
+          label="Весь штат объекта"
+          value={params.staffCount}
+          onChange={(n) => setParams((p) => ({ ...p, staffCount: n }))}
+        />
+        <p className="-mt-4 text-xs text-muted-foreground">
+          Потолок: сколько бы ни было занято задачей, замещение не может превысить весь штат.
         </p>
         {isStock && (
           <NumField

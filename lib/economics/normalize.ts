@@ -74,22 +74,6 @@ export function demandPerYear(
 }
 
 /**
- * Сколько работы ЭТОГО потока делает один человек за год.
- *
- * БОЛЬШЕ НЕ ДЕЛИТЕЛЬ ПРЕДЕЛА ЗАМЕЩЕНИЯ. Движок его не читает: замещение считается от занятости,
- * названной владельцем объекта (resolveTaskFte), а норматив живёт на категории и служит только
- * предзаполнением поля в визарде, где значение видно и его можно поправить.
- *
- * Глобальные 12 500 операций в год — это 6 операций в час. Отраслевой бенчмарк по отбору
- * заказов 80–120 в час, по укладке коробок 200–400: допущение занижено в 13–50 раз, и всегда в
- * сторону завышения замещаемого персонала. Появление этой функции в calculate.ts — регрессия,
- * ради которой писался подпроект A.
- */
-export function workerOutputPerYear(a: AssumptionValues, stream: WorkloadStream): number {
-  return stream === "FLOOR_AREA" ? a.areaPerCleanerPerYear : a.opsPerWorkerPerYear;
-}
-
-/**
  * Fleet size needed to meet demand. Returns `null` for degenerate inputs (non-positive
  * per-unit capacity, a zero turnover rate with no explicit peak, or any zero-valued
  * annualization divisor) instead of throwing or producing Infinity — callers translate the
