@@ -26,6 +26,20 @@ const STREAM_ONLY: Partial<Record<keyof AssumptionValues, WorkloadStream>> = {
   cleaningsPerDay: "FLOOR_AREA",
 };
 
+// Т-4: допущения, которых движок не читает НИ ПРИ КАКОМ потоке. После подпроекта A замещение
+// считается от занятости, названной владельцем объекта, а норматив выработки живёт на
+// категории и имеет ссылку — оба делителя остались в типе и в базе (их несут сохранённые
+// расчёты), но управлять ими больше нечем.
+//
+// Поле, которое можно править без всякого эффекта, нарушает тот же инвариант, ради которого
+// здесь стоят фильтры по базису и потоку: каждое видимое поле влияет на результат. Скрыть
+// честнее, чем оставить и промолчать, и честнее, чем «погасить» его как слабый рычаг —
+// слабый и отсутствующий это разные утверждения.
+const NOT_READ_BY_ENGINE = new Set<keyof AssumptionValues>([
+  "opsPerWorkerPerYear",
+  "areaPerCleanerPerYear",
+]);
+
 export function AssumptionsPanel({
   assumptions,
   setAssumptions,
@@ -39,6 +53,7 @@ export function AssumptionsPanel({
 }) {
   const visibleKeys = (Object.keys(ASSUMPTION_LABELS) as (keyof AssumptionValues)[]).filter(
     (k) =>
+      !NOT_READ_BY_ENGINE.has(k) &&
       (!BASIS_ONLY[k] || BASIS_ONLY[k] === capacityBasis) &&
       (!STREAM_ONLY[k] || STREAM_ONLY[k] === workloadStream)
   );

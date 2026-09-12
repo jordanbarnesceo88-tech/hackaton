@@ -5,7 +5,7 @@ import type {
   WorkloadStream,
 } from "./types";
 import { baseEconomics } from "./calculate";
-import { ASSUMPTION_BOUNDS } from "./assumptions";
+import { ASSUMPTION_BOUNDS, DEFAULT_ASSUMPTIONS } from "./assumptions";
 import { projectFinance } from "./finance";
 
 /** NPV for a scenario, allowing negative savings (real negative NPV). null only if invalid. */
@@ -29,6 +29,20 @@ export type SensitivityBar = {
    * parameter with a default — a caller passing 0.1 would have got bars labelled ±25%.
    */
   deltaPct: number | null;
+  /**
+   * Значения допущения, которые ДЕЙСТВИТЕЛЬНО подставлялись на плечах.
+   *
+   * Заведены потому, что `deltaPct` описывает запрошенное возмущение, а не применённое, и
+   * подпись «±25 %» врала в обе стороны: нижнее плечо зажималось границей допущения, верхнее
+   * не зажималось вовсе. У `cleaningsPerDay` со значением 1 при минимуме 1 нижнее плечо
+   * совпадало с базой — столбец односторонний, а подписан симметрично.
+   */
+  baseValue: number;
+  lowValue: number;
+  highValue: number;
+  /** Плечо упёрлось в границу диапазона допущения и короче запрошенного. */
+  clampedLow: boolean;
+  clampedHigh: boolean;
   baseNpv: number;
   lowNpv: number;
   highNpv: number;
@@ -52,8 +66,15 @@ const PERTURBED_KEYS: (keyof AssumptionValues)[] = [
 // «Площадь на уборщика в год» — в диаграмме отсутствовал. Торнадо заявляет, что ранжирует
 // рычаги, двигающие NPV; для этого потока он ранжировал не тот набор.
 const STREAM_KEYS: Record<WorkloadStream, (keyof AssumptionValues)[]> = {
-  OPERATION_FLOW: ["opsPerWorkerPerYear"],
-  FLOOR_AREA: ["areaPerCleanerPerYear", "cleaningsPerDay"],
+  // Т-4: `opsPerWorkerPerYear` и `areaPerCleanerPerYear` отсюда УБРАНЫ. После подпроекта A
+  // движок не читает ни то, ни другое: замещение считается от занятости, названной владельцем,
+  // а норматив живёт на категории. Столбец с размахом 0 ₽ у рычага, которого в модели нет, —
+  // это не «слабый рычаг», а обещание, что мы его учли.
+  //
+  // Погасить их как `inert` (что предлагал A-7) здесь было бы неверно вдвойне: сначала надо
+  // отличить рычаг, который действительно ничего не двигает, от рычага, которого просто нет.
+  OPERATION_FLOW: [],
+  FLOOR_AREA: ["cleaningsPerDay"],
 };
 
 /**
@@ -86,19 +107,36 @@ export function sensitivity(
   const bars: SensitivityBar[] = [];
   for (const key of [...PERTURBED_KEYS, ...STREAM_KEYS[cap.workloadStream]]) {
     const wholeYear = WHOLE_YEAR_KEYS.has(key);
-    const delta = wholeYear ? 1 : a[key] * deltaPct;
-    // Нижняя нога упирается в границу допущения, а не проваливается под неё. При горизонте
-    // ROI в один год «минус год» давало ноль, baseEconomics возвращал null, и столбец МОЛЧА
-    // исчезал из диаграммы: пользователь видел торнадо без самого рычага, которым он только
-    // что двигал, и ничто не сообщало, что столбец пропущен.
-    const low = Math.max(a[key] - delta, ASSUMPTION_BOUNDS[key]?.min ?? a[key] - delta);
+    const bounds = ASSUMPTION_BOUNDS[key];
+    const base = a[key];
+
+    // Т-2: возмущение НУЛЯ мультипликативно равно нулю, и рычаг выглядит мёртвым, не будучи
+    // им. Измерено: при `discountRate = 0` размах столбца 0 ₽, тогда как настоящий диапазон
+    // NPV — 437 500 против 299 373 при ставке 0,12. То же у `installPctOfCapex = 0` и
+    // `residualSupervisionPct = 0`. Опорой берётся штатное значение допущения: вопрос «как
+    // выглядит сдвиг на четверть» осмыслен и тогда, когда сейчас стоит ноль.
+    const scale = base !== 0 ? base : DEFAULT_ASSUMPTIONS[key] || bounds.max - bounds.min;
+    const delta = wholeYear ? 1 : Math.abs(scale) * deltaPct;
+
+    // Т-1: зажимаются ОБА плеча. Нижнее зажималось и раньше — иначе при горизонте ROI в один
+    // год «минус год» давало ноль, baseEconomics возвращал null, и столбец МОЛЧА исчезал из
+    // диаграммы. Верхнее не зажималось вовсе: при `laborReplacementPct = 1` (её максимум)
+    // плечо уходило в 1,25 — замещение 125 % труда, недостижимое в интерфейсе и бессмысленное
+    // в модели, — и размах доминирующего рычага получался ровно вдвое больше настоящего.
+    const low = Math.max(base - delta, bounds.min);
+    const high = Math.min(base + delta, bounds.max);
     const lowNpv = npvForScenario(cap, params, { ...a, [key]: low });
-    const highNpv = npvForScenario(cap, params, { ...a, [key]: a[key] + delta });
+    const highNpv = npvForScenario(cap, params, { ...a, [key]: high });
     if (lowNpv === null || highNpv === null) continue;
     bars.push({
       key,
       kind: wholeYear ? "whole-year" : "percent",
       deltaPct: wholeYear ? null : deltaPct,
+      baseValue: base,
+      lowValue: low,
+      highValue: high,
+      clampedLow: low > base - delta,
+      clampedHigh: high < base + delta,
       baseNpv,
       lowNpv,
       highNpv,

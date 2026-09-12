@@ -126,20 +126,76 @@ describe("возмущение упирается в границу, а не р�
   });
 });
 
-describe("рычаги диаграммы зависят от потока решения", () => {
-  it("поток операций показывает свой делитель и не показывает чужой", () => {
-    const keys = sensitivity(cap, params, makeAssumptions()).map((b) => b.key);
-    expect(keys).toContain("opsPerWorkerPerYear");
-    expect(keys).not.toContain("areaPerCleanerPerYear");
+describe("диаграмма не рисует рычагов, которых нет в модели", () => {
+  // Инвариант прежний, а набор рычагов другой. Прошлая находка ревью: диаграмма рисовала
+  // «Операций на сотрудника в год» с размахом 0 ₽ на потоке площади — допущение, которое
+  // движок для этого потока не читал, — а настоящий делитель отсутствовал. Тогда делители
+  // сделали зависимыми от потока.
+  //
+  // После подпроекта A движок не читает НИ ОДИН из них: замещение считается от занятости,
+  // названной владельцем объекта, а норматив выработки живёт на категории и имеет ссылку.
+  // Поэтому оба ушли из диаграммы целиком, а не переехали в другой поток (Т-4).
+  it("делители замещения не показываются ни на одном потоке", () => {
+    const opsKeys = sensitivity(cap, params, makeAssumptions()).map((b) => b.key);
+    const areaKeys = sensitivity(
+      { ...cap, workloadStream: "FLOOR_AREA" as const },
+      params,
+      makeAssumptions()
+    ).map((b) => b.key);
+    for (const keys of [opsKeys, areaKeys]) {
+      expect(keys).not.toContain("opsPerWorkerPerYear");
+      expect(keys).not.toContain("areaPerCleanerPerYear");
+    }
   });
 
-  it("поток площади показывает свой делитель и не показывает чужой", () => {
-    // Находка ревью: диаграмма рисовала «Операций на сотрудника в год» с размахом 0 ₽ —
-    // допущение, которое движок для этого потока не читает, — а настоящий делитель
-    // отсутствовал. Торнадо ранжировал не тот набор рычагов.
+  it("живой рычаг потока площади на месте", () => {
+    // cleaningsPerDay движок читает: он превращает площадь в поток работы.
+    const areaKeys = sensitivity(
+      { ...cap, workloadStream: "FLOOR_AREA" as const },
+      params,
+      makeAssumptions()
+    ).map((b) => b.key);
+    expect(areaKeys).toContain("cleaningsPerDay");
+  });
+});
+
+describe("плечи измерены тем, что подставлено, а не тем, что запрошено", () => {
+  it("верхнее плечо не выходит за границу допущения (Т-1)", () => {
+    // laborReplacementPct = 1 — это её максимум: заместить больше 100 % труда нельзя.
+    // Плечо уходило в 1,25, и размах ДОМИНИРУЮЩЕГО рычага получался вдвое больше настоящего.
+    const atMax = makeAssumptions({ laborReplacementPct: 1 });
+    const bar = sensitivity(cap, params, atMax).find((b) => b.key === "laborReplacementPct")!;
+    expect(bar.highValue).toBe(1);
+    expect(bar.clampedHigh).toBe(true);
+    expect(bar.highNpv).toBe(bar.baseNpv);
+  });
+
+  it("нижнее плечо, упёршееся в границу, помечено (Т-3)", () => {
+    // cleaningsPerDay по умолчанию 1 при минимуме 1: столбец односторонний.
     const areaCap = { ...cap, workloadStream: "FLOOR_AREA" as const };
-    const keys = sensitivity(areaCap, params, makeAssumptions()).map((b) => b.key);
-    expect(keys).toContain("areaPerCleanerPerYear");
-    expect(keys).not.toContain("opsPerWorkerPerYear");
+    const bar = sensitivity(areaCap, params, makeAssumptions()).find(
+      (b) => b.key === "cleaningsPerDay"
+    )!;
+    expect(bar.lowValue).toBe(1);
+    expect(bar.clampedLow).toBe(true);
+    expect(bar.clampedHigh).toBe(false);
+  });
+
+  it("нулевое допущение получает НЕнулевое возмущение (Т-2)", () => {
+    // ±25 % от нуля — ноль, и рычаг выглядел мёртвым, не будучи им: при discountRate = 0
+    // настоящий диапазон NPV это 437 500 против 299 373 при ставке 0,12.
+    const atZero = makeAssumptions({ discountRate: 0 });
+    const bar = sensitivity(cap, params, atZero).find((b) => b.key === "discountRate")!;
+    expect(bar.baseValue).toBe(0);
+    expect(bar.highValue).toBeGreaterThan(0);
+    expect(bar.swing).toBeGreaterThan(0);
+  });
+
+  it("обычное плечо не зажато и мерится ровно запрошенной долей", () => {
+    const bar = sensitivity(cap, params, a).find((b) => b.key === "laborCostPerHourUsd")!;
+    expect(bar.clampedLow).toBe(false);
+    expect(bar.clampedHigh).toBe(false);
+    expect(bar.lowValue).toBeCloseTo(a.laborCostPerHourUsd * 0.75, 9);
+    expect(bar.highValue).toBeCloseTo(a.laborCostPerHourUsd * 1.25, 9);
   });
 });

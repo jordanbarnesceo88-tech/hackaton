@@ -69,14 +69,19 @@ export function TornadoChart({
 
         {bars.map((b, i) => {
           const y = PAD_TOP + i * ROW_H;
-          const delta =
-            b.deltaPct === null
-              ? "±1 год"
-              : `±${(b.deltaPct * 100).toLocaleString("ru-RU", { maximumFractionDigits: 1 })}%`;
+          // Подпись называет ПОДСТАВЛЕННЫЕ значения, а не запрошенную долю. «±25 %» врало в обе
+          // стороны: нижнее плечо зажималось границей допущения, верхнее не зажималось вовсе,
+          // и у рычага на своём максимуме размах выходил ровно вдвое больше настоящего.
+          const num = (n: number) =>
+            n.toLocaleString("ru-RU", { maximumFractionDigits: 4 });
+          const clamped = b.clampedLow || b.clampedHigh;
+          const range = `${num(b.lowValue)} → ${num(b.highValue)}`;
           return (
             <g key={b.key}>
               {/* <title> — и подсказка мышью, и доступное имя группы. */}
-              <title>{`${ASSUMPTION_LABELS[b.key]} (${delta}): размах ${formatCost(b.swing, usdToRub)}`}</title>
+              <title>{`${ASSUMPTION_LABELS[b.key]} (${range}${
+                clamped ? ", плечо упёрлось в границу допущения" : ""
+              }): размах ${formatCost(b.swing, usdToRub)}`}</title>
               <text
                 x={PAD_LEFT - 10}
                 y={y + BAR_H - 3}
@@ -86,6 +91,8 @@ export function TornadoChart({
               >
                 {ASSUMPTION_LABELS[b.key]}
                 {b.kind === "whole-year" ? " (±1 год)" : ""}
+                {clamped ? " *" : ""}
+                {b.swing === 0 ? " — не двигает" : ""}
               </text>
               <rect
                 x={PAD_LEFT}
@@ -93,7 +100,15 @@ export function TornadoChart({
                 width={Math.max(1, x(b.swing) - PAD_LEFT)}
                 height={BAR_H}
                 rx={2}
-                fill={`var(--chart-${(i % 5) + 1})`}
+                // Рычаг, который при этих параметрах ничего не двигает, рисуется погашенным,
+                // а НЕ выбрасывается: молча исчезающий столбец уже был багом — человек видел
+                // торнадо без рычага, которым только что двигал.
+                //
+                // Пометка осмысленна только теперь. Пока возмущение нуля само равнялось нулю,
+                // «размах 0» означал и «рычаг не двигает», и «мы не умеем его сдвинуть», и
+                // погасить второе было бы враньём: у discountRate = 0 настоящий размах
+                // 41 609 ₽, а не ноль.
+                fill={b.swing === 0 ? "var(--muted)" : `var(--chart-${(i % 5) + 1})`}
               />
               <text
                 x={x(b.swing) + 10}
