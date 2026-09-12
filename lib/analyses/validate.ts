@@ -7,8 +7,34 @@ import { DEFAULT_ASSUMPTIONS, ASSUMPTION_BOUNDS } from "@/lib/economics/assumpti
 
 export const NAME_MAX_LEN = 120;
 
+/**
+ * Потолки на карту занятости. Она приходит от клиента и ложится в jsonb как есть, поэтому у
+ * неё обязан быть размер: без него подделанный payload кладёт в сохранённый расчёт — и в
+ * клиентский отчёт — произвольный объём произвольных ключей.
+ *
+ * Сорок с запасом: применимых задач у типа объекта единицы. Те же числа применяет разбор
+ * query-строки (`lib/wizard/steps.ts`) — граница у сохранения и у ссылки обязана быть одна.
+ */
+export const MAX_TASK_KEYS = 40;
+export const MAX_TASK_SLUG_LEN = 200;
+
 function isFiniteNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
+}
+
+/**
+ * Параметр объекта: конечный и строго положительный.
+ *
+ * Раньше проверялась только конечность, и ноль с отрицательными сохранялись — объект площадью
+ * −5000 м² попадал в документ, который показывают клиенту. Правило то же, что у `num()` в
+ * `lib/wizard/steps.ts`: два места, решающие, что такое годный параметр, обязаны решать
+ * одинаково, иначе ссылка, отклонённая визардом, сохраняется как ни в чём не бывало.
+ *
+ * Верхней границы нет намеренно: её нет нигде в приложении, и завести её здесь значило бы
+ * придумать правило, которого не знает остальной код.
+ */
+function isPositiveNumber(v: unknown): v is number {
+  return isFiniteNumber(v) && v > 0;
 }
 
 export function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -40,7 +66,7 @@ export function validateParams(raw: unknown): FacilityParams | null {
   if (!isPlainObject(raw)) return null;
   const { areaM2, opsPerDay, staffCount, peakConcurrent } = raw;
   const { quantityOverride, capexPerUnitUsdOverride, taskStaffing } = raw;
-  if (!isFiniteNumber(areaM2) || !isFiniteNumber(opsPerDay) || !isFiniteNumber(staffCount)) {
+  if (!isPositiveNumber(areaM2) || !isPositiveNumber(opsPerDay) || !isPositiveNumber(staffCount)) {
     return null;
   }
   if (peakConcurrent !== undefined && !isFiniteNumber(peakConcurrent)) return null;
@@ -62,7 +88,10 @@ export function validateParams(raw: unknown): FacilityParams | null {
   // сказал. Ноль допустим — это ответ «никто не занят», а не пропуск.
   if (taskStaffing !== undefined) {
     if (!isPlainObject(taskStaffing)) return null;
-    for (const v of Object.values(taskStaffing)) {
+    const entries = Object.entries(taskStaffing);
+    if (entries.length > MAX_TASK_KEYS) return null;
+    for (const [slug, v] of entries) {
+      if (slug.length === 0 || slug.length > MAX_TASK_SLUG_LEN) return null;
       if (!isFiniteNumber(v) || v < 0) return null;
     }
   }

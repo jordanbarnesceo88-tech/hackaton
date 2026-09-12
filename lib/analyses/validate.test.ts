@@ -44,6 +44,55 @@ describe("validateParams", () => {
   });
 });
 
+describe("границы параметров объекта (Г-1)", () => {
+  const ok = { areaM2: 1000, opsPerDay: 500, staffCount: 10 };
+
+  it("отвергает ноль и отрицательные — они доезжали до клиентского отчёта", () => {
+    // Проверялась только конечность. Объект площадью −5000 м² сохранялся и попадал в
+    // документ, который показывают клиенту. Сравнить с validateAssumptions, где каждый ключ
+    // сверяется с ASSUMPTION_BOUNDS: у трёх главных чисел границ не было вовсе, хотя модель
+    // угрозы у них та же — подделанный payload минует форму.
+    for (const k of ["areaM2", "opsPerDay", "staffCount"] as const) {
+      expect(validateParams({ ...ok, [k]: 0 }), `${k} = 0`).toBeNull();
+      expect(validateParams({ ...ok, [k]: -5000 }), `${k} < 0`).toBeNull();
+    }
+  });
+
+  it("правило то же, что у визарда, а не своё", () => {
+    // `num()` в lib/wizard/steps.ts принимает строго больше нуля. Два места, решающие, что
+    // такое годный параметр, обязаны решать одинаково — иначе ссылка, которую визард
+    // отклонил, сохраняется, и наоборот.
+    expect(validateParams(ok)).toEqual(ok);
+    expect(validateParams({ ...ok, areaM2: 0.5 })).toEqual({ ...ok, areaM2: 0.5 });
+  });
+
+  it("верхних границ не выдумывает", () => {
+    // Их нет нигде в приложении, и придумывать здесь значило бы завести правило, которого
+    // не знает остальной код.
+    expect(validateParams({ ...ok, areaM2: 5_000_000 })).not.toBeNull();
+  });
+});
+
+describe("размер занятости по задачам (Г-3)", () => {
+  const ok = { areaM2: 1000, opsPerDay: 500, staffCount: 10 };
+
+  it("отвергает карту с сотнями ключей", () => {
+    // Сохраняется как jsonb: без потолка подделанный payload кладёт в отчёт произвольный объём.
+    const taskStaffing: Record<string, number> = {};
+    for (let i = 0; i < 500; i++) taskStaffing[`slug${i}`] = 1;
+    expect(validateParams({ ...ok, taskStaffing })).toBeNull();
+  });
+
+  it("отвергает ключ неправдоподобной длины", () => {
+    expect(validateParams({ ...ok, taskStaffing: { ["x".repeat(5000)]: 1 } })).toBeNull();
+  });
+
+  it("нормальную карту принимает целиком", () => {
+    const taskStaffing = { cleaning: 6, picking: 0 };
+    expect(validateParams({ ...ok, taskStaffing })).toEqual({ ...ok, taskStaffing });
+  });
+});
+
 describe("validateAssumptions", () => {
   it("accepts a full, finite assumptions bag", () => {
     expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS })).toEqual(DEFAULT_ASSUMPTIONS);

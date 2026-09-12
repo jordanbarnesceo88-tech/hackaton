@@ -54,6 +54,18 @@ export function ParamsForm({
     staffCount: params.staffCount,
   });
 
+  // Граница сохранения требует строго положительных параметров объекта, и поле обязано
+  // сказать об этом ЗДЕСЬ. Иначе человек набирает ноль, видит «Проверьте параметры расчёта»
+  // вместо чисел, жмёт «Сохранить» и получает общую «Ошибку сохранения», которая ничего не
+  // объясняет, — тот самый разрыв, о котором предупреждает комментарий в OverrideField.
+  const nonPositive = (
+    [
+      ["areaM2", "Площадь", params.areaM2],
+      ["opsPerDay", "Объём операций", params.opsPerDay],
+      ["staffCount", "Весь штат объекта", params.staffCount],
+    ] as const
+  ).filter(([, , v]) => !(Number.isFinite(v) && v > 0));
+
   const setTaskFte = (n: number | null) =>
     setParams((p) => {
       const next = { ...(p.taskStaffing ?? {}) };
@@ -142,6 +154,12 @@ export function ParamsForm({
         <p className="-mt-4 text-xs text-muted-foreground">
           Потолок: сколько бы ни было занято задачей, замещение не может превысить весь штат.
         </p>
+        {nonPositive.length > 0 && (
+          <p className="rounded-md border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {nonPositive.map(([, label]) => label).join(", ")} — {nonPositive.length === 1 ? "должно быть больше нуля" : "должны быть больше нуля"}.
+            Ноль и отрицательные модель считать не может, и сохранить такой расчёт тоже нельзя.
+          </p>
+        )}
         {isStock && (
           <NumField
             id="peakConcurrent"
