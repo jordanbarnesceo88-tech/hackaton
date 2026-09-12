@@ -2,6 +2,32 @@ import { WAREHOUSE_REAL } from "@/scripts/parse-sources/warehouse-real";
 import { SOLUTION_CLASSES } from "@/scripts/seed-data/solution-classes";
 import { VENDOR_SOLUTIONS } from "@/scripts/seed-data/vendor-solutions";
 
+/**
+ * Стареет ли утверждение — и, стало быть, обязано ли оно ронять проверку по возрасту.
+ *
+ * Единый порог в 180 дней на весь список был неверен ровно наполовину. «Цена AMR $25–150k по
+ * обзору рынка, прочитанному 7 сентября 2026» — это утверждение О ТОМ ДНЕ. Оно не протухает:
+ * рынок ушёл вперёд, а цитата как была верной, так и осталась, у неё просто есть дата, и
+ * читатель сам решает, годится ли ему такая давность. Ронять сборку за то, что день стал
+ * дальше, — значит требовать переписывать верную цитату каждые полгода, а на практике —
+ * приучать продлевать `lastVerified`, не открывая страницу. Так гейт свежести и умирает: не
+ * отключением, а ритуалом продления.
+ *
+ * Страница характеристик — обратный случай. Она цитируется в настоящем времени: «робот делает
+ * 63 тота в час» — это утверждение о том, что производитель заявляет СЕЙЧАС. Модель снимают,
+ * ревизию меняют, страницу переписывают — и цитата становится ложной, притом что у нас никто
+ * ничего не правил и заметить это нечем. Здесь порог по возрасту — единственный механизм,
+ * который однажды заставит человека открыть страницу заново.
+ *
+ * Отсюда два бакета и две команды: `npm run check:sources` (гейт деплоя) и
+ * `npm run report:snapshots` (отчёт без вердикта). Подробности — в шапке scripts/check-sources.ts.
+ */
+export type CitationTimeliness =
+  /** Утверждение о «сейчас»: устарело — значит, может быть уже неверным. Роняет check:sources. */
+  | "must-stay-current"
+  /** Утверждение о конкретном дне: дата — часть утверждения, а не срок годности. Только отчёт. */
+  | "market-snapshot";
+
 export type Citation = {
   /** Что именно утверждает этот источник. */
   label: string;
@@ -17,7 +43,24 @@ export type Citation = {
   basis?: string;
   /** Дата, когда источник открывали, YYYY-MM-DD. */
   lastVerified: string;
+  /**
+   * В какой бакет попадает цитата. Поле НЕОБЯЗАТЕЛЬНОЕ, и его отсутствие означает
+   * `must-stay-current`, то есть строгий бакет.
+   *
+   * Умолчание выбрано в эту сторону намеренно, и это единственная сторона, в которую его
+   * можно выбрать: цитата, которую забыли классифицировать, попадёт под гейт, и о ней рано
+   * или поздно спросят. Обратное умолчание молча вывело бы новый источник из-под всякой
+   * проверки — без ошибки, без строки в выводе, без единого признака, что проверка его больше
+   * не видит. Тест `audit.test.ts` требует, чтобы в самом реестре поле стояло явно у всех:
+   * умолчание — страховка от забывчивости, а не способ не думать.
+   */
+  timeliness?: CitationTimeliness;
 };
+
+/** Бакет цитаты с учётом умолчания. Читать `c.timeliness` напрямую — значит потерять его. */
+export function citationTimeliness(c: Citation): CitationTimeliness {
+  return c.timeliness ?? "must-stay-current";
+}
 
 /**
  * Все внешние утверждения приложения, собранные из тех же модулей, из которых идёт сев.
@@ -25,6 +68,11 @@ export type Citation = {
  * ВЫВОДИТСЯ, а не пишется: страница про честность, чей список источников разошёлся с реальными
  * данными, — худший из возможных экспонатов на такой странице. Тем же списком пользуется
  * `npm run check:sources`, чтобы два определения «списка источников» не разъехались.
+ *
+ * По той же причине здесь нет отдельной таблицы «какие ссылки считать снимками»: перечень
+ * URL, живущий рядом с данными, но не выводимый из них, разъедется с ними при первой же смене
+ * ссылки — и разъедется молча. Бакет проставляется там, где цитата рождается, и опирается на
+ * то, чем поле является по своему определению в модуле сева, а не на вид ссылки.
  */
 export const ALL_CITATIONS: Citation[] = [
   // У вендорского решения sourceUrl цитирует ПРОИЗВОДИТЕЛЬНОСТЬ — это страница продукта, с
@@ -35,17 +83,48 @@ export const ALL_CITATIONS: Citation[] = [
   // Регистрировать эту ссылку как источник цены значило приписывать странице утверждение,
   // которого она не делает, — и делать это на странице, существующей ради различения этих
   // двух утверждений.
+  //
   // Вендорские строки не-складских вертикалей: у них ОБА источника есть, и оба реальные.
+  // Стареют они по-разному, и это записано прямо в типе VendorSolutionSeed:
+  //   • sourceUrl — страница ПРОИЗВОДИТЕЛЯ с характеристиками (gausium.com/specs/scrubber-75).
+  //     Спеку переписывают вместе с ревизией машины, цитата станет ложной без правок у нас →
+  //     под гейтом;
+  //   • priceSourceUrl — витрина ДИСТРИБЬЮТОРА с ценой (robotlab.com). $95 880 на день чтения
+  //     останутся правдой про этот день, сколько бы прайс потом ни двигали → снимок рынка.
   ...VENDOR_SOLUTIONS.flatMap((s) => [
-    { label: s.name, kind: "capacity" as const, url: s.sourceUrl, lastVerified: s.lastVerified },
-    { label: s.name, kind: "price" as const, url: s.priceSourceUrl, lastVerified: s.lastVerified },
+    {
+      label: s.name,
+      kind: "capacity" as const,
+      url: s.sourceUrl,
+      lastVerified: s.lastVerified,
+      timeliness: "must-stay-current" as const,
+    },
+    {
+      label: s.name,
+      kind: "price" as const,
+      url: s.priceSourceUrl,
+      lastVerified: s.lastVerified,
+      timeliness: "market-snapshot" as const,
+    },
   ]),
+  // Складские строки. Характеристики — со страниц производителей (hairobotics, exotec,
+  // autostoresystem): утверждение о «сейчас», под гейтом.
+  //
+  // Цена у них — ОЦЕНКА ТРЕТЬЕЙ СТОРОНЫ БЕЗ СТРАНИЦЫ: priceBasis называет её словами (GoASRS
+  // $40–80k за робота, Robotomated $100–500k за станцию GTP). По природе это тоже наблюдение
+  // за рынком, и отнести её к снимкам было бы логично — но снимок держится на том, что дату
+  // можно предъявить ВМЕСТЕ СО СТРАНИЦЕЙ, на которой в тот день стояло это число. Здесь
+  // предъявлять нечего: перепроверка означает заново разыскать оценку у третьей стороны.
+  // Такую цитату мы оставляем под гейтом сознательно — истечение срока и есть единственное,
+  // что однажды заставит эту работу проделать. Где данных для уверенной классификации не
+  // хватает, классификация консервативная.
   ...WAREHOUSE_REAL.flatMap((s) => [
     {
       label: s.name,
       kind: "capacity" as const,
       url: s.sourceUrl,
       lastVerified: s.lastVerified,
+      timeliness: "must-stay-current" as const,
     },
     {
       label: s.name,
@@ -53,15 +132,35 @@ export const ALL_CITATIONS: Citation[] = [
       url: null,
       basis: s.priceBasis,
       lastVerified: s.lastVerified,
+      timeliness: "must-stay-current" as const,
     },
   ]),
+  // Класс решений — это два опубликованных ДИАПАЗОНА, и стареют они по-разному:
+  //   • цена (sourceUrl) — обзоры стоимости и прайс-страницы: «AMR cost 2026»
+  //     (meshautomationinc), стоимость паллетайзинга, обзор цен на коботы и разбор «what are
+  //     sorting robots» (standardbots), витрина grabarobot, разбор экономии у relayrobotics,
+  //     цена оптической инспекции у averroes. Все семь суть наблюдение за рынком на дату
+  //     чтения → снимок;
+  //   • производительность (capacitySourceUrl) — утверждение о том, что техника делает:
+  //     спека OrionStar, методичка по метрикам AGV, разборы производительности паллетайзеров
+  //     и ИИ-инспекции, измеренная выработка Moxi в детской больнице. Ни один из семи в
+  //     снимки не отнесён: диапазон производительности мы предъявляем как то, на что техника
+  //     способна СЕГОДНЯ, а не как факт про сентябрь 2026-го, — и отвечать за это «сегодня»
+  //     должен гейт.
   ...SOLUTION_CLASSES.flatMap((c) => [
-    { label: c.name, kind: "price" as const, url: c.sourceUrl, lastVerified: c.lastVerified },
+    {
+      label: c.name,
+      kind: "price" as const,
+      url: c.sourceUrl,
+      lastVerified: c.lastVerified,
+      timeliness: "market-snapshot" as const,
+    },
     {
       label: c.name,
       kind: "capacity" as const,
       url: c.capacitySourceUrl,
       lastVerified: c.lastVerified,
+      timeliness: "must-stay-current" as const,
     },
   ]),
 ];
@@ -83,4 +182,113 @@ export function citationAgeDays(c: Citation, now = Date.now()): number | null {
   if (!Number.isFinite(t)) return null;
   const age = Math.floor((now - t) / DAY_MS);
   return age < 0 ? null : age;
+}
+
+/**
+ * Порог для строгого бакета. Полгода — срок, за который спека успевает пережить смену
+ * ревизии, но который не превращает перепроверку в ежемесячную повинность.
+ */
+export const DEFAULT_MAX_AGE_DAYS = 180;
+
+/**
+ * Порог, действующий сейчас: `MAX_SOURCE_AGE_DAYS` или умолчание; null — значение задано, но
+ * непригодно.
+ *
+ * Живёт здесь, а не в скрипте, потому что порог показывает и /methodology. Разъехавшийся
+ * порог был бы худшим из возможных расхождений на этой странице: страница утверждала бы «все
+ * цитаты в пределах 180 дней» ровно в тот момент, когда деплой падает с порогом 90.
+ *
+ * Пустая строка приравнена к «не задано»: `MAX_SOURCE_AGE_DAYS=` в .env — это неустановленная
+ * переменная, а не запрос на нулевой порог.
+ */
+export function resolveMaxAgeDays(
+  raw: string | undefined = process.env.MAX_SOURCE_AGE_DAYS
+): number | null {
+  if (raw === undefined || raw.trim() === "") return DEFAULT_MAX_AGE_DAYS;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+export type CitationAudit = {
+  citation: Citation;
+  timeliness: CitationTimeliness;
+  /** null — дату использовать нельзя; см. citationAgeDays. */
+  ageDays: number | null;
+  /** Просрочена: строгий бакет и старше порога либо с непригодной датой. У снимков всегда false. */
+  overdue: boolean;
+};
+
+export type SourceAudit = {
+  /** Момент, на который посчитан возраст. Страница показывает его, чтобы «13 дней» имело смысл. */
+  checkedAt: number;
+  maxAgeDays: number;
+  /** Строгий бакет: цитаты, которые обязаны быть верны сегодня. */
+  gated: CitationAudit[];
+  /** Снимки рынка: возраст показывается, вердикт не выносится. */
+  snapshots: CitationAudit[];
+  /** Подмножество gated, из-за которого гейт обязан упасть. */
+  overdue: CitationAudit[];
+  /**
+   * Цитаты с непригодной датой — ИЗ ОБОИХ БАКЕТОВ. Снимок без пригодной даты не снимок:
+   * всё его право не подчиняться порогу держится на том, что дату можно назвать. Поэтому
+   * гейт роняют и они, хотя за возраст снимок не отвечает.
+   */
+  undated: CitationAudit[];
+};
+
+/** Худшее сверху: отчёт, чья единственная плохая строка лежит в середине, никто не дочитает. */
+function worstFirst(a: CitationAudit, b: CitationAudit): number {
+  if (a.ageDays === null || b.ageDays === null) {
+    return (a.ageDays === null ? 0 : 1) - (b.ageDays === null ? 0 : 1);
+  }
+  return b.ageDays - a.ageDays;
+}
+
+/**
+ * Полный разбор реестра по свежести — то, что печатает скрипт и показывает /methodology.
+ *
+ * Одна функция на обоих потребителей по той же причине, по которой список источников
+ * выводится, а не пишется: страница, которая пересказывает вывод проверки своими вычислениями,
+ * однажды разойдётся с проверкой — и разойдётся в сторону «у нас всё хорошо», потому что
+ * именно такое расхождение не бросается в глаза.
+ */
+export function auditSources({
+  citations = ALL_CITATIONS,
+  now = Date.now(),
+  maxAgeDays,
+}: {
+  citations?: Citation[];
+  now?: number;
+  /** Явное значение важнее переменной окружения: скрипт валидирует её сам и падает на мусоре. */
+  maxAgeDays?: number;
+} = {}): SourceAudit {
+  // Страница не гейт: на мусоре в MAX_SOURCE_AGE_DAYS она показывает документированный порог
+  // и остаётся читаемой. Скрипт на том же значении выходит с кодом 2 — падать должен деплой,
+  // а не справочник.
+  const limit = maxAgeDays ?? resolveMaxAgeDays() ?? DEFAULT_MAX_AGE_DAYS;
+
+  const audited: CitationAudit[] = citations.map((citation) => {
+    const timeliness = citationTimeliness(citation);
+    const ageDays = citationAgeDays(citation, now);
+    return {
+      citation,
+      timeliness,
+      ageDays,
+      overdue:
+        timeliness === "must-stay-current" && (ageDays === null || ageDays > limit),
+    };
+  });
+
+  const gated = audited.filter((a) => a.timeliness === "must-stay-current").sort(worstFirst);
+  const snapshots = audited.filter((a) => a.timeliness === "market-snapshot").sort(worstFirst);
+
+  return {
+    checkedAt: now,
+    maxAgeDays: limit,
+    gated,
+    snapshots,
+    overdue: gated.filter((a) => a.overdue),
+    undated: [...gated, ...snapshots].filter((a) => a.ageDays === null).sort(worstFirst),
+  };
 }

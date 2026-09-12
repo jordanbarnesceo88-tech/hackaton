@@ -42,12 +42,27 @@ docker run -p 3000:3000 -e DATABASE_URL="<pooled url>" -e AUTH_SECRET="<secret>"
 
 ## 4c. Check the cited figures are still current  **[before any live demo]**
 ```bash
-npm run check:sources      # exits non-zero if a citation is older than 180 days
+npm run check:sources      # ГЕЙТ: ненулевой выход, если протухла цитата, обязанная быть верной
+npm run report:snapshots   # отчёт: возраст рыночных снимков, никогда не падает
 ```
-`docs/data-provenance.md` promises every real figure is verified before it is shown. This is
-that check: it reports the age of each product citation and fails past the threshold
-(override with `MAX_SOURCE_AGE_DAYS`). It is deliberately not part of CI — a test that fails
-when a date rolls over would turn the build red for something no commit caused.
+`docs/data-provenance.md` promises every real figure is verified before it is shown. Проверок
+теперь ДВЕ, потому что одно правило на всё было неверным (З-3).
+
+**Гейт** покрывает цитаты, обязанные быть верными СЕГОДНЯ: страницы производителей со
+характеристиками и все заявления о производительности. Такая страница действительно протухает —
+модель снимают с производства, характеристики переписывают. Гейт падает и тогда, когда дату
+проверки нельзя прочитать в ЛЮБОЙ из двух корзин: снимок без читаемой даты — это не снимок,
+а число без происхождения, и освобождения он лишается. Порог 180 дней, переопределяется
+`MAX_SOURCE_AGE_DAYS`.
+
+**Отчёт** покрывает рыночные снимки — наблюдения цены на конкретную дату. Такая цитата не
+«устаревает»: $95 880 девятого числа остаются правдой про девятое число. У неё есть дата, и
+показать надо возраст, а не приговор. Отчёт выходит нулём всегда.
+
+Ни то, ни другое не входит в CI намеренно — тест, падающий от смены даты, красит сборку за то,
+чего не делал ни один коммит. Живой вывод обеих проверок виден на `/methodology`: страница
+считает его на запросе, а не на сборке, иначе она застыла бы на дне деплоя и утверждала
+«13 дней» полгода — соврав ровно там, где доказывает обратное.
 
 ## 5. Security hardening before real production traffic  **[required before public launch]**
 The auth code is correct for the current stage (bcrypt passwords, JWT sessions, strictly
