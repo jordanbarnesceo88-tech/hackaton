@@ -1,5 +1,11 @@
 import type { FacilityParams, AssumptionValues } from "@/lib/economics/types";
-import { DEFAULT_ASSUMPTIONS, ASSUMPTION_BOUNDS } from "@/lib/economics/assumptions";
+// Остаток Ч-3: набор «только целые годы» берётся из модели, а не заводится здесь заново —
+// поле панели приводит к целому по тому же списку, и разойтись им нельзя.
+import {
+  DEFAULT_ASSUMPTIONS,
+  ASSUMPTION_BOUNDS,
+  WHOLE_YEAR_ASSUMPTIONS,
+} from "@/lib/economics/assumptions";
 
 // Saved-analysis payloads arrive from the client and are persisted as-is (jsonb), so validate
 // shape and bound sizes here before they touch the DB. Pure + framework-free so it's unit
@@ -90,10 +96,23 @@ export function validateParams(raw: unknown): FacilityParams | null {
     if (!isPlainObject(taskStaffing)) return null;
     const entries = Object.entries(taskStaffing);
     if (entries.length > MAX_TASK_KEYS) return null;
+    let claimed = 0;
     for (const [slug, v] of entries) {
       if (slug.length === 0 || slug.length > MAX_TASK_SLUG_LEN) return null;
       if (!isFiniteNumber(v) || v < 0) return null;
+      claimed += v;
     }
+    // Г-2 на границе СОХРАНЕНИЯ, а не только на экране.
+    //
+    // Экран занятости складывает то же самое и блокирует «Далее», но экран — не граница:
+    // сохранение принимает payload, а не нажатие кнопки. Потолок в движке стоит НА РЕШЕНИЕ
+    // (`min(staffCount, …)` в calculate.ts), суммы по задачам не проверял никто, и занятости,
+    // сложившиеся больше штата, ложились в jsonb молча — а строка «остальные N человек не
+    // роботизируем» показала бы по ним отрицательное N.
+    //
+    // Допуск в одну сотую: занятость по нормативу дробная (6,3 человека на отборе), и сумма
+    // трёх таких чисел не обязана попадать в штат до последнего разряда с плавающей точкой.
+    if (claimed > staffCount + 0.01) return null;
   }
 
   const out: FacilityParams = { areaM2, opsPerDay, staffCount };
@@ -127,6 +146,7 @@ export function validateAssumptions(raw: unknown): AssumptionValues | null {
     if (!isFiniteNumber(v)) return null;
     const { min, max } = ASSUMPTION_BOUNDS[k];
     if (v < min || v > max) return null;
+    if (WHOLE_YEAR_ASSUMPTIONS.has(k) && !Number.isInteger(v)) return null;
     out[k] = v;
   }
   return out;

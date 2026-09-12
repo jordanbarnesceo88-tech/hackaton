@@ -68,8 +68,24 @@ export const ASSUMPTION_BOUNDS: Record<keyof AssumptionValues, { min: number; ma
 export function clampAssumption(key: keyof AssumptionValues, value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_ASSUMPTIONS[key];
   const { min, max } = ASSUMPTION_BOUNDS[key];
-  return Math.min(max, Math.max(min, value));
+  const bounded = Math.min(max, Math.max(min, value));
+  // Годы приводятся к целому здесь же, при уходе из поля. Движок их всё равно округляет, а
+  // граница сохранения дробные ОТКЛОНЯЕТ (остаток Ч-3) — и без этой строки человек набрал бы
+  // 4,99, увидел бы 4,99, посчитал бы по пяти и получил бы при сохранении общую «Ошибку
+  // сохранения», которая ничего не объясняет. Три места, решающие, что такое годное значение,
+  // обязаны решать одинаково; поле — то из них, где человеку видно решение.
+  return WHOLE_YEAR_ASSUMPTIONS.has(key) ? Math.round(bounded) : bounded;
 }
+
+/**
+ * Допущения, которые модель потребляет только целыми годами: `projectFinance` округляет их к
+ * ближайшему целому, поэтому дробное значение на экране означало бы ответ, посчитанный по
+ * другому числу. Тот же набор перечислен на границе сохранения (`lib/analyses/validate.ts`).
+ */
+export const WHOLE_YEAR_ASSUMPTIONS = new Set<keyof AssumptionValues>([
+  "roiHorizonYears",
+  "assetLifeYears",
+]);
 
 /** True when every assumption sits inside its accepted range. */
 export function assumptionsInRange(a: AssumptionValues): boolean {

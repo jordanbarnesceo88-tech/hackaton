@@ -64,15 +64,19 @@ export function HeroResults({
         <div className="text-xs text-muted-foreground">простой срок окупаемости</div>
       ) : (
         <div className="mt-1 text-sm font-medium text-caution">
-          {/* Word this off the condition that is actually true. `isViable` is false as soon as
-              NPV is negative, and a negative NPV with a real discounted payback is reachable
-              whenever assetLifeYears < roiHorizonYears: re-CAPEX pushes the cumulative back
-              below zero after an early crossing (e.g. life 4 / horizon 5 -> NPV −19 296 with a
-              2.9-year discounted payback). Claiming "не окупается в пределах горизонта" there
-              contradicted the panel directly below, which printed «2.9 года». */}
-          {result.discountedPaybackYears === null
-            ? "С учётом дисконтирования не окупается в пределах горизонта — NPV отрицательный"
-            : "С учётом дисконтирования решение не окупается — NPV отрицательный"}
+          {/* Формулировка была ветвистой, потому что «NPV отрицателен» и «срока нет» могли
+              разойтись: дисконтированная окупаемость возвращала ПЕРВОЕ пересечение нуля и не
+              замечала, что докупка загнала поток обратно в минус (срок службы 4 при горизонте
+              5 → NPV −19 296 и срок 2,9 года одновременно). Тогда герой обязан был говорить
+              то, что правда в каждом из двух случаев по отдельности.
+
+              Ч-2 убрал само расхождение: срок отдаётся по ПОСЛЕДНЕМУ пересечению, а если
+              накопленный приведённый поток кончает ниже нуля — срока нет. Знак NPV и наличие
+              срока стали одним утверждением, и вторая ветка стала недостижимой — проверено
+              перебором 12 544 сценариев, ни одного случая. Инвариант закреплён с обеих сторон
+              в finance.test.ts, поэтому если его когда-нибудь сломают, упадёт тест, а не
+              подпись на экране. */}
+          С учётом дисконтирования не окупается в пределах горизонта — NPV отрицательный
         </div>
       )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-foreground">

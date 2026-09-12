@@ -87,6 +87,22 @@ describe("размер занятости по задачам (Г-3)", () => {
     expect(validateParams({ ...ok, taskStaffing: { ["x".repeat(5000)]: 1 } })).toBeNull();
   });
 
+  it("отвергает сумму занятостей больше штата (Г-2 на границе сохранения)", () => {
+    // Экран это уже блокирует, но экран — не граница: сохранение принимает payload, а не
+    // нажатие кнопки. Один человек не может делать две работы на полную ставку.
+    expect(validateParams({ ...ok, taskStaffing: { a: 8, b: 5 } })).toBeNull();
+  });
+
+  it("ровно по штату — принимает", () => {
+    expect(validateParams({ ...ok, taskStaffing: { a: 6, b: 4 } })).not.toBeNull();
+  });
+
+  it("дробная занятость по нормативу не отвергается из-за плавающей точки", () => {
+    // 6,3 + 3,7 = 10.000000000000002 в double. Отвергнуть такое значило бы отказать в
+    // сохранении ровно тому расчёту, который сам же и предзаполнил норматив.
+    expect(validateParams({ ...ok, taskStaffing: { a: 6.3, b: 3.7 } })).not.toBeNull();
+  });
+
   it("нормальную карту принимает целиком", () => {
     const taskStaffing = { cleaning: 6, picking: 0 };
     expect(validateParams({ ...ok, taskStaffing })).toEqual({ ...ok, taskStaffing });
@@ -102,6 +118,27 @@ describe("validateAssumptions", () => {
     void roiHorizonYears;
     expect(validateAssumptions(missing)).toBeNull();
     expect(validateAssumptions({ ...DEFAULT_ASSUMPTIONS, turnoverPerDay: Infinity })).toBeNull();
+  });
+});
+
+describe("годы принимаются только целыми (остаток Ч-3)", () => {
+  const ok = { ...DEFAULT_ASSUMPTIONS };
+
+  it("отвергает дробный горизонт и дробный срок службы", () => {
+    // Движок округляет к ближайшему целому и обязан оставаться тотальным, поэтому отказать
+    // может только граница. Сохранить 4,99 значило бы положить в клиентский отчёт число, по
+    // которому ничего не считалось: считалось по пяти.
+    expect(validateAssumptions({ ...ok, roiHorizonYears: 4.99 })).toBeNull();
+    expect(validateAssumptions({ ...ok, assetLifeYears: 1.99 })).toBeNull();
+  });
+
+  it("целые принимает", () => {
+    expect(validateAssumptions({ ...ok, roiHorizonYears: 5, assetLifeYears: 7 })).not.toBeNull();
+  });
+
+  it("дробные НЕгодовые допущения по-прежнему принимает", () => {
+    // Правило узкое: доли и ставки дробные по своей природе.
+    expect(validateAssumptions({ ...ok, discountRate: 0.125 })).not.toBeNull();
   });
 });
 

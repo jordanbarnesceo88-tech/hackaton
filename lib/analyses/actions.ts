@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import {
   createSavedAnalysis,
   getSolutionApplicability,
+  getTaskCategories,
   type SavedAnalysisInput,
 } from "@/lib/db/queries";
 import {
@@ -48,6 +49,26 @@ export async function saveAnalysisAction(input: SavedAnalysisInput): Promise<Sav
   const claimed = typeof input.facilityTypeSlug === "string" ? input.facilityTypeSlug : "";
   if (!applicable.includes(claimed)) return { ok: false, reason: "invalid" };
   const facilityTypeSlug = claimed;
+
+  // Р-4 на границе СОХРАНЕНИЯ. Ключи занятости проверяются на применимость к заявленному типу
+  // объекта — тем же приёмом, что и сам `facilityTypeSlug` строкой выше.
+  //
+  // Экран занятости посторонние ключи уже отбрасывает, но экран — не граница: сюда приходит
+  // payload, а не нажатие кнопки. Сохранённый расчёт мог нести занятость по задаче, которой на
+  // этом объекте нет, и это данные, которые потом кто-то прочитает как истину — в отчёте,
+  // отдаваемом клиенту.
+  //
+  // ОТКЛОНЯЕМ, а не подчищаем: подчистка означала бы, что сохранённое отличается от
+  // присланного и никто об этом не сказал. Тем же правилом живёт validateParams.
+  const declaredTasks = Object.keys(params.taskStaffing ?? {});
+  if (declaredTasks.length > 0) {
+    const applicableTasks = new Set(
+      (await getTaskCategories(facilityTypeSlug)).map((c) => c.slug)
+    );
+    if (declaredTasks.some((slug) => !applicableTasks.has(slug))) {
+      return { ok: false, reason: "invalid" };
+    }
+  }
 
   try {
     const saved = await createSavedAnalysis(session.user.id, {

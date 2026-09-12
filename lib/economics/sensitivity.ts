@@ -78,7 +78,7 @@ const STREAM_KEYS: Record<WorkloadStream, (keyof AssumptionValues)[]> = {
 };
 
 /**
- * Assumptions `projectFinance` floors to whole years before using. A percentage perturbation on
+ * Assumptions `projectFinance` rounds to whole years before using (Ч-3; it floored until then). A percentage perturbation on
  * these lands somewhere other than what it claims: at the defaults, ±25% on roiHorizonYears
  * gives 3.75 and 6.25, which floor to 3 and 6 — an actual −40% / +20%. That bar was then ranked
  * against seven others measured at a true ±25%, i.e. on a different ruler, and assetLifeYears

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { prisma } from "@/lib/db/client";
-import { getSolutionApplicability } from "@/lib/db/queries";
+import { getSolutionApplicability, getTaskCategories } from "@/lib/db/queries";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
 
 // saveAnalysisAction is the app's write boundary: it decides what a client may persist, and it
@@ -79,6 +79,32 @@ describe("saveAnalysisAction", () => {
     if (!res.ok) throw new Error("expected the save to succeed");
     const saved = await prisma.savedAnalysis.findUniqueOrThrow({ where: { id: res.id } });
     expect(saved.facilityTypeSlug).toBe(applicable[0]);
+  });
+
+  it("rejects a taskStaffing key that does not apply to the claimed facility (Р-4)", async () => {
+    // Экран занятости посторонние ключи отбрасывает, но экран — не граница: сюда приходит
+    // payload. Занятость по задаче, которой на этом объекте нет, — это данные, которые потом
+    // прочитают как истину в отчёте, отдаваемом клиенту.
+    const res = await saveAnalysisAction(
+      payload({ params: { areaM2: 1000, opsPerDay: 500, staffCount: 10, taskStaffing: { "не-та-задача": 3 } } })
+    );
+    expect(res).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("accepts taskStaffing whose keys do apply", async () => {
+    const applicableTasks = await getTaskCategories(realSlug);
+    expect(applicableTasks.length).toBeGreaterThan(0);
+    const res = await saveAnalysisAction(
+      payload({
+        params: {
+          areaM2: 1000,
+          opsPerDay: 500,
+          staffCount: 10,
+          taskStaffing: { [applicableTasks[0]!.slug]: 3 },
+        },
+      })
+    );
+    expect(res.ok).toBe(true);
   });
 
   it("stores the analysis against the session user, not any id in the payload", async () => {

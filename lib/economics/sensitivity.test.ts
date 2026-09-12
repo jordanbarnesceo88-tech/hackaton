@@ -50,7 +50,7 @@ describe("sensitivity", () => {
   });
 });
 
-describe("whole-year perturbation for the floored assumptions", () => {
+describe("whole-year perturbation for the year-valued assumptions", () => {
   it("tags each bar with how it was actually perturbed", () => {
     const bars = sensitivity(cap, params, a);
     const byKey = Object.fromEntries(bars.map((b) => [b.key, b.kind]));
@@ -61,7 +61,9 @@ describe("whole-year perturbation for the floored assumptions", () => {
   });
 
   it("moves roiHorizonYears by exactly one year, not a floored 25%", () => {
-    // ±25% of 5 gives 3.75 / 6.25, which projectFinance floors to 3 / 6 — an actual -40%/+20%.
+    // ±25% of 5 gives 3.75 / 6.25, which projectFinance rounds to 4 / 6 — an actual -20%/+20%
+    // (it floored to 3 / 6 until Ч-3, i.e. -40%/+20%). Either way the bar was measured on a
+    // different ruler than its «±25%» label claimed; ±1 year survives the rounding intact.
     // ±1 year gives 4 / 6, which survive the floor intact.
     const bars = sensitivity(cap, params, a);
     const bar = bars.find((b) => b.key === "roiHorizonYears")!;
