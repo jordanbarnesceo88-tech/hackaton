@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useId, useRef } from "react";
 
 export type Choice = { value: string; label: string; hint?: string };
 
@@ -31,6 +31,8 @@ export function ChoiceTiles({
   onChange: (value: string) => void;
   label: string;
 }) {
+  // Префикс для id имени и подсказки: на странице может быть больше одной группы.
+  const groupId = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const activeIndex = Math.max(0, items.findIndex((i) => i.value === value));
 
@@ -57,6 +59,19 @@ export function ChoiceTiles({
       {items.map((item, i) => {
         const selected = item.value === value;
         const badge = BADGES[i];
+        // Имя радиокнопки — название варианта, а описание — отдельно от имени.
+        //
+        // По умолчанию имя вычисляется из содержимого кнопки, поэтому подсказка попадала
+        // ВНУТРЬ имени: у типов объектов она длиной в три предложения, и скринридер
+        // объявлял каждый из сорока семи вариантов трёхсотзначной фразой вместо слова
+        // «Склад». Это та же порча имени, от которой уже закрыт бейдж чуть ниже, только
+        // в разы больнее — там лишняя буква, здесь абзац.
+        //
+        // `aria-labelledby` перекрывает вычисление по содержимому, `aria-describedby`
+        // отдаёт подсказку как описание: её читают после имени и после паузы, и её можно
+        // прервать. Видимый текст при этом не меняется ни на пиксель.
+        const labelId = `${groupId}-l${i}`;
+        const hintId = `${groupId}-h${i}`;
         return (
           <button
             key={item.value}
@@ -64,6 +79,8 @@ export function ChoiceTiles({
             type="button"
             role="radio"
             aria-checked={selected}
+            aria-labelledby={labelId}
+            aria-describedby={item.hint ? hintId : undefined}
             // Roving tabindex: группа — одна остановка в таб-порядке, а не сорок семь.
             tabIndex={i === activeIndex ? 0 : -1}
             onClick={() => onChange(item.value)}
@@ -87,8 +104,14 @@ export function ChoiceTiles({
               </span>
             )}
             <span className="flex flex-col">
-              <span className="font-medium">{item.label}</span>
-              {item.hint && <span className="text-sm text-muted-foreground">{item.hint}</span>}
+              <span id={labelId} className="font-medium">
+                {item.label}
+              </span>
+              {item.hint && (
+                <span id={hintId} className="text-sm text-muted-foreground">
+                  {item.hint}
+                </span>
+              )}
             </span>
           </button>
         );
