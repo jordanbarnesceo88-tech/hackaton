@@ -66,6 +66,36 @@ export function ParamsForm({
     ] as const
   ).filter(([, , v]) => !(Number.isFinite(v) && v > 0));
 
+  // Норматив — дробное число, и округление в подписи не имеет права выдавать себя за него.
+  // Движок считает по 6,2857…, а плейсхолдер обещал «по нормативу 6.3»: расхождение крошечное,
+  // но это то самое расхождение — экран называет одно число, страница считает по другому.
+  const roundedNorm = byNorm === null ? null : Math.round(byNorm * 10) / 10;
+  const normLabel =
+    roundedNorm === null ? null : `${roundedNorm === byNorm ? "" : "≈"}${roundedNorm}`;
+
+  // Занятость по задачам против штата — второй разрыв того же рода, что `nonPositive`.
+  //
+  // `max` у input[type=number] ограничивает ТОЛЬКО стрелки спиннера: набранное или вставленное
+  // число проходит целиком. Дальше расходятся три места. Движок зажимает каждое решение в штат
+  // (`Math.min(cap, declared)` в resolveTaskFte) и молча считает по 25, пока поле показывает
+  // 40. Граница сохранения (`validateParams`) отклоняет СУММУ больше штата и роняет «Сохранить»
+  // в общую «Ошибку сохранения», которая ничего не объясняет. Экран не говорил ни о том, ни о
+  // другом — а это ровно те два дефекта, которые здесь закрывались уже дважды.
+  //
+  // Допуск в одну сотую — тот же, что на границе сохранения: занятость по нормативу дробная, и
+  // сумма таких чисел не обязана попадать в штат до последнего разряда с плавающей точкой.
+  const declaredHere = params.taskStaffing?.[capacity.categorySlug];
+  const claimed = Object.values(params.taskStaffing ?? {}).reduce((s, v) => s + v, 0);
+  const cappedHere = declaredHere !== undefined && declaredHere > params.staffCount;
+  const overStaffed = claimed > params.staffCount + 0.01;
+  // При нулевом или отрицательном штате об этом уже кричит блок `nonPositive`; второй красный
+  // блок про то же самое ничего не добавляет.
+  const staffingConflict = params.staffCount > 0 && (cappedHere || overStaffed);
+  // `aria-invalid` утверждает, что негодно ЭТО значение. Когда штат перебран суммой по другим
+  // работам, значение в этом поле может быть безупречным, и помечать его было бы неправдой —
+  // о переборе говорит блок ниже, он же называет обе величины.
+  const thisFieldInvalid = params.staffCount > 0 && cappedHere;
+
   const setTaskFte = (n: number | null) =>
     setParams((p) => {
       const next = { ...(p.taskStaffing ?? {}) };
@@ -129,12 +159,11 @@ export function ParamsForm({
         <NullableNumField
           id="taskStaffing"
           label="Сколько человек делает работу этого решения"
-          value={params.taskStaffing?.[capacity.categorySlug] ?? null}
+          value={declaredHere ?? null}
           max={params.staffCount}
+          invalid={thisFieldInvalid}
           placeholder={
-            byNorm === null
-              ? "норматива нет — назовите число"
-              : `по нормативу ${Math.round(byNorm * 10) / 10}`
+            normLabel === null ? "норматива нет — назовите число" : `по нормативу ${normLabel}`
           }
           onChange={setTaskFte}
         />
@@ -145,6 +174,14 @@ export function ParamsForm({
             ? "Открытого норматива по этой работе у нас нет, поэтому без вашего числа расчёта не будет."
             : "Оставьте поле пустым, чтобы считать по нормативу."}
         </p>
+        {staffingConflict && (
+          <p className="rounded-md border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {cappedHere
+              ? `Этой работой занято ${declaredHere} — больше, чем весь штат объекта (${params.staffCount}). Замещение модель считает по ${params.staffCount}: больше людей на объекте нет.`
+              : `Сумма занятости по всем работам — ${Math.round(claimed * 100) / 100} при штате ${params.staffCount}. Одного человека нельзя занять двумя работами на полную ставку.`}{" "}
+            Сохранить такой расчёт нельзя — уменьшите занятость или увеличьте штат.
+          </p>
+        )}
         <NumField
           id="staffCount"
           label="Весь штат объекта"

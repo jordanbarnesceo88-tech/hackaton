@@ -54,6 +54,15 @@ export function StaffingStep({
   // сказать это здесь, чем показать отказ на следующем экране без объяснения.
   const blocked = rows.filter((r) => r.declared === undefined && r.suggested === null);
 
+  // Задачи, по которым ответа нет, а норматив ЕСТЬ. Движок для них возьмёт норматив
+  // (`resolveTaskFte`: заявленное → норматив → null), то есть замещение этих людей затронет.
+  // А остаток считается только по заявленному (`staffingRemainder`) — намеренно: неподтверждённый
+  // норматив это наше предположение, а не ответ человека. Оба решения верны по отдельности, но
+  // вместе они дают ложную строку: «остальные 40 человек из 40 — не роботизируем. Их работа в
+  // расчёт экономии не входит», пока расчёт на следующем экране замещает шестерых из них по
+  // нормативу. Число остатка остаётся прежним, а вот молчать о нормативе нельзя.
+  const byNorm = rows.filter((r) => r.declared === undefined && r.suggested !== null);
+
   const taskStaffing: Record<string, number> = {};
   for (const r of rows) if (r.declared !== undefined) taskStaffing[r.slug] = r.declared;
 
@@ -131,6 +140,13 @@ export function StaffingStep({
             Остальные <b className="tabular-nums">{remainder}</b> человек из{" "}
             <b className="tabular-nums">{params.staffCount}</b> — не роботизируем. Их работа в
             расчёт экономии не входит.
+            {byNorm.length > 0 && (
+              <span className="mt-2 block text-muted-foreground">
+                Кроме {byNorm.map((r) => r.taskLabel.toLowerCase()).join(", ")}: своего числа вы
+                здесь не назвали, поэтому расчёт возьмёт норматив — эти люди посчитаны в остатке,
+                но замещение их затронет. Впишите своё число, чтобы остаток был точным.
+              </span>
+            )}
           </>
         )}
       </div>
