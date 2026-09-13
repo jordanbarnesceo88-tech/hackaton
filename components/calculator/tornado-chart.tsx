@@ -1,4 +1,4 @@
-import { ASSUMPTION_LABELS } from "./assumption-labels";
+import { LEVER_LABELS } from "./assumption-labels";
 import { formatCost } from "@/lib/format/currency";
 import type { SensitivityBar } from "@/lib/economics/sensitivity";
 
@@ -41,7 +41,7 @@ export function TornadoChart({
   const width = PAD_LEFT + PLOT_W + PAD_RIGHT;
   const height = PAD_TOP + PAD_BOTTOM + bars.length * ROW_H;
 
-  const top3 = bars.slice(0, 3).map((b) => ASSUMPTION_LABELS[b.key]).join(", ");
+  const top3 = bars.slice(0, 3).map((b) => LEVER_LABELS[b.key]).join(", ");
 
   return (
     <div className="overflow-x-auto">
@@ -79,7 +79,7 @@ export function TornadoChart({
           return (
             <g key={b.key}>
               {/* <title> — и подсказка мышью, и доступное имя группы. */}
-              <title>{`${ASSUMPTION_LABELS[b.key]} (${range}${
+              <title>{`${LEVER_LABELS[b.key]} (${range}${
                 clamped ? ", плечо упёрлось в границу допущения" : ""
               }): размах ${formatCost(b.swing, usdToRub)}`}</title>
               <text
@@ -89,7 +89,7 @@ export function TornadoChart({
                 fontSize={12}
                 fill="var(--muted-foreground)"
               >
-                {ASSUMPTION_LABELS[b.key]}
+                {LEVER_LABELS[b.key]}
                 {b.kind === "whole-year" ? " (±1 год)" : ""}
                 {clamped ? " *" : ""}
                 {b.swing === 0 ? " — не двигает" : ""}

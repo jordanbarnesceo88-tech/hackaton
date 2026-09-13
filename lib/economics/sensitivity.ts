@@ -6,6 +6,8 @@ import type {
 } from "./types";
 import { baseEconomics } from "./calculate";
 import { ASSUMPTION_BOUNDS, DEFAULT_ASSUMPTIONS } from "./assumptions";
+import { resolveTaskFte } from "./task-labour";
+import { demandPerYear } from "./normalize";
 import { projectFinance } from "./finance";
 
 /** NPV for a scenario, allowing negative savings (real negative NPV). null only if invalid. */
@@ -19,8 +21,21 @@ export function npvForScenario(
   return projectFinance(base.annualSavingsUsd, base.capexUsd, a).npvUsd;
 }
 
+/**
+ * Занятость задачей — рычаг, который живёт не в допущениях, а в параметрах объекта.
+ *
+ * Остаток A-7, и он назвал это первым пунктом: замещение считается ПРЯМО от занятости, то есть
+ * это со-доминирующий рычаг модели, — а в диаграмму он не попадал вовсе, потому что
+ * `sensitivity()` возмущает `AssumptionValues`, а занятость лежит в `FacilityParams`. Торнадо
+ * заявляет, что ранжирует рычаги, двигающие NPV, и умалчивал ровно о том числе, которое
+ * человек только что ввёл сам.
+ */
+export const TASK_STAFFING_KEY = "taskStaffing" as const;
+
+export type SensitivityLeverKey = keyof AssumptionValues | typeof TASK_STAFFING_KEY;
+
 export type SensitivityBar = {
-  key: keyof AssumptionValues;
+  key: SensitivityLeverKey;
   kind: PerturbationKind;
   /**
    * The perturbation actually applied to this bar: the fraction for `percent` bars, `null` for
@@ -105,6 +120,51 @@ export function sensitivity(
   if (baseNpv === null) return [];
 
   const bars: SensitivityBar[] = [];
+
+  // Занятость — первым, до допущений: сортировка по размаху всё равно расставит столбцы, но
+  // порядок построения делает очевидным, что она полноправный рычаг, а не приписка.
+  //
+  // Возмущается ЭФФЕКТИВНАЯ занятость — та, от которой считает движок: заявленная человеком,
+  // а если не заявлена, то норматив категории. Двигать заявленную там, где движок берёт
+  // норматив, значило бы мерить сценарий, которого он не считает.
+  const baseFte = resolveTaskFte({
+    declared: params.taskStaffing?.[cap.categorySlug],
+    demandPerYear: demandPerYear(params, a, cap.workloadStream),
+    workerOutputPerYear: cap.workerOutputPerYear,
+    staffCount: params.staffCount,
+  });
+  if (baseFte !== null && baseFte > 0) {
+    // Границы — потолок самого движка (`resolveTaskFte` зажимает штатом), а не выдуманные.
+    // Плечо выше штата мерило бы сценарий, который движок не считает: это ошибка Т-1 с
+    // другой стороны.
+    const staffCap = Number.isFinite(params.staffCount) && params.staffCount > 0 ? params.staffCount : 0;
+    const delta = baseFte * deltaPct;
+    const low = Math.max(0, baseFte - delta);
+    const high = Math.min(staffCap, baseFte + delta);
+    const withFte = (n: number) => ({
+      ...params,
+      taskStaffing: { ...params.taskStaffing, [cap.categorySlug]: n },
+    });
+    const lowNpv = npvForScenario(cap, withFte(low), a);
+    const highNpv = npvForScenario(cap, withFte(high), a);
+    if (lowNpv !== null && highNpv !== null) {
+      bars.push({
+        key: TASK_STAFFING_KEY,
+        kind: "percent",
+        deltaPct,
+        baseValue: baseFte,
+        lowValue: low,
+        highValue: high,
+        clampedLow: low > baseFte - delta,
+        clampedHigh: high < baseFte + delta,
+        baseNpv,
+        lowNpv,
+        highNpv,
+        swing: Math.abs(highNpv - lowNpv),
+      });
+    }
+  }
+
   for (const key of [...PERTURBED_KEYS, ...STREAM_KEYS[cap.workloadStream]]) {
     const wholeYear = WHOLE_YEAR_KEYS.has(key);
     const bounds = ASSUMPTION_BOUNDS[key];

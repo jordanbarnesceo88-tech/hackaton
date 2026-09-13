@@ -128,6 +128,55 @@ describe("возмущение упирается в границу, а не р�
   });
 });
 
+describe("занятость задачей — рычаг диаграммы (остаток A-7)", () => {
+  // A-7 назвал это первым пунктом, и он оставался незакрытым: занятость — со-доминирующий
+  // рычаг модели (замещение считается прямо от неё), но в диаграмму не попадала вовсе, потому
+  // что лежит в параметрах, а `sensitivity()` возмущал только допущения. Торнадо заявляет, что
+  // ранжирует рычаги, двигающие NPV, и ранжировал неполный набор — умалчивая ровно о том
+  // числе, которое человек только что ввёл сам.
+  const params = makeParams({ staffCount: 40, taskStaffing: { "test-task": 8 } });
+
+  it("столбец занятости есть и он не пустой", () => {
+    const bar = sensitivity(cap, params, a).find((b) => b.key === "taskStaffing");
+    expect(bar, "занятости нет в диаграмме").toBeDefined();
+    expect(bar!.swing).toBeGreaterThan(0);
+  });
+
+  it("плечи двигают заявленную занятость, а не что-то другое", () => {
+    const bar = sensitivity(cap, params, a).find((b) => b.key === "taskStaffing")!;
+    expect(bar.baseValue).toBe(8);
+    expect(bar.lowValue).toBeCloseTo(6, 9);
+    expect(bar.highValue).toBeCloseTo(10, 9);
+  });
+
+  it("верхнее плечо упирается в штат объекта — потолок движка, а не выдуманный", () => {
+    // `resolveTaskFte` зажимает занятость штатом. Плечо, ушедшее выше, мерило бы сценарий,
+    // которого движок не считает, — ровно ошибка Т-1, только с другой стороны.
+    const atCap = makeParams({ staffCount: 10, taskStaffing: { "test-task": 10 } });
+    const bar = sensitivity(cap, atCap, a).find((b) => b.key === "taskStaffing")!;
+    expect(bar.highValue).toBe(10);
+    expect(bar.clampedHigh).toBe(true);
+  });
+
+  it("когда занятость не заявлена, рычагом становится норматив категории", () => {
+    // Движок в этом случае считает от норматива, и двигать надо ровно то, от чего он считает.
+    const byNorm = makeParams({ staffCount: 40 });
+    const bar = sensitivity(cap, byNorm, a).find((b) => b.key === "taskStaffing")!;
+    expect(bar.baseValue).toBeGreaterThan(0);
+    expect(bar.swing).toBeGreaterThan(0);
+  });
+
+  it("занятость сопоставима по силе со ставкой труда", () => {
+    // Не «должна быть первой» — это зависело бы от сценария. Но обе входят в базовые затраты
+    // множителями, поэтому размах у них одного порядка, и если занятость вдруг окажется на
+    // порядок слабее, значит её возмущают не там.
+    const bars = sensitivity(cap, params, a);
+    const staffing = bars.find((b) => b.key === "taskStaffing")!;
+    const labour = bars.find((b) => b.key === "laborCostPerHourUsd")!;
+    expect(staffing.swing).toBeGreaterThan(labour.swing / 10);
+  });
+});
+
 describe("диаграмма не рисует рычагов, которых нет в модели", () => {
   // Инвариант прежний, а набор рычагов другой. Прошлая находка ревью: диаграмма рисовала
   // «Операций на сотрудника в год» с размахом 0 ₽ на потоке площади — допущение, которое

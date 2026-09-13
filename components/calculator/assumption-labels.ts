@@ -1,4 +1,5 @@
 import type { AssumptionValues } from "@/lib/economics/types";
+import { TASK_STAFFING_KEY, type SensitivityLeverKey } from "@/lib/economics/sensitivity";
 
 export const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   laborCostPerHourUsd: "Стоимость труда (USD/час)",
@@ -17,6 +18,19 @@ export const ASSUMPTION_LABELS: Record<keyof AssumptionValues, string> = {
   assetLifeYears: "Срок службы техники (лет)",
   usdToRub: "Курс USD→RUB",
   energyCostFactor: "Множитель энергозатрат (регион)",
+};
+
+/**
+ * Подписи рычагов диаграммы. Шире, чем допущения: занятость задачей — тоже рычаг, но живёт в
+ * параметрах объекта, а не в допущениях (остаток A-7).
+ *
+ * Отдельная карта, а не расширение ASSUMPTION_LABELS: та типизирована по `AssumptionValues` и
+ * ровно поэтому не даёт забыть подпись новому допущению. Дописать в неё ключ, которого в
+ * `AssumptionValues` нет, — значит снять эту гарантию ради одной строки.
+ */
+export const LEVER_LABELS: Record<SensitivityLeverKey, string> = {
+  ...ASSUMPTION_LABELS,
+  [TASK_STAFFING_KEY]: "Занятость этой работой (человек)",
 };
 
 // Ratio (0..1 fraction) assumptions get a finer spinner step; everything else steps by 1.
