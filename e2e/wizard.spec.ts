@@ -45,7 +45,25 @@ test("NPV в списке решений совпадает с NPV в расчё
   const npvIndex = headers.findIndex((h) => h.trim() === "NPV");
   expect(npvIndex, `в заголовке нет колонки NPV: ${headers.join(" | ")}`).toBeGreaterThanOrEqual(0);
 
-  const firstRow = page.locator("tbody tr").first();
+  // Берём первую строку, У КОТОРОЙ ЕСТЬ NPV, а не просто первую.
+  //
+  // Раньше бралась первая, и тест проходил по случайности: при ставке труда $15 окупалось
+  // вообще всё, поэтому «первая строка» и «строка с числом» совпадали. На защитимой ставке
+  // $6,7 из семи складских решений окупается одно, первая строка первой категории показывает
+  // «—», и тест падал на экране расчёта, где никакого NPV, разумеется, нет.
+  //
+  // Тест проверяет ПАРИТЕТ — что одно и то же число одинаково на двух экранах. Строка без
+  // числа для этого не годится ни при какой ставке, и привязка к позиции была ошибкой,
+  // которую прикрывали щедрые допущения.
+  const rows = page.locator("tbody tr");
+  let target = -1;
+  for (let i = 0; i < (await rows.count()); i++) {
+    const cell = (await rows.nth(i).locator("td").nth(npvIndex).innerText()).trim();
+    if (/\d/.test(cell)) { target = i; break; }
+  }
+  expect(target, "ни одно решение не окупается — паритет проверять не на чем").toBeGreaterThanOrEqual(0);
+
+  const firstRow = rows.nth(target);
   const npvInList = (await firstRow.locator("td").nth(npvIndex).innerText()).trim();
   expect(npvInList).not.toBe("");
 

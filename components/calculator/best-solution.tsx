@@ -10,6 +10,12 @@ export type Candidate = {
   vendor: string;
   isClass: boolean;
   result: EconomicsResult;
+  /**
+   * Единица производительности этого решения несопоставима с «операцией объекта» — то же, о чём
+   * предупреждает строка таблицы. `false` не означает «единицы сопоставимы», только что
+   * расхождение не бросается в глаза (см. `lib/economics/commensurability.ts`).
+   */
+  unitMismatch?: boolean;
 };
 
 /**
@@ -23,6 +29,17 @@ export type Candidate = {
  *
  * Если не проходит ни одно — блок НЕ показывает лучшее из плохих. Ложный герой на этом экране
  * дороже отсутствующего: продукт продаёт защищаемость вывода, а не бодрость.
+ *
+ * По той же причине сюда не попадает решение с несопоставимой меркой работы. Строкой ниже мы
+ * пишем про него «не сравнивать со строками выше» — а «лучшее» и есть сравнение, причём со
+ * всеми сразу. Назвать лучшим то, что мы сами объявили несравнимым, значит опровергнуть
+ * собственное предупреждение на том же экране; и это не осторожность, а арифметика: у решения,
+ * чья единица крупнее операции объекта, NPV завышен ровно потому, что единица крупнее, — оно
+ * оказывается первым по построению, а не по существу.
+ *
+ * Из ТАБЛИЦЫ такое решение не убирается: там оно с подписью, и человек видит и его, и причину.
+ * Убрать строку значило бы спрятать данные; не называть её лучшей — значит не делать вывода,
+ * которого мы сделать не можем.
  */
 export function BestSolution({
   candidates,
@@ -38,7 +55,8 @@ export function BestSolution({
   /** Шаг «Кто чем занят» — единственное место, где снимается отказ по занятости. */
   staffingHref: string;
 }) {
-  const viable = candidates
+  const comparable = candidates.filter((c) => !c.unitMismatch);
+  const viable = comparable
     .filter((c) => isViable(c.result))
     .sort((a, b) => {
       const na = isCalculable(a.result) && a.result.economical ? a.result.npvUsd : -Infinity;
@@ -52,6 +70,13 @@ export function BestSolution({
   // решение отказывается считать без занятости, вывода нет: молчание движка объяснялось словами
   // «объём операций слишком мал для автоматизации такого класса» — уверенное неверное
   // объяснение там, где не хватало одного числа.
+  // Решения, которые мы не рекомендуем не потому, что они плохи, а потому, что их не с чем
+  // сравнить. Об этом надо сказать: молча пропавший из рекомендации кандидат выглядит как
+  // проигравший, хотя он в забеге не участвовал.
+  const incomparable = candidates.filter(
+    (c) => c.unitMismatch && isViable(c.result)
+  );
+
   const awaitingStaffing = candidates.filter((c) => isStaffingRequired(c.result));
   if (!best && awaitingStaffing.length > 0) {
     const all = awaitingStaffing.length === candidates.length;
@@ -94,6 +119,15 @@ export function BestSolution({
           Это тоже ответ — и чаще всего он означает, что объём операций слишком мал для
           автоматизации такого класса.
         </p>
+      {incomparable.length > 0 && (
+        <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
+          {incomparable.length === 1
+            ? `Ещё одно решение (${incomparable[0]!.name}) окупается, но в выбор не входит: `
+            : `Ещё ${incomparable.length} решения окупаются, но в выбор не входят: `}
+          его производительность измеряется не в тех единицах, что работа объекта, поэтому
+          сравнивать его с остальными нельзя. Оно осталось в таблице ниже — с той же пометкой.
+        </p>
+      )}
         <Link href={backHref} className="mt-4 inline-block font-medium underline underline-offset-4">
           Изменить параметры объекта
         </Link>
@@ -138,6 +172,16 @@ export function BestSolution({
           </dd>
         </div>
       </dl>
+      {incomparable.length > 0 && (
+        <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
+          {incomparable.length === 1
+            ? `Ещё одно решение (${incomparable[0]!.name}) окупается, но в выбор не входит: `
+            : `Ещё ${incomparable.length} решения окупаются, но в выбор не входят: `}
+          его производительность измеряется не в тех единицах, что работа объекта, поэтому
+          сравнивать его с остальными нельзя. Оно осталось в таблице ниже — с той же пометкой.
+        </p>
+      )}
+
       <div className="mt-5 flex flex-wrap items-center gap-4">
         <Link
           href={calcHref(best.id)}

@@ -128,6 +128,9 @@ export default async function ComparePage({
           vendor: s.vendor,
           isClass: s.isClass,
           result: computeEconomics(toSolutionCapacity(s as SolutionRow), wizard.params, a),
+          // «Лучшее» — это сравнение со всеми сразу, а про это решение мы строкой ниже пишем
+          // «не сравнивать со строками выше». Одно из двух утверждений было бы ложным.
+          unitMismatch: mismatchFor(s as SolutionRow) !== null,
         }))
       )
     : [];
