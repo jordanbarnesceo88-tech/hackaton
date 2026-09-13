@@ -75,7 +75,14 @@ export function validateParams(raw: unknown): FacilityParams | null {
   if (!isPositiveNumber(areaM2) || !isPositiveNumber(opsPerDay) || !isPositiveNumber(staffCount)) {
     return null;
   }
-  if (peakConcurrent !== undefined && !isFiniteNumber(peakConcurrent)) return null;
+  // Единственный параметр объекта, у которого правила положительности не было НИГДЕ: у поля
+  // `min=0` связывает только стрелки, а здесь проверялась лишь конечность. Отрицательный пик
+  // сохранялся начисто, и движок отвечал на него парком из одной машины при нулевом покрытии —
+  // то есть числами, посчитанными по величине, которой не бывает. Правило то же, что у трёх
+  // остальных: строго больше нуля.
+  //
+  // Отсутствие по-прежнему допустимо и означает другое: «выведи пик из оборачиваемости».
+  if (peakConcurrent !== undefined && !isPositiveNumber(peakConcurrent)) return null;
   // Те же правила, что и в движке: целое ≥ 1 для количества, положительное для цены.
   if (
     quantityOverride !== undefined &&

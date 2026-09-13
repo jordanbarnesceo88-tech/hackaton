@@ -44,6 +44,26 @@ describe("validateParams", () => {
   });
 });
 
+describe("пиковая нагрузка — тоже параметр объекта", () => {
+  const ok = { areaM2: 1000, opsPerDay: 500, staffCount: 10 };
+
+  it("отвергает ноль и отрицательный пик", () => {
+    // Единственный параметр, у которого правила положительности не было нигде: у поля min=0
+    // связывает только стрелки. Движок на отрицательном пике отвечает парком из одной машины
+    // при нулевом покрытии — числами, посчитанными по величине, которой не бывает.
+    expect(validateParams({ ...ok, peakConcurrent: -20 })).toBeNull();
+    expect(validateParams({ ...ok, peakConcurrent: 0 })).toBeNull();
+  });
+
+  it("отсутствие по-прежнему допустимо — это «выведи из оборачиваемости»", () => {
+    expect(validateParams(ok)).toEqual(ok);
+  });
+
+  it("положительный пик проходит", () => {
+    expect(validateParams({ ...ok, peakConcurrent: 20 })).toEqual({ ...ok, peakConcurrent: 20 });
+  });
+});
+
 describe("границы параметров объекта (Г-1)", () => {
   const ok = { areaM2: 1000, opsPerDay: 500, staffCount: 10 };
 

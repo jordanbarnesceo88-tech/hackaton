@@ -4,6 +4,7 @@ import { CATEGORIES } from "./categories";
 import { APPLICABILITY } from "./applicability";
 import { VENDOR_SOLUTIONS } from "./vendor-solutions";
 import { SOLUTION_CLASSES } from "./solution-classes";
+import { WAREHOUSE_REAL } from "../parse-sources/warehouse-real";
 import { INDUSTRIES as IND, TYPICAL_PARAMS } from "./taxonomy";
 
 // Посевные данные — это отдельный источник правды, не связанный с моделью типами: строки в
@@ -208,5 +209,60 @@ describe("в каталоге не может быть заглушек", () => 
         `${s.name}: вендор «${s.vendor}» похож на заглушку`
       ).toBe(false);
     }
+  });
+});
+
+describe("сев на НЕПУСТОЙ базе", () => {
+  // Эти правила проверяют не данные как таковые, а то, переживёт ли их сев на базе, где уже
+  // что-то лежит. Личность решения для upsert — пара (категория, имя), а для чистки — ОДНО
+  // ИМЯ; пока обе стороны согласованы, повторный сев идемпотентен. Как только источник
+  // нарушает согласованность, база расходится молча, и заметно это только запросом.
+  const ALL = [
+    ...VENDOR_SOLUTIONS.map((s) => ({ name: s.name, categorySlug: s.categorySlug, from: "VENDOR_SOLUTIONS" })),
+    ...SOLUTION_CLASSES.map((c) => ({ name: c.name, categorySlug: c.categorySlug, from: "SOLUTION_CLASSES" })),
+    ...WAREHOUSE_REAL.map((s) => ({ name: s.name, categorySlug: s.categorySlug, from: "WAREHOUSE_REAL" })),
+  ];
+
+  it("никакая пара (категория, имя) не объявлена дважды", () => {
+    // Второй upsert по тому же ключу перезаписал бы первый, а solutionCount посчитал бы обе:
+    // сев напечатал бы «посеяно N решений», которых в базе N−1.
+    const seen = new Map<string, string>();
+    for (const s of ALL) {
+      const key = `${s.categorySlug} / ${s.name}`;
+      expect(seen.has(key), `${key} объявлена и в ${seen.get(key)}, и в ${s.from}`).toBe(false);
+      seen.set(key, s.from);
+    }
+  });
+
+  it("одно имя не лежит в двух разных категориях", () => {
+    // Чистка отбирает строки условием `name notIn [все имена источников]`, без категории. Имя,
+    // живущее в двух категориях, делает её решение неоднозначным: строку в ЛЮБОЙ категории она
+    // считает объявленной, включая ту, которую источник туда не клал (М-2).
+    const byName = new Map<string, Set<string>>();
+    for (const s of ALL) {
+      if (!byName.has(s.name)) byName.set(s.name, new Set());
+      byName.get(s.name)!.add(s.categorySlug);
+    }
+    for (const [name, cats] of byName) {
+      expect([...cats], `«${name}» объявлено сразу в нескольких категориях`).toHaveLength(1);
+    }
+  });
+
+  it("складские решения ссылаются на существующую категорию", () => {
+    // Единственный из трёх источников, у которого этой проверки не было. В севе пропуск был
+    // молчаливым `continue`, и отсутствие категории всплывало итоговой проверкой с догадкой
+    // «скорее всего, их удалила чистка» — не там, где причина.
+    const cats = new Set(CATEGORIES.map((c) => c.slug));
+    for (const s of WAREHOUSE_REAL) {
+      expect(cats.has(s.categorySlug), `${s.name}: нет категории ${s.categorySlug}`).toBe(true);
+    }
+  });
+
+  it("slug'и классов уникальны", () => {
+    // Пока не используется севом (upsert идёт по имени — это и есть М-2), но именно он станет
+    // ключом, когда М-2 закроют, и задним числом уникальность уже не навести: дубликат slug'а
+    // к тому моменту будет означать две строки, слитые в одну.
+    const slugs = SOLUTION_CLASSES.map((c) => c.slug);
+    expect(new Set(slugs).size, "дубли среди slug'ов классов").toBe(slugs.length);
   });
 });
