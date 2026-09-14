@@ -75,6 +75,35 @@ describe("целостность посевных данных", () => {
     expect(new Set(inds).size, "дубли среди отраслей").toBe(inds.length);
   });
 
+  // М-2: личность решения — это slug, а не пара (категория, имя). Сев ключует upsert по нему,
+  // а миграция 20260913120000_solution_slug кладёт на колонку NOT NULL + UNIQUE. Источников
+  // три, тип у каждого свой, и компилятор не знает, что их slug'и делят ОДНО пространство
+  // имён: пропуск в одном источнике роняет сев на чистой базе с P2011, уже записав часть
+  // каталога, — сев не в транзакции. Поэтому проверка здесь, а не в типах.
+  //
+  // Значения обязаны совпадать с бэкфиллом миграции. Разошедшийся slug оставит забэкфилленную
+  // строку сиротой и заведёт рядом вторую — тот самый дефект, который М-2 и чинит.
+  it("slug'и решений уникальны СКВОЗЬ все три источника", () => {
+    const all = [
+      ...SOLUTION_CLASSES.map((s) => ({ slug: s.slug, name: s.name, src: "solution-classes" })),
+      ...WAREHOUSE_REAL.map((s) => ({ slug: s.slug, name: s.name, src: "warehouse-real" })),
+      ...VENDOR_SOLUTIONS.map((s) => ({ slug: s.slug, name: s.name, src: "vendor-solutions" })),
+    ];
+
+    expect(all, "решений в источниках должно быть 11").toHaveLength(11);
+
+    for (const s of all) {
+      expect(s.slug, `${s.src}: «${s.name}» без slug'а`).toBeTruthy();
+      expect(s.slug, `${s.src}: «${s.name}» — slug не в kebab-case`).toMatch(
+        /^[a-z0-9]+(-[a-z0-9]+)*$/
+      );
+    }
+
+    const slugs = all.map((s) => s.slug);
+    const dupes = [...new Set(slugs.filter((s, i) => slugs.indexOf(s) !== i))];
+    expect(dupes, `дубли slug'ов: ${dupes.join(", ")}`).toHaveLength(0);
+  });
+
   it("каждая категория достижима хотя бы из одного типа объекта", () => {
     // Обратная сторона проверки ниже, и она не декоративная: решение в недостижимой
     // категории имеет пустое множество применимых типов объекта, поэтому проверка на пути

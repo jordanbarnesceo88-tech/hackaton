@@ -19,6 +19,14 @@ import { CapacityBasis } from "@prisma/client";
  * документация у них не хуже западной. Западные строки остаются ориентиром верхней границы.
  */
 export type VendorSolutionSeed = {
+  /**
+   * Идентичность строки в базе. Ключ upsert'а — он, а не имя: `name` и `categorySlug` ниже
+   * можно менять свободно, сев обновит существующую строку вместо того, чтобы завести вторую
+   * (М-2). Менять сам slug — значит завести НОВОЕ решение и удалить старое; уникален он
+   * глобально, поэтому пересекаться с классами и складскими строками тоже нельзя (тест
+   * `slug'и решений уникальны СКВОЗЬ все три источника`).
+   */
+  slug: string;
   categorySlug: string;
   name: string;
   vendor: string;
@@ -40,6 +48,7 @@ export type VendorSolutionSeed = {
 
 export const VENDOR_SOLUTIONS: VendorSolutionSeed[] = [
   {
+    slug: "gausium-scrubber-75",
     categorySlug: "class-cleaning",
     name: "Gausium Scrubber 75",
     vendor: "Gausium",

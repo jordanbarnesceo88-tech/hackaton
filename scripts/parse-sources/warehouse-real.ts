@@ -13,6 +13,16 @@
 import type { CapacityBasis } from "../../lib/economics/types";
 
 export type CuratedSolution = {
+  /**
+   * Идентичность строки в базе (М-2). Ключ upsert'а — он, а не имя: переименование в этом
+   * файле обновит существующую строку, а не заведёт вторую, которую держит живой сохранённый
+   * расчёт и которой после этого некому обновлять цену.
+   *
+   * Значение обязано совпадать с бэкфиллом в
+   * prisma/migrations/20260913120000_solution_slug/migration.sql — иначе забэкфилленная строка
+   * останется сиротой, а сев заведёт рядом вторую.
+   */
+  slug: string;
   categorySlug: "amr" | "asrs";
   name: string;
   vendor: string;
@@ -35,6 +45,7 @@ export type CuratedSolution = {
 export const WAREHOUSE_REAL: CuratedSolution[] = [
   {
     // Autonomous case-handling robot (ACR). Clean per-robot throughput.
+    slug: "haipick-a42t",
     categorySlug: "amr",
     name: "HaiPick A42T",
     vendor: "Hai Robotics",
@@ -57,6 +68,7 @@ export const WAREHOUSE_REAL: CuratedSolution[] = [
   },
   {
     // Goods-to-person AS/RS, modelled per pick station (same grain as AutoStore below).
+    slug: "exotec-skypod-station",
     categorySlug: "asrs",
     name: "Exotec Skypod (станция)",
     vendor: "Exotec",
@@ -79,6 +91,7 @@ export const WAREHOUSE_REAL: CuratedSolution[] = [
   },
   {
     // Cube-storage AS/RS, modelled per port/workstation.
+    slug: "autostore-port",
     categorySlug: "asrs",
     name: "AutoStore (порт)",
     vendor: "AutoStore",
