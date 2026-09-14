@@ -224,6 +224,14 @@ async function main() {
     const category = await prisma.solutionCategory.findUnique({ where: { slug: sol.categorySlug } });
     if (!category) throw new Error(`Нет категории ${sol.categorySlug} для решения ${sol.name}`);
     const data = {
+      // name и solutionCategoryId — в update, а не только в create: upsert находит строку по
+      // slug'у, но если сам не перепишет ей имя и категорию, переименование или переезд в
+      // источнике до строки не долетят — она останется под старым именем/в старой категории.
+      // А чистка ниже строит список «живых» имён из ТЕКУЩИХ источников: только что
+      // обновлённую (по всем остальным полям) строку со старым именем она сочтёт пропавшей
+      // и удалит — то самое решение, которое slug как раз должен был сохранить.
+      name: sol.name,
+      solutionCategoryId: category.id,
       vendor: sol.vendor,
       priceUsd: sol.priceUsd,
       sourceUrl: sol.sourceUrl,
@@ -246,7 +254,7 @@ async function main() {
     await prisma.solution.upsert({
       where: { slug: sol.slug },
       update: data,
-      create: { ...data, slug: sol.slug, name: sol.name, solutionCategoryId: category.id },
+      create: { ...data, slug: sol.slug },
     });
     solutionCount++;
   }
@@ -257,6 +265,11 @@ async function main() {
     const category = await prisma.solutionCategory.findUnique({ where: { slug: c.categorySlug } });
     if (!category) throw new Error(`Нет категории ${c.categorySlug} для класса ${c.slug}`);
     const data = {
+      // name/solutionCategoryId в update по той же причине, что у вендорского upsert выше:
+      // без них переименование или переезд класса не долетают до строки, а чистка ниже примет
+      // её (уже обновлённую по остальным полям, но со старым именем) за пропавшую и удалит.
+      name: c.name,
+      solutionCategoryId: category.id,
       vendor: "—",
       isClass: true,
       priceEstimated: true,
@@ -280,7 +293,7 @@ async function main() {
     await prisma.solution.upsert({
       where: { slug: c.slug },
       update: data,
-      create: { ...data, slug: c.slug, name: c.name, solutionCategoryId: category.id },
+      create: { ...data, slug: c.slug },
     });
     solutionCount++;
   }
@@ -299,6 +312,12 @@ async function main() {
         throw new Error(`Нет категории ${s.categorySlug} для складского решения ${s.name}`);
       }
       const data = {
+        // name/solutionCategoryId в update по той же причине, что у вендорского upsert выше:
+        // без них переименование или переезд складской строки не долетают до записи, а
+        // чистка ниже примет её (уже обновлённую по остальным полям, но со старым именем)
+        // за пропавшую и удалит.
+        name: s.name,
+        solutionCategoryId: category.id,
         vendor: s.vendor, priceUsd: s.priceUsd, priceEstimated: s.priceEstimated,
         priceLowUsd: s.priceLowUsd, priceHighUsd: s.priceHighUsd, priceBasis: s.priceBasis,
         capacityPerUnit: s.capacityPerUnit, capacityUnit: s.capacityUnit,
@@ -310,7 +329,7 @@ async function main() {
       await prisma.solution.upsert({
         where: { slug: s.slug },
         update: data,
-        create: { slug: s.slug, name: s.name, solutionCategoryId: category.id, ...data },
+        create: { slug: s.slug, ...data },
       });
       solutionCount++;
     }
@@ -400,12 +419,17 @@ async function main() {
       }
     }
 
-    // М-2 в действии. Личность решения — (категория, имя), поэтому строка, у которой имя ЕСТЬ
-    // в источниках, но лежит она в другой категории, чистке не видна (та сравнивает только
-    // имена), а upsert заведёт рядом вторую — в правильной категории. Итог: дубликат, из
-    // которого обновляется только новый, и старый с замороженной ценой на том же экране.
-    // Сев это не чинит — починка требует стабильного slug (см. docs/DEPLOY.md, «М-2»), — но
-    // обязан назвать.
+    // После М-2 upsert находит строку по slug'у и сам переписывает ей name и
+    // solutionCategoryId (см. комментарий у вендорского upsert выше) — обычные переименование
+    // и переезд в другую категорию теперь ПРАВДА становятся обновлением существующей строки,
+    // а не заводят вторую. Этот блок сравнивает по имени, а не по slug'у, и всё ещё ловит два
+    // случая, которые slug не закрывает:
+    //   · legacy-строка, чей slug не опознал бэкфилл миграции (см. schema.prisma) — upsert её
+    //     не находит (slug другой) и заводит новую в правильной категории рядом со старой,
+    //     которая остаётся с тем же именем в старой категории и больше не обновляется;
+    //   · строка source=ORGANIZER (её сев никогда не трогает), которая случайно совпала
+    //     именем с каталожной, но лежит в другой категории — не дубликат по slug'у, но на
+    //     экране сравнения решений выглядит им же.
     {
       const expectedCategory = new Map<string, string>([
         ...VENDOR_SOLUTIONS.map((s) => [s.name, s.categorySlug] as const),
