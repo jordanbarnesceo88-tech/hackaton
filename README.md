@@ -23,9 +23,11 @@ Start here if you're auditing the product rather than the code:
 
 - [docs/audit/2026-09-14-audit.html](./docs/audit/2026-09-14-audit.html) — the current
   logic/design audit, dated 2026-09-14 — the most recent independent look at the app.
-- [docs/BACKLOG.md](./docs/BACKLOG.md) — the real status document: what's fixed, what's
-  open, and what still needs an owner's sign-off. Rewritten 2026-09-13 after a prior
-  edition went stale; every "done" item is annotated with how it was verified.
+- [docs/TASKS.md](./docs/TASKS.md) — **start here for current state.** A status tracker:
+  every open task with a status, grouped by area, with an update log. Kept short on purpose.
+- [docs/BACKLOG.md](./docs/BACKLOG.md) — the same items in prose: why each one exists, what
+  was tried, and how it ended. Rewritten 2026-09-13 after a prior edition went stale; every
+  "done" item is annotated with how it was verified. IDs are shared with TASKS.md.
 - [docs/data-provenance.md](./docs/data-provenance.md) — the source behind every external
   number in the model (labor rates, regional presets, equipment prices, throughput
   benchmarks) — what's cited, what's estimated, and why.
