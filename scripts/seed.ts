@@ -240,10 +240,13 @@ async function main() {
       specs: sol.specs,
       source: SolutionSource.SEED,
     };
+    // Ключ — slug, а не пара (категория, имя): переименование строки в источнике должно
+    // обновлять существующую запись, а не заводить вторую (М-2). В `update` slug не входит
+    // намеренно — он и есть ключ, переписывать его собой незачем.
     await prisma.solution.upsert({
-      where: { solutionCategoryId_name: { solutionCategoryId: category.id, name: sol.name } },
+      where: { slug: sol.slug },
       update: data,
-      create: { ...data, name: sol.name, solutionCategoryId: category.id },
+      create: { ...data, slug: sol.slug, name: sol.name, solutionCategoryId: category.id },
     });
     solutionCount++;
   }
@@ -275,9 +278,9 @@ async function main() {
       lastVerified: new Date(c.lastVerified),
     };
     await prisma.solution.upsert({
-      where: { solutionCategoryId_name: { solutionCategoryId: category.id, name: c.name } },
+      where: { slug: c.slug },
       update: data,
-      create: { ...data, name: c.name, solutionCategoryId: category.id },
+      create: { ...data, slug: c.slug, name: c.name, solutionCategoryId: category.id },
     });
     solutionCount++;
   }
@@ -305,9 +308,9 @@ async function main() {
         sourceUrl: s.sourceUrl, lastVerified: new Date(s.lastVerified),
       };
       await prisma.solution.upsert({
-        where: { solutionCategoryId_name: { solutionCategoryId: category.id, name: s.name } },
+        where: { slug: s.slug },
         update: data,
-        create: { name: s.name, solutionCategoryId: category.id, ...data },
+        create: { slug: s.slug, name: s.name, solutionCategoryId: category.id, ...data },
       });
       solutionCount++;
     }
