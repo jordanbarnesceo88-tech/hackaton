@@ -15,7 +15,7 @@ Read this before choosing a host — it rules two options out.
 
 | Requirement | Consequence |
 |---|---|
-| Every route is server-rendered (`ƒ` for all 10 in `next build`) | **Static hosting is impossible.** No GitHub Pages, no S3, no Netlify "static site". |
+| Every route is server-rendered (`ƒ` for all 15 in `next build`) | **Static hosting is impossible.** No GitHub Pages, no S3, no Netlify "static site". |
 | Server Actions + Auth.js credentials login | Needs a real Node runtime, not an edge/static CDN. |
 | Postgres via the Prisma **driver adapter** (`@prisma/adapter-pg`) | Needs a `DATABASE_URL` at runtime; needs a **pooled** URL on serverless. |
 | `prisma migrate deploy` + `npm run db:seed` | The DB must be migrated *and* seeded, or the catalog is empty and every page 404s. |
@@ -27,19 +27,35 @@ Node 20.9+ (the Docker image pins `node:20-alpine`; local dev is on 22).
 
 ## 1. Pre-flight: prove the tree is green (5 min)
 
+Vitest is split into two projects (see `vitest.config.ts`): **unit** is hermetic (no I/O),
+**db** hits the real local Postgres and runs its four files sequentially, on purpose, to keep
+the gate from flaking. `npm test` (bare `vitest run`) runs both together.
+
 ```bash
 cd ~/robotization-roi-platform
-docker compose up -d                       # local DB on host port 5433
-lsof -ti:3000 | xargs kill -9 2>/dev/null  # a stale dev server makes e2e test the OLD build
-npx tsc --noEmit                    # 0 errors
-npx --yes vitest run < /dev/null    # 238 passing / 24 files
-npm run lint -- --max-warnings=0    # silent = pass
-npm run build                       # 0 errors
-npx playwright test                 # 4 passing
+docker compose up -d                             # local DB on host port 5433
+lsof -ti:3000 | xargs kill -9 2>/dev/null        # a stale dev server makes e2e test the OLD build
+npx prisma migrate deploy                        # local DB must be on the current migration too
+npx tsc --noEmit                                 # 0 errors
+npx --yes vitest run --project unit < /dev/null  # 423 passing / 35 files
+npx --yes vitest run --project db < /dev/null    # 39 passing / 4 files (needs the migration above)
+npm run lint -- --max-warnings=0                 # silent = pass
+npm run build                                    # 0 errors, 15 routes, all ƒ
 ```
 
-All five must be clean. `< /dev/null` on vitest is not optional — without it the runner waits
+All six must be clean. `< /dev/null` on vitest is not optional — without it the runner waits
 for stdin and looks hung.
+
+Playwright is not run here — a real run needs the app built, started, and the DB migrated and
+seeded, which this checklist hasn't done yet at this point. Counted instead, from the specs in
+`e2e/`: **10 tests across 4 files** (`auth-report.spec.ts` 2, `flow.spec.ts` 4, `switch.spec.ts`
+1, `wizard.spec.ts` 3) — run `npx playwright test` once the app is up to get an actual pass/fail.
+
+Three more scripts exist and are worth knowing about even though this checklist doesn't call
+them here: `npm run check:sources` (citation-freshness gate — non-zero if a cited page claim
+is stale; used again in §7), `npm run check:contrast` (WCAG contrast check on the design
+tokens), and `npm run preflight:deploy` (read-only checks against the **production** DB before
+running migrations against it — see [DEPLOY.md](./DEPLOY.md) for when to run it).
 
 ## 2. Decide what you are deploying
 
