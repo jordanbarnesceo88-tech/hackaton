@@ -67,6 +67,21 @@ function seedSources() {
   return byName;
 }
 
+/**
+ * То же самое, но по SLUG'у — ключу, которым сев на самом деле пишет и чистит.
+ * Сверка по имени отвечает на другой вопрос, чем сев задаёт, и врёт в обе стороны:
+ * переезд решения между категориями (ради чего slug и заводился) она объявляет будущим
+ * дубликатом, а настоящий дубликат — строку, чей slug источникам неизвестен, — не отличает
+ * от него никак.
+ */
+function seedBySlug() {
+  const bySlug = new Map<string, { name: string; category: string }>();
+  for (const s of VENDOR_SOLUTIONS) bySlug.set(s.slug, { name: s.name, category: s.categorySlug });
+  for (const c of SOLUTION_CLASSES) bySlug.set(c.slug, { name: c.name, category: c.categorySlug });
+  for (const s of WAREHOUSE_REAL) bySlug.set(s.slug, { name: s.name, category: s.categorySlug });
+  return bySlug;
+}
+
 async function main() {
   const url = process.env.DATABASE_URL ?? "";
   // Хост, но не пароль: перед боевым деплоем надо видеть, что подключились куда собирались.
@@ -244,6 +259,7 @@ async function main() {
   //    «нет в источниках» означает «весь каталог, заведённый двадцать пять коммитов назад»,
   //    а не «пара заглушек». Здесь считается точное число и печатается поимённо.
   const sources = seedSources();
+  const bySlug = seedBySlug();
   type Row = {
     id: string;
     name: string;
@@ -259,25 +275,55 @@ async function main() {
     JOIN "SolutionCategory" sc ON sc.id = s."solutionCategoryId"
     ORDER BY s."name"`;
 
-  const stale = rows.filter((r) => (r.source === "SEED" || r.source === "PARSED") && !sources.has(r.name));
+  // Личность решения — Solution.slug, и сев (upsert, чистка, итоговая проверка) ключуется
+  // только на нём. Но на боевой этой колонки ещё НЕТ: preflight по построению бежит ДО
+  // `migrate deploy`, а заводит её миграция 20260913120000_solution_slug. Поэтому весь блок
+  // ниже двухрежимный: со slug'ом он считает то же, что сделает сев, без него — только
+  // догадывается по имени и честно это говорит. Точный ответ доступен между шагами 3.5 и 3.6
+  // рунбука: там колонка уже есть, а сев ещё не бежал.
+  const hasSolutionSlug = await hasColumn("Solution", "slug");
+  const slugById = new Map<string, string>();
+  if (hasSolutionSlug) {
+    const r = await prisma.$queryRaw<{ id: string; slug: string }[]>`SELECT "id", "slug" FROM "Solution"`;
+    for (const x of r) slugById.set(x.id, x.slug);
+  }
+  /** slug САМОГО решения (в Row поле `slug` — это slug его КАТЕГОРИИ). */
+  const solSlug = (r: Row) => slugById.get(r.id);
+
+  const stale = rows.filter(
+    (r) =>
+      (r.source === "SEED" || r.source === "PARSED") &&
+      (hasSolutionSlug ? !bySlug.has(solSlug(r) ?? "") : !sources.has(r.name))
+  );
   const deletable = stale.filter((r) => Number(r.refs) === 0);
   const kept = stale.filter((r) => Number(r.refs) > 0);
   const pruneLimit = Number(process.env.SEED_PRUNE_LIMIT ?? 10);
+  const pruneKey = hasSolutionSlug
+    ? "Сев удаляет строки source ∈ (SEED, PARSED), чьих SLUG'ов нет ни в VENDOR_SOLUTIONS, ни " +
+      "в SOLUTION_CLASSES, ни в WAREHOUSE_REAL. Это тот же ключ, которым он пишет."
+    : "Колонки Solution.slug в базе ещё нет (её заводит миграция solution_slug), поэтому " +
+      "список посчитан ПО ИМЕНАМ и он приблизительный: сев чистит по slug'ам. Точный список " +
+      "покажет повторный запуск между `migrate deploy` и севом — шаг 3.5a рунбука.";
   add(
     deletable.length === 0
       ? {
           level: "ok",
           title: "Чистка сева ничего не удалит",
-          detail: `Решений в базе: ${rows.length}. Ни одно не выпало из источников.`,
+          detail: `Решений в базе: ${rows.length}. Ни одно не выпало из источников. ${pruneKey}`,
         }
       : {
           level: "stop",
           title: `Чистка сева УДАЛИТ ${deletable.length} решений из ${rows.length}`,
           detail:
-            `Сев удаляет строки source ∈ (SEED, PARSED), чьих имён нет ни в VENDOR_SOLUTIONS, ни ` +
-            `в SOLUTION_CLASSES, ни в WAREHOUSE_REAL. Порог предохранителя — ${pruneLimit}: выше него ` +
-            `сев остановится сам и потребует SEED_PRUNE=force или SEED_PRUNE=off. Список:\n` +
-            deletable.map((r) => `      · [${r.source}] «${r.name}» (${r.vendor}) из ${r.slug}`).join("\n"),
+            `${pruneKey} Порог предохранителя — ${pruneLimit}: выше него сев остановится сам и ` +
+            `потребует SEED_PRUNE=force или SEED_PRUNE=off. Список:\n` +
+            deletable
+              .map(
+                (r) =>
+                  `      · [${r.source}] «${r.name}» (${r.vendor}) из ${r.slug}` +
+                  (hasSolutionSlug ? `, slug ${solSlug(r)}` : "")
+              )
+              .join("\n"),
         }
   );
   if (kept.length > 0) {
@@ -310,25 +356,155 @@ async function main() {
         : "",
   });
 
-  // 6. М-2 в цифрах: строки, чьё имя источники знают, но лежат они в ДРУГОЙ категории. Чистка
-  //    сверяет только имена и такую строку не тронет, а upsert (ключ — категория+имя) заведёт
-  //    рядом вторую. Итог — дубликат, из которого обновляется ровно один.
-  const misplaced = rows.filter((r) => sources.has(r.name) && sources.get(r.name) !== r.slug);
-  add(
-    misplaced.length === 0
-      ? { level: "ok", title: "Дубликатов от переезда между категориями не будет", detail: "" }
-      : {
-          level: "stop",
-          title: `Сев СОЗДАСТ ${misplaced.length} дубликат(ов) решений`,
-          detail:
-            "Имя есть в источнике, но строка лежит в другой категории: чистка её не видит " +
-            "(сверяет имена), upsert заведёт вторую в правильной категории. Обе окажутся в " +
-            "каталоге, обновляться будет только новая (М-2).\n" +
-            misplaced
-              .map((r) => `      · «${r.name}»: в базе ${r.slug}, источник кладёт в ${sources.get(r.name)}`)
-              .join("\n"),
-        }
-  );
+  // 6. Что сев сделает со строками, лежащими не там, куда их кладёт источник. После М-2 ответ
+  //    зависит от того, опознаётся ли строка ПО SLUG'У, и два исхода противоположны:
+  //
+  //      · slug совпал с источником → upsert найдёт ЭТУ САМУЮ строку и перепишет ей имя и
+  //        категорию. Это ПЕРЕЕЗД — ровно то, ради чего slug и заводился, — дубликата не
+  //        будет. Прежняя проверка (имя + категория) объявляла его `[СТОП]`: законный выкат
+  //        блокировался предсказанием, переставшим быть правдой.
+  //      · slug источникам неизвестен (обычно `legacy-<id>` от бэкфилла) → upsert её не найдёт
+  //        и заведёт рядом вторую. Это и есть риск. Но и он не всегда остаётся: чистка тоже
+  //        ключуется на slug'ах и SEED/PARSED-строку без ссылок удалит сама в том же прогоне.
+  //        Сев переживёт только то, чего чистка тронуть НЕ МОЖЕТ, — и вот это `[СТОП]`,
+  //        который повторным севом не лечится (шаг 3.7 рунбука): слить руками, приложение B.4.
+  if (hasSolutionSlug) {
+    const moving = rows
+      .map((r) => ({ r, src: bySlug.get(solSlug(r) ?? "") }))
+      .filter((x) => x.src !== undefined && (x.src.category !== x.r.slug || x.src.name !== x.r.name));
+    const unmatched = rows.filter(
+      (r) => !bySlug.has(solSlug(r) ?? "") && sources.has(r.name) && sources.get(r.name) !== r.slug
+    );
+    // Чистка удаляет SEED/PARSED без ссылок. Всё остальное она не трогает по построению.
+    const survives = (r: Row) => r.source === "ORGANIZER" || Number(r.refs) > 0;
+    const willPersist = unmatched.filter(survives);
+    const willVanish = unmatched.filter((r) => !survives(r));
+
+    add(
+      moving.length === 0
+        ? {
+            level: "ok",
+            title: "Сев ничего не переносит между категориями и не переименовывает",
+            detail: "Имя и категория каждой опознанной по slug'у строки уже совпадают с источником.",
+          }
+        : {
+            level: "warn",
+            title: `Сев ОБНОВИТ на месте ${moving.length} решений (переезд/переименование) — не дубликат`,
+            detail:
+              "Slug этих строк источники знают, значит upsert найдёт именно их и перепишет имя " +
+              "и категорию. Второй строки не появится — в этом и смысл slug'а. Но числа и " +
+              "положение в каталоге изменятся, поэтому список печатается:\n" +
+              moving
+                .map(
+                  ({ r, src }) =>
+                    `      · slug ${solSlug(r)}: «${r.name}» в ${r.slug} → «${src!.name}» в ${src!.category}`
+                )
+                .join("\n"),
+          }
+    );
+
+    if (willVanish.length > 0) {
+      add({
+        level: "warn",
+        title: `${willVanish.length} строк задвоятся на время сева и будут вычищены им же`,
+        detail:
+          "Slug источникам неизвестен — upsert заведёт каноническую строку рядом, а чистка (она " +
+          "ключуется на тех же slug'ах) удалит эту в том же прогоне; они уже в списке чистки " +
+          "выше. Дубликат переживёт сев только если чистка не выполнится: предохранитель " +
+          "(SEED_PRUNE_LIMIT) или SEED_PRUNE=off.\n" +
+          willVanish
+            .map((r) => `      · «${r.name}» (slug ${solSlug(r)}) в ${r.slug} → источник кладёт в ${sources.get(r.name)}`)
+            .join("\n"),
+      });
+    }
+
+    add(
+      willPersist.length === 0
+        ? { level: "ok", title: "Дубликатов, переживающих сев, не будет", detail: "" }
+        : {
+            level: "stop",
+            title: `После сева останется ${willPersist.length} дубликат(ов) — нужно РУЧНОЕ слияние`,
+            detail:
+              "Slug этих строк источникам неизвестен (бэкфилл миграции их не опознал), поэтому " +
+              "upsert заведёт каноническую рядом; а удалить их чистка не может — на них ссылаются " +
+              "сохранённые расчёты либо это строки ORGANIZER. Обе останутся в каталоге, " +
+              "обновляться будет только новая.\n" +
+              "ПОВТОРНЫЙ СЕВ ЭТОГО НЕ ЧИНИТ. Слить вручную: перенести SavedAnalysis.solutionId на " +
+              "выжившую строку, удалить проигравшую — docs/DEPLOY.md, приложение B.4. До слияния " +
+              "этот пункт останется `[СТОП]` и после успешного сева, это ожидаемо.\n" +
+              willPersist
+                .map(
+                  (r) =>
+                    `      · «${r.name}» (${r.vendor}, ${r.source}, ссылок ${Number(r.refs)}), slug ` +
+                    `${solSlug(r)}, в ${r.slug} → источник кладёт в ${sources.get(r.name)}`
+                )
+                .join("\n"),
+          }
+    );
+  } else {
+    // Колонки ещё нет: посчитать можно только по имени, а по имени переезд и дубликат
+    // неразличимы. Раньше здесь стоял `[СТОП]` — он блокировал выкат за операцию, которую сам
+    // же slug и разрешает. Теперь это предупреждение со ссылкой на шаг, где ответ точен.
+    const misplaced = rows.filter((r) => sources.has(r.name) && sources.get(r.name) !== r.slug);
+    add(
+      misplaced.length === 0
+        ? {
+            level: "ok",
+            title: "Решений, лежащих не в своей категории, в базе нет",
+            detail: "Считано по именам: колонки Solution.slug ещё нет.",
+          }
+        : {
+            level: "warn",
+            title: `${misplaced.length} решений лежат не в той категории — исход решит миграция`,
+            detail:
+              "Колонки Solution.slug ещё нет, поэтому различить два исхода отсюда НЕЛЬЗЯ: если " +
+              "бэкфилл миграции опознает строку (её пара «категория + имя» есть в списке " +
+              "solution_slug), сев её ПЕРЕНЕСЁТ — это законно и безопасно; если не опознает, " +
+              "строка получит `legacy-<id>` и сев заведёт рядом вторую.\n" +
+              "Точный ответ даёт повторный запуск МЕЖДУ `migrate deploy` и севом — шаг 3.5a " +
+              "рунбука. Кандидаты:\n" +
+              misplaced
+                .map((r) => `      · «${r.name}»: в базе ${r.slug}, источник кладёт в ${sources.get(r.name)}`)
+                .join("\n"),
+          }
+    );
+  }
+
+  // 6a. Строки с префиксом `legacy-` в slug'е. Их заводит бэкфилл миграции solution_slug для
+  //     всего, чего не опознал по паре «категория + имя», и по приложению B.4 их слияние —
+  //     работа оператора. До этой проверки о них не сообщал НИКТО: ни сев, ни preflight, ни
+  //     рунбук, — а единственное место, где они вообще появляются, это населённая боевая.
+  //     Проверка на чистом инстансе (§4d) их отсутствие подтверждает по построению и потому
+  //     ничего не стоит.
+  if (hasSolutionSlug) {
+    const legacy = rows.filter((r) => (solSlug(r) ?? "").startsWith("legacy-"));
+    add(
+      legacy.length === 0
+        ? {
+            level: "ok",
+            title: "Строк со slug'ом `legacy-…` в каталоге нет",
+            detail: "Бэкфилл миграции solution_slug опознал все строки, либо их уже слили.",
+          }
+        : {
+            level: "warn",
+            title: `${legacy.length} строк со slug'ом \`legacy-…\` — их не обновляет ни один источник`,
+            detail:
+              "Бэкфилл миграции solution_slug не нашёл их пару «категория + имя» в своём списке " +
+              "и выдал стабильный, но неканонический slug. Ни один источник сева таким slug'ом " +
+              "не пользуется: upsert их не найдёт никогда. SEED/PARSED без ссылок чистка " +
+              "удалит (они в её списке выше); остальные останутся в каталоге навсегда с " +
+              "замороженной ценой. Разбирать — по docs/DEPLOY.md, приложение B.4.\n" +
+              legacy
+                .map(
+                  (r) =>
+                    `      · «${r.name}» (${r.vendor}, ${r.source}, ссылок ${Number(r.refs)}) в ` +
+                    `${r.slug}, slug ${solSlug(r)}` +
+                    (sources.has(r.name) ? " — ИМЯ ЕСТЬ В ИСТОЧНИКЕ, вероятен дубликат" : "")
+                )
+                .join("\n"),
+          }
+    );
+  }
 
   // 7. Категории, которых нет в источнике. Сев их не заводит и не удаляет, а миграция
   //    category_task_labour даёт им taskLabel = '' — то есть безымянную строку на экране
