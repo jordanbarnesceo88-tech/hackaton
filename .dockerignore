@@ -11,3 +11,19 @@ node_modules
 npm-debug.log
 Dockerfile
 .dockerignore
+
+# Не часть работающего приложения — тот же список, что в .vercelignore. Dataset (скрейп
+# поставщиков, ~12 МБ) и prototype-design (чужая демо-страница) раздували контекст сборки и
+# слой `COPY . .`. Рантайм не читает ни одного файла из этих каталогов: данные для сева лежат в
+# lib/data и scripts/seed-data — их исключать НЕЛЬЗЯ, на них стоит сервис migrate.
+e2e
+test-results
+playwright-report
+Dataset
+prototype-design
+tmp-*
+docs
+# Кеш инкрементальной проверки типов с машины разработчика и настройки агента — к сборке
+# отношения не имеют.
+*.tsbuildinfo
+.claude

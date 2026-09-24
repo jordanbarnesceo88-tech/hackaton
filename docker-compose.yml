@@ -1,3 +1,17 @@
+# Запуск одной командой (ТЗ §4.2.3):
+#
+#   docker compose up --build        → http://localhost:3000
+#
+# Первая сборка идёт ориентировочно 5–10 минут и требует сети: npm ci и шрифты next/font/google
+# скачиваются при сборке. Порядок запуска задают depends_on:
+#   1. db      — Postgres 16; «здоров», когда pg_isready отвечает по TCP;
+#   2. migrate — `prisma migrate deploy` и сев (справочники, каталог, демо-аккаунты), затем
+#                сервис завершается с кодом 0; при ошибке приложение не стартует;
+#   3. app     — приложение Next.js (standalone); здоровье — GET /api/health.
+# Демо-аккаунты: demo@demo.local / demo-user-2026 и admin@demo.local / demo-admin-2026
+# (пароли меняются переменными DEMO_USER_PASSWORD и DEMO_ADMIN_PASSWORD).
+# Остановить: `docker compose down`; удалить и данные базы: `docker compose down -v`.
+# Заняты порты 3000 или 5433 — задайте APP_PORT или DB_PORT, например `APP_PORT=3001`.
 services:
   db:
     image: postgres:16-alpine
@@ -7,9 +21,66 @@ services:
       POSTGRES_PASSWORD: rrp_dev_password
       POSTGRES_DB: robotization_roi
     ports:
-      - "5433:5432"
+      # Наружу база нужна только для отладки и локальной разработки (`npm run dev` с .env из
+      # .env.example смотрит на localhost:5433). Приложение ходит в неё по сети compose.
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - rrp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1 обязателен: при первом старте образ поднимает временный сервер только на
+      # unix-сокете, и проверка через сокет сообщила бы «готово» до перезапуска настоящего сервера.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U rrp -d robotization_roi"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://rrp:rrp_dev_password@db:5432/robotization_roi
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-demo-user-2026}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-demo-admin-2026}
+      # Предохранитель чистки каталога v1 при повторном севе (docs/DEPLOY.md, приложение A).
+      # Без значения переменная не передаётся, и сев ведёт себя по умолчанию.
+      SEED_PRUNE:
+    depends_on:
+      db:
+        condition: service_healthy
+    # Разовая задача: отработала и вышла. Перезапуск превратил бы её в бесконечный цикл сева.
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://rrp:rrp_dev_password@db:5432/robotization_roi
+      # Без AUTH_SECRET Auth.js бросает ошибку в production, а шапка вызывает auth() на каждой
+      # странице — все страницы отдали бы 500. Значение по умолчанию годится только для
+      # локальной демонстрации; на любом доступном извне стенде задайте свой секрет:
+      # `openssl rand -base64 32`.
+      AUTH_SECRET: ${AUTH_SECRET:-demo-only-insecure-secret-change-me-0123456789}
+      # AUTH_URL намеренно не задан: в auth.ts стоит trustHost: true, и адрес берётся из
+      # запроса. Зашитый http://localhost:3000 сломал бы вход при открытии по IP или с другого
+      # хоста.
+      # Токен записи через API v1 (заголовок Authorization: Bearer …). Без значения переменная
+      # не передаётся, и вход по токену выключен — запись только из сессии администратора.
+      ADMIN_API_TOKEN:
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
 volumes:
   rrp_pgdata:

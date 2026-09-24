@@ -14,8 +14,10 @@ export default async function LoginPage({
       await signIn("credentials", {
         email: String(formData.get("email") ?? "").toLowerCase().trim(),
         password: String(formData.get("password") ?? ""),
-        // Как и после регистрации: вошедший продолжает работу, а не читает первый экран.
-        redirectTo: "/onboarding",
+        // Вошедший продолжает работу, а не читает первый экран: путь жюри по ТЗ §5.4 начинается
+        // со списка проектов («Проекты» → «Новый проект»). Регистрация по-прежнему ведёт в
+        // мастер v1 (/onboarding): этот переход проверяют e2e/wizard.spec.ts и auth-report.spec.ts.
+        redirectTo: "/projects",
       });
     } catch (e) {
       // next-auth throws a redirect on success; re-throw those.

@@ -1,5 +1,9 @@
-# CI: unit + E2E on push/PR. Inert until this repo has a GitHub remote; until then run
-# `npm run test:e2e` locally. Runs green the moment a remote exists.
+# CI на каждый push и pull request, две независимые задачи:
+#   test   — lint, сборка, vitest (unit и db) и e2e Playwright на сервисе Postgres;
+#   docker — тот путь, которым приложение запускает жюри (ТЗ §4.2.3, §8.2.2):
+#            `docker compose up --build` на чистой машине, затем /api/health и страницы.
+# Локально Docker может быть недоступен; тот же путь без Docker проверяет
+# `npm run check:fresh` (scripts/fresh-instance-check.ts).
 name: CI
 
 on:
@@ -50,3 +54,39 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # Без --wait: сервис migrate разовый и завершается, а `up --wait` ждёт, что все сервисы
+      # останутся запущенными, и может счесть его выход ошибкой. `up -d` и так дожидается
+      # условий depends_on (база здорова, migrate завершился с кодом 0) и падает, если migrate
+      # упал.
+      - name: Сборка и запуск одной командой
+        run: docker compose up -d --build
+      - name: Ожидание /api/health (до 240 с)
+        run: |
+          for i in $(seq 1 48); do
+            if curl -fsS --max-time 5 http://localhost:3000/api/health; then
+              echo
+              echo "/api/health ответил после $(( (i - 1) * 5 )) с ожидания"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "/api/health не ответил за 240 с"
+          exit 1
+      - name: Главная и демо-расчёт отдают 200
+        run: |
+          curl -fsS --max-time 30 http://localhost:3000/ -o /dev/null
+          curl -fsS --max-time 30 http://localhost:3000/demo -o /dev/null
+      - name: Диагностика при падении
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs migrate app
+      - name: Остановка и удаление данных
+        if: always()
+        run: docker compose down -v

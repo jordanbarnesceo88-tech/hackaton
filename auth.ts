@@ -18,6 +18,17 @@ import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 const LOGIN_LIMIT = 10;
 const LOGIN_IP_LIMIT = 50;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+// Демо-аккаунты: demo@demo.local (USER) и admin@demo.local (ADMIN). Их заводит сев, а пароли
+// по умолчанию передаются жюри открыто (ТЗ §8.2.5). Жюри входит под ними одновременно и
+// нередко из одной сети, а ограничитель считает и успешные входы. При обычном лимите 10 на
+// пару «почта + IP» одиннадцатый вход за 15 минут молча отклонялся бы как неверный пароль,
+// поэтому для зоны @demo.local лимит на аккаунт поднят до 100. Защищать эти аккаунты от
+// перебора незачем: пароль и так известен. Лимит 50 на IP не меняется и действует для всех
+// адресов, так что при общем NAT жюри упирается сначала в него: 50 входов за 15 минут на сеть.
+// Зона .local зарезервирована (RFC 6762), почтовых ящиков в ней нет. Посторонний аккаунт в этой
+// зоне теряет только часть защиты от перебора, и то в пределах лимита на IP.
+const DEMO_EMAIL_DOMAIN = "@demo.local";
+const DEMO_LOGIN_LIMIT = 100;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -48,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // null), giving no signal that the account exists or that a limit was hit.
         const ip = clientIp(request.headers);
         const perAccount = await rateLimit(`login:${email}:${ip}`, {
-          limit: LOGIN_LIMIT,
+          limit: email.endsWith(DEMO_EMAIL_DOMAIN) ? DEMO_LOGIN_LIMIT : LOGIN_LIMIT,
           windowMs: LOGIN_WINDOW_MS,
         });
         const perIp = await rateLimit(`login:ip:${ip}`, {
@@ -87,17 +98,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             console.error("authorize: password rehash failed", e);
           }
         }
-        return { id: user.id, email: user.email, name: user.name ?? undefined };
+        // Роль (ТЗ §3.1.1) попадает в JWT один раз, при входе. Это «оптимистичная» копия
+        // (session.user.role) для решений, которым не нужна база. Права администратора, включая
+        // показ ссылки «Админка», проверяются по базе в lib/auth/guards.ts (requireAdmin,
+        // isAdminSession): роль в токене живёт до его истечения и не узнаёт о понижении.
+        return { id: user.id, email: user.email, name: user.name ?? undefined, role: user.role };
       },
     }),
   ],
   callbacks: {
     jwt({ token, user }) {
-      if (user?.id) token.id = user.id;
+      // `user` приходит только в момент входа; дальше токен лишь продлевается.
+      if (user?.id) {
+        token.id = user.id;
+        token.role = user.role ?? "USER";
+      }
       return token;
     },
     session({ session, token }) {
-      if (token.id && session.user) session.user.id = token.id as string;
+      if (token.id && session.user) session.user.id = token.id;
+      // Токены, выданные до появления ролей, поля role не содержат — это обычный пользователь.
+      if (session.user) session.user.role = token.role === "ADMIN" ? "ADMIN" : "USER";
       return session;
     },
   },
