@@ -22,6 +22,10 @@ model FacilityType {
   industry         Industry               @relation(fields: [industryId], references: [id])
   categories       FacilityTypeCategory[]
   facilityExamples FacilityExample[]
+  // Модель по методике ТЗ (tz-1.0.0): процессы объекта и администрируемые параметры ввода.
+  // Только поля связей — колонок в таблице FacilityType не добавляется.
+  processes        FacilityTypeProcess[]
+  paramDefinitions ParamDefinition[]
 }
 
 model SolutionCategory {
@@ -67,10 +71,16 @@ model SolutionCategory {
 /// palletiser does not belong in a hospital ward, and a link that says otherwise lies to the
 /// user on the one screen the product exists for.
 model FacilityTypeCategory {
+  // onUpdate: NoAction описывает то, что УЖЕ стоит в базе, а не меняет её. Миграция
+  // 20260907120000_global_categories писалась вручную и создала оба внешних ключа без
+  // ON UPDATE CASCADE (в Postgres это NO ACTION), а умолчание Prisma — Cascade. Из-за этого
+  // `prisma migrate diff --exit-code` на полностью применённой истории возвращал 2, и каждая
+  // следующая сгенерированная миграция тащила бы DROP/ADD CONSTRAINT. Id — cuid и никогда
+  // не обновляются, так что поведение одинаково при любом из двух действий.
   facilityTypeId String
-  facilityType   FacilityType     @relation(fields: [facilityTypeId], references: [id], onDelete: Cascade)
+  facilityType   FacilityType     @relation(fields: [facilityTypeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   categoryId     String
-  category       SolutionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category       SolutionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   order          Int              @default(0)
 
   @@id([facilityTypeId, categoryId])
@@ -177,6 +187,12 @@ model User {
   name          String?
   createdAt     DateTime        @default(now())
   savedAnalyses SavedAnalysis[]
+  /// Роль по ТЗ §3.1.1. Гость — это отсутствие сессии, а не строка в таблице, поэтому в
+  /// перечислении только USER и ADMIN. DEFAULT USER переводит всех существующих пользователей
+  /// в обычную роль без бэкфилла; администратор заводится севом (admin@demo.local).
+  role          Role            @default(USER)
+  projects      Project[]
+  changes       ChangeLog[]
 }
 
 model SavedAnalysis {
@@ -207,4 +223,363 @@ model RateLimit {
   key         String   @id
   count       Int      @default(0)
   windowStart DateTime @default(now())
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// Модель по методике ТЗ ФЦ БАС (tz-1.0.0). Всё ниже добавлено миграцией 20260924120000_tz_v2,
+// и эта миграция только ДОБАВЛЯЕТ: новые перечисления, новые таблицы и колонку User.role.
+// Таблицы v1 выше (Solution, Assumption, SavedAnalysis …) не меняются, и прежняя модель
+// продолжает работать на них. Все суммы новой модели — в рублях, без конвертации.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/// Роли по ТЗ §3.1.1. Гостя в перечислении нет: гость — это отсутствие сессии.
+enum Role {
+  USER
+  ADMIN
+}
+
+/// Обязательные группы характеристик каталога по ТЗ §3.3: идентификация, технические,
+/// инфраструктурные, экономические, применимость, качество данных. Перечисление, а не строка:
+/// полнота карточки считается по группам, и опечатка в названии группы тихо выбросила бы
+/// характеристику из подсчёта.
+enum CharGroup {
+  IDENTIFICATION
+  TECHNICAL
+  INFRASTRUCTURE
+  ECONOMICS
+  APPLICABILITY
+  DATA_QUALITY
+}
+
+/// Кто завёл продукт каталога. ORGANIZER — строка из данных организатора: её обновляет
+/// синхронизация, а при исчезновении из данных она уходит в архив, а не удаляется. ADMIN —
+/// продукт, заведённый администратором вручную (ТЗ §3.3.5): синхронизация его не трогает.
+enum CatalogOrigin {
+  ORGANIZER
+  ADMIN
+}
+
+/// Вид сценария проекта (ТЗ §3.5.5): текущий процесс и два варианта роботизации, которые ТЗ
+/// называет прямо, — покупка и услуга (RaaS, подписка).
+enum ScenarioKind {
+  ASIS
+  PURCHASE
+  RAAS
+}
+
+/// Технологический процесс объекта — недостающее звено иерархии ТЗ §3.3.1
+/// «отрасль – тип объекта – процесс – тип решения – продукт». В v1 процесс прятался в подписи
+/// категории (SolutionCategory.taskLabel), и подбор не мог сказать, какую работу закрывает робот.
+/// Здесь процесс хранит, как считать спрос (demandFormula в demandUnit) и в каких единицах
+/// мерить производительность, а флаги calcSupported/simSupported прямо говорят, для каких
+/// процессов реализованы экономика и имитация (метки «прототип» по ТЗ §5.7).
+model Process {
+  id             String                @id @default(cuid())
+  slug           String                @unique
+  name           String
+  description    String                @default("")
+  demandUnit     String
+  demandFormula  String
+  throughputUnit String
+  calcSupported  Boolean               @default(false)
+  simSupported   Boolean               @default(false)
+  order          Int                   @default(0)
+  facilityTypes  FacilityTypeProcess[]
+  products       ProductProcess[]
+}
+
+/// Какие процессы есть у типа объекта (склад — перемещение паллет, комплектация …). Явная
+/// связь по тому же принципу, что FacilityTypeCategory: процесс, которого на объекте нет,
+/// не должен появляться в подборе.
+model FacilityTypeProcess {
+  facilityTypeId String
+  facilityType   FacilityType @relation(fields: [facilityTypeId], references: [id], onDelete: Cascade)
+  processId      String
+  process        Process      @relation(fields: [processId], references: [id], onDelete: Cascade)
+  order          Int          @default(0)
+
+  @@id([facilityTypeId, processId])
+  @@index([processId])
+}
+
+/// Тип решения — уровень иерархии ТЗ §3.3.1 между процессом и продуктом: AMR-подъёмник,
+/// вилочный AMR, тягач, паллетный шаттл … handlingClass задаёт класс грузообработки, по
+/// которому движок берёт норматив времени захвата и укладки груза; mobile отличает мобильных
+/// роботов (им нужны зарядные станции) от стационарных установок.
+model SolutionType {
+  id            String           @id @default(cuid())
+  slug          String           @unique
+  name          String
+  purpose       String           @default("")
+  handlingClass String
+  mobile        Boolean          @default(true)
+  products      CatalogProduct[]
+}
+
+/// Продукт каталога новой модели (ТЗ §3.3). Отдельно от v1-таблицы Solution: там цены
+/// в долларах, одна «категория» вместо иерархии и провенанс по решению, а не по полю.
+///
+/// Каждое значение живёт в ProductCharacteristic вместе с источником. Колонки priceRub,
+/// raasRubMonth, throughputPerH, payloadKg, speedMps, completenessPct и confirmedSharePct —
+/// ВЫНЕСЕННЫЕ копии для фильтров, сортировки и страниц каталога: их пересчитывает синхронизация
+/// из характеристик, руками их не правят. organizerCatalogId — id строки в выгрузке каталога
+/// организатора, organizerRows — номера строк свода, из которых собран продукт (после слияния
+/// дублей их может быть несколько). level показывает глубину данных: identification (только
+/// идентификация из выгрузки), enriched (ТТХ и экономика из открытых источников), examples
+/// («Примеры решений» организатора).
+///
+/// Исключённый продукт (excluded) остаётся в таблице с причиной, чтобы подбор мог её
+/// показать. Продукт, пропавший из данных организатора, помечается archived, а не удаляется:
+/// на его снимок может ссылаться сохранённый проект (ТЗ §3.1.5).
+model CatalogProduct {
+  id                 String                  @id @default(cuid())
+  slug               String                  @unique
+  organizerCatalogId String?                 @unique
+  organizerRows      Int[]                   @default([])
+  level              String                  @default("identification")
+  name               String
+  manufacturer       String?
+  country            String?
+  solutionTypeId     String?
+  solutionType       SolutionType?           @relation(fields: [solutionTypeId], references: [id], onDelete: SetNull)
+  status             String
+  facilityTypeSlugs  String[]                @default([])
+  industries         String[]                @default([])
+  description        String                  @default("")
+  priceRub           Float?
+  raasRubMonth       Float?
+  throughputPerH     Float?
+  throughputUnit     String?
+  payloadKg          Float?
+  speedMps           Float?
+  completenessPct    Int                     @default(0)
+  confirmedSharePct  Int                     @default(0)
+  needsVerification  Boolean                 @default(true)
+  excluded           Boolean                 @default(false)
+  excludedReason     String?
+  flags              String[]                @default([])
+  origin             CatalogOrigin           @default(ORGANIZER)
+  editedByAdmin      Boolean                 @default(false)
+  archived           Boolean                 @default(false)
+  dataVersion        String                  @default("")
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  processes          ProductProcess[]
+  characteristics    ProductCharacteristic[]
+
+  @@index([status])
+  @@index([solutionTypeId])
+}
+
+/// Какие процессы обслуживает продукт. Подбор (ТЗ §3.4) исключает продукт, который не
+/// закрывает процесс сценария, — по этой связи, а не по догадке из названия.
+model ProductProcess {
+  productId String
+  product   CatalogProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  processId String
+  process   Process        @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@id([productId, processId])
+  @@index([processId])
+}
+
+/// Одна характеристика продукта вместе с происхождением — закрывает ТЗ §3.3.4 (ссылка, дата
+/// и признак подтверждения ПО КАЖДОЙ характеристике, а не по продукту целиком).
+///
+/// Значение: valueNum, либо диапазон valueMin–valueMax, qualifier («до», «от», «≈»), текст
+/// или список. Происхождение: origin (organizer | research | estimate | derived | admin),
+/// sourceType, sourceUrl/sourceRef, verifiedAt, confirmed, confidence. Правило Sourced:
+/// значение организатора несёт sourceRef; найденное в открытых источниках — https-ссылку,
+/// asInSource (как написано в источнике) и дату; оценка — basis и confirmed = false;
+/// производное — formula. Другие найденные значения с их источниками лежат в alternatives,
+/// чтобы конфликт источников был виден, а не молча разрешён. scope говорит, к чему относится
+/// число (на робота, на станцию, на систему): в расчёт парка идут только значения на один
+/// робот или одну станцию.
+model ProductCharacteristic {
+  id           String         @id @default(cuid())
+  productId    String
+  product      CatalogProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key          String
+  group        CharGroup
+  valueNum     Float?
+  valueMin     Float?
+  valueMax     Float?
+  qualifier    String?
+  valueText    String?
+  valueList    String[]       @default([])
+  unit         String?
+  scope        String?
+  origin       String
+  sourceType   String
+  sourceUrl    String?
+  sourceRef    String?
+  verifiedAt   DateTime?
+  confirmed    Boolean        @default(false)
+  confidence   String?
+  asInSource   String?
+  basis        String?
+  formula      String?
+  note         String?
+  granularity  String         @default("field")
+  alternatives Json?
+
+  @@unique([productId, key])
+  @@index([key])
+}
+
+/// Описание параметра ввода для типа объекта: подпись, единица, пример, подсказка, базовое
+/// значение и допустимый диапазон организатора, источник. Таблица, а не код, потому что
+/// ТЗ §3.1.4 и §3.2.6 требуют, чтобы администратор мог менять справочники и умолчания без
+/// выпуска новой версии. По этим же строкам проверяются ручной ввод и загруженный файл
+/// Excel/CSV (ТЗ §3.2.4): тип, единица, обязательность, диапазон. tzMinimum ссылается на пункт
+/// минимума ТЗ §3.2.1, который закрывает параметр; usedBy — какие расчёты его читают.
+/// editedByAdmin защищает правку администратора от перезаписи при синхронизации.
+model ParamDefinition {
+  id             String       @id @default(cuid())
+  facilityTypeId String
+  facilityType   FacilityType @relation(fields: [facilityTypeId], references: [id], onDelete: Cascade)
+  key            String
+  section        String
+  label          String
+  unit           String?
+  kind           String
+  options        String[]     @default([])
+  baseNum        Float?
+  baseText       String?
+  min            Float?
+  max            Float?
+  locked         Boolean      @default(false)
+  required       Boolean      @default(false)
+  tzMinimum      String?
+  usedBy         String[]     @default([])
+  hint           String       @default("")
+  example        String       @default("")
+  organizerNote  String?
+  origin         String
+  sourceRef      String?
+  sourceUrl      String?
+  basis          String?
+  formula        String?
+  order          Int          @default(0)
+  editedByAdmin  Boolean      @default(false)
+
+  @@unique([facilityTypeId, key])
+}
+
+/// Норматив расчёта (коэффициент использования, резерв парка, ставка дисконтирования …)
+/// с допустимым диапазоном и основанием. Значение из БД перекрывает значение в коде, но только
+/// в пределах [min, max]. Таблица нужна, чтобы нормативы правил администратор (ТЗ §3.1.4)
+/// и чтобы у каждого было видно происхождение: норма организатора, открытый источник или
+/// оценка с basis (ТЗ §3.2.5, §3.5 — без недокументированных коэффициентов). updatedById —
+/// кто правил последним; полная история правок — в ChangeLog, поэтому внешнего ключа здесь
+/// нет, и удаление пользователя норматив не задевает.
+model Norm {
+  key           String   @id
+  label         String
+  value         Float
+  min           Float?
+  max           Float?
+  unit          String?
+  origin        String
+  basis         String
+  sourceRef     String?
+  sourceUrl     String?
+  group         String   @default("")
+  order         Int      @default(0)
+  editedByAdmin Boolean  @default(false)
+  updatedById   String?
+  updatedAt     DateTime @updatedAt
+}
+
+/// Выпуск данных: каждая синхронизация данных организатора записывает строку с версией
+/// (хеш снимка) и составом исходных выгрузок. Проект хранит dataVersion, и при повторном
+/// открытии видно, на каком выпуске сделан расчёт (ТЗ §3.1.5).
+model DataRelease {
+  version          String   @id
+  seededAt         DateTime @default(now())
+  organizerVersion Json
+  note             String?
+}
+
+/// Проект пользователя (ТЗ §3.1.3): объект, его параметры и сценарии. params — введённые
+/// значения, paramsSource — откуда каждое (ручной ввод, файл, демо-данные организатора).
+/// results — сохранённый расчёт вместе со снимками использованных продуктов, нормативов
+/// и параметров, а modelVersion и dataVersion — версии модели и данных, на которых он сделан:
+/// повторное открытие показывает расчёт бит-в-бит из снимка и предупреждает, если с тех пор
+/// изменились данные или модель (ТЗ §3.1.5). Загруженные файлы не хранятся — они разбираются
+/// и отбрасываются, поэтому удаление проекта каскадом удаляет всё, что к нему относится
+/// (ТЗ §4.4.6). Изоляция: проект читается только по паре (id, userId).
+model Project {
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  objectName       String?
+  facilityTypeSlug String
+  params           Json
+  paramsSource     Json
+  results          Json?
+  modelVersion     String?
+  dataVersion      String?
+  calculatedAt     DateTime?
+  copiedFromId     String?
+  isDemo           Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  scenarios        Scenario[]
+  changes          ChangeLog[]
+
+  @@index([userId])
+}
+
+/// Сценарий проекта: «как есть», покупка или услуга (ТЗ §3.5.5, не меньше трёх на проект).
+/// spec — позиции сценария (процесс, продукт) и переопределения (количество, цена,
+/// производительность, нормативы). Отдельная таблица, а не массив в проекте: у сценария есть
+/// собственные записи журнала корректировок, а уникальность key и name внутри проекта
+/// держит база, а не код.
+model Scenario {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  key       String
+  name      String
+  kind      ScenarioKind
+  order     Int          @default(0)
+  spec      Json
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  changes   ChangeLog[]
+
+  @@unique([projectId, key])
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+/// Единый журнал изменений: ручные корректировки автоматических значений в сценариях
+/// (ТЗ §3.5.4 — «с фиксацией изменения») и действия администратора с каталогом, нормативами
+/// и параметрами (ТЗ §3.3.5). Таблица, а не JSON-массив в проекте: две одновременные записи
+/// в массив по схеме «прочитать — дописать — сохранить» теряют одну из них, а INSERT строк —
+/// нет. autoValue — что посчитала модель, oldValue → newValue — что было и что стало.
+/// Записи проекта и сценария удаляются вместе с ними; при удалении пользователя запись
+/// остаётся без автора (userId = NULL), чтобы история правок каталога не пропадала.
+model ChangeLog {
+  id         String    @id @default(cuid())
+  entity     String
+  entityId   String
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scenarioId String?
+  scenario   Scenario? @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  field      String
+  autoValue  Json?
+  oldValue   Json?
+  newValue   Json?
+  unit       String?
+  reason     String?
+  createdAt  DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([entity, entityId])
 }

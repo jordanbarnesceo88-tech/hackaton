@@ -17,7 +17,10 @@
     "preflight:deploy": "tsx scripts/preflight-deploy.ts",
     "check:sources": "tsx scripts/check-sources.ts",
     "report:snapshots": "tsx scripts/check-sources.ts --snapshots",
-    "check:contrast": "tsx scripts/check-contrast.ts"
+    "check:contrast": "tsx scripts/check-contrast.ts",
+    "gen:organizer": "tsx scripts/gen-organizer-seed.ts",
+    "demo:numbers": "tsx scripts/print-demo-numbers.ts",
+    "check:fresh": "tsx scripts/fresh-instance-check.ts"
   },
   "prisma": {
     "seed": "tsx scripts/seed.ts"
@@ -29,6 +32,7 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.31.0",
     "next": "16.3.1",
     "next-auth": "^5.0.0-beta.32",

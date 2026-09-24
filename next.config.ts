@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
   // `ENOENT ... next-server.js.nft.json` after compiling successfully. Vercel produces its own
   // traced output, so the setting is redundant there as well as fatal.
   output: process.env.VERCEL ? undefined : "standalone",
+  // exceljs собирает выгрузку XLSX только на сервере (обработчики маршрутов экспорта проекта).
+  // Это CommonJS-пакет с зависимостями на потоки и zip из Node, и его нет в списке пакетов,
+  // которые Next сам оставляет внешними (next/dist/lib/server-external-packages.jsonc).
+  // Поэтому он не бандлится, а подключается обычным require из node_modules; для standalone-
+  // сборки Docker его файлы попадают в .next/standalone через трассировку зависимостей.
+  serverExternalPackages: ["exceljs"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
