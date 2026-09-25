@@ -84,35 +84,34 @@
      popup, and the autofilled email/password fields on /login and /signup. Declared in all
      three token blocks so it tracks the theme exactly as the tokens do. */
   color-scheme: light;
-  /* Не чистый белый: под насыщенным синим акцентом он читается как отсутствие решения, а не
-     как решение. Карточка при этом остаётся белой — так она отделяется от фона сама, без
-     границы и тени, что и есть язык, к которому мы идём. Оттенок взят от акцента (264), чтобы
-     нейтраль была выбранной, а не унаследованной. */
-  --background: oklch(0.978 0.004 264);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  /* Палитра порта BCB (docs/design/PROTOTYPE-DESIGN-SYSTEM.md), светлый облик прототипа
+     (`:root[data-skin="light"]`), переведённая в oklch 1:1 по тону/насыщенности. Три пары —
+     primary/primary-foreground, destructive/background, positive и caution против
+     background/card — пересчитаны по светлоте, а не взяты сырыми: raw accent-strong
+     (#1E9BA3) даёт только 2.82:1 на фоне (нужно 3.0) и 3.35:1 под белым текстом (нужно 4.5);
+     raw ok/warn/crit дают 3.4–3.9:1 против требуемых 4.5, потому что в прототипе это цвета
+     ЗАЛИВКИ (--ok-bg и т.п.), а здесь это цвет ЧЕРНИЛ текста поверх --background и --card
+     напрямую (grep по компонентам: text-positive/text-caution — не bg-заливка). Все пары
+     ниже проверены npm run check:contrast; H и C — из прототипа без изменений, менялась
+     только L. */
+  --background: oklch(0.942 0.002 197.1); /* --ground (light) */
+  --foreground: oklch(0.264 0.025 217.3); /* --text (light) */
+  --card: oklch(1 0 0); /* --surface (light): #FFFFFF */
+  --card-foreground: oklch(0.264 0.025 217.3);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.42 0.17 264); /* deep blue (brand) */
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  /* 0.556 давало 4.74:1 на чистом белом и 4.46:1 на тонированном фоне — под порогом
-     4.5 для текста. Затемнено ровно настолько, чтобы вернуться выше него; проверяется
-     скриптом npm run check:contrast, а не на глаз. */
-  --muted-foreground: oklch(0.542 0 0);
-  --accent: oklch(0.96 0.02 250); /* faint blue surface (hovers/subtle) */
-  --accent-foreground: oklch(0.42 0.17 264);
-  /* Darkened from L .577. --destructive is only ever ink or a light tint here (never a solid
-     fill behind light text), so a darker step is a pure gain: on its own 5% tint the hero's
-     "не окупается" panel measured 4.36:1, under the 4.5 AA floor for the very message whose
-     job is to deliver bad news legibly. Now 6.07:1, and 6.64:1 on plain white. */
-  --destructive: oklch(0.50 0.200 27.3);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.55 0.15 264); /* visible brand-blue focus ring */
+  --popover-foreground: oklch(0.264 0.025 217.3);
+  --primary: oklch(0.385 0.045 201.9); /* --accent (light): #234B4E, не accent-strong — см. выше */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.971 0.003 197.1); /* --surface-2 (light) */
+  --secondary-foreground: oklch(0.264 0.025 217.3);
+  --muted: oklch(0.971 0.003 197.1); /* --surface-2 (light) */
+  --muted-foreground: oklch(0.443 0.029 267.6); /* --text-muted (light), 7.70:1 на card */
+  --accent: oklch(0.917 0.011 197.0); /* --surface-hover (light) */
+  --accent-foreground: oklch(0.264 0.025 217.3);
+  --destructive: oklch(0.549 0.183 31.0); /* --crit (light), L снижена 0.585→0.549 для 4.5:1 на фоне */
+  --border: oklch(0.889 0.008 197.0); /* --line (light) */
+  --input: oklch(0.804 0.014 202.4); /* --line-strong (light) */
+  --ring: oklch(0.385 0.045 201.9); /* = primary */
   /* Categorical, not a ramp. These sit in shadcn's categorical chart slots, so a single-hue
      blue→cyan sequence was the wrong shape twice over: it encoded identity as magnitude, and
      the pale end failed contrast (chart-5 was 1.80:1 on white, against a 3:1 minimum for
@@ -128,61 +127,77 @@
   --chart-5: oklch(0.681 0.141 357.5); /* #dc7099 magenta — 3.08:1 */
 
   /* B4: the semantics the brand pass claimed but never added, which left «экономия» and
-     «оценка» as hardcoded emerald/amber utilities that no theme could reach. */
-  --positive: oklch(0.52 0.13 158);
-  --positive-foreground: oklch(0.985 0 0);
-  --caution: oklch(0.52 0.12 75);
-  --caution-foreground: oklch(0.985 0 0);
+     «оценка» as hardcoded emerald/amber utilities that no theme could reach.
+     --ok/--warn (BCB) hues kept, L lowered for 4.5:1 ink-on-background (see note above). */
+  --positive: oklch(0.508 0.137 157.2); /* --ok (light) */
+  --positive-foreground: oklch(1 0 0);
+  --caution: oklch(0.534 0.125 70.4); /* --warn (light) */
+  --caution-foreground: oklch(1 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* --shadow-panel/--shadow-pop: BCB's two elevation shadows, ported as rgba (not oklch —
+     box-shadow keeps its own color space; the prototype specifies these in rgba). */
+  --shadow-panel: 0 14px 34px rgba(22, 40, 45, 0.12);
+  --shadow-pop: 0 24px 60px rgba(22, 40, 45, 0.22);
+  --glass-bg: rgba(255, 255, 255, 0.93);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.264 0.025 217.3);
+  --sidebar-primary: oklch(0.385 0.045 201.9);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.917 0.011 197.0);
+  --sidebar-accent-foreground: oklch(0.264 0.025 217.3);
+  --sidebar-border: oklch(0.889 0.008 197.0);
+  --sidebar-ring: oklch(0.385 0.045 201.9);
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.62 0.16 264); /* brand blue (dark) */
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.30 0.03 250);
-  --accent-foreground: oklch(0.90 0.03 240);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.62 0.16 264);
+  /* Палитра порта BCB — тёмный облик прототипа (`:root` в BCB_Platform_demo.html), базовый
+     и единственный облик, под который сам прототип проектировался. Раскладка та же, что в
+     §1 светлого блока: H/C из прототипа без изменений. accent-strong (#22CCD6, ярко-циан)
+     здесь и служит primary — в тёмном облике, в отличие от светлого, он проходит контраст
+     с запасом (8.78:1 на фоне при пороге 3.0, 8.78:1 под тёмным текстом при пороге 4.5). */
+  --background: oklch(0.219 0.022 216.6); /* --ground (dark) */
+  --foreground: oklch(0.942 0.002 197.1); /* --text (dark) */
+  --card: oklch(0.264 0.025 217.3); /* --surface (dark) */
+  --card-foreground: oklch(0.942 0.002 197.1);
+  --popover: oklch(0.264 0.025 217.3);
+  --popover-foreground: oklch(0.942 0.002 197.1);
+  --primary: oklch(0.771 0.126 201.4); /* --accent-strong (dark): #22CCD6 */
+  --primary-foreground: oklch(0.219 0.022 216.6);
+  --secondary: oklch(0.307 0.032 208.7); /* --surface-2 (dark) */
+  --secondary-foreground: oklch(0.942 0.002 197.1);
+  --muted: oklch(0.307 0.032 208.7); /* --surface-2 (dark) */
+  --muted-foreground: oklch(0.694 0.020 213.5); /* --text-muted (dark), 6.36:1 на фоне */
+  --accent: oklch(0.374 0.041 207.5); /* --surface-hover (dark) */
+  --accent-foreground: oklch(0.942 0.002 197.1);
+  --destructive: oklch(0.674 0.181 29.7); /* --crit (dark), 5.40:1 на фоне — без правки */
+  --border: oklch(0.374 0.035 210.0); /* --line (dark) — сплошной, не полупрозрачный: так у прототипа */
+  --input: oklch(0.466 0.045 208.1); /* --line-strong (dark), граница контрола ярче обычной */
+  --ring: oklch(0.771 0.126 201.4); /* = primary */
   /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
-     re-validated against oklch(0.205 0 0). */
+     re-validated against oklch(0.205 0 0). Chart palette is out of scope for the BCB port —
+     BCB has no five-way categorical chart palette (only four detection-category hues, a
+     different domain), and this one is already CVD/contrast-validated. Left unchanged. */
   --chart-1: oklch(0.659 0.163 256.0); /* #4792f3 — 5.70:1 */
-  --chart-2: oklch(0.526 0.173 37.9);  /* #b83800 — 3.08:1 */
+  --chart-2: oklch(0.562 0.173 37.9);  /* re-stepped for the BCB dark --card, 3.00:1 */
   --chart-3: oklch(0.660 0.141 162.0); /* #14ac77 — 6.14:1 */
-  --chart-4: oklch(0.524 0.124 59.1);  /* #9d5500 — 3.19:1 */
+  --chart-4: oklch(0.548 0.124 59.1);  /* re-stepped for the BCB dark --card, 3.01:1 */
   --chart-5: oklch(0.660 0.140 357.2); /* #d46a93 — 5.36:1 */
-  --positive: oklch(0.70 0.15 158);
-  --positive-foreground: oklch(0.145 0 0);
-  --caution: oklch(0.75 0.14 75);
-  --caution-foreground: oklch(0.145 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --positive: oklch(0.806 0.158 159.6); /* --ok (dark), 10.04:1 на фоне — без правки */
+  --positive-foreground: oklch(0.219 0.022 216.6);
+  --caution: oklch(0.839 0.133 83.3); /* --warn (dark), 10.45:1 на фоне — без правки */
+  --caution-foreground: oklch(0.219 0.022 216.6);
+  --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.42);
+  --shadow-pop: 0 26px 70px rgba(0, 0, 0, 0.6);
+  --glass-bg: rgba(22, 40, 45, 0.92);
+  --sidebar: oklch(0.264 0.025 217.3);
+  --sidebar-foreground: oklch(0.942 0.002 197.1);
+  --sidebar-primary: oklch(0.771 0.126 201.4);
+  --sidebar-primary-foreground: oklch(0.219 0.022 216.6);
+  --sidebar-accent: oklch(0.374 0.041 207.5);
+  --sidebar-accent-foreground: oklch(0.942 0.002 197.1);
+  --sidebar-border: oklch(0.374 0.035 210.0);
+  --sidebar-ring: oklch(0.771 0.126 201.4);
 }
 
 /* The same values under the OS preference. Duplicated on purpose and kept adjacent: CSS cannot
@@ -192,43 +207,47 @@
 @media screen and (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.62 0.16 264); /* brand blue (dark) */
-    --primary-foreground: oklch(0.145 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.30 0.03 250);
-    --accent-foreground: oklch(0.90 0.03 240);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.62 0.16 264);
+    --background: oklch(0.219 0.022 216.6);
+    --foreground: oklch(0.942 0.002 197.1);
+    --card: oklch(0.264 0.025 217.3);
+    --card-foreground: oklch(0.942 0.002 197.1);
+    --popover: oklch(0.264 0.025 217.3);
+    --popover-foreground: oklch(0.942 0.002 197.1);
+    --primary: oklch(0.771 0.126 201.4);
+    --primary-foreground: oklch(0.219 0.022 216.6);
+    --secondary: oklch(0.307 0.032 208.7);
+    --secondary-foreground: oklch(0.942 0.002 197.1);
+    --muted: oklch(0.307 0.032 208.7);
+    --muted-foreground: oklch(0.694 0.020 213.5);
+    --accent: oklch(0.374 0.041 207.5);
+    --accent-foreground: oklch(0.942 0.002 197.1);
+    --destructive: oklch(0.674 0.181 29.7);
+    --border: oklch(0.374 0.035 210.0);
+    --input: oklch(0.466 0.045 208.1);
+    --ring: oklch(0.771 0.126 201.4);
     /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
-       re-validated against oklch(0.205 0 0). */
+       re-validated against oklch(0.205 0 0). Chart palette out of scope for the BCB port —
+       see the .dark block above for why. */
     --chart-1: oklch(0.659 0.163 256.0); /* #4792f3 — 5.70:1 */
-    --chart-2: oklch(0.526 0.173 37.9);  /* #b83800 — 3.08:1 */
+    --chart-2: oklch(0.562 0.173 37.9);  /* re-stepped for the BCB dark --card, 3.00:1 */
     --chart-3: oklch(0.660 0.141 162.0); /* #14ac77 — 6.14:1 */
-    --chart-4: oklch(0.524 0.124 59.1);  /* #9d5500 — 3.19:1 */
+    --chart-4: oklch(0.548 0.124 59.1);  /* re-stepped for the BCB dark --card, 3.01:1 */
     --chart-5: oklch(0.660 0.140 357.2); /* #d46a93 — 5.36:1 */
-    --positive: oklch(0.70 0.15 158);
-    --positive-foreground: oklch(0.145 0 0);
-    --caution: oklch(0.75 0.14 75);
-    --caution-foreground: oklch(0.145 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --positive: oklch(0.806 0.158 159.6);
+    --positive-foreground: oklch(0.219 0.022 216.6);
+    --caution: oklch(0.839 0.133 83.3);
+    --caution-foreground: oklch(0.219 0.022 216.6);
+    --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.42);
+    --shadow-pop: 0 26px 70px rgba(0, 0, 0, 0.6);
+    --glass-bg: rgba(22, 40, 45, 0.92);
+    --sidebar: oklch(0.264 0.025 217.3);
+    --sidebar-foreground: oklch(0.942 0.002 197.1);
+    --sidebar-primary: oklch(0.771 0.126 201.4);
+    --sidebar-primary-foreground: oklch(0.219 0.022 216.6);
+    --sidebar-accent: oklch(0.374 0.041 207.5);
+    --sidebar-accent-foreground: oklch(0.942 0.002 197.1);
+    --sidebar-border: oklch(0.374 0.035 210.0);
+    --sidebar-ring: oklch(0.771 0.126 201.4);
   }
 }
 
@@ -305,6 +324,35 @@
   }
 }
 
+/* Порт эффектов BCB (docs/design/PROTOTYPE-DESIGN-SYSTEM.md): четыре keyframes из прототипа,
+   переносимые как переиспользуемая инфраструктура. `pulse`/`bubble-in` общего назначения;
+   `march`/`halo` рассчитаны на SVG со `stroke-dasharray`/`transform-box: fill-box` и здесь
+   пока не подключены ни к одному компоненту — в прототипе это анимация выбранного агента и
+   активного маршрута на изометрической карте (SVG), а собственная 2D-сцена этого приложения
+   рисуется на `<canvas>` (components/facility-visualization.tsx), где CSS-анимация тегов не
+   применяется в принципе. Оставлены здесь как готовый примитив на случай SVG-сцены. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes march {
+  to { stroke-dashoffset: -14; }
+}
+@keyframes halo {
+  0% { transform: scale(0.7); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-tone,
+  .animate-bubble-in {
+    animation: none;
+  }
+}
+
 @layer components {
   /* WCAG 2.2 SC 2.5.8 (AA): цель нажатия — минимум 24×24 CSS-пикселя. Текстовая ссылка в
      строке имеет высоту строки, то есть 19–22 пикселя, и на телефоне в неё промахиваются.
@@ -344,6 +392,34 @@
     margin-inline: auto;
     padding-inline: clamp(1.5rem, 4vw, 4rem);
   }
+
+  /* Два уровня возвышения из BCB: панель (карточка) и всплывающая поверхность (поповер/модал).
+     print не наследует их: box-shadow не печатается ни в одном браузере вне зависимости от
+     print-color-adjust, так что .report-block ими не задета. */
+  .shadow-panel {
+    box-shadow: var(--shadow-panel);
+  }
+  .shadow-pop {
+    box-shadow: var(--shadow-pop);
+  }
+
+  /* Стеклянная поверхность из BCB (тулбары, сегменты карты) — полупрозрачная заливка своим же
+     тоном плюс размытие фона. Готова для sticky-шапок/оверлеев; заявку никуда не навешивает
+     сама по себе. */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Пульсирующая точка критического статуса (BCB: `.badge[data-tone="crit"]::before`). */
+  .animate-pulse-tone {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  /* Появление тоста/всплывающей подсказки (BCB: `.toast`, `.asst__bubble.is-in`). */
+  .animate-bubble-in {
+    animation: bubble-in 0.24s ease-out;
+  }
 }
 
 @media print {
@@ -368,27 +444,27 @@
   .dark {
     color-scheme: light;
     --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --foreground: oklch(0.264 0.025 217.3);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.264 0.025 217.3);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.42 0.17 264);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.96 0.02 250);
-    --accent-foreground: oklch(0.42 0.17 264);
-    --destructive: oklch(0.50 0.200 27.3);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.55 0.15 264);
-    --positive: oklch(0.52 0.13 158);
-    --positive-foreground: oklch(0.985 0 0);
-    --caution: oklch(0.52 0.12 75);
-    --caution-foreground: oklch(0.985 0 0);
+    --popover-foreground: oklch(0.264 0.025 217.3);
+    --primary: oklch(0.385 0.045 201.9);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.971 0.003 197.1);
+    --secondary-foreground: oklch(0.264 0.025 217.3);
+    --muted: oklch(0.971 0.003 197.1);
+    --muted-foreground: oklch(0.443 0.029 267.6);
+    --accent: oklch(0.917 0.011 197.0);
+    --accent-foreground: oklch(0.264 0.025 217.3);
+    --destructive: oklch(0.549 0.183 31.0);
+    --border: oklch(0.889 0.008 197.0);
+    --input: oklch(0.804 0.014 202.4);
+    --ring: oklch(0.385 0.045 201.9);
+    --positive: oklch(0.508 0.137 157.2);
+    --positive-foreground: oklch(1 0 0);
+    --caution: oklch(0.534 0.125 70.4);
+    --caution-foreground: oklch(1 0 0);
     --chart-1: oklch(0.575 0.163 255.5);
     --chart-2: oklch(0.671 0.175 40.6);
     --chart-3: oklch(0.644 0.140 162.3);

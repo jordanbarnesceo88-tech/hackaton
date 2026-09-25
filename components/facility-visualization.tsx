@@ -108,6 +108,18 @@ export function FacilityVisualization({
     // read as a physical simulation we don't claim to be). The real figures live in the KPIs.
     const speed = 0.15;
 
+    // Canvas 2D can't read Tailwind classes or inherit `var()` through CSS — fillStyle needs an
+    // actual color string. Custom properties DO inherit through the DOM to the canvas element
+    // itself, so reading them here (once, not per-frame) keeps the scene's palette in sync with
+    // the BCB port in app/globals.css (:root / .dark) instead of the two unrelated hardcoded
+    // hex values this had before. Read once per effect run — a live OS theme flip mid-animation
+    // won't repaint until the next layout/pause/renderCount change re-runs this effect, which is
+    // an acceptable gap for a decorative scene (SC 1.1.1: the canvas carries no information the
+    // KPI column beside it doesn't already state in text).
+    const themeStyle = getComputedStyle(canvas);
+    const sceneBackground = themeStyle.getPropertyValue("--background").trim() || "#0f172a";
+    const robotColor = themeStyle.getPropertyValue("--primary").trim() || "#22d3ee";
+
     const draw = () => {
       const now = performance.now();
       const dt = Math.min(now - last, 100); // clamp dt (e.g. after tab refocus)
@@ -145,7 +157,7 @@ export function FacilityVisualization({
       // каждом месте, и одно из них однажды забыли бы.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = sceneBackground;
       ctx.fillRect(0, 0, W, H);
 
       for (const z of layout.zones) {
@@ -155,7 +167,7 @@ export function FacilityVisualization({
         ctx.globalAlpha = 1;
       }
 
-      ctx.fillStyle = "#22d3ee";
+      ctx.fillStyle = robotColor;
       for (const r of robotsRef.current) {
         ctx.beginPath();
         ctx.arc(r.pos.x * W, r.pos.y * H, 5, 0, Math.PI * 2);
