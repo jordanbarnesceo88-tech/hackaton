@@ -58,17 +58,17 @@ const TD = "border-t px-3 py-2 align-top";
 export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) {
   if (items.length === 0) {
     return (
-      <p className="rounded-md border px-4 py-6 text-sm text-muted-foreground">
+      <p className="empty-state">
         Проектов пока нет. Нажмите «Новый проект», выберите тип объекта и источник параметров — демо-данные
         организатора, файл Excel/CSV или ручной ввод.
       </p>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="data-table-wrap">
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">Мои проекты</caption>
-        <thead className="bg-muted/40">
+        <thead className="border-b border-border">
           <tr>
             <th scope="col" className={TH}>
               Проект

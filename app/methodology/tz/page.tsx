@@ -236,7 +236,7 @@ const SECTIONS = [
  * абсолютно позиционированных потомков (sr-only-подписи в бейджах источника) — иначе они
  * выходят из-под прокрутки и на узком экране растягивают страницу по горизонтали.
  */
-const TABLE_WRAP = "relative overflow-x-auto rounded-md border";
+const TABLE_WRAP = "data-table-wrap relative";
 
 const TH = "px-3 py-2 text-left font-medium text-muted-foreground";
 const TD = "border-t px-3 py-1.5 align-top";
@@ -361,7 +361,7 @@ export default async function TzMethodologyPage() {
         </div>
         <div className={TABLE_WRAP}>
           <table className="w-full border-collapse text-sm">
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>
                   Норматив
@@ -428,7 +428,7 @@ export default async function TzMethodologyPage() {
             <h3>{facilityLabel(facility)}</h3>
             <div className={TABLE_WRAP}>
               <table className="w-full border-collapse text-sm">
-                <thead className="bg-muted/40">
+                <thead className="border-b">
                   <tr>
                     <th scope="col" className={TH}>
                       Процесс

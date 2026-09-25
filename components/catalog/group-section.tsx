@@ -84,9 +84,9 @@ export function GroupSection({
         </span>
       </div>
       {children}
-      <div className="relative overflow-x-auto rounded-lg border bg-card">
+      <div className="data-table-wrap relative">
         <table className="w-full border-collapse text-sm" aria-labelledby={id}>
-          <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+          <thead className="border-b text-left text-xs text-muted-foreground">
             <tr>
               {CHARACTERISTIC_HEADERS.map((h, i) => (
                 <th

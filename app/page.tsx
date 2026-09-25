@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TZ_STEPS, stepLinkText } from "@/components/project/step-nav";
 import { exampleHref, EXAMPLE_OBJECT_NAME } from "@/lib/wizard/example-scenario";
+import { buttonVariants } from "@/components/ui/button";
 
 /**
  * Первый экран.
@@ -48,25 +49,21 @@ const OBJECTIONS = [
   },
 ];
 
+// Раньше эти три константы были собственным, третьим по счёту набором radius/padding в
+// приложении — не совпадавшим ни с shared Button, ни с BCB. Теперь buttonVariants: landing
+// CTA получает BCB-размер --btn--big (size="xl"), а Button остаётся единственным источником
+// правды для формы/радиуса/hover-поведения кнопки.
 /** Основная кнопка — тот же вид, что у прежнего первого входа. */
-const CTA_PRIMARY =
-  "inline-block rounded-md bg-primary px-6 py-3 text-lg font-medium text-primary-foreground " +
-  "transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 " +
-  "focus-visible:outline-primary";
+const CTA_PRIMARY = buttonVariants({ variant: "default", size: "xl" });
 
 /** Вторая кнопка — контурная, как у прежнего «готового примера». */
-const CTA_SECONDARY =
-  "inline-block rounded-md border px-6 py-3 text-lg font-medium transition-colors " +
-  "hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 " +
-  "focus-visible:outline-primary";
+const CTA_SECONDARY = buttonVariants({ variant: "outline", size: "xl" });
 
 /**
  * Входы прежней модели v1 — тише основных: она в демонстрации по ТЗ не участвует, но ссылки
  * остаются рабочими.
  */
-const CTA_QUIET =
-  "inline-block rounded-md border px-4 py-2 font-medium transition-colors hover:border-primary " +
-  "hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+const CTA_QUIET = buttonVariants({ variant: "outline", size: "default" });
 
 export default function Home() {
   return (

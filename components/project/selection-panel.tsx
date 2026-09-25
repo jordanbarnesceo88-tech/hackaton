@@ -180,10 +180,10 @@ function ResultsTable({
 }: TableProps) {
   const colCount = actions ? 7 : 6;
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="data-table-wrap">
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{caption}</caption>
-        <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+        <thead className="border-b text-left text-xs text-muted-foreground">
           <tr>
             <th scope="col" className="px-3 py-2 font-medium">
               Продукт

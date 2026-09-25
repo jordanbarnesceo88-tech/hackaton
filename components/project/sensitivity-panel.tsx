@@ -199,9 +199,9 @@ export function SensitivityPanel({
             Каждая строка — полный пересчёт с одним параметром на границе диапазона; остальные входы — как в базовом
             расчёте. Размах — разница {metricLabel} между границами; строки отсортированы по размаху.
           </p>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="data-table-wrap">
             <table className="print-table w-full border-collapse text-sm">
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH}>
                     Параметр

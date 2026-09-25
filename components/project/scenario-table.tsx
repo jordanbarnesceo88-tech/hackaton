@@ -246,10 +246,10 @@ export function ScenarioTable({
   const colClass = (key: string) => cn(key === recKey && "bg-primary/5");
 
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="data-table-wrap">
       <table className="print-table w-full border-collapse text-sm">
         <caption className="sr-only">Сравнение сценариев: показатели по столбцам сценариев</caption>
-        <thead className="bg-muted/40">
+        <thead className="border-b border-border">
           <tr>
             <th scope="col" className={`${TH} text-muted-foreground`}>
               Показатель

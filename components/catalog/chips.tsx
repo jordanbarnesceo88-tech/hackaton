@@ -4,6 +4,7 @@ import type { ProductLevel, ProductStatus } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
 import {
   ARCHIVED_CHIP,
+  BADGE_CLASS,
   CHIP_CLASS,
   EXCLUDED_CHIP,
   IDENTIFICATION_ONLY_CHIP,
@@ -21,7 +22,7 @@ import {
 /** Статус продукта: «в эксплуатации», «пилот», «НИОКР». */
 export function StatusChip({ status, className }: { status: ProductStatus; className?: string }) {
   return (
-    <span className={cn(CHIP_CLASS, STATUS_TONE[status], className)}>
+    <span data-tone={STATUS_TONE[status]} className={cn(BADGE_CLASS, className)}>
       <span className="sr-only">Статус: </span>
       {STATUS_LABELS[status]}
     </span>
@@ -30,12 +31,12 @@ export function StatusChip({ status, className }: { status: ProductStatus; class
 
 /** Глубина описания карточки. */
 export function LevelChip({ level, className }: { level: ProductLevel; className?: string }) {
-  return <span className={cn(CHIP_CLASS, "border-border bg-muted text-foreground", className)}>{LEVEL_LABELS[level]}</span>;
+  return <span className={cn(CHIP_CLASS, className)}>{LEVEL_LABELS[level]}</span>;
 }
 
 /** Архивный продукт: карточка и сравнение открываются по старой ссылке, в списке и подборе его нет. */
 export function ArchivedChip({ className }: { className?: string }) {
-  return <span className={cn(CHIP_CLASS, "border-border bg-muted text-muted-foreground", className)}>{ARCHIVED_CHIP}</span>;
+  return <span className={cn(CHIP_CLASS, "text-muted-foreground", className)}>{ARCHIVED_CHIP}</span>;
 }
 
 /**
@@ -57,13 +58,15 @@ export function QualityChips({
   return (
     <div className={cn("flex flex-wrap gap-1", className)}>
       {needsVerification && (
-        <span className={cn(CHIP_CLASS, "border-caution/50 bg-caution/10 text-foreground")}>{NEEDS_VERIFICATION_CHIP}</span>
+        <span data-tone="warn" className={BADGE_CLASS}>{NEEDS_VERIFICATION_CHIP}</span>
       )}
       {level === "identification" && (
-        <span className={cn(CHIP_CLASS, "border-border bg-muted text-muted-foreground")}>{IDENTIFICATION_ONLY_CHIP}</span>
+        <span className={cn(CHIP_CLASS, "text-muted-foreground")}>{IDENTIFICATION_ONLY_CHIP}</span>
       )}
       {excluded && (
-        <span className={cn(CHIP_CLASS, "border-destructive/40 bg-destructive/5 text-destructive")}>{EXCLUDED_CHIP}</span>
+        // Статичный факт каталога, не тревога в реальном времени — data-live не ставится,
+        // поэтому точка не пульсирует (см. app/globals.css, .badge[data-tone="crit"]).
+        <span data-tone="crit" className={BADGE_CLASS}>{EXCLUDED_CHIP}</span>
       )}
     </div>
   );

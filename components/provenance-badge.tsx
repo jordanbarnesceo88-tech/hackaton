@@ -12,7 +12,10 @@ export function ProvenanceBadge({
 // «данные организатора» from «открытый источник» from «демо-данные» at a glance, so they are
 // deliberately not folded into the semantic tokens. They do need dark steps, though: a
 // 100-level tint with 800-level text is unreadable on a dark surface.
-const base = "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium";
+// chip: BCB's pill shape/border-radius (a prior pass left this on a small, non-pill radius,
+// inconsistent with every other tag/badge in the app). Colors stay per-source hex — the
+// comment above explains why they're deliberately not folded into the semantic tokens.
+const base = "chip inline-block text-[10px] font-medium";
   if (source === "ORGANIZER") {
     return <span className={`${base} bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200`}>данные организатора</span>;
   }

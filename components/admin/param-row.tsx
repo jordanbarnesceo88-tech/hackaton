@@ -7,7 +7,7 @@ import { fx } from "@/lib/tz/econ/text";
 import type { Origin } from "@/lib/tz/types";
 import { FormStatus, useAdminForm } from "./admin-form";
 import { numberInputValue } from "./format";
-import { CHECK_LABEL_CLASS, CHIP_CLASS, INPUT_CLASS, LABEL_CLASS, LABEL_TEXT_CLASS, SELECT_CLASS } from "./styles";
+import { BADGE_CLASS, CHECK_LABEL_CLASS, CHIP_CLASS, INPUT_CLASS, LABEL_CLASS, LABEL_TEXT_CLASS, SELECT_CLASS } from "./styles";
 
 export type ParamRowValues = {
   id: string;
@@ -85,10 +85,10 @@ export function ParamRow({ param, version }: { param: ParamRowValues; version: s
             sourceRef={param.sourceRef}
             note={param.basis ?? param.organizerNote}
           />
-          {param.required && <span className={`${CHIP_CLASS} bg-muted`}>обязательный</span>}
-          {param.locked && <span className={`${CHIP_CLASS} bg-muted`}>зафиксирован (min = max)</span>}
+          {param.required && <span className={CHIP_CLASS}>обязательный</span>}
+          {param.locked && <span className={CHIP_CLASS}>зафиксирован (min = max)</span>}
           {param.editedByAdmin && (
-            <span className={`${CHIP_CLASS} border-caution/40 bg-caution/10`}>правка администратора</span>
+            <span data-tone="warn" className={BADGE_CLASS}>правка администратора</span>
           )}
         </div>
       </div>

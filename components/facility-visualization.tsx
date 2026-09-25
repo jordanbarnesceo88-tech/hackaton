@@ -248,7 +248,7 @@ export function FacilityVisualization({
   return (
     <Card className="md:col-span-2">
       <CardHeader>
-        <CardTitle as="h2">Визуализация работы роботов</CardTitle>
+        <CardTitle as="h2" className="panel-label">Визуализация работы роботов</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="relative">
@@ -294,14 +294,32 @@ export function FacilityVisualization({
           </button>
         </div>
         <div className="flex flex-col gap-3 text-sm">
-          <div>
-            Роботов в работе: <b>{renderCount}</b>
-            {overflow ? ` (всего ${q})` : ""}
+          {/* .tiles/.tile (BCB KPI-tile pattern, app/globals.css): one shared bordered/rounded
+              strip, cells divided by a hairline rather than each carrying its own
+              border/radius/shadow — a prior pass left these three metrics as plain prose. */}
+          <div className="tiles">
+            <div className="tile">
+              <div className="tile__label">Роботов в работе</div>
+              <div className="tile__value">
+                {renderCount}
+                {overflow && <span className="tile__unit">из {q}</span>}
+              </div>
+            </div>
+            <div className="tile">
+              <div className="tile__label">Производительность</div>
+              <div className="tile__value">
+                {deployed === null ? "—" : deployed.toLocaleString("ru-RU")}
+                {deployed !== null && <span className="tile__unit">{capacityUnit}</span>}
+              </div>
+            </div>
+            <div className="tile">
+              <div className="tile__label">Загрузка</div>
+              <div className="tile__value">
+                {util === null ? "—" : util.toFixed(0)}
+                {util !== null && <span className="tile__unit">%</span>}
+              </div>
+            </div>
           </div>
-          <div>
-            Производительность: <b>{deployed === null ? "—" : `${deployed.toLocaleString("ru-RU")} ${capacityUnit}`}</b>
-          </div>
-          <div>Загрузка: <b>{util === null ? "—" : `${util.toFixed(0)}%`}</b></div>
           <div>
             <div className="mb-1">Накопленная экономия (за год):</div>
             {!hasNumbers ? (

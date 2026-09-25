@@ -100,7 +100,7 @@ export type ProjectReportProps = {
 const TH = "px-2 py-1.5 text-left align-bottom font-medium text-muted-foreground";
 const TD = "border-t px-2 py-1 align-top";
 const TABLE = "print-table w-full border-collapse text-sm";
-const TABLE_WRAP = "overflow-x-auto rounded-md border";
+const TABLE_WRAP = "data-table-wrap";
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -222,7 +222,7 @@ function ParamsSection({ results, defs }: { results: ProjectResults; defs: reado
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Параметр</th>
               <th scope="col" className={`${TH} text-right`}>Значение</th>
@@ -309,7 +309,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Решение</th>
                 <th scope="col" className={TH}>Статус</th>
@@ -355,7 +355,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
           <h4 className="text-sm font-semibold">{processLabel(g.process)}</h4>
           <div className={TABLE_WRAP}>
             <table className={TABLE}>
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH}>Решение</th>
                   <th scope="col" className={TH}>Статус</th>
@@ -410,7 +410,7 @@ function EquipmentSection({ results }: { results: ProjectResults }) {
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Сценарий и решение</th>
               <th scope="col" className={`${TH} text-right`}>Роботов</th>
@@ -580,7 +580,7 @@ function CashflowSection({ results }: { results: ProjectResults }) {
             </p>
             <div className={TABLE_WRAP}>
               <table className={TABLE}>
-                <thead className="bg-muted/40">
+                <thead className="border-b">
                   <tr>
                     <th scope="col" className={TH}>Год</th>
                     {CASHFLOW_COLUMNS.map((c) => (
@@ -692,7 +692,7 @@ function SimSection({ results }: { results: ProjectResults }) {
           </ul>
           <div className={TABLE_WRAP}>
             <table className={TABLE}>
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH}>Показатель</th>
                   {table.columns.map((c) => (
@@ -778,7 +778,7 @@ function ConclusionSection({ results }: { results: ProjectResults }) {
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Сценарий</th>
                 <th scope="col" className={TH}>Важность</th>
@@ -815,7 +815,7 @@ function FormulasSection() {
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Показатель</th>
               <th scope="col" className={TH}>Формула</th>
@@ -853,7 +853,7 @@ function NormsSection({ results }: { results: ProjectResults }) {
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Норматив</th>
               <th scope="col" className={`${TH} text-right`}>Значение</th>
@@ -955,7 +955,7 @@ function SourcesSection({ results }: { results: ProjectResults }) {
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Характеристика</th>
                 <th scope="col" className={TH}>Значение</th>
@@ -1022,7 +1022,7 @@ function ChangesSection({ results, defs, changes }: { results: ProjectResults; d
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Когда</th>
                 <th scope="col" className={TH}>Кто</th>

@@ -79,9 +79,9 @@ function NormsTable({ rows, print }: { rows: readonly NormPanelRow[]; print: boo
     else groups.push({ name, rows: [r] });
   }
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="data-table-wrap">
       <table className="print-table w-full border-collapse text-sm">
-        <thead className="bg-muted/40">
+        <thead className="border-b">
           <tr>
             <th scope="col" className={TH}>
               Параметр

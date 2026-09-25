@@ -87,9 +87,9 @@ const plainAge = (ageDays: number | null) =>
  */
 function CitationTable({ rows, verdict }: { rows: CitationAudit[]; verdict: boolean }) {
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="data-table-wrap">
       <table className="w-full border-collapse text-sm">
-        <thead className="border-b bg-muted/50 text-left text-muted-foreground">
+        <thead className="border-b text-left text-muted-foreground">
           <tr>
             <th className="px-3 py-2 font-medium">Что утверждается</th>
             <th className="px-3 py-2 font-medium">Тип</th>

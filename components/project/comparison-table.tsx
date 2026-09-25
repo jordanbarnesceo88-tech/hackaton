@@ -326,10 +326,10 @@ function ProcessComparison({
   return (
     <div className="flex flex-col gap-2">
       {showCaption && <p className="text-sm font-medium">{processName}</p>}
-      <div className="overflow-x-auto rounded-md border">
+      <div className="data-table-wrap">
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">Сравнение решений: {processName}</caption>
-          <thead className="bg-muted/50 text-left text-xs">
+          <thead className="border-b border-border text-left text-xs">
             <tr>
               <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">
                 Характеристика

@@ -17,11 +17,12 @@ export const STATUS_LABELS: Readonly<Record<ProductStatus, string>> = {
   rnd: "НИОКР",
 };
 
-/** Цвет чипа статуса: серийная эксплуатация — спокойный, пилот — предупреждающий, НИОКР — приглушённый. */
-export const STATUS_TONE: Readonly<Record<ProductStatus, string>> = {
-  operation: "border-positive/50 bg-positive/10 text-foreground",
-  piloting: "border-caution/50 bg-caution/10 text-foreground",
-  rnd: "border-border bg-muted text-muted-foreground",
+/** Тон бейджа статуса (data-tone на .badge, app/globals.css): серийная эксплуатация — спокойный,
+    пилот — предупреждающий, НИОКР — нейтральный (без data-tone, .badge даёт muted-foreground). */
+export const STATUS_TONE: Readonly<Record<ProductStatus, "ok" | "warn" | undefined>> = {
+  operation: "ok",
+  piloting: "warn",
+  rnd: undefined,
 };
 
 /** Глубина описания продукта — насколько карточка заполнена характеристиками с источниками. */
@@ -80,6 +81,8 @@ export const EXCLUDED_CHIP = "не участвует в подборе";
 /** Подпись чипа архивного продукта: в списке и подборе его нет, карточка открывается по ссылке. */
 export const ARCHIVED_CHIP = "в архиве";
 
-/** Общий класс чипа каталога. */
-export const CHIP_CLASS =
-  "inline-flex max-w-full items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs leading-tight";
+/** Нейтральный бейдж-метка каталога (BCB `.chip`: бордер, без точки, без цветового тона). */
+export const CHIP_CLASS = "chip max-w-full whitespace-nowrap";
+
+/** Статусный бейдж (BCB `.badge`: без бордера, точка-индикатор, цвет через data-tone). */
+export const BADGE_CLASS = "badge max-w-full whitespace-nowrap";

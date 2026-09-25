@@ -46,9 +46,9 @@ export function LineItems({
       {lines.length === 0 ? (
         <p className="text-sm text-muted-foreground">Статей нет.</p>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <div className="data-table-wrap">
           <table className="print-table w-full border-collapse text-sm">
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>
                   Статья

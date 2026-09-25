@@ -67,6 +67,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-border-faint: var(--border-faint);
+  /* BCB panel radius (--r-lg, 16px) — the prototype's card/panel/chart-container radius, kept
+     distinct from --radius-xl (14px, derived from the button/input --radius scale) because the
+     audit found panels using the button radius read visibly tighter-cornered than the prototype. */
+  --radius-panel: 1rem;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -110,8 +115,13 @@
   --accent-foreground: oklch(0.264 0.025 217.3);
   --destructive: oklch(0.549 0.183 31.0); /* --crit (light), L снижена 0.585→0.549 для 4.5:1 на фоне */
   --border: oklch(0.889 0.008 197.0); /* --line (light) */
+  --border-faint: oklch(0.936 0.005 197.1); /* --line-faint (light): weaker divider, e.g. table rows */
   --input: oklch(0.804 0.014 202.4); /* --line-strong (light) */
   --ring: oklch(0.385 0.045 201.9); /* = primary */
+  /* --accent-bg: BCB's tinted-primary wash for hover/pressed chips and badge fills. Defined
+     once here (not per theme): color-mix resolves --primary live at point of use, so it tracks
+     whichever theme is active on the same element without a .dark/media duplicate. */
+  --accent-bg: color-mix(in oklch, var(--primary) 12%, transparent);
   /* Categorical, not a ramp. These sit in shadcn's categorical chart slots, so a single-hue
      blue→cyan sequence was the wrong shape twice over: it encoded identity as magnitude, and
      the pale end failed contrast (chart-5 was 1.80:1 on white, against a 3:1 minimum for
@@ -172,6 +182,7 @@
   --accent-foreground: oklch(0.942 0.002 197.1);
   --destructive: oklch(0.674 0.181 29.7); /* --crit (dark), 5.40:1 на фоне — без правки */
   --border: oklch(0.374 0.035 210.0); /* --line (dark) — сплошной, не полупрозрачный: так у прототипа */
+  --border-faint: oklch(0.329 0.034 210.7); /* --line-faint (dark): weaker divider, e.g. table rows */
   --input: oklch(0.466 0.045 208.1); /* --line-strong (dark), граница контрола ярче обычной */
   --ring: oklch(0.771 0.126 201.4); /* = primary */
   /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
@@ -223,6 +234,7 @@
     --accent-foreground: oklch(0.942 0.002 197.1);
     --destructive: oklch(0.674 0.181 29.7);
     --border: oklch(0.374 0.035 210.0);
+    --border-faint: oklch(0.329 0.034 210.7);
     --input: oklch(0.466 0.045 208.1);
     --ring: oklch(0.771 0.126 201.4);
     /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
@@ -420,6 +432,221 @@
   .animate-bubble-in {
     animation: bubble-in 0.24s ease-out;
   }
+
+  /* .badge — BCB's borderless, tone-colored status label with its signature ::before dot
+     (6×6, currentColor — one property drives both text and dot). Asymmetric padding
+     (2px 9px 2px 7px) leaves the dot visually centered in its own smaller margin rather than
+     matching the label side. Distinct from .chip below: two different prototype anatomies that
+     a prior pass had collapsed into one. */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px 2px 7px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    background: color-mix(in oklch, currentColor 12%, transparent);
+  }
+  .badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .badge[data-tone="ok"] {
+    color: var(--positive);
+  }
+  .badge[data-tone="warn"] {
+    color: var(--caution);
+  }
+  .badge[data-tone="crit"] {
+    color: var(--destructive);
+  }
+  /* Не из палитры BCB ok/warn/crit/idle — источник/происхождение данных (organizer/tz/user)
+     семантически "это важно, это ввод" (ТЗ §3.2.5, §3.3.4), а не тревога/успех/предупреждение;
+     info даёт этому свой тон вместо натягивания на ближайший из четырёх. */
+  .badge[data-tone="info"] {
+    color: var(--primary);
+  }
+  /* Пульс — только для действительно живого/срочного статуса (data-live), не для любого
+     тона "crit": в каталоге "исключено из подбора" тоже crit-цвета, но это статичный факт,
+     а не сигнал тревоги, и пульсирующая точка на каждой такой строке списка была бы шумом. */
+  .badge[data-tone="crit"][data-live="true"]::before {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .badge[data-tone="crit"][data-live="true"]::before {
+      animation: none;
+    }
+  }
+
+  /* .chip — BCB's neutral bordered tag/filter pill: fixed 1px neutral border regardless of
+     state, no dot, no tone color by default. Toggles to a solid --primary fill when pressed
+     (aria-pressed), matching the prototype's `.chip[aria-pressed="true"]`. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--input);
+    border-radius: 9999px;
+    background: var(--secondary);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    transition: border-color 0.14s, background 0.14s, color 0.14s;
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  /* .field — BCB's flat form-control recipe: border-color-only focus (no ring), applies to
+     text/number inputs and selects alike so the three inconsistent treatments the audit found
+     collapse into one. */
+  .field {
+    display: block;
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 7px 10px;
+    font-size: 0.8125rem;
+    color: var(--foreground);
+    transition: border-color 0.15s;
+  }
+  .field:focus-visible {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .field::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  /* .tiles/.tile — BCB's KPI-tile pattern: ONE shared bordered/rounded container; cells are
+     divided by a hairline, never individually bordered/radiused/shadowed. Opt-in grid columns
+     via inline style or a wrapper utility — this only owns the shared edge + divider logic. */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    overflow: hidden;
+    background: var(--card);
+  }
+  .tile {
+    padding: 14px 16px;
+    border-right: 1px solid var(--border-faint);
+  }
+  .tile:last-child {
+    border-right: none;
+  }
+  .tile__label {
+    margin-bottom: 4px;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+  }
+  .tile__value {
+    font-family: var(--font-mono);
+    font-size: 1.625rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .tile__unit {
+    margin-left: 4px;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+  .tile[data-dir="up"] .tile__value {
+    color: var(--positive);
+  }
+  .tile[data-dir="down"] .tile__value {
+    color: var(--destructive);
+  }
+
+  /* .panel-label — BCB's "instrument label" panel-header typography: uppercase, tracked,
+     accent-colored. Flagged by both the raw CSS and the design spec as the defining visual
+     differentiator of a BCB panel header; a prior pass rendered CardTitle as a plain heading. */
+  .panel-label {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+  }
+
+  /* .data-table-wrap/.data-table — BCB table anatomy: no border/radius/card-background on the
+     wrapper (a prior pass gave every table a bordered-card look BCB's raw `.table-wrap`
+     explicitly doesn't have — tables read as bare grids), uppercase-tracked header labels,
+     and a two-tier border: a real line under the header, a --border-faint hairline between
+     rows. Deliberately NOT sticky: this app's tables sit under a mix of page layouts (some
+     under the sticky site header alone, some also under the sticky step-nav), and getting a
+     per-page `top` offset right for each without a way to visually check it here risked a
+     worse bug (a table header hiding under the app chrome) than the gap it would close. */
+  .data-table-wrap {
+    overflow-x: auto;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  .data-table thead th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table tbody td,
+  .data-table tbody th[scope="row"] {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-faint);
+  }
+  .data-table tbody tr:last-child > td,
+  .data-table tbody tr:last-child > th[scope="row"] {
+    border-bottom: none;
+  }
+
+  /* .empty-state — BCB's empty-state block: centered, generous vertical padding (44px/22px,
+     BCB --sp-7/--sp-5), muted text. A prior pass kept only the color intent (muted text) —
+     every empty message in the app was plain inline-flow paragraph/cell text. */
+  .empty-state {
+    padding: 44px 22px;
+    text-align: center;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+  }
+
+  /* D2 (differentiator, docs/design/PROTOTYPE-DESIGN-SYSTEM.md §6.2): a 45° corner bevel and a
+     dashed ruler-tick top edge, standing in for the prototype's HUD-bracket corners — a
+     deliberately subtler device for a financial tool rather than a dispatch console. Opt-in
+     per-surface, not a default; .surface-data-rule needs `relative` positioning on its host. */
+  .surface-data-edge {
+    clip-path: polygon(0 12px, 12px 0, 100% 0, 100% 100%, 0 100%);
+  }
+  .surface-data-rule {
+    position: relative;
+  }
+  .surface-data-rule::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 8px);
+  }
 }
 
 @media print {
@@ -461,6 +688,7 @@
     --border: oklch(0.889 0.008 197.0);
     --input: oklch(0.804 0.014 202.4);
     --ring: oklch(0.385 0.045 201.9);
+    --border-faint: oklch(0.936 0.005 197.1);
     --positive: oklch(0.508 0.137 157.2);
     --positive-foreground: oklch(1 0 0);
     --caution: oklch(0.534 0.125 70.4);

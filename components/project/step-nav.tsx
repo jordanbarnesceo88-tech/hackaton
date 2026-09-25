@@ -57,12 +57,16 @@ export function StepNav({ active, className }: { active?: number; className?: st
   return (
     <nav
       aria-label="Шаги по ТЗ"
-      className={cn(
-        "no-print sticky top-0 z-20 border-b bg-background/95 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80",
-        className,
-      )}
+      // top-[60px]: stacks directly under SiteHeader's own sticky --bar-h (60px) bar rather
+      // than underneath it. An approximation — the header can grow past 60px if it wraps to a
+      // second line on a narrow phone, in which case this overlaps by that extra height.
+      className={cn("glass no-print sticky top-[60px] z-20 py-2", className)}
     >
-      <ol className="flex gap-1 overflow-x-auto text-sm">
+      {/* subtabs (BCB): подчёркнутые, равноправные — не заливка-пилюля (§6 дифференциаторы
+          спеки прямо предупреждает: пилюля с фоном — облик shadcn Tabs по умолчанию, не
+          прототипа). Контейнер несёт общую нижнюю линию; активный пункт перекрывает её своей
+          2px-линией акцента (-mb-px). */}
+      <ol className="flex gap-1 overflow-x-auto border-b border-border text-sm">
         {TZ_STEPS.map((step) => {
           const current = active === step.n;
           return (
@@ -71,9 +75,9 @@ export function StepNav({ active, className }: { active?: number; className?: st
                 href={`#${step.id}`}
                 aria-current={current ? "step" : undefined}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 whitespace-nowrap transition-colors",
-                  "hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                  current ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground",
+                  "-mb-px inline-flex items-center gap-1.5 border-b-2 px-2.5 py-1.5 whitespace-nowrap transition-colors",
+                  "hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                  current ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground",
                 )}
               >
                 {/* Пробел между номером и названием — текстовый узел, чтобы имя ссылки было

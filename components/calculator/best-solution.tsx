@@ -83,9 +83,9 @@ export function BestSolution({
     return (
       <div
         data-testid="best-solution"
-        className="rounded-lg border-2 border-border bg-muted/30 p-6"
+        className="rounded-panel border border-border bg-muted/30 p-6"
       >
-        <div className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+        <div className="panel-label text-muted-foreground">
           Пока нечем считать
         </div>
         <p className="mt-2 max-w-prose">
@@ -109,9 +109,9 @@ export function BestSolution({
     return (
       <div
         data-testid="best-solution"
-        className="rounded-lg border-2 border-caution/40 bg-caution/5 p-6"
+        className="rounded-panel border border-caution/40 bg-caution/5 p-6"
       >
-        <div className="text-sm font-medium tracking-wide text-caution uppercase">
+        <div className="panel-label text-caution">
           Не окупается
         </div>
         <p className="mt-2 max-w-prose">
@@ -139,9 +139,9 @@ export function BestSolution({
   return (
     <div
       data-testid="best-solution"
-      className="rounded-lg border-2 border-primary bg-primary/5 p-6"
+      className="rounded-panel border border-primary bg-primary/5 p-6"
     >
-      <div className="text-sm font-medium tracking-wide text-primary uppercase">
+      <div className="panel-label">
         Окупается за {formatYearsRu(r.discountedPaybackYears!)}
       </div>
       <h2 className="mt-1">

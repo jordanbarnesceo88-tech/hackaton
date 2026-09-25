@@ -111,7 +111,7 @@ function GroupHeader({ group, products }: { group: CharGroup; products: readonly
 export function CompareTable({ products }: { products: readonly Product[] }) {
   const slugs = products.map((p) => p.slug);
   return (
-    <div className="relative overflow-x-auto rounded-lg border bg-card">
+    <div className="data-table-wrap relative">
       <table className="w-full min-w-[48rem] table-fixed border-collapse text-sm">
         <caption className="sr-only">Сравнение решений каталога по группам характеристик</caption>
         <colgroup>

@@ -191,7 +191,7 @@ export default async function AdminCatalogPage({
           <div className={TABLE_WRAP_CLASS}>
             <table className="w-full border-collapse text-sm">
               <caption className="sr-only">Продукты каталога</caption>
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH_CLASS}>
                     Продукт
