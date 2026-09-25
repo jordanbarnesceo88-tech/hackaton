@@ -31,6 +31,9 @@ import { VENDOR_SOLUTIONS } from "./seed-data/vendor-solutions";
 import { SOLUTION_CLASSES } from "./seed-data/solution-classes";
 import { CATEGORIES } from "./seed-data/categories";
 import { WAREHOUSE_REAL } from "./parse-sources/warehouse-real";
+import { DEMO_ACCOUNTS } from "./seed-v2";
+import { CATALOG } from "../lib/data/organizer/catalog";
+import { organizerReleaseVersion } from "../lib/catalog/sync";
 
 // Prisma 7 требует драйверный адаптер — `new PrismaClient()` без него бросает. Тот же приём,
 // что в scripts/seed.ts: клиент строится здесь, а не берётся из lib/db/client.ts, потому что
@@ -80,6 +83,200 @@ function seedBySlug() {
   for (const c of SOLUTION_CLASSES) bySlug.set(c.slug, { name: c.name, category: c.categorySlug });
   for (const s of WAREHOUSE_REAL) bySlug.set(s.slug, { name: s.name, category: s.categorySlug });
   return bySlug;
+}
+
+/**
+ * Таблицы слоя модели по методике ТЗ (tz-1.0.0). Их вместе с колонкой User.role создаёт одна
+ * аддитивная миграция …_tz_v2 (только CREATE и ADD — таблицы v1 она не меняет), а заполняет
+ * сев scripts/seed-v2.ts.
+ */
+const TZ_TABLES = [
+  "Process",
+  "FacilityTypeProcess",
+  "SolutionType",
+  "CatalogProduct",
+  "ProductProcess",
+  "ProductCharacteristic",
+  "ParamDefinition",
+  "Norm",
+  "DataRelease",
+  "Project",
+  "Scenario",
+  "ChangeLog",
+] as const;
+
+/**
+ * Проверки слоя модели ТЗ. Отдельно от набора таблиц v1 (`core` в main), а не внутри него:
+ * отставшая боевая, где этого слоя ещё нет, — законное состояние (его создаст `migrate
+ * deploy`), и проверки v1 на ней должны идти дальше, а не обрываться на «проверять нечего».
+ * СТОП — только если слой развёрнут наполовину или миграция числится применённой, а таблиц нет.
+ */
+async function checkTzLayer(onDisk: readonly string[]): Promise<void> {
+  const missing: string[] = [];
+  for (const t of TZ_TABLES) if (!(await hasTable(t))) missing.push(t);
+  if (!(await hasColumn("User", "role"))) missing.push("User.role");
+  const migration = onDisk.find((n) => n.endsWith("_tz_v2")) ?? "…_tz_v2";
+  let applied = false;
+  if (await hasTable("_prisma_migrations")) {
+    const r = await prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*) AS n FROM "_prisma_migrations"
+      WHERE migration_name = ${migration} AND finished_at IS NOT NULL`;
+    applied = Number(r[0]?.n ?? 0) > 0;
+  }
+
+  if (missing.length === TZ_TABLES.length + 1) {
+    add(
+      applied
+        ? {
+            level: "stop",
+            title: `Миграция ${migration} числится применённой, а таблиц модели ТЗ нет`,
+            detail:
+              "`migrate deploy` её повторно не выполнит, и сев упадёт на первой же таблице. " +
+              "Разобрать вручную: кто удалил таблицы и что стало с данными проектов.",
+          }
+        : {
+            level: "warn",
+            title: "Слой модели ТЗ ещё не развёрнут",
+            detail:
+              `\`prisma migrate deploy\` создаст ${TZ_TABLES.length} таблиц и колонку User.role миграцией ` +
+              `${migration} (только CREATE и ADD — данные v1 не меняются). Затем \`npm run db:seed\` ` +
+              "заполнит их данными организатора и заведёт демо-аккаунты.",
+          },
+    );
+    return;
+  }
+  if (missing.length > 0) {
+    add({
+      level: "stop",
+      title: "Слой модели ТЗ развёрнут частично",
+      detail:
+        `Нет: ${missing.join(", ")}. Так не бывает после \`migrate deploy\` — схему меняли мимо ` +
+        "миграций. Сев и страницы проектов упадут на отсутствующей таблице.",
+    });
+    return;
+  }
+  add({
+    level: "ok",
+    title: "Таблицы модели ТЗ на месте",
+    detail: `${TZ_TABLES.length} таблиц и колонка User.role.`,
+  });
+
+  // Демо-аккаунты. Сев приводит их роль к заданной и меняет пароль на DEMO_*_PASSWORD (или
+  // пароль по умолчанию из README). Если такой адрес уже заняла чужая регистрация (домен
+  // @demo.local регистрацию не запрещает), сев заберёт аккаунт вместе с его проектами.
+  const emails = DEMO_ACCOUNTS.map((a) => a.email);
+  const demoUsers = await prisma.$queryRaw<{ email: string; role: string; projects: bigint }[]>`
+    SELECT u."email", u."role"::text AS role,
+           (SELECT count(*) FROM "Project" p WHERE p."userId" = u."id") AS projects
+    FROM "User" u WHERE u."email" = ANY(${emails}::text[]) ORDER BY u."email"`;
+  const foreign = demoUsers.filter((u) => DEMO_ACCOUNTS.find((a) => a.email === u.email)?.role !== u.role);
+  const defaults = DEMO_ACCOUNTS.filter((a) => (process.env[a.passwordEnv] ?? "").trim() === "").map((a) => a.passwordEnv);
+  add(
+    foreign.length > 0
+      ? {
+          level: "warn",
+          title: "Демо-адрес занят аккаунтом с другой ролью",
+          detail:
+            "Сев сменит роль и пароль — владелец регистрации потеряет доступ, а его проекты " +
+            "станут видны всем, кто знает демо-пароль. Проверьте, чей это аккаунт:\n" +
+            foreign
+              .map((u) => `      · ${u.email}: роль ${u.role}, проектов ${Number(u.projects)}`)
+              .join("\n"),
+        }
+      : {
+          level: "ok",
+          title:
+            demoUsers.length === 0
+              ? "Демо-аккаунтов ещё нет — сев их заведёт"
+              : "Демо-аккаунты уже заведены — сев сверит роль и пароль",
+          detail: DEMO_ACCOUNTS.map((a) => `${a.email} (${a.role})`).join(", ") + ".",
+        },
+  );
+  if (defaults.length > 0) {
+    add({
+      level: "warn",
+      title: "Демо-пароли по умолчанию",
+      detail:
+        `Не заданы ${defaults.join(", ")}: сев возьмёт пароли из README. Для стенда, доступного ` +
+        "извне, задайте свои в окружении, где бежит сев.",
+    });
+  }
+
+  // Правки администратора. Синхронизация их сохраняет — здесь только видно, сколько их.
+  const edits = await prisma.$queryRaw<
+    { products: bigint; chars: bigint; norms: bigint; params: bigint; adminProducts: bigint }[]
+  >`
+    SELECT (SELECT count(*) FROM "CatalogProduct" WHERE "editedByAdmin") AS products,
+           (SELECT count(*) FROM "ProductCharacteristic" WHERE "origin" = 'admin') AS chars,
+           (SELECT count(*) FROM "Norm" WHERE "editedByAdmin") AS norms,
+           (SELECT count(*) FROM "ParamDefinition" WHERE "editedByAdmin") AS params,
+           (SELECT count(*) FROM "CatalogProduct" WHERE "origin" = 'ADMIN') AS "adminProducts"`;
+  const e = edits[0];
+  add({
+    level: "ok",
+    title: "Правки администратора сев сохранит",
+    detail: e
+      ? `Правленых продуктов ${Number(e.products)}, характеристик ${Number(e.chars)}, нормативов ` +
+        `${Number(e.norms)}, параметров ${Number(e.params)}; продуктов, заведённых администратором, ` +
+        `${Number(e.adminProducts)}.`
+      : "",
+  });
+
+  // Что синхронизация отправит в архив: продукты организатора, которых больше нет в данных.
+  // Не удаление — строки остаются, проекты со снимками открываются, — но из каталога и подбора
+  // они пропадут. И продукты администратора, чей slug совпал с продуктом организатора: такой
+  // продукт организатора сев пропустит.
+  const slugs = CATALOG.map((p) => p.slug);
+  const vanishing = await prisma.$queryRaw<{ slug: string; name: string }[]>`
+    SELECT "slug", "name" FROM "CatalogProduct"
+    WHERE "origin" = 'ORGANIZER' AND NOT "archived" AND NOT "editedByAdmin" AND "dataVersion" <> ''
+      AND NOT ("slug" = ANY(${slugs}::text[]))
+    ORDER BY "slug"`;
+  add(
+    vanishing.length === 0
+      ? { level: "ok", title: "Сев не отправит в архив ни одного продукта", detail: "" }
+      : {
+          level: "warn",
+          title: `Сев отправит в архив ${vanishing.length} продукт(ов) — их нет в данных организатора`,
+          detail:
+            "Строки не удаляются, проекты со снимками открываются, но в каталоге и подборе их " +
+            "не будет:\n" +
+            vanishing.map((v) => `      · ${v.slug} — «${v.name}»`).join("\n"),
+        },
+  );
+  const clashes = await prisma.$queryRaw<{ slug: string }[]>`
+    SELECT "slug" FROM "CatalogProduct"
+    WHERE "origin" = 'ADMIN' AND "slug" = ANY(${slugs}::text[]) ORDER BY "slug"`;
+  if (clashes.length > 0) {
+    add({
+      level: "warn",
+      title: `${clashes.length} продукт(ов) администратора заняли slug продукта организатора`,
+      detail:
+        "Сев не перезапишет продукт администратора и пропустит данные организатора под этим " +
+        "slug:\n" +
+        clashes.map((c) => `      · ${c.slug}`).join("\n"),
+    });
+  }
+
+  // Выпуск данных: какой в базе и какой запишет сев.
+  const release = await prisma.$queryRaw<{ version: string; seededAt: Date }[]>`
+    SELECT "version", "seededAt" FROM "DataRelease" ORDER BY "seededAt" DESC, "version" DESC LIMIT 1`;
+  const next = organizerReleaseVersion();
+  const current = release[0];
+  add({
+    level: "ok",
+    title:
+      current === undefined
+        ? `Выпусков данных ещё нет — сев запишет ${next}`
+        : current.version === next
+          ? `Выпуск данных ${next} уже в базе`
+          : `Сев запишет новый выпуск данных ${next}`,
+    detail:
+      current === undefined || current.version === next
+        ? ""
+        : `Сейчас в базе ${current.version} от ${current.seededAt.toISOString().slice(0, 10)}. ` +
+          "Проекты, посчитанные на прежнем выпуске, при открытии покажут расхождение с актуальными данными.",
+  });
 }
 
 async function main() {
@@ -211,6 +408,10 @@ async function main() {
     report();
     return;
   }
+
+  // 1b. Слой модели по методике ТЗ: таблицы миграции tz_v2, колонка User.role и то, что с ними
+  //     сделает сев (демо-аккаунты, архивация продуктов, выпуск данных). См. checkTzLayer.
+  await checkTzLayer(onDisk);
 
   // 2. Кого удалит миграция saved_analysis_solution_fk.
   //

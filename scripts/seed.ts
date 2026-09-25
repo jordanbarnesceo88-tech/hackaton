@@ -5,6 +5,7 @@ import "dotenv/config";
 import { PrismaClient, SolutionSource } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { WAREHOUSE_REAL } from "./parse-sources/warehouse-real";
+import { seedV2 } from "./seed-v2";
 
 // Prisma 7 requires a driver adapter — `new PrismaClient()` with no adapter throws
 // "A driver adapter is required to connect to your database". (Validated pattern.)
@@ -582,6 +583,8 @@ async function main() {
       );
     }
   }
+
+  await seedV2(prisma);
 
   console.log(
     `Seeded ${industryCount} industries, ${facilityTypeCount} facility types, ${categoryCount} solution categories, ${solutionCount} solutions, ${assumptions.length} assumptions.`
