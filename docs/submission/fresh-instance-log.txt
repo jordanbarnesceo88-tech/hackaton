@@ -1,0 +1,110 @@
+npm notice run robotization-roi-platform@0.1.0 npx
+npm notice run tsx scripts/fresh-instance-check.ts
+Проверка на чистом экземпляре
+Время: 2026-09-25T13:50:39.960Z · коммит e15fd74 · Node v24.19.0 · модель tz-1.0.0, имитация sim-1.0.0
+
+[ OK ] Предпосылки — сборка, Prisma CLI и tsx на месте; порт 3100 свободен; Postgres localhost:5433/robotization_roi доступен, право CREATEDB есть
+[ OK ] Создана пустая база — localhost:5433/rrp_fresh_1790344240 (0,7 с)
+[ .. ] Миграции (prisma migrate deploy)…
+       │ Loaded Prisma config from prisma.config.ts.
+       │ 
+       │ Prisma schema loaded from prisma\schema.prisma.
+       │ Datasource "db": PostgreSQL database "rrp_fresh_1790344240", schema "public" at "localhost:5433"
+       │ 
+       │ 12 migrations found in prisma/migrations
+       │ 
+       │ Applying migration `20260818134739_init`
+       │ Applying migration `20260818162005_economics`
+       │ Applying migration `20260819160509_auth`
+       │ Applying migration `20260830050603_solution_price_estimate`
+       │ Applying migration `20260901165441_rate_limit`
+       │ Applying migration `20260903172455_saved_analysis_solution_fk`
+       │ Applying migration `20260907120000_global_categories`
+       │ Applying migration `20260907130000_solution_class_fields`
+       │ Applying migration `20260908100000_workload_stream`
+       │ Applying migration `20260911120000_category_task_labour`
+       │ Applying migration `20260913120000_solution_slug`
+       │ Applying migration `20260924120000_tz_v2`
+       │ 
+       │ The following migration(s) have been applied:
+       │ 
+       │ migrations/
+       │   └─ 20260818134739_init/
+       │     └─ migration.sql
+       │   └─ 20260818162005_economics/
+       │     └─ migration.sql
+       │   └─ 20260819160509_auth/
+       │     └─ migration.sql
+       │   └─ 20260830050603_solution_price_estimate/
+       │     └─ migration.sql
+       │   └─ 20260901165441_rate_limit/
+       │     └─ migration.sql
+       │   └─ 20260903172455_saved_analysis_solution_fk/
+       │     └─ migration.sql
+       │   └─ 20260907120000_global_categories/
+       │     └─ migration.sql
+       │   └─ 20260907130000_solution_class_fields/
+       │     └─ migration.sql
+       │   └─ 20260908100000_workload_stream/
+       │     └─ migration.sql
+       │   └─ 20260911120000_category_task_labour/
+       │     └─ migration.sql
+       │   └─ 20260913120000_solution_slug/
+       │     └─ migration.sql
+       │   └─ 20260924120000_tz_v2/
+       │     └─ migration.sql
+       │ 
+       │ All migrations have been successfully applied.
+[ OK ] Миграции (prisma migrate deploy) (23,6 с)
+[ .. ] Сев (tsx scripts/seed.ts)…
+       │ Модель по методике ТЗ (tz-1.0.0): синхронизация данных организатора…
+       │   Выпуск данных 72eb7f93: записан новый
+       │   Типы решений: создано 14, обновлено 0
+       │   Процессы: создано 13, обновлено 0
+       │   Связи «тип объекта — процесс»: создано 13, обновлено 0
+       │   Параметры объектов: создано 152, обновлено 0, пропущено (правки администратора) 0
+       │   Нормативы: создано 48, обновлено 0, пропущено (правки администратора) 0
+       │   Продукты: создано 188, обновлено 0, пропущено (правки администратора) 0, в архив 0
+       │   Связи «продукт — процесс»: создано 67, удалено 0
+       │   Характеристики: записано 2615, пропущено (правки администратора) 0, удалено 0, отклонено 0
+       │   Устаревших источников (> 180 дней): 0
+       │   Демо-аккаунт demo@demo.local (пользователь): создан
+       │   Демо-аккаунт admin@demo.local (администратор): создан
+       │   Демо-проект demo-warehouse («Склад организатора (демо)», владелец demo@demo.local): пересоздан за 0,2 с (пересоздаётся при каждом севе и в итог изменений не входит) — модель tz-1.0.0, имитация sim-1.0.0, данные расчёта 7be2cba2
+       │     Как есть: OPEX 46 872 000 ₽/год, TCO за 5 лет 234 360 000 ₽
+       │     Покупка — Ronavi H1500: парк 11, CAPEX 38 500 000 ₽, эффект 9 321 602 ₽/год, окупаемость 4,1 г., NPV -4 108 652 ₽, TCO 225 509 489 ₽; имитация подтверждает расчёт: 132,5 из 129,5 пал./ч
+       │     Услуга (RaaS) — Ronavi H1500: парк 11, CAPEX 1 540 000 ₽, эффект 1 055 102 ₽/год, окупаемость 1,5 г., NPV 2 263 407 ₽, TCO 230 624 489 ₽; имитация подтверждает расчёт: 132,5 из 129,5 пал./ч
+       │     Покупка — AMR 1500: парк 11, CAPEX 32 780 000 ₽, эффект 10 020 102 ₽/год, окупаемость 3,3 г., NPV 3 983 162 ₽, TCO 216 434 489 ₽; имитация подтверждает расчёт: 132 из 129,5 пал./ч
+       │     Вывод: Рекомендуемый сценарий: Покупка — AMR 1500. NPV 3 983 162 ₽ за 5 лет, окупаемость 3,3 года — средняя окупаемость (3–5 лет).
+       │   Итог слоя модели ТЗ: изменено записей — 3113.
+       │ Seeded 12 industries, 47 facility types, 15 solution categories, 11 solutions, 16 assumptions.
+[ OK ] Сев (tsx scripts/seed.ts) (3,0 с)
+[ .. ] Данные после сева — отраслей 12, типов объектов 47, решений v1 11, процессов 13, типов решений 14, продуктов каталога 188, характеристик продуктов 2615, параметров объектов 152, нормативов 48, выпусков данных 1, проектов 1
+[ OK ] Демо-аккаунты созданы — admin@demo.local (ADMIN), demo@demo.local (USER)
+[ OK ] Демо-проект на месте — demo-warehouse
+[ .. ] Запуск собранного сервера: node .next/standalone/server.js на http://127.0.0.1:3100…
+  сервер │ ▲ Next.js 16.3.1
+  сервер │ - Local:         http://127.0.0.1:3100
+  сервер │ - Network:       http://127.0.0.1:3100
+  сервер │ ✓ Ready in 0ms
+  сервер │ ✓ Running next.config took 16ms
+[ OK ] GET /api/health → 200 — {"ok":true,"db":true,"modelVersion":"tz-1.0.0","simModelVersion":"sim-1.0.0"} (20,2 с)
+[ OK ] GET / → 200 (0,5 с)
+[ OK ] GET /demo → 200 (1,3 с)
+[ .. ] Сервер остановлен
+[ OK ] Временная база удалена — rrp_fresh_1790344240
+
+──────── Итог ────────
+[ OK ] Предпосылки — сборка, Prisma CLI и tsx на месте; порт 3100 свободен; Postgres localhost:5433/robotization_roi доступен, право CREATEDB есть
+[ OK ] Создана пустая база — localhost:5433/rrp_fresh_1790344240 (0,7 с)
+[ OK ] Миграции (prisma migrate deploy) (23,6 с)
+[ OK ] Сев (tsx scripts/seed.ts) (3,0 с)
+[ .. ] Данные после сева — отраслей 12, типов объектов 47, решений v1 11, процессов 13, типов решений 14, продуктов каталога 188, характеристик продуктов 2615, параметров объектов 152, нормативов 48, выпусков данных 1, проектов 1
+[ OK ] Демо-аккаунты созданы — admin@demo.local (ADMIN), demo@demo.local (USER)
+[ OK ] Демо-проект на месте — demo-warehouse
+[ OK ] GET /api/health → 200 — {"ok":true,"db":true,"modelVersion":"tz-1.0.0","simModelVersion":"sim-1.0.0"} (20,2 с)
+[ OK ] GET / → 200 (0,5 с)
+[ OK ] GET /demo → 200 (1,3 с)
+[ OK ] Временная база удалена — rrp_fresh_1790344240
+
+ИТОГ: проверка на чистом экземпляре пройдена — пустая база, миграции, сев, сервер сборки, /api/health и страницы /, /demo отвечают.
