@@ -3,12 +3,19 @@
 // сценарий демонстрации — их даёт только этот скрипт на тех же данных и той же модели, что
 // рабочая область и /demo.
 //
-// Два блока: (1) демонстрация — «Как есть», покупка и услуга Ronavi H1500, покупка DMR Carrier P
-// (вторая покупка зафиксирована); (2) новый проект со сценариями по умолчанию — ровно то, что
-// увидит член жюри, создав проект на демо-данных (§5.4). Если подбор по умолчанию предлагает
-// те же сценарии, второй блок сводится к одной строке.
+// Разделы вывода:
+// 1) путь жюри (ТЗ §5.4) — основной: проект ровно такой, каким его строят «Новый проект» на
+//    демо-данных организатора, засеянный проект demo-warehouse и гостевой /demo (одна функция
+//    сценариев по умолчанию; вторая покупка — по константе DEMO_SECOND_PURCHASE из
+//    scripts/seed-demo.ts, решение владельца — вариант «А», автоподбор). Таблица сценариев,
+//    парк и имитация, риски сценариев, полная чувствительность NPV по всем рычагам, порог по
+//    зарплате каждой покупки, вывод;
+// 2) масштаб каталога текущего выпуска данных (счётчики из БД);
+// 3) дополнительный пример — покупка DMR Carrier P из «Примеров решений» организатора вместо
+//    второй покупки подбора. В путь жюри не входит: показывает паспортную норму второго
+//    продукта организатора на той же планировке.
 //
-// Запуск:
+// Запуск (из Git Bash; в PowerShell `>` перекодирует вывод):
 //   npx tsx scripts/print-demo-numbers.ts             — таблица в консоль;
 //   npx tsx scripts/print-demo-numbers.ts --markdown  — только Markdown (для
 //     docs/submission/demo-numbers.md; вывод детерминирован: без даты и длительностей, чтобы
@@ -16,14 +23,15 @@
 //   npx tsx scripts/print-demo-numbers.ts --offline   — без БД: данные организатора из кода
 //     (lib/data/organizer) и нормативы по умолчанию. Для проверки до сева; для презентации —
 //     только вариант из БД.
-// Код выхода 1 — сценарий неожиданно не рассчитан или имитация не выполнена; 2 — неверные
-// аргументы.
+// Код выхода 1 — сценарий неожиданно не рассчитан, имитация не выполнена или нет продукта
+// дополнительного примера; 2 — неверные аргументы.
 //
 // @prisma/client не читает .env сам — отсюда dotenv/config (как в scripts/seed.ts). Импорты
 // относительные: tsx запускает скрипт без алиаса «@/».
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { LEVEL_LABELS } from "../components/catalog/labels";
 import { latestDataRelease } from "../lib/catalog/queries";
 import { productForCalcFromSeed } from "../lib/catalog/product-for-calc";
 import { CATALOG } from "../lib/data/organizer/catalog";
@@ -31,28 +39,44 @@ import { paramSpecsFor } from "../lib/data/organizer/params";
 import { ORGANIZER_DATA_VERSION } from "../lib/data/organizer/version.generated";
 import { pluralRu } from "../lib/format/plural";
 import { formatRub } from "../lib/format/rub";
-import { asisScenario, defaultScenarios, shortProductName } from "../lib/projects/defaults";
+import { asisScenario, initialScenarios, shortProductName } from "../lib/projects/defaults";
 import { loadLiveInputs, resultsFromInputs, type LiveInputs } from "../lib/projects/recalc";
 import { BOTTLENECK_LABELS } from "../lib/sim/export-rows";
 import type { SimSummaryStored } from "../lib/sim/types";
+import { originLabel } from "../lib/tz/characteristics";
 import { interpretBand } from "../lib/tz/econ/interpret";
 import { fx, rangeText } from "../lib/tz/econ/text";
-import { buildProjectModel } from "../lib/tz/model";
 import { resolveNorms } from "../lib/tz/norms";
+import { applyDefaults } from "../lib/tz/params/schema";
 import { processDef } from "../lib/tz/processes";
-import type { ProductForCalc, ProjectResults, ScenarioOk, ScenarioResult, ScenarioSpec } from "../lib/tz/types";
+import type {
+  Origin,
+  ParamSpec,
+  ProductForCalc,
+  ProductLevel,
+  ProjectResults,
+  ScenarioOk,
+  ScenarioResult,
+  ScenarioSpec,
+} from "../lib/tz/types";
 import { stableJson } from "../lib/tz/version";
+import { DEMO_PROJECT_ID, DEMO_PROJECT_NAME, DEMO_SECOND_PURCHASE, demoScenarios } from "./seed-demo";
 
 const FACILITY = "warehouse";
 const PT = "pallet-transport";
-/** Продукты демонстрации: slug в данных организатора и запасной поиск по названию. */
+/** Продукты дополнительного примера: slug в данных организатора и запасной поиск по названию. */
 const H1500 = { slug: "ronavi-h1500", name: /h1500/i };
 const CARRIER_P = { slug: "dikom-dmr-carrier-p", name: /carrier\s*p\b/i };
+
+/** Заголовки разделов: на них ссылаются метки «ДЧ·…» в docs/DEMO-SCRIPT.md и плане презентации. */
+const JURY_TITLE = "Путь жюри (ТЗ §5.4): новый проект на демо-данных склада";
+const EXTRA_TITLE = "Дополнительный пример: DMR Carrier P из «Примеров решений» организатора (не путь жюри)";
 
 type Table = { head: string[]; rows: string[][] };
 type Block =
   | { kind: "h1"; text: string }
   | { kind: "h2"; text: string }
+  | { kind: "h3"; text: string }
   | { kind: "p"; text: string }
   | { kind: "quote"; text: string }
   | { kind: "table"; table: Table }
@@ -85,9 +109,16 @@ function findProduct(products: readonly ProductForCalc[], want: { slug: string; 
 
 const plural = (n: number, forms: [string, string, string]) => `${n} ${pluralRu(n, forms)}`;
 const years = (v: number | null) => (v === null ? DASH : `${fx(v, 1)} г.`);
+const rubOrDash = (v: number | null) => (v === null ? DASH : formatRub(v));
+const quoted = (names: readonly string[]) => names.map((n) => `«${n}»`).join(", ");
 
 function okOf(r: ScenarioResult | undefined): ScenarioOk | null {
   return r && r.status === "ok" ? r : null;
+}
+
+/** Рассчитанные сценарии роботизации (без «Как есть» и отказов) в порядке проекта. */
+function robotsOf(results: ProjectResults): ScenarioOk[] {
+  return results.results.map(okOf).filter((r): r is ScenarioOk => r !== null && r.kind !== "asis");
 }
 
 function simText(sim: SimSummaryStored | null | undefined, unit: string): string {
@@ -146,11 +177,9 @@ function scenarioTable(results: ProjectResults, unit: string): Table {
 /** Парк и производительность: откуда N и что говорит имитация. */
 function fleetTable(results: ProjectResults, unit: string): Table {
   const rows: string[][] = [];
-  for (const r of results.results) {
-    const ok = okOf(r);
-    if (!ok || ok.kind === "asis") continue;
+  for (const r of robotsOf(results)) {
     const sim = results.sim[r.key];
-    for (const i of ok.items) {
+    for (const i of r.items) {
       rows.push([
         r.name,
         fx(i.peakPerHour, 2),
@@ -188,25 +217,193 @@ function fleetTable(results: ProjectResults, unit: string): Table {
   };
 }
 
-/** Три сильнейших рычага каждого рассчитанного сценария роботизации. */
-function leversTable(results: ProjectResults): Table {
+const FLEET_NOTE =
+  "λпик — пиковый поток заданий; норма — паспортная производительность; цикл — по плечам на планировке объекта (та же геометрия, что в имитации); N по норме — парк, рассчитанный только по паспортной норме; минимальный устойчивый парк — перебор имитацией в диапазоне [1; 2N], зерно 1.";
+
+const LEVERS_HEAD = ["Сценарий", "Рычаг", "Диапазон (границы)", "NPV при нижней", "NPV при верхней", "Размах NPV", "Смена знака NPV"];
+
+/**
+ * Рычаги чувствительности NPV сценариев роботизации (ТЗ §3.5.6) в порядке движка — по убыванию
+ * размаха. `limit` — сколько рычагов каждого сценария печатать; без него — все.
+ */
+function leversTable(results: ProjectResults, limit?: number): Table {
   const rows: string[][] = [];
-  for (const r of results.results) {
-    const ok = okOf(r);
-    if (!ok || ok.kind === "asis") continue;
-    for (const s of ok.sensitivity.slice(0, 3)) {
+  for (const r of robotsOf(results)) {
+    for (const s of limit === undefined ? r.sensitivity : r.sensitivity.slice(0, limit)) {
       rows.push([
         r.name,
         s.label,
         `${rangeText(s.low, s.high, s.unit)} (${s.boundsSource})`,
-        formatRub(s.npvLow),
-        formatRub(s.npvHigh),
+        rubOrDash(s.npvLow),
+        rubOrDash(s.npvHigh),
         formatRub(s.swing),
         s.signFlip ? "да" : "нет",
       ]);
     }
   }
-  return { head: ["Сценарий", "Рычаг", "Диапазон (границы)", "NPV при нижней", "NPV при верхней", "Размах NPV", "Смена знака NPV"], rows };
+  return { head: LEVERS_HEAD, rows };
+}
+
+/** Код риска «NPV меняет знак в диапазоне рычага»: он печатается столбцом таблицы чувствительности. */
+const SIGN_FLIP = "SIGN_FLIP";
+
+/**
+ * Риски каждого сценария роботизации по убыванию важности, кроме смены знака NPV — её
+ * показывает таблица чувствительности (столбец «Смена знака NPV») по каждому рычагу.
+ */
+function risksTable(results: ProjectResults): Table {
+  const severity = { high: "высокий", medium: "средний", low: "низкий" } as const;
+  const rows: string[][] = [];
+  for (const r of robotsOf(results)) {
+    for (const k of r.risks) if (k.code !== SIGN_FLIP) rows.push([r.name, severity[k.severity], k.text]);
+  }
+  return { head: ["Сценарий", "Важность", "Риск"], rows };
+}
+
+/**
+ * Порог по зарплате каждой покупки: зарплата роли процесса, при которой NPV покупки равен нулю.
+ * Считает движок (`breakEvenSalary` в lib/tz/econ/conclusion.ts → `breakEvenSalaryRubMonth`);
+ * здесь только печать. Вывод проекта называет порог одной покупки — с лучшим NPV.
+ */
+function breakEvenTable(results: ProjectResults, defs: readonly ParamSpec[]): Table {
+  const rows: string[][] = [];
+  for (const r of robotsOf(results)) {
+    if (r.kind !== "purchase") continue;
+    const process = r.items[0] ? processDef(r.items[0].process) : undefined;
+    const key = process?.salaryParam ?? null;
+    const def = key === null ? undefined : defs.find((d) => d.key === key);
+    const salary = key === null ? null : results.paramsUsed[key];
+    rows.push([
+      r.name,
+      def?.label ?? DASH,
+      typeof salary === "number" ? `${formatRub(salary)}/мес` : DASH,
+      formatRub(r.npvRub),
+      r.breakEvenSalaryRubMonth === null ? "не определён" : `${formatRub(r.breakEvenSalaryRubMonth)}/мес`,
+    ]);
+  }
+  return { head: ["Сценарий", "Параметр зарплаты", "Зарплата в расчёте", "NPV при ней", "NPV = 0 при зарплате"], rows };
+}
+
+/** Вывод проекта: заголовок, пункты и оговорка. */
+function conclusionBlocks(results: ProjectResults): Block[] {
+  return [
+    { kind: "p", text: results.conclusion.headline },
+    { kind: "list", items: results.conclusion.bullets },
+    { kind: "quote", text: results.conclusion.disclaimer },
+  ];
+}
+
+// ——————————————————————————— Каталог ———————————————————————————
+
+/** Масштаб каталога: продукты по глубине описания и характеристики по происхождению. */
+type CatalogStats = {
+  from: "db" | "code";
+  release: string | null;
+  products: number;
+  byLevel: Record<ProductLevel, number>;
+  withOrganizerId: number;
+  addedByAdmin: number;
+  archived: number;
+  characteristics: number;
+  charsByOrigin: [string, number][];
+  charsConfirmed: number;
+};
+
+const LEVELS: readonly ProductLevel[] = ["identification", "enriched", "examples"];
+
+function levelCounts(pairs: readonly { level: string; n: number }[]): Record<ProductLevel, number> {
+  const out: Record<ProductLevel, number> = { identification: 0, enriched: 0, examples: 0 };
+  for (const { level, n } of pairs) if ((LEVELS as readonly string[]).includes(level)) out[level as ProductLevel] += n;
+  return out;
+}
+
+/** Происхождения по убыванию числа характеристик, при равенстве — по коду. */
+function sortOrigins(m: ReadonlyMap<string, number>): [string, number][] {
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+}
+
+/**
+ * Счётчики каталога в БД. Действующие продукты — не архивные, как «всего в каталоге» на /catalog;
+ * характеристики — у действующих продуктов. Запросы по очереди: одно соединение.
+ */
+async function catalogStatsDb(db: PrismaClient, release: string | null): Promise<CatalogStats> {
+  const active = { archived: false };
+  const products = await db.catalogProduct.count({ where: active });
+  const levels = await db.catalogProduct.groupBy({ by: ["level"], where: active, _count: { _all: true } });
+  const withOrganizerId = await db.catalogProduct.count({ where: { ...active, organizerCatalogId: { not: null } } });
+  const addedByAdmin = await db.catalogProduct.count({ where: { ...active, origin: "ADMIN" } });
+  const archived = await db.catalogProduct.count({ where: { archived: true } });
+  const characteristics = await db.productCharacteristic.count({ where: { product: active } });
+  const origins = await db.productCharacteristic.groupBy({ by: ["origin"], where: { product: active }, _count: { _all: true } });
+  const charsConfirmed = await db.productCharacteristic.count({ where: { product: active, confirmed: true } });
+  return {
+    from: "db",
+    release,
+    products,
+    byLevel: levelCounts(levels.map((l) => ({ level: l.level, n: l._count._all }))),
+    withOrganizerId,
+    addedByAdmin,
+    archived,
+    characteristics,
+    charsByOrigin: sortOrigins(new Map(origins.map((o) => [o.origin, o._count._all]))),
+    charsConfirmed,
+  };
+}
+
+/** Те же счётчики по данным организатора в коде (режим --offline). */
+function catalogStatsCode(): CatalogStats {
+  const origins = new Map<string, number>();
+  let characteristics = 0;
+  let charsConfirmed = 0;
+  for (const p of CATALOG) {
+    for (const c of Object.values(p.characteristics)) {
+      characteristics += 1;
+      if (c.confirmed) charsConfirmed += 1;
+      origins.set(c.origin, (origins.get(c.origin) ?? 0) + 1);
+    }
+  }
+  return {
+    from: "code",
+    release: null,
+    products: CATALOG.length,
+    byLevel: levelCounts(CATALOG.map((p) => ({ level: p.level, n: 1 }))),
+    withOrganizerId: CATALOG.filter((p) => p.organizerCatalogId !== null).length,
+    addedByAdmin: 0,
+    archived: 0,
+    characteristics,
+    charsByOrigin: sortOrigins(origins),
+    charsConfirmed,
+  };
+}
+
+/** Подпись происхождения как на бейджах; неизвестный код (строка из БД) печатается как есть. */
+function originText(origin: string): string {
+  return originLabel(origin as Origin) ?? origin;
+}
+
+function catalogBlocks(s: CatalogStats, calcProducts: number): Block[] {
+  const rows: string[][] = [
+    ["Выпуск данных", s.release ?? (s.from === "code" ? "без БД (данные из кода)" : "не записан")],
+    ["Продуктов в каталоге (без архивных)", fx(s.products)],
+    ...LEVELS.map((l) => [`— ${LEVEL_LABELS[l]}`, fx(s.byLevel[l])]),
+    ["С id каталога организатора", fx(s.withOrganizerId)],
+    ["Добавлено администратором", fx(s.addedByAdmin)],
+    ["В архиве (нет в текущих данных организатора)", fx(s.archived)],
+    ["Продуктов в подборе и расчёте склада", fx(calcProducts)],
+    ["Характеристик с источником (у продуктов без архивных)", fx(s.characteristics)],
+    ...s.charsByOrigin.map(([origin, n]) => [`— происхождение «${originText(origin)}»`, fx(n)]),
+    ["— подтверждены первоисточником", fx(s.charsConfirmed)],
+  ];
+  return [
+    { kind: "h2", text: "Каталог" },
+    {
+      kind: "p",
+      text:
+        (s.from === "db" ? "Счётчики из БД текущего выпуска данных. " : "Счётчики по данным организатора в коде (lib/data/organizer) — проверочный прогон без БД. ") +
+        "Продукты без архивных — как «всего в каталоге» на странице /catalog. «Только идентификация» — поля каталога организатора, в расчёт не идут; в подбор склада идут продукты с характеристиками, привязанные к процессам склада.",
+    },
+    { kind: "table", table: { head: ["Показатель", "Значение"], rows } },
+  ];
 }
 
 // ——————————————————————————— Вывод ———————————————————————————
@@ -220,6 +417,7 @@ function renderMarkdown(blocks: readonly Block[]): string {
   for (const b of blocks) {
     if (b.kind === "h1") out.push(`# ${b.text}`, "");
     else if (b.kind === "h2") out.push(`## ${b.text}`, "");
+    else if (b.kind === "h3") out.push(`### ${b.text}`, "");
     else if (b.kind === "p") out.push(b.text, "");
     else if (b.kind === "quote") out.push(`> ${b.text}`, "");
     else if (b.kind === "list") out.push(...b.items.map((i) => `- ${i}`), "");
@@ -245,7 +443,8 @@ function renderText(blocks: readonly Block[]): string {
   const out: string[] = [];
   for (const b of blocks) {
     if (b.kind === "h1") out.push(b.text.toUpperCase(), "=".repeat(Math.min(100, b.text.length)), "");
-    else if (b.kind === "h2") out.push(b.text, "-".repeat(Math.min(100, b.text.length)));
+    else if (b.kind === "h2") out.push(b.text, "=".repeat(Math.min(100, b.text.length)));
+    else if (b.kind === "h3") out.push(b.text, "-".repeat(Math.min(100, b.text.length)));
     else if (b.kind === "p" || b.kind === "quote") out.push(b.text, "");
     else if (b.kind === "list") out.push(...b.items.map((i) => `  • ${i}`), "");
     else out.push(...renderTextTable(b.table), "");
@@ -261,8 +460,10 @@ async function main(): Promise<number> {
   try {
     let live: LiveInputs;
     let release: string | null = null;
+    let catalog: CatalogStats;
     if (args.offline) {
       live = offlineInputs();
+      catalog = catalogStatsCode();
     } else {
       db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
       live = await loadLiveInputs(db, FACILITY);
@@ -271,39 +472,39 @@ async function main(): Promise<number> {
         console.error("Каталог продуктов в БД пуст: выполните `npm run db:seed` или запустите с --offline (данные из кода).");
         return 1;
       }
+      catalog = await catalogStatsDb(db, release);
     }
 
+    // Параметры — как у «Нового проекта» на демо-данных (createProjectAction) и у засеянного
+    // demo-warehouse (scripts/seed-demo.ts): базовые значения описаний параметров.
+    const defs = live.paramDefs.filter((d) => d.facility === FACILITY);
+    const params = applyDefaults(live.paramDefs, {});
+    const common = { facility: FACILITY, params, paramDefs: live.paramDefs, products: live.products, norms: live.norms };
+    const unit = "пал./ч";
+    // Часы не нужны: длительность прогонов в вывод не попадает, а вывод должен повторяться.
+    const now = () => 0;
+
+    // 1) Путь жюри: сценарии засеянного проекта (demoScenarios с DEMO_SECOND_PURCHASE) — при
+    // 'auto' это ровно сценарии «Нового проекта» (initialScenarios); расхождение печатается.
+    const demo = demoScenarios(live, params);
+    const auto = initialScenarios(common);
+    const sameAsNew = stableJson(demo.scenarios) === stableJson(auto);
+    const jury = resultsFromInputs(live, { facility: FACILITY, params, scenarios: demo.scenarios, now }).results;
+
+    // 3) Дополнительный пример: вторая покупка — DMR Carrier P вместо кандидата подбора.
     const h = findProduct(live.products, H1500);
     const c = findProduct(live.products, CARRIER_P);
-    if (!h || !c) {
-      console.error(`Нет продуктов демонстрации в каталоге: ${[!h ? "Ronavi H1500" : null, !c ? "DMR Carrier P" : null].filter(Boolean).join(", ")}.`);
-      return 1;
-    }
+    const extraScenarios: ScenarioSpec[] | null =
+      h && c
+        ? [
+            asisScenario(),
+            { key: "p1", name: `Покупка — ${shortProductName(h.name)}`, kind: "purchase", items: [{ process: PT, productSlug: h.slug }] },
+            { key: "r1", name: `Услуга (RaaS) — ${shortProductName(h.name)}`, kind: "raas", items: [{ process: PT, productSlug: h.slug }] },
+            { key: "p2", name: `Покупка — ${shortProductName(c.name)}`, kind: "purchase", items: [{ process: PT, productSlug: c.slug }] },
+          ]
+        : null;
+    const extra = extraScenarios ? resultsFromInputs(live, { facility: FACILITY, params, scenarios: extraScenarios, now }).results : null;
 
-    const defs = live.paramDefs.filter((d) => d.facility === FACILITY);
-    const params = Object.fromEntries(defs.map((d) => [d.key, d.base]));
-    const hName = shortProductName(h.name);
-    const cName = shortProductName(c.name);
-    const scenarios: ScenarioSpec[] = [
-      asisScenario(),
-      { key: "p1", name: `Покупка — ${hName}`, kind: "purchase", items: [{ process: PT, productSlug: h.slug }] },
-      { key: "r1", name: `Услуга (RaaS) — ${hName}`, kind: "raas", items: [{ process: PT, productSlug: h.slug }] },
-      { key: "p2", name: `Покупка — ${cName}`, kind: "purchase", items: [{ process: PT, productSlug: c.slug }] },
-    ];
-    // Что предложил бы подбор сам — для прозрачности: вторая покупка зафиксирована вручную.
-    const probe = buildProjectModel({ facility: FACILITY, params, paramDefs: live.paramDefs, scenarios: [asisScenario()], products: live.products, norms: live.norms });
-    const defaults = defaultScenarios(probe.selection, FACILITY, live.products);
-    const defaultName = (key: string) => defaults.find((s) => s.key === key)?.name ?? DASH;
-
-    // Часы не нужны: длительность прогонов в вывод не попадает, а вывод должен повторяться.
-    const { results } = resultsFromInputs(live, { facility: FACILITY, params, scenarios, now: () => 0 });
-    // Проект, который получит член жюри по §5.4 («Новый проект» → демо-данные): сценарии выбирает
-    // подбор, без фиксации Carrier P. Его числа тоже печатаются, чтобы презентация и сценарий
-    // демонстрации не расходились с тем, что человек увидит в сборке.
-    const sameAsDemo = stableJson(defaults) === stableJson(scenarios);
-    const fresh = sameAsDemo ? null : resultsFromInputs(live, { facility: FACILITY, params, now: () => 0 }).results;
-
-    const unit = "пал./ч";
     const problems: string[] = [];
     const check = (res: ProjectResults, where: string) => {
       for (const r of res.results) {
@@ -311,10 +512,18 @@ async function main(): Promise<number> {
         else if (r.kind !== "asis" && !res.sim[r.key]) problems.push(`${where}«${r.name}»: имитация не выполнена`);
       }
     };
-    check(results, "");
-    if (fresh) check(fresh, "новый проект: ");
+    check(jury, "путь жюри: ");
+    if (extra) check(extra, "дополнительный пример: ");
+    else {
+      const missing = [!h ? "Ronavi H1500" : null, !c ? "DMR Carrier P" : null].filter(Boolean).join(", ");
+      problems.push(`дополнительный пример не рассчитан — нет продуктов в каталоге: ${missing}`);
+    }
 
     const ov = ORGANIZER_DATA_VERSION;
+    const choice =
+      DEMO_SECOND_PURCHASE === "auto"
+        ? "Решение владельца от 2026-09-25 — вариант «А»: сценарии целиком выбирает автоподбор, вторая покупка не закреплена (DEMO_SECOND_PURCHASE = 'auto' в scripts/seed-demo.ts)."
+        : `Вторая покупка засеянного проекта закреплена: DEMO_SECOND_PURCHASE = { slug: "${DEMO_SECOND_PURCHASE.slug}" } в scripts/seed-demo.ts — это не вариант «А» (автоподбор), подписанный владельцем 2026-09-25.`;
     const blocks: Block[] = [
       { kind: "h1", text: "Демо-числа: склад организатора" },
       {
@@ -326,45 +535,81 @@ async function main(): Promise<number> {
       },
       {
         kind: "p",
-        text: `Версии: модель ${results.modelVersion} · имитация ${results.simModelVersion} · данные расчёта ${results.dataVersion}. Данные организатора: датасеты ${ov.datasets}, каталог ${ov.catalog}, примеры решений ${ov.examples}; исследование открытых источников: ${ov.research}.`,
+        text: `Версии: модель ${jury.modelVersion} · имитация ${jury.simModelVersion} · данные расчёта пути жюри ${jury.dataVersion}. Данные организатора: датасеты ${ov.datasets}, каталог ${ov.catalog}, примеры решений ${ov.examples}; исследование открытых источников: ${ov.research}.`,
       },
       {
         kind: "p",
         text:
           `Объект: базовые значения датасета организатора, лист «Склад» (${plural(defs.length, ["параметр", "параметра", "параметров"])} вместе с дополнениями). ` +
-          `Сценарии: «Как есть», покупка и услуга (RaaS) ${hName}, покупка ${cName}. Подбор по умолчанию предлагает: ${defaultName("p1")}; ${defaultName("r1")}; ${defaultName("p2")} — ` +
-          `вторая покупка для демонстрации зафиксирована как ${cName} из «Примеров решений» организатора.`,
+          `Разделы: путь жюри — основной, его видит член жюри; каталог — масштаб данных; дополнительный пример с DMR Carrier P — справочно, в путь жюри не входит.`,
       },
-      { kind: "h2", text: "Сценарии" },
-      { kind: "table", table: scenarioTable(results, unit) },
-      { kind: "h2", text: "Парк, производительность и имитация" },
-      { kind: "table", table: fleetTable(results, unit) },
+
+      { kind: "h2", text: JURY_TITLE },
       {
         kind: "p",
-        text: "λпик — пиковый поток заданий; норма — паспортная производительность; цикл — по плечам на планировке объекта (та же геометрия, что в имитации); N по норме — парк, рассчитанный только по паспортной норме; минимальный устойчивый парк — перебор имитацией в диапазоне [1; 2N], зерно 1.",
+        text:
+          `Так выглядит проект, созданный кнопкой «Новый проект» с источником «Демо-данные организатора». ${choice} ` +
+          `Засеянный проект «${DEMO_PROJECT_NAME}» (/projects/${DEMO_PROJECT_ID}) и гостевой /demo строятся той же функцией сценариев по умолчанию (lib/projects/defaults.ts). ` +
+          `Сценарии, выбранные подбором: ${quoted(jury.scenarios.map((s) => s.name))}. Версия данных расчёта ${jury.dataVersion}.`,
       },
-      { kind: "h2", text: "Сильнейшие рычаги (чувствительность NPV)" },
-      { kind: "table", table: leversTable(results) },
-      { kind: "h2", text: "Вывод" },
-      { kind: "p", text: results.conclusion.headline },
-      { kind: "list", items: results.conclusion.bullets },
-      { kind: "quote", text: results.conclusion.disclaimer },
-      { kind: "h2", text: "Новый проект со сценариями по умолчанию (путь жюри, ТЗ §5.4)" },
     ];
-    if (!fresh) {
-      blocks.push({ kind: "p", text: "Подбор по умолчанию предлагает те же сценарии, что выше: числа нового проекта совпадают с таблицами демонстрации." });
+    if (!sameAsNew) {
+      blocks.push({
+        kind: "p",
+        text: `Внимание: засеянный проект отличается от «Нового проекта» — новый проект получит сценарии ${quoted(auto.map((s) => s.name))}.`,
+      });
+    }
+    if (demo.warning) blocks.push({ kind: "p", text: `Внимание: ${demo.warning}.` });
+    blocks.push(
+      { kind: "h3", text: "Сценарии" },
+      { kind: "table", table: scenarioTable(jury, unit) },
+      { kind: "h3", text: "Парк, производительность и имитация" },
+      { kind: "table", table: fleetTable(jury, unit) },
+      { kind: "p", text: FLEET_NOTE },
+      { kind: "h3", text: "Риски сценариев" },
+      {
+        kind: "p",
+        text: "Риски каждого сценария роботизации по убыванию важности; вывод ниже называет три главных риска рекомендуемого сценария. Смена знака NPV в диапазоне рычага — в таблице чувствительности.",
+      },
+      { kind: "table", table: risksTable(jury) },
+      { kind: "h3", text: "Чувствительность NPV: все рычаги" },
+      {
+        kind: "p",
+        text: "Каждая граница — полный пересчёт модели; рычаги каждого сценария — по убыванию размаха NPV. Границы — у организатора, где он их дал, иначе норматив или ±20 %. Смена знака NPV внутри диапазона выносится в риски.",
+      },
+      { kind: "table", table: leversTable(jury) },
+      { kind: "h3", text: "Порог по зарплате" },
+      {
+        kind: "p",
+        text: "Зарплата роли процесса, при которой NPV покупки равен нулю (NPV линеен по зарплате, порог считает движок по двум расчётам). Вывод проекта называет порог только у покупки с лучшим NPV; здесь — у каждой покупки.",
+      },
+      { kind: "table", table: breakEvenTable(jury, defs) },
+      { kind: "h3", text: "Вывод" },
+      ...conclusionBlocks(jury),
+    );
+
+    blocks.push(...catalogBlocks(catalog, live.products.length));
+
+    blocks.push({ kind: "h2", text: EXTRA_TITLE });
+    if (!extra) {
+      blocks.push({ kind: "p", text: "Не рассчитан: в каталоге нет продуктов Ronavi H1500 или DMR Carrier P." });
     } else {
       blocks.push(
         {
           kind: "p",
           text:
-            `Так выглядит проект, созданный кнопкой «Новый проект» на демо-данных организатора: сценарии выбирает подбор — ${fresh.scenarios.map((s) => `«${s.name}»`).join(", ")}. ` +
-            `Числа сценариев с теми же решениями совпадают с таблицами выше; вывод может отличаться, потому что сравниваются другие варианты. Версия данных расчёта ${fresh.dataVersion}.`,
+            `Те же параметры объекта, но вторая покупка — ${shortProductName(c?.name ?? "")} из «Примеров решений» организатора (продукт с паспортной нормой организатора) вместо кандидата подбора. ` +
+            `Набор задан этим скриптом, а не подбором, и в путь жюри не входит: новый проект, засеянный проект и /demo показывают сценарии раздела «${JURY_TITLE}». ` +
+            `Сценарии: ${quoted(extra.scenarios.map((s) => s.name))}. Числа сценариев с теми же решениями совпадают с путём жюри; вывод другой, потому что сравниваются другие варианты. Версия данных расчёта ${extra.dataVersion}.`,
         },
-        { kind: "table", table: scenarioTable(fresh, unit) },
-        { kind: "table", table: fleetTable(fresh, unit) },
-        { kind: "p", text: fresh.conclusion.headline },
-        { kind: "list", items: fresh.conclusion.bullets },
+        { kind: "h3", text: "Сценарии" },
+        { kind: "table", table: scenarioTable(extra, unit) },
+        { kind: "h3", text: "Парк, производительность и имитация" },
+        { kind: "table", table: fleetTable(extra, unit) },
+        { kind: "h3", text: "Сильнейшие рычаги (чувствительность NPV)" },
+        { kind: "table", table: leversTable(extra, 3) },
+        { kind: "h3", text: "Вывод" },
+        ...conclusionBlocks(extra),
       );
     }
     if (problems.length > 0) {
