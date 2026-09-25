@@ -1,11 +1,17 @@
 # Deployment Runbook
 
-> **Выкатываете в ПУСТОЙ инстанс, впервые?** [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md) —
-> упорядоченный путь GitHub → Neon → Vercel с разделением pooled/direct и дымовыми проверками.
+> **Стенд для жюри по ТЗ (модель `tz-1.0.0`)** — [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md):
+> Docker одной командой (§4b ниже), локальный запуск, проверка на чистом экземпляре (§4e) и
+> Vercel с **новой, пустой** базой Neon. Базу прежней боевой версии для этого не мигрируют, а
+> `prisma migrate reset` и `prisma db push` не выполняют никогда.
 >
-> **Выкатываете поверх боевой, где уже есть пользователи?** Шаг 3 этого файла и только он.
-> Quickstart писался под чистую базу и про чистку сева, слияние категорий и окно недоступности
-> не знает. Приложение A — что сев делает с чужими данными, приложение B — М-2.
+> **Выкатываете поверх боевой прежней модели, где уже есть пользователи?** Шаг 3 этого файла и
+> только он. Quickstart писался под чистую базу и про чистку сева, слияние категорий и окно
+> недоступности не знает. Приложение A — что сев делает с чужими данными, приложение B — М-2.
+>
+> Состояние на 2026-09-25 (коммит `b112b35`, прогон CI 36136864124): 12 миграций, последняя —
+> `20260924120000_tz_v2` (только добавляет таблицы и колонку `User.role`); 43 маршрута, все
+> серверные; Vitest — 102 файла, 1473 теста; e2e — 10 тестов; задача CI `docker` зелёная.
 
 The app is deploy-ready. Steps marked **[needs your account]** require your own
 Postgres/hosting credentials and are not automatable.
@@ -22,6 +28,12 @@ Set on the host (Vercel project settings, or the Docker runtime):
 - `DATABASE_URL` — the pooled Postgres URL from step 1.
 - `AUTH_SECRET` — generate once: `openssl rand -base64 32`.
 - `AUTH_URL` — your production URL (e.g. `https://example.com`) if not auto-detected.
+- `DEMO_USER_PASSWORD`, `DEMO_ADMIN_PASSWORD` — пароли демо-аккаунтов `demo@demo.local` и
+  `admin@demo.local`. Их читает только сев (`npm run db:seed`), приложению при работе они не
+  нужны. Не заданы — `demo-user-2026` и `demo-admin-2026`; на стенде, доступном извне, задайте
+  свои и передайте жюри отдельно.
+- `ADMIN_API_TOKEN` — необязательно: запись через API v1 заголовком
+  `Authorization: Bearer …`. Не задан или короче 16 символов — вход по токену выключен.
 
 ## 3. Миграция + сев на боевую, где УЖЕ ЕСТЬ данные
 
@@ -203,11 +215,43 @@ DATABASE_URL="$PGDIRECT" npm run preflight:deploy
 Connect the GitHub repo, set the env vars from step 2, deploy. The build runs
 `prisma generate` (via the build) automatically.
 
-## 4b. Or deploy with Docker
+Для стенда по ТЗ — новая пустая база Neon, миграции и сев вручную по прямой строке:
+пошагово в [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md), раздел 6.
+
+## 4b. Docker одной командой (ТЗ §4.2.3)
+
+```bash
+docker compose up --build        # → http://localhost:3000
+```
+
+`docker-compose.yml` описывает три сервиса:
+
+| Сервис | Что делает | Когда готов |
+|---|---|---|
+| `db` | Postgres 16, данные в томе `rrp_pgdata`; проверка здоровья `pg_isready -h 127.0.0.1` (по TCP: проверка через сокет отвечает «готово» ещё на временном сервере первого старта) | `pg_isready` отвечает |
+| `migrate` | стадия `migrate` `Dockerfile`: `prisma migrate deploy`, затем `scripts/seed.ts`; разовый, `restart: "no"` | завершился с кодом 0 |
+| `app` | стадия `runner`: standalone-сервер Next.js с `HOSTNAME=0.0.0.0 PORT=3000`; проверка здоровья — `GET /api/health` | 200 |
+
+`app` стартует, только когда база здорова и `migrate` завершился успешно: ошибка миграции или
+сева намеренно не даёт показать пустой каталог. Первая сборка — ориентировочно 5–10 минут и
+требует сети (`npm ci`, шрифты `next/font/google`). Демо-аккаунты, переменные (`AUTH_SECRET`,
+`DEMO_*`, `ADMIN_API_TOKEN`, `APP_PORT`, `DB_PORT`) и частые ситуации — в
+[DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md), раздел 2.
+
+`AUTH_SECRET` в compose имеет демонстрационное значение по умолчанию: без секрета Auth.js в
+production отдаёт 500 на каждой странице. На стенде, доступном извне, задайте свой. `AUTH_URL`
+намеренно не передаётся (`trustHost`), HTTPS compose не настраивает — на публичном стенде
+нужен обратный прокси с TLS.
+
+Только образ приложения, без compose (база и сев — ваши):
+
 ```bash
 docker build -t rrp .
 docker run -p 3000:3000 -e DATABASE_URL="<pooled url>" -e AUTH_SECRET="<secret>" rrp
 ```
+
+Задача CI `docker` на каждый push выполняет `docker compose up -d --build`, ждёт `/api/health`
+до 240 с и проверяет, что `/` и `/demo` отдают 200.
 
 ## 4c. Check the cited figures are still current  **[before any live demo]**
 ```bash
@@ -234,6 +278,13 @@ npm run report:snapshots   # отчёт: возраст рыночных сни�
 «13 дней» полгода — соврав ровно там, где доказывает обратное.
 
 ## 4d. Путь «чистый инстанс» проверен целиком  **[справочно]**
+
+> **Обновление 2026-09-25.** Миграций теперь 12: добавилась `20260924120000_tz_v2`, которая
+> только создаёт таблицы модели по ТЗ, перечисления и колонку `User.role` с `DEFAULT 'USER'`.
+> Сев после справочников v1 вызывает `seedV2`: синхронизация данных организатора (14 типов
+> решений, 13 процессов, 152 описания параметров, 48 нормативов, 188 продуктов), демо-аккаунты
+> и демо-проект. Путь чистого инстанса для новой версии проверяют `npm run check:fresh` (§4e)
+> и задача CI `docker` на каждый push. Таблица ниже — проверка прежнего дерева из 11 миграций.
 
 Путь чистого инстанса проверен 2026-09-14: 11 миграций применяются, сев доходит до конца,
 в каталоге 11 решений и ни одной строки с префиксом `legacy-`.
@@ -264,13 +315,40 @@ npm run report:snapshots   # отчёт: возраст рыночных сни�
 Это НЕ проверка боевого пути: боевая база населена и отстаёт, а здесь база была пуста. Боевой
 путь проверяется только п. 3.2 — `preflight` против настоящей строки подключения.
 
+## 4e. Проверка на чистом экземпляре без Docker — `npm run check:fresh`
+
+```bash
+npm run build
+npm run check:fresh               # полный прогон
+npm run check:fresh -- --dry-run  # только предпосылки, ничего не создаёт
+```
+
+`scripts/fresh-instance-check.ts` на локальном Postgres:
+- создаёт пустую базу `rrp_fresh_<время>`;
+- выполняет в ней `prisma migrate deploy` и сев;
+- поднимает собранный `node .next/standalone/server.js` на `127.0.0.1:3100`;
+- ждёт `ok:true` от `/api/health` (до 60 с) и 200 от `/` и `/demo`;
+- сверяет версии модели в ответе с кодом: несовпадение значит, что сборка устарела;
+- печатает отчёт по-русски, останавливает сервер и удаляет временную базу.
+
+Рабочую базу из `.env` скрипт не меняет, с нелокальным `DATABASE_URL` работать отказывается,
+перед удалением сверяет имя базы с шаблоном. Код выхода 0 или 1. Для файла-доказательства
+запускайте из bash (в Windows PowerShell 5.1 оператор `>` пишет UTF-16):
+`npx tsx scripts/fresh-instance-check.ts > docs/submission/fresh-instance-log.txt`.
+
+Preflight (`npm run preflight:deploy`) знает о слое модели по ТЗ: до `migrate deploy` на
+отставшей базе он пишет «ВНИМ.» (слой создаст миграция), при частично созданном слое —
+«СТОП», а на готовом слое показывает демо-адреса, занятые аккаунтом с другой ролью, правки
+администратора, которые сохранит сев, продукты, которые уйдут в архив, и выпуск данных.
+
 ## 5. Security hardening before real production traffic  **[required before public launch]**
 The auth code is correct for the current stage (bcrypt passwords, JWT sessions, strictly
 user-scoped saved analyses — no cross-user access), but a few hardening steps are deliberately
 deferred to deploy time because they need production infrastructure or config:
 - **Rate-limit login & signup.** DONE — a DB-backed fixed-window limiter (`lib/auth/rate-limit.ts`,
   `RateLimit` table) throttles signup (5 / IP / 15 min, in `lib/auth/actions.ts`) and login
-  (10 / email+IP / 15 min, in `auth.ts`'s `authorize`). Because it's Postgres-backed it works on
+  (10 / email+IP / 15 min, in `auth.ts`'s `authorize`; для адресов `@demo.local` — 100, чтобы
+  жюри под общими демо-аккаунтами не упиралось в лимит). Because it's Postgres-backed it works on
   both a single Docker instance and serverless/multi-instance — no Upstash/Redis needed. A per-IP
   login cap (50 / 15 min) backstops the per-account cap against password-spray. IP is read from
   `X-Forwarded-For`. **Your proxy MUST overwrite (not append) the inbound `X-Forwarded-For`** —

@@ -1,69 +1,151 @@
-# Robotization ROI Platform
+# Платформа оценки роботизации
 
-Web platform helping companies evaluate robotization investments: browse/compare
-available robotic solutions for their facility type, calculate OPEX/CAPEX/payback/ROI,
-and see a visualization of robots operating on their site.
+Веб-платформа подбора роботизированных решений с расчётом экономического эффекта и
+визуализацией работы роботов на объекте — решение задачи ФЦ БАС («Лидеры цифровой
+трансформации», 2026).
 
-## Tests & CI
+Пользователь выбирает объект, вводит или загружает его параметры, получает объяснимую
+подборку решений из каталога, сравнивает сценарии «Как есть», «Покупка» и «Услуга (RaaS)» по
+CAPEX, OPEX, эффекту, окупаемости, ROI, NPV и TCO, проверяет расчёт имитацией работы роботов на
+2D-схеме и выгружает отчёт. Всё — в рублях, на данных организатора, с источником у каждого
+числа.
 
-The DB must be up and seeded first: `docker compose up -d` then `npm run db:seed`.
+- **Демонстрационный объект — склад** из датасета организатора: полная модель (подбор,
+  экономика, сценарии, имитация). Аэропорт и медучреждение — выбор, параметры и доступные
+  решения (ТЗ §5.5).
+- **Модель:** `tz-1.0.0`, имитация `sim-1.0.0`. Формулы, нормативы и контрольный пример —
+  [docs/MODEL-TZ.md](./docs/MODEL-TZ.md).
+- **Что реализовано полностью, частично и как прототип** — [docs/LIMITATIONS.md](./docs/LIMITATIONS.md).
+- **Демо-числа** печатает только сборка: `npx tsx scripts/print-demo-numbers.ts`, файл —
+  [docs/submission/demo-numbers.md](./docs/submission/demo-numbers.md). Например, парк Ronavi
+  H1500 по расчёту — 11 роботов, и имитация его подтверждает (132,5 из 129,5 пал./ч), а парк по
+  паспортной норме — 3 робота, и имитация его опровергает. Результат — предварительная оценка,
+  она требует верификации при обследовании объекта.
 
-- `npm test` — unit/integration tests (Vitest), against the local Postgres.
-- `npm run test:e2e` — end-to-end tests (Playwright, Chromium) over the full 6-step flow
-  (facility type → params → staffing → solutions → compare → calculator) incl.
-  signup → save → report. The Playwright config builds and starts the app automatically
-  (`next build && next start`); run `npx playwright install chromium` once beforehand.
-- `.github/workflows/ci.yml` runs unit + E2E (with a Postgres service) on every push/PR — it
-  activates automatically **once this repo is pushed to a GitHub remote**; until then run the
-  commands above locally.
+## Путь жюри (ТЗ §5.4) — 8 шагов
 
-## Docs
+1. **Вход** демо-пользователем `demo@demo.local` / `demo-user-2026` → «Мои проекты».
+2. **Новый проект** → «Склад» → «Демо-данные организатора» (или «Загрузить Excel/CSV по
+   шаблону») → «Создать проект».
+3. **Шаг 2 · Параметры** — поля с единицами, примерами, диапазонами и источником каждого
+   значения; правка → «Пересчитать».
+4. **Шаг 3 · Подбор** — решения с причинами включения и исключения, ограничениями,
+   недостающими данными и баллом из пяти факторов.
+5. **Шаг 4 · Сравнение** и **Шаг 5 · Экономика** — характеристики решений, состав
+   оборудования, CAPEX и OPEX по статьям с формулами и источниками, «Как посчитано».
+6. **Шаг 6 · Сценарии** — «Как есть», покупка и услуга в одной таблице, чувствительность,
+   риски, вывод с интерпретацией.
+7. **Шаг 7 · Имитация** — «▶ Старт», вердикт «Расчёт подтверждён имитацией» или узкое место,
+   три варианта парка, «Скачать PNG».
+8. **Шаг 8 · Сохранение и отчёт** — «Сохранить проект», «Отчёт (PDF)», «Excel», «CSV».
 
-Start here if you're auditing the product rather than the code:
+Запасные пути: гостевой `/demo` без входа (весь путь без сохранения) и готовый проект
+«Склад организатора (демо)» у демо-пользователя. Аэропорт и медучреждение —
+`/demo?facility=airport` и `/demo?facility=medical`. Подробно — [docs/USER-GUIDE.md](./docs/USER-GUIDE.md).
 
-- [docs/audit/2026-09-14-audit.html](./docs/audit/2026-09-14-audit.html) — the current
-  logic/design audit, dated 2026-09-14 — the most recent independent look at the app.
-- [docs/TASKS.md](./docs/TASKS.md) — **start here for current state.** A status tracker:
-  every open task with a status, grouped by area, with an update log. Kept short on purpose.
-- [docs/BACKLOG.md](./docs/BACKLOG.md) — the same items in prose: why each one exists, what
-  was tried, and how it ended. Rewritten 2026-09-13 after a prior edition went stale; every
-  "done" item is annotated with how it was verified. IDs are shared with TASKS.md.
-- [docs/data-provenance.md](./docs/data-provenance.md) — the source behind every external
-  number in the model (labor rates, regional presets, equipment prices, throughput
-  benchmarks) — what's cited, what's estimated, and why.
-- [docs/AUDIT.md](./docs/AUDIT.md) — the original audit, 2026-08-24. **Closed** — it now
-  carries a banner stating that 17 of 19 findings are resolved and pointing at the
-  2026-09-14 audit above; read as history, not as a list of current defects.
-- [docs/CAPABILITY-ANALYSIS.md](./docs/CAPABILITY-ANALYSIS.md) — what the economics model
-  deliberately does not attempt, and why.
-- [docs/design/PROTOTYPE-DESIGN-SYSTEM.md](./docs/design/PROTOTYPE-DESIGN-SYSTEM.md) — a
-  design system extracted from the current prototype UI. Documented, **not yet applied**
-  to the app.
-- In-product prose, not files: [`/methodology`](./app/methodology) explains "where the
-  numbers come from," including a live citation-freshness audit computed on request, not
-  frozen at deploy time; [`/glossary`](./app/glossary) defines the 22 domain/finance terms
-  the app uses (AS/RS, AMR, NPV, discounted payback, coverage, labor displacement, …).
-- [CHANGELOG.md](./CHANGELOG.md) — running log of all changes made during development,
-  including every commit that changed an output number.
+## Запуск
 
-Deploy & ops — current, actively maintained:
+### A. Docker одной командой (основной путь, проверяется в CI)
 
-- [docs/DEPLOY-QUICKSTART.md](./docs/DEPLOY-QUICKSTART.md) — the ordered path to a public
-  URL (GitHub → Neon → Vercel), with the Netlify caveat and what to smoke-test.
-- [docs/DEPLOY.md](./docs/DEPLOY.md) — full runbook: security posture, rate limiting, the
-  assessed `npm audit` findings, and the slug-keyed seed/prune/preflight procedure.
-- [docs/00-idea-brief.md](./docs/00-idea-brief.md) — original task/idea; fixed at the
-  outset per its own note, and still an accurate statement of the brief.
+Нужны Docker с Compose v2 и сеть на время первой сборки (`npm ci` и шрифты скачиваются при
+сборке).
 
-Historical — describe an earlier shape of the product; kept for the record rather than
-deleted, in the same spirit as the closed-audit banner above:
+```bash
+git clone <репозиторий> && cd <каталог>
+docker compose up --build
+```
 
-- [docs/01-prd.md](./docs/01-prd.md) — original product requirements. Documents a
-  `Session` entity that was never built (state lives in the URL instead) and a 4-step
-  flow; the app now has 6 steps (facility type → params → **staffing** → solutions →
-  compare → calculator).
-- [docs/02-execution-plan.md](./docs/02-execution-plan.md) — original tech/architecture
-  plan. §4's economics formulas have since been superseded twice (task-based staffing
-  replaced a global labor-output divisor; three financial contradictions in
-  payback/ROI/NPV were fixed) — read `docs/BACKLOG.md` and `CHANGELOG.md` for what the
-  engine actually computes today.
+Первая сборка — ориентировочно 5–10 минут. Затем откройте http://localhost:3000. Compose
+поднимает базу, выполняет миграции и сев (каталог, нормативы, демо-аккаунты, демо-проект) и
+запускает приложение; проверка — `curl http://localhost:3000/api/health`. Порты меняются
+переменными `APP_PORT` и `DB_PORT`, чистый старт — `docker compose down -v`.
+
+### B. Локально без Docker
+
+Нужны Node.js 20.9+ и PostgreSQL 16 (по умолчанию `localhost:5433`, как в `.env.example`).
+
+```bash
+npm ci
+cp .env.example .env          # впишите AUTH_SECRET: openssl rand -base64 32
+npx prisma migrate deploy
+npm run db:seed
+npm run build
+npm start                     # http://localhost:3000
+```
+
+Без Docker тот же путь на временной базе проверяет `npm run check:fresh`. Подробно, включая
+Vercel с новой базой Neon, — [docs/DEPLOY-QUICKSTART.md](./docs/DEPLOY-QUICKSTART.md).
+
+## Демо-аккаунты
+
+| Роль | Почта | Пароль по умолчанию | Переменная |
+|---|---|---|---|
+| Пользователь | `demo@demo.local` | `demo-user-2026` | `DEMO_USER_PASSWORD` |
+| Администратор | `admin@demo.local` | `demo-admin-2026` | `DEMO_ADMIN_PASSWORD` |
+
+Аккаунты создаёт сев. Пароли меняются переменными окружения при севе; на стенде, доступном
+извне, задайте свои и передайте жюри отдельно. Лимит входа: для `@demo.local` — 100 попыток за
+15 минут на пару «почта + адрес», и 50 попыток за 15 минут на один адрес — общий для всех, кто
+входит из одной сети.
+
+## Данные организатора
+
+Файлы организатора (xlsx, csv, docx) в репозиторий не входят: из них перенесены только нужные
+поля со ссылкой на место в файле. Сгенерированные модули лежат в `lib/data/organizer/`.
+Перегенерировать их из JSON-выгрузок:
+
+```bash
+ORGANIZER_DATA_DIR=<папка с выгрузками> npm run gen:organizer
+npm run db:seed
+```
+
+Какие файлы нужны и как выбирается значение при расхождении источников —
+[docs/data-provenance.md](./docs/data-provenance.md).
+
+## Тесты
+
+```bash
+npx vitest run --project unit < /dev/null   # чистые модули
+npx vitest run --project db < /dev/null     # тесты на настоящем Postgres (после миграций и сева)
+npm run test:e2e                            # Playwright: собирает и запускает приложение сам
+npx tsx scripts/print-demo-numbers.ts       # демо-числа на данных БД
+```
+
+Перед первым `test:e2e` — `npx playwright install chromium`. CI (`.github/workflows/ci.yml`)
+на каждый push выполняет миграции, сев, lint, сборку, Vitest и e2e, а отдельная задача
+`docker` — `docker compose up --build` с проверкой `/api/health`, `/` и `/demo`. Последний
+прогон (коммит `b112b35`): 102 файла и 1473 теста Vitest, 10 тестов e2e — все зелёные.
+
+## Документация
+
+| Документ | О чём |
+|---|---|
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | аудитория и границы, компоненты, модель данных, потоки, алгоритм подбора, API, безопасность, производительность, библиотеки |
+| [docs/MODEL-TZ.md](./docs/MODEL-TZ.md) | экономическая модель: формулы, нормативы, контрольный пример, имитация и её проверка |
+| [docs/USER-GUIDE.md](./docs/USER-GUIDE.md) | руководство пользователя |
+| [docs/ADMIN-GUIDE.md](./docs/ADMIN-GUIDE.md) | руководство администратора |
+| [docs/DEPLOY-QUICKSTART.md](./docs/DEPLOY-QUICKSTART.md) | запуск: Docker, локально, чистый экземпляр, Vercel и Neon |
+| [docs/DEPLOY.md](./docs/DEPLOY.md) | справочник по выкладке, безопасности и `npm audit` |
+| [docs/INTEGRATIONS.md](./docs/INTEGRATIONS.md) | API v1 и интеграции с WMS, ERP, 1С, мониторингом, аналитикой ФЦ БАС; описание OpenAPI — `/api-docs` |
+| [docs/data-provenance.md](./docs/data-provenance.md) | происхождение данных и нормативов |
+| [docs/LIMITATIONS.md](./docs/LIMITATIONS.md) | полностью, частично, прототип (ТЗ §5.7); ограничения и план развития |
+| [docs/TZ-COMPLIANCE.md](./docs/TZ-COMPLIANCE.md) | трассировка требований ТЗ к коду |
+| [docs/submission/demo-numbers.md](./docs/submission/demo-numbers.md) | демо-числа, сгенерированные сборкой |
+| [docs/DEMO-SCRIPT.md](./docs/DEMO-SCRIPT.md) | сценарий демонстрации и проверки основных функций |
+| [docs/submission/PRESENTATION-OUTLINE.md](./docs/submission/PRESENTATION-OUTLINE.md) | план презентации |
+| [CHANGELOG.md](./CHANGELOG.md) | журнал изменений; изменения, меняющие числа, помечены «МЕНЯЕТ ЧИСЛА» |
+| [docs/TASKS.md](./docs/TASKS.md), [docs/BACKLOG.md](./docs/BACKLOG.md) | трекер задач и их история |
+
+В самом продукте: `/methodology/tz` — формулы, нормативы с источниками, процессы, имитация и
+версии; `/catalog` — каталог с источником каждой характеристики.
+
+## Прежняя модель v1
+
+До официального ТЗ платформа строилась по краткому брифу
+([docs/00-idea-brief.md](./docs/00-idea-brief.md)): 47 типов объектов, расчёт в долларах,
+мастер `/onboarding`. Эта модель заморожена и в демонстрации по ТЗ не участвует; вход в неё —
+со страницы «Проекты» и из нижней секции главной. Её документы: методика `/methodology`,
+словарь `/glossary`, [docs/CAPABILITY-ANALYSIS.md](./docs/CAPABILITY-ANALYSIS.md),
+аудиты [docs/AUDIT.md](./docs/AUDIT.md) и
+[docs/audit/2026-09-14-audit.html](./docs/audit/2026-09-14-audit.html), исторические
+[docs/01-prd.md](./docs/01-prd.md) и [docs/02-execution-plan.md](./docs/02-execution-plan.md).
