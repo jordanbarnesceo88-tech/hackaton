@@ -409,3 +409,47 @@
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
 }
+
+/* Печать отчёта по проекту (модель по методике ТЗ, /projects/[projectId]/report). Длинные
+   таблицы помечены .print-table и не обёрнуты в .report-block: блок выше страницы с запретом
+   разрыва оставил бы пустые листы. Поэтому заголовок таблицы повторяется на каждой странице,
+   строка таблицы не рвётся между страницами, а раздел начинается там, где закончился
+   предыдущий, — без принудительного перехода на новый лист. */
+@media print {
+  .print-table thead {
+    display: table-header-group;
+  }
+  .print-table tr {
+    break-inside: avoid;
+  }
+  .report-section {
+    break-before: auto;
+  }
+  /* Заголовок раздела или подраздела не остаётся последней строкой страницы. */
+  .report-print h2,
+  .report-print h3 {
+    break-after: avoid;
+  }
+  /* Лист A4 уже экрана: поля задаёт @page, ширину — лист, а не экранный контейнер. */
+  .report-print {
+    max-width: none;
+    padding: 0;
+    font-size: 10pt;
+  }
+  /* На бумаге нет горизонтальной прокрутки: обёртка таблицы её не обрезает, экранные
+     минимальные ширины колонок сняты, шрифт и поля ячеек уменьшены — чтобы таблица сценариев
+     на пять колонок и денежный поток на девять поместились в ширину листа A4. */
+  .report-print .overflow-x-auto {
+    overflow: visible;
+  }
+  .report-print .print-table,
+  .report-print .print-table * {
+    min-width: 0;
+    font-size: 7.5pt;
+    line-height: 1.25;
+  }
+  .report-print .print-table th,
+  .report-print .print-table td {
+    padding: 2px 3px;
+  }
+}
