@@ -230,7 +230,7 @@ function schematicAreaOf(params: ParamValues): number | null {
 
 /** Откуда параметры проекта — для шага 1. */
 function sourceText(source: ParamsSource | undefined, facilityLabel: string): string {
-  const demo = `демо-данные организатора: Датасеты_хакатон.xlsx, лист «${facilityLabel}»`;
+  const demo = `демо-набор данных, лист «${facilityLabel}»`;
   if (!source) return demo;
   switch (source.kind) {
     case "demo":
@@ -238,7 +238,7 @@ function sourceText(source: ParamsSource | undefined, facilityLabel: string): st
     case "upload":
       return source.fileName ? `файл «${source.fileName}» (проверен при загрузке; сам файл не хранится)` : "загруженный файл";
     case "manual":
-      return "ручной ввод от базовых значений организатора";
+      return "ручной ввод от базовых демо-значений";
     case "api":
       return "переданы через API";
   }

@@ -66,7 +66,7 @@ test("проект склада: создать, скорректировать,
   await expect(page).toHaveURL(/\/projects\/new$/);
   await page.getByLabel("Название проекта").fill(name);
   await page.getByRole("radio", { name: /^Склад/ }).check();
-  await page.getByRole("radio", { name: /Демо-данные организатора/ }).check();
+  await page.getByRole("radio", { name: /Демо-данные объекта/ }).check();
   await page.getByRole("button", { name: "Создать проект" }).click();
   await expect(page).toHaveURL(/\/projects\/(?!new$)[^/?#]+$/, { timeout: 60_000 });
   const projectUrl = page.url();
