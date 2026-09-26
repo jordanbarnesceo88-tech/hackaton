@@ -52,8 +52,21 @@ export function stepLinkText(step: TzStep): string {
  * Липкая полоса ссылок на разделы. `active` — номер текущего шага: ссылка получает
  * aria-current="step" и выделение. На узком экране полоса прокручивается горизонтально, а не
  * переносится в несколько строк, чтобы не съедать высоту экрана 1366×768.
+ *
+ * `onStepClick` (бэклог #4b): когда задан, рабочая область показывает один шаг на экран, а не
+ * все восемь один под другим — ссылки не прыгают по якорю (скрытый `display:none`-раздел
+ * прокрутить некуда), а переключают `activeStep` в Workspace. `href` остаётся: не задан
+ * `onStepClick` — компонент работает как раньше, якорями по `id` секции.
  */
-export function StepNav({ active, className }: { active?: number; className?: string }) {
+export function StepNav({
+  active,
+  className,
+  onStepClick,
+}: {
+  active?: number;
+  className?: string;
+  onStepClick?: (n: number) => void;
+}) {
   return (
     <nav
       aria-label="Шаги по ТЗ"
@@ -73,6 +86,14 @@ export function StepNav({ active, className }: { active?: number; className?: st
               <a
                 href={`#${step.id}`}
                 aria-current={current ? "step" : undefined}
+                onClick={
+                  onStepClick
+                    ? (e) => {
+                        e.preventDefault();
+                        onStepClick(step.n);
+                      }
+                    : undefined
+                }
                 className={cn(
                   "-mb-px inline-flex items-center gap-1.5 border-b-2 px-2.5 py-1.5 whitespace-nowrap transition-colors",
                   "hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
@@ -95,6 +116,29 @@ export function StepNav({ active, className }: { active?: number; className?: st
           );
         })}
       </ol>
+      {onStepClick && active !== undefined && (
+        <div className="mt-1.5 flex items-center justify-between gap-3 text-sm">
+          <button
+            type="button"
+            onClick={() => onStepClick(active - 1)}
+            disabled={active <= 1}
+            className="tap-target rounded-md px-2.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            ← Назад
+          </button>
+          <span className="text-xs text-muted-foreground">
+            Шаг {active} из {TZ_STEP_COUNT}
+          </span>
+          <button
+            type="button"
+            onClick={() => onStepClick(active + 1)}
+            disabled={active >= TZ_STEP_COUNT}
+            className="tap-target rounded-md px-2.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            Далее →
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

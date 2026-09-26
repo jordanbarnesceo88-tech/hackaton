@@ -50,7 +50,7 @@ import { ScenarioDetails, parseItemOverrideField, type ItemOverrideKind } from "
 import { ScenarioTable } from "./scenario-table";
 import { SelectionPanel } from "./selection-panel";
 import { SensitivityPanel } from "./sensitivity-panel";
-import { STEP_SECTION_CLASS, StepNav, TZ_STEPS, stepHeading } from "./step-nav";
+import { STEP_SECTION_CLASS, StepNav, TZ_STEP_COUNT, TZ_STEPS, stepHeading } from "./step-nav";
 import { VersionBanner } from "./version-banner";
 
 /**
@@ -565,7 +565,23 @@ export function Workspace({
   const [simStatus, setSimStatus] = useState<SimStatus | null>(null);
   const [focusPick, setFocusPick] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ where: "selection" | "scenarios" | "params"; text: string } | null>(null);
-  const [activeStep, setActiveStep] = useState(1);
+  const [activeStep, setActiveStepRaw] = useState(1);
+  /**
+   * Бэклог #4b: один экран на шаг — но раздел остаётся смонтированным и видимым DOM/для
+   * доступности, меняется только то, куда прокручена страница (scroll-snap, см. screenClass
+   * ниже). НЕ display:none: e2e (e2e/tz-project.spec.ts и другие) взаимодействуют с
+   * `#economics`, `#selection`, `#scenarios` и т.д. напрямую, без клика по «Далее» между
+   * каждым действием, — это работает только потому, что все разделы всегда в потоке страницы,
+   * и Playwright сам докручивает до элемента при действии. Скрой их — упадёт весь набор.
+   * setActiveStep поэтому не переключает видимость, а прокручивает к разделу и обновляет номер
+   * для подсветки в StepNav — чисто косметическую, не управляющую рендером.
+   */
+  function setActiveStep(n: number) {
+    const clamped = Math.min(TZ_STEP_COUNT, Math.max(1, n));
+    setActiveStepRaw(clamped);
+    const id = TZ_STEPS.find((s) => s.n === clamped)?.id;
+    if (id) document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const model = calc.model;
 
@@ -1047,7 +1063,16 @@ export function Workspace({
 
   const statusText = calcStatusText(calc.ms, model);
   const simText = simStatusText(calc, simStatus);
-  const sectionClass = cn(STEP_SECTION_CLASS, "scroll-mt-32 flex flex-col gap-4");
+  // Бэклог #4b: «один экран на шаг» — min-h-[85dvh] на каждом разделе плюс scrollIntoView из
+  // setActiveStep (выше), а не display:none. Раздел остаётся в потоке и виден
+  // Playwright/скринридеру всегда — e2e (tz-project.spec.ts и другие) взаимодействует с
+  // разделами напрямую, без клика «Далее» между каждым действием, полагаясь на то, что все
+  // они всегда в DOM и Playwright сам докручивает при действии. Обычная прокрутка колёсиком
+  // мыши работает как раньше, без CSS scroll-snap: тот требует ограниченного по высоте
+  // scroll-контейнера, а вложенный контейнер с своим скроллом внутри sticky-панели —
+  // источник багов (двойной скроллбар, залипание sticky), которые здесь негде визуально
+  // проверить. 85dvh, не 100: sticky-панель StepNav+RecalcBar сверху уже часть экрана.
+  const sectionClass = cn(STEP_SECTION_CLASS, "flex min-h-[85dvh] scroll-mt-32 flex-col gap-4");
   const economicsPanelId = `${uid}-economics-panel`;
   const sensitivityPanelId = `${uid}-sensitivity-panel`;
   const noticeFor = (where: "selection" | "scenarios" | "params") => (notice && notice.where === where ? notice.text : "");
@@ -1080,7 +1105,11 @@ export function Workspace({
       )}
 
       <div className="no-print sticky top-0 z-30 -mx-2 border-b bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-        <StepNav active={activeStep} className="static border-b-0 bg-transparent py-1.5 backdrop-blur-none" />
+        <StepNav
+          active={activeStep}
+          onStepClick={setActiveStep}
+          className="static border-b-0 bg-transparent py-1.5 backdrop-blur-none"
+        />
         <RecalcBar
           onRecalc={recalc}
           readOnly={!editable}
