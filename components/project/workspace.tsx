@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { WarehouseSimulation } from "@/components/sim/warehouse-simulation";
 import { isAbortError, yieldToPage } from "@/components/sim/run-headless";
 import { buildSimVariants, storedMatches, type SimScenario } from "@/components/sim/variants";
@@ -36,7 +37,6 @@ import type {
   SelectionResult,
 } from "@/lib/tz/types";
 import { stableJson } from "@/lib/tz/version";
-import { cn } from "@/lib/utils";
 import { ChangeLog, type ChangeLogEntry } from "./change-log";
 import { ComparisonTable, scenarioItemKeys, statusChipLabel } from "./comparison-table";
 import { Conclusion } from "./conclusion";
@@ -50,7 +50,7 @@ import { ScenarioDetails, parseItemOverrideField, type ItemOverrideKind } from "
 import { ScenarioTable } from "./scenario-table";
 import { SelectionPanel } from "./selection-panel";
 import { SensitivityPanel } from "./sensitivity-panel";
-import { STEP_SECTION_CLASS, StepNav, TZ_STEP_COUNT, TZ_STEPS, stepHeading } from "./step-nav";
+import { StepNav, StepPager, TZ_STEP_COUNT, TZ_STEPS, stepHeading } from "./step-nav";
 import { VersionBanner } from "./version-banner";
 
 /**
@@ -562,22 +562,56 @@ export function Workspace({
   const [simStatus, setSimStatus] = useState<SimStatus | null>(null);
   const [focusPick, setFocusPick] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ where: "selection" | "scenarios" | "params"; text: string } | null>(null);
-  const [activeStep, setActiveStepRaw] = useState(1);
+  const [activeStep, setActiveStep] = useState(1);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const stepsRef = useRef<HTMLDivElement>(null);
   /**
-   * Бэклог #4b: один экран на шаг — но раздел остаётся смонтированным и видимым DOM/для
-   * доступности, меняется только то, куда прокручена страница (scroll-snap, см. screenClass
-   * ниже). НЕ display:none: e2e (e2e/tz-project.spec.ts и другие) взаимодействуют с
-   * `#economics`, `#selection`, `#scenarios` и т.д. напрямую, без клика по «Далее» между
-   * каждым действием, — это работает только потому, что все разделы всегда в потоке страницы,
-   * и Playwright сам докручивает до элемента при действии. Скрой их — упадёт весь набор.
-   * setActiveStep поэтому не переключает видимость, а прокручивает к разделу и обновляет номер
-   * для подсветки в StepNav — чисто косметическую, не управляющую рендером.
+   * Пейджер шагов (просьба владельца 2026-09-26; заменил «один экран на шаг» бэклога #4b): на
+   * экране один шаг, остальные — `hidden`, но смонтированы, поэтому черновики полей, выбранные
+   * вкладки и имитация переход между шагами переживают. Смена шага — горизонтальный сдвиг:
+   * вперёд — текущий уходит влево, назад — вправо (View Transitions API, «Пейджер рабочей
+   * области» в globals.css). Без API и при prefers-reduced-motion шаг меняется мгновенно.
+   *
+   * Прежняя схема — все восемь разделов в потоке с min-h-[85dvh], scrollIntoView и
+   * IntersectionObserver, который при прокрутке звал тот же scrollIntoView, — перехватывала
+   * колесо мыши: прокрутка, дошедшая до следующего раздела, перебрасывалась к его началу, а
+   * содержимое уезжало под липкую панель. Раздел пустел на треть экрана из-за min-h.
+   *
+   * Шаг — в адресе (#economics и т.д., replaceState): обновление страницы и ссылки вида
+   * «#report» открывают нужный шаг.
    */
-  function setActiveStep(n: number) {
-    const clamped = Math.min(TZ_STEP_COUNT, Math.max(1, n));
-    setActiveStepRaw(clamped);
-    const id = TZ_STEPS.find((s) => s.n === clamped)?.id;
-    if (id) document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  function goToStep(n: number, opts: { focusHeading?: boolean } = {}) {
+    const next = Math.min(TZ_STEP_COUNT, Math.max(1, n));
+    const id = TZ_STEPS.find((st) => st.n === next)?.id;
+    if (next === activeStep) {
+      revealStepTop();
+      return;
+    }
+    const apply = () => {
+      flushSync(() => setActiveStep(next));
+      if (id) window.history.replaceState(null, "", `#${id}`);
+      revealStepTop();
+      // С нижней кнопки «Далее» фокус переносится на заголовок нового шага: сама кнопка
+      // осталась в скрытом шаге, и фокус иначе упал бы на body.
+      if (opts.focusHeading && id) document.getElementById(`${uid}-h-${id}`)?.focus({ preventScroll: true });
+    };
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || typeof document.startViewTransition !== "function") {
+      apply();
+      return;
+    }
+    const root = document.documentElement;
+    root.setAttribute("data-step-dir", next > activeStep ? "next" : "prev");
+    void document.startViewTransition(apply).finished.finally(() => root.removeAttribute("data-step-dir"));
+  }
+
+  /** Начало шага — сразу под липкой панелью, если страница прокручена ниже него. */
+  function revealStepTop() {
+    const steps = stepsRef.current;
+    if (!steps) return;
+    const barBottom = stickyRef.current?.getBoundingClientRect().bottom ?? 0;
+    const top = steps.getBoundingClientRect().top;
+    if (top < barBottom) window.scrollTo({ top: window.scrollY + top - barBottom - 16, behavior: "instant" });
   }
 
   const model = calc.model;
@@ -606,21 +640,23 @@ export function Workspace({
     return () => ac.abort();
   }, [simTarget]);
 
-  // ——— Текущий шаг по прокрутке (подсветка в навигации) ———
+  // ——— Шаг из адреса: при открытии страницы и по ссылкам «#report» внутри неё ———
+  const onHashStep = useEffectEvent((initial: boolean) => {
+    const n = TZ_STEPS.find((st) => `#${st.id}` === window.location.hash)?.n;
+    if (n === undefined) return;
+    if (initial) setActiveStep(n);
+    else goToStep(n);
+  });
   useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
-    const els = TZ_STEPS.map((s) => document.getElementById(s.id)).filter((el): el is HTMLElement => el !== null);
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting);
-        const top = visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        const step = TZ_STEPS.find((s) => s.id === top?.target.id);
-        if (step) setActiveStep(step.n);
-      },
-      { rootMargin: "-120px 0px -60% 0px" },
-    );
-    for (const el of els) io.observe(el);
-    return () => io.disconnect();
+    // Кадр спустя, а не синхронно в эффекте: сервер и гидратация рисуют шаг 1 (адреса с
+    // хэшем на сервере нет), шаг из хэша включается сразу после.
+    const raf = requestAnimationFrame(() => onHashStep(true));
+    const onHash = () => onHashStep(false);
+    window.addEventListener("hashchange", onHash);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("hashchange", onHash);
+    };
   }, []);
 
   // ——— Производные значения ———
@@ -1069,7 +1105,9 @@ export function Workspace({
   // scroll-контейнера, а вложенный контейнер с своим скроллом внутри sticky-панели —
   // источник багов (двойной скроллбар, залипание sticky), которые здесь негде визуально
   // проверить. 85dvh, не 100: sticky-панель StepNav+RecalcBar сверху уже часть экрана.
-  const sectionClass = cn(STEP_SECTION_CLASS, "flex min-h-[85dvh] scroll-mt-32 flex-col gap-4");
+  // Ритм шага: заголовок с вводной — одна группа, дальше блоки шага через 40px; внутри блока
+  // свой, более плотный шаг. Раньше всё шло через 16px, и соседние разделы сливались.
+  const sectionClass = "flex flex-col gap-10";
   const economicsPanelId = `${uid}-economics-panel`;
   const sensitivityPanelId = `${uid}-sensitivity-panel`;
   const noticeFor = (where: "selection" | "scenarios" | "params") => (notice && notice.where === where ? notice.text : "");
@@ -1105,10 +1143,13 @@ export function Workspace({
           for the same y=0 — this bar's z-30 is higher than the header's z-20, so at top-0 it
           would have painted over the header once both were stuck. Below xl the header is not
           sticky (two rows, see site-header.tsx) and this bar takes top-0. */}
-      <div className="no-print sticky top-0 z-30 -mx-2 border-b bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/85 xl:top-[60px]">
+      <div
+        ref={stickyRef}
+        className="no-print sticky top-0 z-30 -mx-2 border-b bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/85 xl:top-[60px]"
+      >
         <StepNav
           active={activeStep}
-          onStepClick={setActiveStep}
+          onStepClick={goToStep}
           className="static border-b-0 bg-transparent py-1.5 backdrop-blur-none"
         />
         <RecalcBar
@@ -1121,9 +1162,11 @@ export function Workspace({
         />
       </div>
 
+      {/* Шаги — пейджер: виден один, смена горизонтальным сдвигом (goToStep выше). */}
+      <div ref={stepsRef} className="workspace-steps flex flex-col gap-10">
       {/* Шаг 1 — объект */}
-      <section id="object" aria-labelledby={`${uid}-h-object`} className={sectionClass}>
-        <h2 id={`${uid}-h-object`}>{stepHeading(1)}</h2>
+      <section id="object" aria-labelledby={`${uid}-h-object`} className={sectionClass} hidden={activeStep !== 1}>
+        <h2 id={`${uid}-h-object`} tabIndex={-1}>{stepHeading(1)}</h2>
         {facility !== "warehouse" && (
           <p data-tone="warn" className="callout callout--sm w-fit">
             {PROTOTYPE_BADGE}
@@ -1174,12 +1217,14 @@ export function Workspace({
       </section>
 
       {/* Шаг 2 — параметры */}
-      <section id="params" aria-labelledby={`${uid}-h-params`} className={sectionClass}>
-        <h2 id={`${uid}-h-params`}>{stepHeading(2)}</h2>
-        <p className="text-sm text-muted-foreground">
-          У каждого поля — единица, пример, диапазон и источник базового значения. После правки нажмите «Пересчитать»:
-          модель считается в браузере той же функцией, что на сервере.
-        </p>
+      <section id="params" aria-labelledby={`${uid}-h-params`} className={sectionClass} hidden={activeStep !== 2}>
+        <header className="flex flex-col gap-2">
+          <h2 id={`${uid}-h-params`} tabIndex={-1}>{stepHeading(2)}</h2>
+          <p className="text-sm text-muted-foreground">
+            У каждого поля — единица, пример, диапазон и источник базового значения. После правки нажмите «Пересчитать»:
+            модель считается в браузере той же функцией, что на сервере.
+          </p>
+        </header>
         {editable && (
           <details className="rounded-lg border px-4 py-3">
             <summary className="cursor-pointer text-sm font-medium">Загрузить параметры из Excel или CSV по шаблону</summary>
@@ -1203,13 +1248,15 @@ export function Workspace({
       </section>
 
       {/* Шаг 3 — подбор */}
-      <section id="selection" aria-labelledby={`${uid}-h-selection`} className={sectionClass}>
-        <h2 id={`${uid}-h-selection`}>{stepHeading(3)}</h2>
-        <p className="text-sm text-muted-foreground">
-          Для каждого процесса объекта: статус решения, балл с разложением по факторам, причины включения или
-          исключения, ограничения и недостающие данные. Исключённое решение можно добавить вручную — с причиной и
-          пометкой ⚠.
-        </p>
+      <section id="selection" aria-labelledby={`${uid}-h-selection`} className={sectionClass} hidden={activeStep !== 3}>
+        <header className="flex flex-col gap-2">
+          <h2 id={`${uid}-h-selection`} tabIndex={-1}>{stepHeading(3)}</h2>
+          <p className="text-sm text-muted-foreground">
+            Для каждого процесса объекта: статус решения, балл с разложением по факторам, причины включения или
+            исключения, ограничения и недостающие данные. Исключённое решение можно добавить вручную — с причиной и
+            пометкой ⚠.
+          </p>
+        </header>
         <p role="status" aria-live="polite" className="text-sm [&:empty]:hidden">
           {noticeFor("selection")}
         </p>
@@ -1259,71 +1306,78 @@ export function Workspace({
       </section>
 
       {/* Шаг 4 — сравнение */}
-      <section id="comparison" aria-labelledby={`${uid}-h-comparison`} className={sectionClass}>
-        <h2 id={`${uid}-h-comparison`}>{stepHeading(4)}</h2>
+      <section id="comparison" aria-labelledby={`${uid}-h-comparison`} className={sectionClass} hidden={activeStep !== 4}>
+        <h2 id={`${uid}-h-comparison`} tabIndex={-1}>{stepHeading(4)}</h2>
         <ComparisonTable rows={model.comparison} pinned={itemKeys} />
       </section>
 
       {/* Шаг 5 — экономика */}
-      <section id="economics" aria-labelledby={`${uid}-h-economics`} className={sectionClass}>
-        <h2 id={`${uid}-h-economics`}>{stepHeading(5)}</h2>
-        <p className="text-sm text-muted-foreground">
-          Состав оборудования, CAPEX и OPEX по статьям, денежный поток и «Как посчитано» — по выбранному сценарию.
-          Расчётные значения можно переопределить: каждое изменение попадает в журнал (шаг 8).
-        </p>
-        {results.length > 0 && (
-          <ScenarioTabs
-            label="Сценарий для экономики"
-            items={tabs}
-            value={focusKey}
-            onChange={setFocusPick}
-            panelId={economicsPanelId}
-            idBase={`${uid}-eco-tab`}
-          />
-        )}
-        {focusResult && (
-          <div
-            id={economicsPanelId}
-            role="tabpanel"
-            aria-labelledby={`${uid}-eco-tab-${focusResult.key}`}
-            className="flex flex-col gap-6"
-          >
-            <ScenarioDetails
-              result={focusResult}
-              spec={focusSpec}
-              products={model.productSnapshots}
-              norms={scenarioNorms(model, focusResult.key)}
-              horizonYears={horizonFor(focusResult.key)}
-              paramLabels={paramLabels}
-              readOnly={!editable}
-              onOverride={
-                editable && focusResult.kind !== "asis"
-                  ? (field, value, reason) => onItemOverride(focusResult.key, field, value, reason)
-                  : undefined
-              }
+      <section id="economics" aria-labelledby={`${uid}-h-economics`} className={sectionClass} hidden={activeStep !== 5}>
+        <header className="flex flex-col gap-2">
+          <h2 id={`${uid}-h-economics`} tabIndex={-1}>{stepHeading(5)}</h2>
+          <p className="text-sm text-muted-foreground">
+            Состав оборудования, CAPEX и OPEX по статьям, денежный поток и «Как посчитано» — по выбранному сценарию.
+            Расчётные значения можно переопределить: каждое изменение попадает в журнал (шаг 8).
+          </p>
+        </header>
+        {/* Вкладки и панель, которой они управляют, — одна группа (16px), а не два блока шага. */}
+        <div className="flex flex-col gap-4">
+          {results.length > 0 && (
+            <ScenarioTabs
+              label="Сценарий для экономики"
+              items={tabs}
+              value={focusKey}
+              onChange={setFocusPick}
+              panelId={economicsPanelId}
+              idBase={`${uid}-eco-tab`}
             />
-            <NormsPanel
-              rows={rows}
-              overrides={focusSpec?.normOverrides}
-              onOverride={
-                editable && focusResult.kind !== "asis"
-                  ? (key, value, reason) => onNormOverride(focusResult.key, key, value, reason)
-                  : undefined
-              }
-              readOnly={!editable || focusResult.kind === "asis"}
-              scenarioName={focusResult.name}
-            />
-          </div>
-        )}
+          )}
+          {focusResult && (
+            <div
+              id={economicsPanelId}
+              role="tabpanel"
+              aria-labelledby={`${uid}-eco-tab-${focusResult.key}`}
+              className="flex flex-col gap-12"
+            >
+              <ScenarioDetails
+                result={focusResult}
+                spec={focusSpec}
+                products={model.productSnapshots}
+                norms={scenarioNorms(model, focusResult.key)}
+                horizonYears={horizonFor(focusResult.key)}
+                paramLabels={paramLabels}
+                readOnly={!editable}
+                onOverride={
+                  editable && focusResult.kind !== "asis"
+                    ? (field, value, reason) => onItemOverride(focusResult.key, field, value, reason)
+                    : undefined
+                }
+              />
+              <NormsPanel
+                rows={rows}
+                overrides={focusSpec?.normOverrides}
+                onOverride={
+                  editable && focusResult.kind !== "asis"
+                    ? (key, value, reason) => onNormOverride(focusResult.key, key, value, reason)
+                    : undefined
+                }
+                readOnly={!editable || focusResult.kind === "asis"}
+                scenarioName={focusResult.name}
+              />
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Шаг 6 — сценарии */}
-      <section id="scenarios" aria-labelledby={`${uid}-h-scenarios`} className={sectionClass}>
-        <h2 id={`${uid}-h-scenarios`}>{stepHeading(6)}</h2>
-        <p className="text-sm text-muted-foreground">
-          Базовый сценарий «Как есть» и варианты роботизации — покупка и услуга (RaaS) — в одной таблице. Строка
-          «Имитация» показывает, подтверждает ли имитация расчётный парк (шаг 7).
-        </p>
+      <section id="scenarios" aria-labelledby={`${uid}-h-scenarios`} className={sectionClass} hidden={activeStep !== 6}>
+        <header className="flex flex-col gap-2">
+          <h2 id={`${uid}-h-scenarios`} tabIndex={-1}>{stepHeading(6)}</h2>
+          <p className="text-sm text-muted-foreground">
+            Базовый сценарий «Как есть» и варианты роботизации — покупка и услуга (RaaS) — в одной таблице. Строка
+            «Имитация» показывает, подтверждает ли имитация расчётный парк (шаг 7).
+          </p>
+        </header>
         <ScenarioTable
           results={results}
           sim={calc.sims ?? {}}
@@ -1339,7 +1393,7 @@ export function Workspace({
 
         {editable && (
           <div className="flex flex-col gap-3 rounded-lg border px-4 py-3">
-            <h3 className="text-base font-semibold">Состав сценариев</h3>
+            <h3 className="section-title">Состав сценариев</h3>
             <p className="text-xs text-muted-foreground">
               В проекте от {SCENARIOS_MIN} до {SCENARIOS_MAX} сценариев, «Как есть» — ровно один. Сейчас: {scenarios.length}.
             </p>
@@ -1379,8 +1433,8 @@ export function Workspace({
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
-          <h3 className="text-base font-semibold">Чувствительность</h3>
+        <div className="flex flex-col gap-4">
+          <h3 className="section-title">Чувствительность</h3>
           {results.length > 0 && (
             <ScenarioTabs
               label="Сценарий для анализа чувствительности"
@@ -1411,8 +1465,8 @@ export function Workspace({
       </section>
 
       {/* Шаг 7 — имитация */}
-      <section id="simulation" aria-labelledby={`${uid}-h-simulation`} className={sectionClass}>
-        <h2 id={`${uid}-h-simulation`}>{stepHeading(7)}</h2>
+      <section id="simulation" aria-labelledby={`${uid}-h-simulation`} className={sectionClass} hidden={activeStep !== 7}>
+        <h2 id={`${uid}-h-simulation`} tabIndex={-1}>{stepHeading(7)}</h2>
         {showSimulation ? (
           // Таблица «Откуда параметры имитации» печатает ссылки на источники текстом; длинная
           // ссылка без пробелов растягивала раскрытый блок шире карточки (её обрезает
@@ -1443,8 +1497,8 @@ export function Workspace({
       </section>
 
       {/* Шаг 8 — сохранение и отчёт */}
-      <section id="report" aria-labelledby={`${uid}-h-report`} className={sectionClass}>
-        <h2 id={`${uid}-h-report`}>{stepHeading(8, guest ? "Выгрузка и журнал" : "Сохранение и отчёт")}</h2>
+      <section id="report" aria-labelledby={`${uid}-h-report`} className={sectionClass} hidden={activeStep !== 8}>
+        <h2 id={`${uid}-h-report`} tabIndex={-1}>{stepHeading(8, guest ? "Выгрузка и журнал" : "Сохранение и отчёт")}</h2>
         <ProjectToolbar
           mode={mode}
           projectId={project.id}
@@ -1458,6 +1512,9 @@ export function Workspace({
         />
         <ChangeLog entries={journal} guest={guest} />
       </section>
+
+      <StepPager active={activeStep} onStep={(n) => goToStep(n, { focusHeading: true })} />
+      </div>
     </div>
   );
 }

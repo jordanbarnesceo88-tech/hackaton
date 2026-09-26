@@ -73,7 +73,7 @@ export function ChangeLog({
   const title = guest ? "Журнал корректировок (не сохраняется)" : "Журнал корректировок";
   return (
     <section aria-label={title} className="flex flex-col gap-2">
-      <h3 className="text-base font-semibold">{title}</h3>
+      <h3 className="section-title">{title}</h3>
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Корректировок пока нет: все значения расчётные или взяты из данных организатора.

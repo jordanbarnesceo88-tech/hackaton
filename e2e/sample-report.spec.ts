@@ -54,7 +54,7 @@ test("образец отчёта демо-проекта: PDF, Excel, CSV и PN
   await saveDownload(page, () => page.getByRole("link", { name: "Скачать CSV" }).click(), "sample-report.csv", /\.csv$/);
 
   // Кадр имитации: сценарий, выбранный при открытии (рекомендуемый), итог прогона без анимации.
-  await page.goto(`/projects/${DEMO_PROJECT}`);
+  await page.goto(`/projects/${DEMO_PROJECT}#simulation`);
   const sim = page.locator("#simulation");
   const png = sim.getByRole("button", { name: "Скачать PNG" });
   await expect(png).toBeEnabled({ timeout: 30_000 });

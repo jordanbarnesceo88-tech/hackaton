@@ -171,8 +171,8 @@ export function NormsPanel({
   const showOverrides = editable || setKeys.length > 0;
 
   return (
-    <section aria-label="Нормативы и допущения" className="flex flex-col gap-3">
-      <h3 className="text-base font-semibold">Нормативы и допущения</h3>
+    <section aria-label="Нормативы и допущения" className="flex flex-col gap-4">
+      <h3 className="section-title">Нормативы и допущения</h3>
       {showOverrides && (
         <div className="flex flex-col gap-2 rounded-md border px-3 py-3">
           <p className="text-sm font-medium">

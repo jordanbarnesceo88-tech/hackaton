@@ -371,6 +371,60 @@
   }
 }
 
+/* Пейджер рабочей области проекта (goToStep в components/project/workspace.tsx): шаг
+   сменяется горизонтальным сдвигом — вперёд текущий уходит влево, а новый въезжает справа;
+   назад — зеркально. Имя перехода выдаётся блоку шагов только на время этого перехода
+   (data-step-dir на <html>), а у корня анимация на это время снята: шапка, липкая панель
+   шагов и всё вне блока стоят на месте. Размер группы не анимируется — новый шаг сразу
+   занимает свою высоту, сдвигаются только снимки. Выход короче входа: уходящее не должно
+   заставлять ждать. */
+:root[data-step-dir] .workspace-steps {
+  view-transition-name: workspace-steps;
+}
+:root[data-step-dir]::view-transition-old(root),
+:root[data-step-dir]::view-transition-new(root) {
+  animation: none;
+}
+:root[data-step-dir]::view-transition-group(workspace-steps) {
+  animation-duration: 0s;
+}
+:root[data-step-dir="next"]::view-transition-old(workspace-steps) {
+  animation: step-out-left 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+:root[data-step-dir="next"]::view-transition-new(workspace-steps) {
+  animation: step-in-right 320ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+:root[data-step-dir="prev"]::view-transition-old(workspace-steps) {
+  animation: step-out-right 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+:root[data-step-dir="prev"]::view-transition-new(workspace-steps) {
+  animation: step-in-left 320ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes step-out-left {
+  to { opacity: 0; transform: translateX(-7rem); }
+}
+@keyframes step-in-right {
+  from { opacity: 0; transform: translateX(7rem); }
+}
+@keyframes step-out-right {
+  to { opacity: 0; transform: translateX(7rem); }
+}
+@keyframes step-in-left {
+  from { opacity: 0; transform: translateX(-7rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-step-dir]::view-transition-old(workspace-steps),
+  :root[data-step-dir]::view-transition-new(workspace-steps) {
+    animation: none;
+  }
+}
+/* Печать рабочей области — все шаги, как до пейджера: на бумаге листать нечем. */
+@media print {
+  .workspace-steps > section[hidden] {
+    display: flex !important;
+  }
+}
+
 /* Порт эффектов BCB (docs/design/PROTOTYPE-DESIGN-SYSTEM.md): четыре keyframes из прототипа,
    переносимые как переиспользуемая инфраструктура. `pulse`/`bubble-in` общего назначения;
    `march`/`halo` рассчитаны на SVG со `stroke-dasharray`/`transform-box: fill-box` и здесь
@@ -439,11 +493,13 @@
   }
 
   /* Данные: таблицы, панели, визуализация, калькулятор — то, что раньше называли «дизайн» в
-     запросе на расширение. */
+     запросе на расширение. Второе расширение (2026-09-26, «поля всё ещё съедают место»): 96vw и
+     поле до 2rem — при 1440px по ~58px пустоты с каждой стороны вместо ~130px, колонка данных
+     1325px вместо 1181px. */
   .surface-data {
-    width: min(90vw, 112rem);
+    width: min(96vw, 120rem);
     margin-inline: auto;
-    padding-inline: clamp(1.5rem, 4vw, 4rem);
+    padding-inline: clamp(1rem, 2vw, 2rem);
   }
 
   /* Два уровня возвышения из BCB: панель (карточка) и всплывающая поверхность (поповер/модал).
@@ -606,6 +662,25 @@
     border-bottom-color: var(--primary);
     color: var(--primary);
     font-weight: 500;
+  }
+
+  /* Заголовки внутри шага рабочей области: h2 — сам шаг (глобальный стиль), .section-title —
+     раздел шага («Нормативы и допущения», «Состав сценариев», «Журнал корректировок»),
+     .block-title — блок внутри раздела («CAPEX по статьям», «Денежный поток по годам»).
+     Раньше всё это было 14–16px полужирным и отделялось от соседей 16–24px, поэтому раздел
+     «Нормативы и допущения» читался продолжением таблицы над ним. */
+  .section-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .block-title {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
   }
 
   /* .callout — ONE notice block for warnings, errors, confirmations and neutral notes: a tinted
@@ -924,6 +999,11 @@
   }
   .report-section {
     break-before: auto;
+  }
+  /* Блоки, общие с рабочей областью (LineItems и др.), печатаются прежним кеглем: отчёт
+     свёрстан под 10pt, экранные 16px заголовка блока в нём выпирали бы. */
+  .report-print .block-title {
+    font-size: 0.875rem;
   }
   /* Заголовок раздела или подраздела не остаётся последней строкой страницы. */
   .report-print h2,

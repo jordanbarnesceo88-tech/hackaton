@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -28,12 +29,6 @@ export const TZ_STEPS: readonly TzStep[] = [
 
 /** Сколько всего шагов — знаменатель в «Шаг N из 8». */
 export const TZ_STEP_COUNT = TZ_STEPS.length;
-
-/**
- * Отступ сверху для раздела-якоря: липкая навигация иначе закрывает заголовок раздела, к
- * которому перешли по ссылке. Рабочая область добавляет этот класс к каждой секции шага.
- */
-export const STEP_SECTION_CLASS = "scroll-mt-16";
 
 /**
  * Заголовок раздела шага: «Шаг 2 из 8 · Параметры». Без `title` берётся название шага из
@@ -135,6 +130,31 @@ export function StepNav({
             Далее →
           </button>
         </div>
+      )}
+    </nav>
+  );
+}
+
+/**
+ * Нижняя пара кнопок шага: «Назад: N. Шаг» и «Далее: N. Шаг». Верхняя панель (StepNav) к
+ * концу длинного шага уже далеко — здесь следующий шаг открывается там, где его дочитали.
+ */
+export function StepPager({ active, onStep }: { active: number; onStep: (n: number) => void }) {
+  const prev = TZ_STEPS.find((s) => s.n === active - 1) ?? null;
+  const next = TZ_STEPS.find((s) => s.n === active + 1) ?? null;
+  return (
+    <nav aria-label="Соседние шаги" className="no-print flex flex-wrap items-center gap-3 border-t border-border pt-6">
+      {prev && (
+        <button type="button" onClick={() => onStep(prev.n)} className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <ArrowLeft aria-hidden={true} />
+          Назад: {prev.n}. {prev.title}
+        </button>
+      )}
+      {next && (
+        <button type="button" onClick={() => onStep(next.n)} className={cn(buttonVariants({ size: "lg" }), "ml-auto")}>
+          Далее: {next.n}. {next.title}
+          <ArrowRight aria-hidden={true} />
+        </button>
       )}
     </nav>
   );

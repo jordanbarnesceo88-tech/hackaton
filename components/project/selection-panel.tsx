@@ -269,7 +269,15 @@ function ResultsTable({
                     )}
                   </td>
                   {actions && (
-                    <td className={cn(STICKY_ACTIONS_CLASS, "px-3 py-2")}>
+                    <td
+                      className={cn(
+                        STICKY_ACTIONS_CLASS,
+                        "px-3 py-2",
+                        // Прижатая ячейка обязана быть непрозрачной (под ней уезжают колонки), поэтому
+                        // подсветка рекомендованной строки — тот же 5% тон, смешанный с фоном страницы.
+                        r.status === "recommended" && "bg-[color-mix(in_oklch,var(--positive)_5%,var(--background))]",
+                      )}
+                    >
                       {used ? (
                         <span data-tone={canUse(r) ? "ok" : "warn"} className={BADGE_CLASS}>
                           {canUse(r) ? "✓ В сценариях" : "⚠ Добавлено вручную"}

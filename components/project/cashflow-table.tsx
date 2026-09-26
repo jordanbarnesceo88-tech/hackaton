@@ -47,7 +47,7 @@ export function CashflowTable({
   const hasTail = rows.some((r) => afterHorizon(r.year));
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-sm font-semibold">{title}</h4>
+      <h4 className="block-title">{title}</h4>
       <div className="data-table-wrap">
         <table className="print-table w-full border-collapse text-sm">
           <thead className="border-b border-border">

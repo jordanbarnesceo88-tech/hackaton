@@ -42,7 +42,7 @@ export function LineItems({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-sm font-semibold">{title}</h4>
+      <h4 className="block-title">{title}</h4>
       {lines.length === 0 ? (
         <p className="text-sm text-muted-foreground">Статей нет.</p>
       ) : (
