@@ -81,7 +81,11 @@ const ORIGIN_TONE: Readonly<Record<Origin, "info" | "ok" | "warn" | undefined>> 
   derived: undefined,
   choice: undefined,
   tz: "info",
-  admin: undefined,
+  // Was its own distinct bg-secondary treatment pre-port; collapsing it to the same
+  // undefined/default look as derived/choice erased the one distinction this badge exists to
+  // show (ТЗ §3.2.5/§3.3.4: an admin override should read differently from a computed value).
+  // "warn" restores a visible, distinct treatment without a new CSS token.
+  admin: "warn",
   user: "info",
 };
 

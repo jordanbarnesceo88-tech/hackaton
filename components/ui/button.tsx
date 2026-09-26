@@ -34,7 +34,9 @@ const buttonVariants = cva(
         lg: "h-9 gap-1.5 px-3.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         // BCB's --btn--big: the large touch-target variant for high-touch contexts (13px 22px
         // padding, 18×18 icons) — a prior pass had no size above `lg` at all.
-        xl: "h-11 gap-2 px-[22px] py-[13px] text-base has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4 [&_svg:not([class*='size-'])]:size-[18px]",
+        // h-[52px] not h-11: border(2) + py-[13px]×2(26) + text-base line-height(24) = 52px;
+        // a fixed h-11 (44px) clipped/overflowed the label by ~8px on every xl button.
+        xl: "h-[52px] gap-2 px-[22px] py-[13px] text-base has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4 [&_svg:not([class*='size-'])]:size-[18px]",
         icon: "size-8",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",

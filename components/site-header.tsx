@@ -28,7 +28,7 @@ export async function SiteHeader() {
   const showAdmin = session?.user?.role === "ADMIN" && (await isAdminSession());
   // Первая буква — заглушка аватара, как в user-chip BCB, а не первая непустая логика проекта:
   // ничего похожего на аватар пользователь пока не загружает.
-  const initial = session?.user?.email?.trim()?.[0]?.toUpperCase();
+  const initial = session?.user?.email?.trim()?.[0]?.toUpperCase() ?? "?";
   return (
     // min-h вместо фиксированной h-[60px] (BCB --bar-h): 60px — бюджет для одной строки
     // навигации на десктопе, но эта шапка переносится на телефоне (flex-wrap), а

@@ -242,7 +242,7 @@ export default async function AdminCatalogPage({
                         {r.archived && <span className={cn(CHIP_CLASS, "bg-muted")}>архив</span>}
                         {r.excluded && <span className={cn(CHIP_CLASS, "bg-muted")}>исключён</span>}
                         {r.needsVerification && (
-                          <span className={cn(CHIP_CLASS, "border-caution/40")}>требует проверки</span>
+                          <span className={cn(CHIP_CLASS, "border-caution/40 bg-caution/10")}>требует проверки</span>
                         )}
                       </span>
                     </td>

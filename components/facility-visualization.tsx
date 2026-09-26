@@ -117,8 +117,11 @@ export function FacilityVisualization({
     // an acceptable gap for a decorative scene (SC 1.1.1: the canvas carries no information the
     // KPI column beside it doesn't already state in text).
     const themeStyle = getComputedStyle(canvas);
-    const sceneBackground = themeStyle.getPropertyValue("--background").trim() || "#0f172a";
-    const robotColor = themeStyle.getPropertyValue("--primary").trim() || "#22d3ee";
+    // Fallbacks mirror the dark-theme --background/--primary oklch values (app/globals.css)
+    // exactly, not unrelated stock hex, so a failed custom-property read still matches the
+    // ported BCB palette instead of reverting to the old pre-port slate/cyan look.
+    const sceneBackground = themeStyle.getPropertyValue("--background").trim() || "oklch(0.219 0.022 216.6)";
+    const robotColor = themeStyle.getPropertyValue("--primary").trim() || "oklch(0.771 0.126 201.4)";
 
     const draw = () => {
       const now = performance.now();
