@@ -16,6 +16,14 @@ export default defineConfig({
     // buckets runs independently — otherwise repeated runs share `…:unknown` and the 6th signup
     // within 15 min would hit the cap and fail spuriously.
     extraHTTPHeaders: { "x-forwarded-for": `e2e-${Date.now()}` },
+    // The onboarding tour opens by itself on a first visit to «/» and, being modal, makes the
+    // page under it inert — every spec that starts on the landing page (flow.spec.ts) found no
+    // h1 and no links. Specs start as returning visitors; e2e/onboarding-tour.spec.ts clears
+    // this to test the first visit itself.
+    storageState: {
+      cookies: [],
+      origins: [{ origin: "http://localhost:3000", localStorage: [{ name: "onboarding-tour-seen", value: "1" }] }],
+    },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
