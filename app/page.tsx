@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TZ_STEPS, stepLinkText } from "@/components/project/step-nav";
 import { exampleHref, EXAMPLE_OBJECT_NAME } from "@/lib/wizard/example-scenario";
 import { buttonVariants } from "@/components/ui/button";
+import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 
 /**
  * Первый экран.
@@ -86,6 +87,10 @@ export default function Home() {
           <Link href="/projects/new" className={CTA_SECONDARY}>
             Создать проект
           </Link>
+          {/* Онбординг-тур: восемь карточек по шагам пути жюри (ТЗ §5.4), см.
+              components/onboarding/onboarding-tour.tsx. Открывается сам один раз новому
+              посетителю и по этой кнопке — в любой момент повторно. */}
+          <OnboardingTour />
         </div>
         <p className="text-sm text-muted-foreground">
           Демо-расчёт — без входа, на базовых значениях датасета организатора; изменения в нём не
