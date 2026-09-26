@@ -3,14 +3,22 @@
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
  * Модальное окно — первое в приложении (docs/design/PROTOTYPE-DESIGN-SYSTEM.md §4.9: до этого
- * ни одного модала не было ни в одном компоненте). Анатомия — BCB: скрим с размытием (BCB
- * `.overlay`), сильная граница, rounded-panel (16px), shadow-pop — и именно поэтому shadow-pop
- * существовал в globals.css с первой волны порта, но был не подключен ни к чему: это первая
- * всплывающая поверхность в приложении.
+ * ни одного модала не было ни в одном компоненте). Анатомия — BCB: сильная граница,
+ * rounded-panel (16px), shadow-pop, поверхность --popover — она выше страницы, а не утоплена
+ * в неё, как --card.
+ *
+ * Скрим — тёмная заливка --scrim, а не тон самой страницы: вокруг окна должно быть темнее,
+ * чем в окне, в обеих темах (значения проверены на настоящем фоне — см. --scrim в
+ * globals.css). Лёгкое размытие остаётся: оно говорит «фон сейчас неактивен».
+ *
+ * Состав: DialogHeader (заголовок + «Закрыть» в одном ряду), содержимое, DialogFooter.
+ * Кнопка «Закрыть» стоит в потоке заголовка, а не поверх окна (absolute): поверх она ложилась
+ * на угол картинки шага в туре.
  *
  * @base-ui/react/dialog, тот же примитив, что уже даёт кнопку/радио в этом репозитории
  * (components/ui/button.tsx, components/ui/radio-group.tsx) — не третья библиотека.
@@ -27,21 +35,16 @@ function DialogClose(props: React.ComponentProps<typeof DialogPrimitive.Close>) 
   return <DialogPrimitive.Close {...props} />;
 }
 
-function DialogContent({
-  className,
-  children,
-  showClose = true,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Popup> & { showClose?: boolean }) {
+function DialogContent({ className, children, ...props }: React.ComponentProps<typeof DialogPrimitive.Popup>) {
   return (
     <DialogPrimitive.Portal>
-      {/* .glass (BCB): тот же приём, что и у site-rail/step-nav — тонированный фон + блюр,
-          а не сплошной чёрный скрим. */}
-      <DialogPrimitive.Backdrop className="glass fixed inset-0 z-[100] bg-background/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
+      <DialogPrimitive.Backdrop className="fixed inset-0 z-[100] bg-scrim backdrop-blur-[2px] transition-opacity duration-200 data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
       <DialogPrimitive.Popup
         className={cn(
-          "shadow-pop fixed top-1/2 left-1/2 z-[100] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2",
-          "rounded-panel border-2 border-border bg-card p-6 text-card-foreground",
+          // max-h + overflow: на телефоне в альбомной ориентации окно выше экрана, и без
+          // прокрутки его нижние кнопки оказывались за краем.
+          "shadow-pop fixed top-1/2 left-1/2 z-[100] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto",
+          "rounded-panel border-2 border-border bg-popover p-6 text-popover-foreground",
           "data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
           "data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
           // Entrance gets a touch of overshoot (a "pop", not a linear ease) and takes longer
@@ -57,23 +60,57 @@ function DialogContent({
         {...props}
       >
         {children}
-        {showClose && (
-          <DialogClose className="tap-target absolute top-3 right-3 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-            <X size={16} aria-hidden={true} />
-            <span className="sr-only">Закрыть</span>
-          </DialogClose>
-        )}
       </DialogPrimitive.Popup>
     </DialogPrimitive.Portal>
   );
 }
 
-function DialogTitle(props: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className="panel-label" {...props} />;
+/**
+ * Верхний ряд окна: заголовок (и что к нему относится) слева, «Закрыть» справа. Отрицательные
+ * поля у кнопки — оптическое выравнивание: сам крестик встаёт по краю содержимого и по центру
+ * первой строки заголовка, а 28-пиксельная зона нажатия уходит в поле окна.
+ */
+function DialogHeader({
+  className,
+  children,
+  showClose = true,
+  ...props
+}: React.ComponentProps<"div"> & { showClose?: boolean }) {
+  return (
+    <div className={cn("flex items-start justify-between gap-4", className)} {...props}>
+      <div className="flex min-w-0 flex-col gap-1">{children}</div>
+      {showClose && (
+        <DialogPrimitive.Close
+          className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-mt-1 -mr-1.5 text-muted-foreground")}
+        >
+          <X aria-hidden={true} />
+          <span className="sr-only">Закрыть</span>
+        </DialogPrimitive.Close>
+      )}
+    </div>
+  );
 }
 
-function DialogDescription(props: React.ComponentProps<typeof DialogPrimitive.Description>) {
-  return <DialogPrimitive.Description className="text-sm text-muted-foreground" {...props} />;
+/** Нижний ряд окна: второстепенное действие слева, основные — справа (`ml-auto` у группы). */
+function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return <div className={cn("flex flex-wrap items-center gap-3", className)} {...props} />;
 }
 
-export { Dialog, DialogTrigger, DialogClose, DialogContent, DialogTitle, DialogDescription };
+function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
+  return <DialogPrimitive.Title className={cn("panel-label", className)} {...props} />;
+}
+
+function DialogDescription({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Description>) {
+  return <DialogPrimitive.Description className={cn("text-sm text-muted-foreground", className)} {...props} />;
+}
+
+export {
+  Dialog,
+  DialogTrigger,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+};

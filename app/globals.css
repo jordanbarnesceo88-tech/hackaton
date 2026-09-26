@@ -65,6 +65,7 @@
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
+  --color-scrim: var(--scrim);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-border-faint: var(--border-faint);
@@ -113,8 +114,18 @@
      darker surface; chart-1 already cleared it (3.23:1) unchanged. */
   --card: oklch(0.895 0.004 197.1);
   --card-foreground: oklch(0.264 0.025 217.3);
-  --popover: oklch(0.895 0.004 197.1);
+  /* Popover/modal stay on raw BCB --surface (white here, oklch(0.264…) in dark), NOT on the
+     darkened --card above. The card revision is about panels sitting IN the page; a popover
+     or modal sits ABOVE it, and with --card's values the tour dialog in dark mode was darker
+     than the page it covered — no scrim can then make the surround read darker than the
+     popup, which the owner asked for (2026-09-26). */
+  --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.264 0.025 217.3);
+  /* Modal scrim: a dark ink wash, measured against the real page (skill rule "scrim and
+     modal legibility"): page under it composites to ~rgb(111,120,122), popup (--popover)
+     4.5:1 lighter than its surround. The previous backdrop was --background at 40% — the
+     page's own light tone, so opening the dialog LIGHTENED the page around a darker card. */
+  --scrim: oklch(0.2 0.02 217 / 0.55);
   --primary: oklch(0.385 0.045 201.9); /* --accent (light): #234B4E, не accent-strong — см. выше */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.971 0.003 197.1); /* --surface-2 (light) */
@@ -180,8 +191,9 @@
   --foreground: oklch(0.942 0.002 197.1); /* --text (dark) */
   --card: oklch(0.175 0.022 216.6); /* darker than --background (0.219) — same 2026-09-26 revision, see the :root card comment above */
   --card-foreground: oklch(0.942 0.002 197.1);
-  --popover: oklch(0.175 0.022 216.6);
+  --popover: oklch(0.264 0.025 217.3); /* raw BCB --surface (dark) — above the page, see :root */
   --popover-foreground: oklch(0.942 0.002 197.1);
+  --scrim: oklch(0.1 0.015 217 / 0.72); /* page composites to ~rgb(4,11,13), under the popup */
   --primary: oklch(0.771 0.126 201.4); /* --accent-strong (dark): #22CCD6 */
   --primary-foreground: oklch(0.219 0.022 216.6);
   --secondary: oklch(0.307 0.032 208.7); /* --surface-2 (dark) */
@@ -232,8 +244,9 @@
     --foreground: oklch(0.942 0.002 197.1);
     --card: oklch(0.175 0.022 216.6);
     --card-foreground: oklch(0.942 0.002 197.1);
-    --popover: oklch(0.175 0.022 216.6);
+    --popover: oklch(0.264 0.025 217.3);
     --popover-foreground: oklch(0.942 0.002 197.1);
+    --scrim: oklch(0.1 0.015 217 / 0.72);
     --primary: oklch(0.771 0.126 201.4);
     --primary-foreground: oklch(0.219 0.022 216.6);
     --secondary: oklch(0.307 0.032 208.7);
@@ -716,7 +729,7 @@
     --foreground: oklch(0.264 0.025 217.3);
     --card: oklch(0.895 0.004 197.1);
     --card-foreground: oklch(0.264 0.025 217.3);
-    --popover: oklch(0.895 0.004 197.1);
+    --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.264 0.025 217.3);
     --primary: oklch(0.385 0.045 201.9);
     --primary-foreground: oklch(1 0 0);

@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { Image as ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Button, type ButtonProps } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 /**
- * Онбординг-тур по восьми шагам пути жюри (ТЗ §5.4): карточка на каждый шаг — иконка,
- * короткое объяснение, «Далее»/«Скип». Показывается один раз новому посетителю на лендинге,
- * дальше доступен по кнопке «Как это работает».
+ * Онбординг-тур по восьми шагам пути жюри (ТЗ §5.4): карточка на каждый шаг — картинка шага,
+ * короткое объяснение, «Назад»/«Далее» и «Пропустить». Показывается один раз новому
+ * посетителю на лендинге, дальше доступен по кнопке «Как это работает».
  *
  * Как и рейл (components/rail-nav.tsx), состояние «показывать ли» синхронизировано через
  * useSyncExternalStore с явным серверным снимком (false — на сервере тур никогда не открыт),
@@ -111,15 +118,13 @@ const STEPS: readonly TourStep[] = [
   },
 ];
 
-export function OnboardingTour() {
+export function OnboardingTour({ triggerSize = "default" }: { triggerSize?: ButtonProps["size"] }) {
   const open = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [index, setIndex] = useState(0);
+  const nextRef = useRef<HTMLButtonElement>(null);
   const step = STEPS[index]!;
+  const isFirst = index === 0;
   const isLast = index === STEPS.length - 1;
-
-  function handleOpenChange(next: boolean) {
-    if (!next) markSeenAndClose();
-  }
 
   function next() {
     if (isLast) {
@@ -129,57 +134,89 @@ export function OnboardingTour() {
     setIndex((i) => i + 1);
   }
 
+  function back() {
+    // «Назад» исчезает на первом шаге. Фокус переводится на «Далее» до того, как кнопка
+    // пропадёт, — иначе он падал бы на body, за пределы окна.
+    if (index === 1) nextRef.current?.focus();
+    setIndex((i) => Math.max(0, i - 1));
+  }
+
   return (
     <>
-      <Button type="button" variant="outline" onClick={openTour}>
+      <Button
+        type="button"
+        variant="outline"
+        size={triggerSize}
+        onClick={() => {
+          // С начала, а не с того шага, на котором тур закрыли: onOpenChange(true) здесь не
+          // вызывается (окно открывается снаружи, не своим триггером), поэтому сброс — тут.
+          setIndex(0);
+          openTour();
+        }}
+      >
         Как это работает
       </Button>
       <Dialog
         open={open}
         onOpenChange={(next) => {
-          handleOpenChange(next);
-          if (next) setIndex(0);
+          if (!next) markSeenAndClose();
         }}
       >
-        <DialogContent aria-describedby={undefined}>
+        {/* На 1/6 крупнее окна по умолчанию (просьба владельца, 2026-09-26): ширина 32rem ×
+            7/6, поле 24px × 7/6 = 28px, основной текст 14px → 16px. Фокус при открытии — на
+            «Далее»: главное действие тура, а не «Пропустить» первым по порядку. */}
+        <DialogContent initialFocus={nextRef} className="max-w-[calc(32rem*7/6)] p-7">
+          <DialogHeader>
+            <DialogTitle>{step.title}</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Шаг {index + 1} из {STEPS.length}
+            </p>
+          </DialogHeader>
           {/* Заглушка на месте будущей картинки шага (заказчик пришлёт свои иллюстрации) —
               нарочно оформлена как явное место-под-картинку (пунктир, подпись), а не мелкая
               иконка в кружке: последняя читалась дёшево на карточке такого размера. Держит
               16:9, чтобы вёрстка не прыгала, когда картинки появятся — просто заменить div на
-              <img>/<Image> с тем же alt. */}
+              <img>/<Image> с тем же alt. Отступы: по бокам — поле окна, сверху и снизу по
+              16px, чтобы текст шага стоял рядом с картинкой, а не отдельно от неё. */}
           <div
             role="img"
             aria-label={step.imageAlt}
-            className="mb-4 flex aspect-video w-full flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border bg-muted text-muted-foreground"
+            className="mt-4 flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted text-muted-foreground"
           >
-            <ImageIcon size={28} aria-hidden={true} />
-            <span className="px-4 text-center text-xs">{step.imageAlt}</span>
+            <ImageIcon size={32} aria-hidden={true} />
+            <span className="px-6 text-center text-sm">{step.imageAlt}</span>
           </div>
-          <DialogTitle>{step.title}</DialogTitle>
-          <p className="mb-2 text-xs text-muted-foreground">
-            Шаг {index + 1} из {STEPS.length}
-          </p>
-          <DialogDescription className="text-sm text-foreground">{step.text}</DialogDescription>
+          <DialogDescription className="mt-4 text-base text-foreground">{step.text}</DialogDescription>
           {/* Полоса прогресса — точки, не проценты: восемь коротких карточек, а не форма. */}
-          <div className="mt-4 flex items-center gap-1.5" aria-hidden="true">
+          <div className="mt-6 flex items-center gap-1.5" aria-hidden="true">
             {STEPS.map((s, i) => (
               <span
                 key={s.title}
                 className={cn(
                   "h-1.5 flex-1 rounded-full transition-colors",
-                  i <= index ? "bg-primary" : "bg-muted",
+                  // bg-border, не bg-muted: на белом --popover светлая тема теряла muted-полоски.
+                  i <= index ? "bg-primary" : "bg-border",
                 )}
               />
             ))}
           </div>
-          <div className="mt-5 flex items-center justify-between gap-3">
-            <Button type="button" variant="ghost" onClick={markSeenAndClose}>
-              Скип
-            </Button>
-            <Button type="button" onClick={next}>
-              {isLast ? "Начать" : "Далее"}
-            </Button>
-          </div>
+          <DialogFooter className="mt-6">
+            {!isLast && (
+              <Button type="button" variant="ghost" size="lg" onClick={markSeenAndClose}>
+                Пропустить
+              </Button>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              {!isFirst && (
+                <Button type="button" variant="outline" size="lg" onClick={back}>
+                  Назад
+                </Button>
+              )}
+              <Button ref={nextRef} type="button" size="lg" onClick={next}>
+                {isLast ? "Начать" : "Далее"}
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
