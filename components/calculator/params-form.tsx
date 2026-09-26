@@ -175,7 +175,7 @@ export function ParamsForm({
             : "Оставьте поле пустым, чтобы считать по нормативу."}
         </p>
         {staffingConflict && (
-          <p className="rounded-md border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <p data-tone="crit" className="callout callout--sm">
             {cappedHere
               ? `Этой работой занято ${declaredHere} — больше, чем весь штат объекта (${params.staffCount}). Замещение модель считает по ${params.staffCount}: больше людей на объекте нет.`
               : `Сумма занятости по всем работам — ${Math.round(claimed * 100) / 100} при штате ${params.staffCount}. Одного человека нельзя занять двумя работами на полную ставку.`}{" "}
@@ -192,7 +192,7 @@ export function ParamsForm({
           Потолок: сколько бы ни было занято задачей, замещение не может превысить весь штат.
         </p>
         {nonPositive.length > 0 && (
-          <p className="rounded-md border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <p data-tone="crit" className="callout callout--sm">
             {nonPositive.map(([, label]) => label).join(", ")} — {nonPositive.length === 1 ? "должно быть больше нуля" : "должны быть больше нуля"}.
             Ноль и отрицательные модель считать не может, и сохранить такой расчёт тоже нельзя.
           </p>
@@ -243,7 +243,7 @@ export function ParamsForm({
           {params.quantityOverride !== undefined &&
             computedQuantity !== null &&
             params.quantityOverride < computedQuantity && (
-              <p className="rounded-md border-l-2 border-caution bg-caution/5 px-3 py-2 text-xs">
+              <p data-tone="warn" className="callout callout--sm">
                 Парк меньше расчётного закрывает не всю работу объекта, поэтому и экономия ниже
                 — модель уменьшает её пропорционально покрытию, а не оставляет прежней.
               </p>

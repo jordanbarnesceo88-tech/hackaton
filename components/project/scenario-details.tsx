@@ -233,7 +233,7 @@ function ItemCard({
         <p className="text-sm text-muted-foreground">Парк не рассчитан: расчёт остановился раньше (см. причину выше).</p>
       )}
       {it?.raasFromEstimate && (
-        <p className="rounded-md border border-caution/40 bg-caution/10 px-3 py-1.5 text-xs">
+        <p data-tone="warn" className="callout callout--sm">
           Ставка RaaS — оценка {share(pct)} цены робота в месяц, а не тариф производителя: запросите коммерческое
           предложение.
         </p>

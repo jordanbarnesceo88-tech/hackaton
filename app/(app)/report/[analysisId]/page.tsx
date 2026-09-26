@@ -146,7 +146,7 @@ export default async function ReportPage({
             Пометка в интерфейсе без пометки в отчёте — это пометка, которой нет там, где
             она нужнее всего. */}
         {(p.quantityOverride !== undefined || p.capexPerUnitUsdOverride !== undefined) && (
-          <p className="mt-2 rounded border-l-2 border-caution px-2 py-1 text-xs text-caution">
+          <p data-tone="warn" className="callout callout--sm mt-2">
             Часть входных данных задана вручную, а не рассчитана:
             {p.quantityOverride !== undefined && ` количество единиц — ${p.quantityOverride}`}
             {p.quantityOverride !== undefined && p.capexPerUnitUsdOverride !== undefined && ";"}

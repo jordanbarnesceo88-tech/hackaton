@@ -582,7 +582,9 @@ describe("Рендер компонентов на результатах дви
     );
     expect(html).toContain("<h3");
     expect(html).toContain("Оговорка.");
-    expect(html).toContain("border-caution/40");
+    // Выделенный блок — общий .callout с тоном предупреждения (app/globals.css), а не набор
+    // утилит на месте.
+    expect(html).toMatch(/<p role="note" data-tone="warn" class="callout">Оговорка\.<\/p>/);
   });
 
   it("статьи в печати: без раскрытий, длинное примечание к источнику — текстом", () => {

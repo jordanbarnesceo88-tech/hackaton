@@ -41,12 +41,12 @@ export function statusChipLabel(status: SelectionStatus): string {
   return STATUS_CHIP_LABELS[status];
 }
 
-/** Цвет чипа статуса подбора. */
-export const STATUS_CHIP_TONE: Readonly<Record<SelectionStatus, string>> = {
-  recommended: "border-positive/50 bg-positive/15 text-foreground",
-  candidate: "border-primary/30 bg-primary/5 text-foreground",
-  "insufficient-data": "border-caution/50 bg-caution/10 text-foreground",
-  excluded: "border-border bg-muted text-muted-foreground",
+/** Тон бейджа статуса подбора (.badge[data-tone]); исключённое — нейтральный, без тона. */
+export const STATUS_BADGE_TONE: Readonly<Record<SelectionStatus, "ok" | "info" | "warn" | undefined>> = {
+  recommended: "ok",
+  candidate: "info",
+  "insufficient-data": "warn",
+  excluded: undefined,
 };
 
 /** Подпись чипа «требует проверки» (ТЗ §3.4.3). */

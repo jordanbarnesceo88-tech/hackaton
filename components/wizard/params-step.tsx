@@ -42,7 +42,7 @@ export function ParamsStep({
         // Молча заменить негодное значение на типовое — значит показать человеку число,
         // которого он не вводил, и не сказать об этом. Он набрал −5, увидит 500 и решит,
         // что интерфейс его не услышал.
-        <p className="rounded-md border-l-2 border-caution bg-caution/5 px-3 py-2 text-sm text-caution">
+        <p data-tone="warn" className="callout">
           {rejected.length === 1
             ? "Одно из присланных значений не принято"
             : "Несколько присланных значений не приняты"}

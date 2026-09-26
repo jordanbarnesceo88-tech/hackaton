@@ -64,13 +64,13 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
       </header>
 
       {selection.overflow > 0 && (
-        <p className="rounded-lg border border-caution/40 bg-caution/10 px-4 py-2 text-sm">
+        <p data-tone="warn" className="callout">
           Сравнить можно не больше {MAX_COMPARE} решений — показаны первые {MAX_COMPARE}; не вошло в сравнение:{" "}
           {selection.overflow}.
         </p>
       )}
       {missing.length > 0 && (
-        <p className="rounded-lg border border-caution/40 bg-caution/10 px-4 py-2 text-sm">
+        <p data-tone="warn" className="callout">
           Не найдены в каталоге: {missing.join(", ")}. Возможно, ссылка устарела.
         </p>
       )}

@@ -184,7 +184,7 @@ export function VerificationNotice({ product }: { product: Detail }) {
   if (!product.needsVerification) return null;
   const reasons = cardVerificationReasons(product);
   return (
-    <div className="rounded-lg border border-caution/40 bg-caution/10 px-4 py-3 text-sm">
+    <div data-tone="warn" className="callout">
       <p className="font-medium">Требует проверки перед использованием в расчёте</p>
       {reasons.length > 0 ? (
         <ul className="mt-1 grid gap-0.5 pl-5">

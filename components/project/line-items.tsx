@@ -70,7 +70,7 @@ export function LineItems({
                   <th scope="row" className={`${TD} text-left font-normal`}>
                     {l.label}
                     {l.overridden && (
-                      <span className="ml-2 rounded bg-caution/15 px-1.5 py-0.5 text-xs font-medium text-caution">
+                      <span data-tone="info" className="badge ml-2">
                         задано вами
                       </span>
                     )}

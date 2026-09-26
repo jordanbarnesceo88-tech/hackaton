@@ -1124,7 +1124,7 @@ export function Workspace({
       <section id="object" aria-labelledby={`${uid}-h-object`} className={sectionClass}>
         <h2 id={`${uid}-h-object`}>{stepHeading(1)}</h2>
         {facility !== "warehouse" && (
-          <p className="w-fit rounded-full border border-caution/50 bg-caution/10 px-3 py-1 text-sm font-medium">
+          <p data-tone="warn" className="callout callout--sm w-fit">
             {PROTOTYPE_BADGE}
           </p>
         )}
@@ -1215,7 +1215,7 @@ export function Workspace({
         {[...calcProcesses, ...(calcProcesses.length === 0 ? otherProcesses : [])].map((p) => (
           <div key={p.slug} className="flex flex-col gap-2 rounded-lg border p-4">
             {!p.calcSupported && (
-              <p className="w-fit rounded-full border border-caution/50 bg-caution/10 px-2.5 py-0.5 text-xs font-medium">
+              <p data-tone="warn" className="callout callout--sm w-fit">
                 Экономика для процесса в прототипе не рассчитывается
               </p>
             )}
@@ -1238,7 +1238,7 @@ export function Workspace({
             <div className="mt-3 flex flex-col gap-4">
               {otherProcesses.map((p) => (
                 <div key={p.slug} className="flex flex-col gap-2 rounded-lg border p-4">
-                  <p className="w-fit rounded-full border border-caution/50 bg-caution/10 px-2.5 py-0.5 text-xs font-medium">
+                  <p data-tone="warn" className="callout callout--sm w-fit">
                     Экономика для процесса в прототипе не рассчитывается
                   </p>
                   <SelectionPanel

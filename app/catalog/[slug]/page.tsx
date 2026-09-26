@@ -6,7 +6,7 @@ import { cache } from "react";
 import { Breadcrumb, buildTrails } from "@/components/catalog/breadcrumb";
 import { ArchivedChip, LevelChip, StatusChip } from "@/components/catalog/chips";
 import { CHAR_GROUP_ORDER, GroupSection, groupAnchor } from "@/components/catalog/group-section";
-import { CHIP_CLASS, EXCLUDED_CHIP, NEEDS_VERIFICATION_CHIP } from "@/components/catalog/labels";
+import { BADGE_CLASS, EXCLUDED_CHIP, NEEDS_VERIFICATION_CHIP } from "@/components/catalog/labels";
 import {
   DataQualitySummary,
   DemoLinks,
@@ -18,7 +18,6 @@ import { compareHref } from "@/components/catalog/search-params";
 import { getCatalogProduct } from "@/lib/catalog/queries";
 import { prisma } from "@/lib/db/client";
 import { CHAR_GROUP_LABELS } from "@/lib/tz/characteristics";
-import { cn } from "@/lib/utils";
 import { getProcessFacilities } from "../_lib/data";
 
 type Params = Promise<{ slug: string }>;
@@ -73,10 +72,10 @@ export default async function CatalogProductPage({ params }: { params: Params })
           <StatusChip status={product.status} />
           <LevelChip level={product.level} />
           {product.needsVerification && (
-            <span className={cn(CHIP_CLASS, "border-caution/50 bg-caution/10 text-foreground")}>{NEEDS_VERIFICATION_CHIP}</span>
+            <span data-tone="warn" className={BADGE_CLASS}>{NEEDS_VERIFICATION_CHIP}</span>
           )}
           {product.excluded && (
-            <span className={cn(CHIP_CLASS, "border-destructive/40 bg-destructive/5 text-destructive")}>{EXCLUDED_CHIP}</span>
+            <span data-tone="crit" className={BADGE_CLASS}>{EXCLUDED_CHIP}</span>
           )}
           {product.archived && <ArchivedChip />}
         </div>
@@ -84,13 +83,13 @@ export default async function CatalogProductPage({ params }: { params: Params })
       </header>
 
       {product.archived && (
-        <div className="rounded-lg border bg-muted px-4 py-3 text-sm">
+        <div className="callout">
           Продукт переведён в архив: в списке каталога и в подборе его нет. Карточка сохранена, потому что на неё
           могут ссылаться сохранённые проекты.
         </div>
       )}
       {product.excluded && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+        <div data-tone="crit" className="callout">
           <p className="font-medium text-destructive">Не участвует в подборе</p>
           <p className="mt-1">{product.excludedReason ?? "Причина исключения не указана."}</p>
         </div>

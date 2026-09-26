@@ -102,7 +102,7 @@ export function FacilitySchematic({
   return (
     <figure className={cn("flex flex-col gap-3", className)}>
       {badge && (
-        <p className="inline-flex w-fit items-center gap-2 rounded-full border border-caution/50 bg-caution/10 px-3 py-1 text-sm font-medium">
+        <p data-tone="warn" className="callout callout--sm w-fit">
           {badge}
         </p>
       )}

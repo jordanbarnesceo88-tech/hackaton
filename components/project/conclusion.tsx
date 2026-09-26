@@ -25,7 +25,7 @@ export function Conclusion({
           ))}
         </ul>
       )}
-      <p role="note" className="rounded-md border border-caution/40 bg-caution/10 px-3 py-2 text-sm">
+      <p role="note" data-tone="warn" className="callout">
         {conclusion.disclaimer}
       </p>
     </section>

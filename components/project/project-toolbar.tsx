@@ -88,7 +88,8 @@ export function RecalcBar({ onRecalc, readOnly = false, stale, statusText, simTe
       )}
       <p
         role="status"
-        className="rounded-md border border-caution/50 bg-caution/10 px-2 py-0.5 font-medium text-foreground [&:empty]:hidden"
+        data-tone="warn"
+        className="badge [&:empty]:hidden"
       >
         {stale ? "Параметры изменены — нажмите «Пересчитать»" : ""}
       </p>

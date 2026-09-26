@@ -149,7 +149,8 @@ const INPUT_CLASS = "field w-36 tabular-nums";
 
 const BUTTON_CLASS = buttonVariants({ variant: "outline" });
 
-const BADGE_CLASS = "rounded bg-caution/15 px-1.5 py-0.5 text-xs font-medium text-caution";
+// Значение, заданное человеком, — тот же тон, что у SourceBadge для origin "user" (info).
+const BADGE_CLASS = "badge";
 
 export function OverrideInput({
   label,
@@ -216,7 +217,7 @@ export function OverrideInput({
         <span className="text-muted-foreground">{label}</span>
         <span className="tabular-nums">
           {overridden ? withUnit(value) : autoText}
-          {overridden && <span className={`ml-2 ${BADGE_CLASS}`}>{badge}</span>}
+          {overridden && <span data-tone="info" className={`ml-2 ${BADGE_CLASS}`}>{badge}</span>}
         </span>
         {overridden && <span className="text-xs text-muted-foreground">авто: {autoText}</span>}
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -279,7 +280,7 @@ export function OverrideInput({
         <span className="tabular-nums">авто: {autoText}</span>
         {overridden && (
           <>
-            <span className={BADGE_CLASS}>{badge}</span>
+            <span data-tone="info" className={BADGE_CLASS}>{badge}</span>
             <span className="tabular-nums text-foreground">{withUnit(value)}</span>
             <button
               type="button"

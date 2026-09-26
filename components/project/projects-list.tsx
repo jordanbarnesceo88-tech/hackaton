@@ -99,7 +99,7 @@ export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) 
                   {p.name}
                 </Link>
                 {p.isDemo && (
-                  <span className="ml-2 rounded-full border border-caution/50 bg-caution/10 px-2 py-0.5 text-xs">демо</span>
+                  <span data-tone="warn" className="badge ml-2">демо</span>
                 )}
                 {p.objectName && <span className="block text-xs text-muted-foreground">{p.objectName}</span>}
               </th>

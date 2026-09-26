@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { CreateProductForm } from "@/components/admin/create-product-form";
 import { FACILITY_NAMES, LEVEL_LABELS, STATUS_LABELS } from "@/components/admin/format";
 import {
+  BADGE_CLASS,
   CHIP_CLASS,
   INPUT_CLASS,
   LABEL_CLASS,
@@ -237,12 +238,12 @@ export default async function AdminCatalogPage({
                       <span className="flex flex-wrap gap-1">
                         {r.origin === "ADMIN" && <span className={cn(CHIP_CLASS, "bg-secondary")}>администратор</span>}
                         {r.origin === "ORGANIZER" && r.editedByAdmin && (
-                          <span className={cn(CHIP_CLASS, "border-caution/40 bg-caution/10")}>правка</span>
+                          <span data-tone="warn" className={BADGE_CLASS}>правка</span>
                         )}
                         {r.archived && <span className={cn(CHIP_CLASS, "bg-muted")}>архив</span>}
                         {r.excluded && <span className={cn(CHIP_CLASS, "bg-muted")}>исключён</span>}
                         {r.needsVerification && (
-                          <span className={cn(CHIP_CLASS, "border-caution/40 bg-caution/10")}>требует проверки</span>
+                          <span data-tone="warn" className={BADGE_CLASS}>требует проверки</span>
                         )}
                       </span>
                     </td>

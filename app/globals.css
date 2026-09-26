@@ -601,6 +601,40 @@
     font-weight: 500;
   }
 
+  /* .callout — ONE notice block for warnings, errors, confirmations and neutral notes: a tinted
+     frame and fill in the tone's colour, body text in --foreground (tone-coloured body text on
+     its own tint sat at the edge of 4.5:1). Tone via data-tone, the same vocabulary as .badge
+     (ok / warn / crit / info; none = neutral). --sm for a note attached to one field or row.
+     ~25 notices were hand-rolled before this in four drifting variants — full tinted box vs
+     left accent bar, radius md vs lg, tinted vs plain text, three paddings.
+     Short status LABELS are .badge; a sentence is a .callout (a badge never wraps). */
+  .callout {
+    --tone: var(--muted-foreground);
+    border: 1px solid color-mix(in oklch, var(--tone) 40%, transparent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklch, var(--tone) 10%, transparent);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+  }
+  .callout--sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+  .callout[data-tone="ok"] {
+    --tone: var(--positive);
+  }
+  .callout[data-tone="warn"] {
+    --tone: var(--caution);
+  }
+  .callout[data-tone="crit"] {
+    --tone: var(--destructive);
+  }
+  .callout[data-tone="info"] {
+    --tone: var(--primary);
+  }
+
   /* .field — ONE recipe for every text input, number input, select and textarea (BCB's flat
      form control). Six recipes lived in the app before this, including underlined parameter
      inputs sitting next to a boxed <select> in the same grid.

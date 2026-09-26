@@ -173,7 +173,7 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
       </p>
 
       {orphan.length > 0 && (
-        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm">
+        <div data-tone="warn" className="callout">
           <p className="font-medium">Замечания к загруженным данным</p>
           <ul className="mt-1 grid gap-0.5 pl-4">
             {orphan.map((i, n) => (

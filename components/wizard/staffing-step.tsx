@@ -87,7 +87,7 @@ export function StaffingStep({
       nextLabel="Показать решения"
     >
       {exceeds && (
-        <p className="rounded-md border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <p data-tone="crit" className="callout">
           Сумма по задачам больше, чем весь персонал объекта ({params.staffCount}). Одного
           человека нельзя занять двумя работами на полную ставку — поправьте числа или
           вернитесь и увеличьте штат.
@@ -152,7 +152,7 @@ export function StaffingStep({
       </div>
 
       {blocked.length > 0 && !exceeds && (
-        <p className="rounded-md border-l-2 border-caution bg-caution/5 px-3 py-2 text-sm text-caution">
+        <p data-tone="warn" className="callout">
           Без числа по{" "}
           {blocked.map((r) => r.taskLabel.toLowerCase()).join(", ")} решения этих работ на
           следующем экране посчитаны не будут — им неоткуда взять занятость.
