@@ -25,12 +25,17 @@ export async function SiteRail() {
   const showAdmin = session?.user?.role === "ADMIN" && (await isAdminSession());
   const initial = session?.user?.email?.trim()?.[0]?.toUpperCase() ?? "?";
 
+  // icon: рендерённый элемент (<FolderKanban .../>), не ссылка на компонент — см. комментарий
+  // к RailNavItem в rail-nav.tsx про то, почему функция здесь роняет страницу в проде.
+  const iconProps = { size: 18, "aria-hidden": true as const };
   const items: RailNavItem[] = [
-    ...(session?.user ? [{ href: "/projects", label: "Проекты", icon: FolderKanban }] : []),
-    { href: "/catalog", label: "Каталог", icon: Package },
-    { href: "/methodology/tz", label: "Методика", icon: BookOpen },
-    { href: "/api-docs", label: "API", icon: Code2 },
-    ...(showAdmin ? [{ href: "/admin", label: "Админка", icon: Shield }] : []),
+    ...(session?.user
+      ? [{ href: "/projects", label: "Проекты", icon: <FolderKanban {...iconProps} /> }]
+      : []),
+    { href: "/catalog", label: "Каталог", icon: <Package {...iconProps} /> },
+    { href: "/methodology/tz", label: "Методика", icon: <BookOpen {...iconProps} /> },
+    { href: "/api-docs", label: "API", icon: <Code2 {...iconProps} /> },
+    ...(showAdmin ? [{ href: "/admin", label: "Админка", icon: <Shield {...iconProps} /> }] : []),
   ];
 
   return (

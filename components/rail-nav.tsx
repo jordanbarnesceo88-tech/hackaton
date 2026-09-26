@@ -60,7 +60,12 @@ function setCollapsed(next: boolean) {
 export type RailNavItem = {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
+  // React.ReactNode (a rendered <Icon/> element), NOT React.ComponentType — SiteRail is a
+  // Server Component and RailNav is a Client Component; a component *reference* (a function)
+  // in a plain object crossing that boundary throws "Functions cannot be passed directly to
+  // Client Components" at runtime (digest 2909445921 in production — it's a hard error, not
+  // just a dev-mode warning). A pre-rendered element is plain serializable RSC payload.
+  icon: React.ReactNode;
 };
 
 export function RailNav({
@@ -102,7 +107,7 @@ export function RailNav({
             title={collapsed ? item.label : undefined}
             className="tap-target flex items-center gap-3 rounded-md px-2.5 py-[9px] transition-colors hover:bg-muted hover:text-foreground"
           >
-            <item.icon size={18} aria-hidden={true} />
+            {item.icon}
             <span className={showLabel(false)}>{item.label}</span>
           </Link>
         ))}
