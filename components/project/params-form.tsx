@@ -195,7 +195,7 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
         return (
           // Раздел сворачивается: у склада больше 50 параметров, а жюри обычно правит два-три.
           <details key={s.section} open className="group/section">
-            <summary className="flex cursor-pointer list-none items-baseline gap-2 [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 [&::-webkit-details-marker]:hidden">
               <span aria-hidden="true" className="text-muted-foreground transition-transform group-open/section:rotate-90">
                 ▸
               </span>

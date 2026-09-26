@@ -303,13 +303,18 @@
   /* Контраст размеров был 20px против 14px — отношение 1.43, при котором глаз читает
      страницу одним сплошным блоком, и никакая палитра этого не исправит. Опросные
      интерфейсы, на которые мы равняемся, держатся примерно на 2.5. */
+  /* Phones: Unbounded is a very wide face, and a single long Russian word
+     («роботизированных») at the old ~28px floor ran past a 375px screen. The fluid term is
+     steeper so phones land at ~26px while desktop still caps at 40px (type scale 40/16);
+     overflow-wrap breaks a word only if it still cannot fit. */
   h1 {
     font-family: var(--font-heading);
     font-weight: 700;
-    font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.5rem);
+    font-size: clamp(1.5rem, 0.9rem + 3vw, 2.5rem);
     line-height: 1.1;
     letter-spacing: -0.022em;
     text-wrap: balance;
+    overflow-wrap: break-word;
   }
   h2 {
     font-family: var(--font-heading);
@@ -318,6 +323,7 @@
     line-height: 1.2;
     letter-spacing: -0.015em;
     text-wrap: balance;
+    overflow-wrap: break-word;
   }
   /* Checkboxes and radios take the brand colour everywhere; only some had accent-primary,
      the rest (catalog filters, admin forms, import) rendered the browser's default blue. */
@@ -568,6 +574,7 @@
      tablist) or aria-current (step links). Both the step nav and the scenario tabs use it —
      they had drifted into two different tab looks on the same screen. */
   .subtabs {
+    position: relative; /* same reason as .data-table-wrap: a scroll box contains its abs. children */
     display: flex;
     gap: 0.25rem;
     overflow-x: auto;
@@ -776,6 +783,11 @@
      worse bug (a table header hiding under the app chrome) than the gap it would close. */
   .data-table-wrap {
     overflow-x: auto;
+    /* The scroll box must also be the containing block: cells carry .sr-only text (position:
+       absolute), and an absolute box whose containing block lies OUTSIDE a scroll container is
+       not clipped by it. Each «(лучшее в строке)» hint inside a scrolled-off column then
+       stretched the whole document — /demo was 647px wide on a 375px phone. */
+    position: relative;
   }
   .data-table {
     width: 100%;
