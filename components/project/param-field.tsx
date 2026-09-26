@@ -170,15 +170,11 @@ export function liveParamDraft(draft: ParamDraft | null, value: ParamValue): Par
   return draft !== null && draft.against === value ? draft : null;
 }
 
-const INPUT_CLASS =
-  "w-full border-0 border-b-2 border-input bg-transparent px-1 py-1.5 text-sm tabular-nums transition-colors " +
-  "outline-none hover:border-muted-foreground focus-visible:border-primary focus-visible:ring-0 " +
-  "read-only:hover:border-input aria-invalid:border-destructive";
+// Поле и список параметра — один рецепт (.field): раньше в одной сетке стояли подчёркнутое
+// поле и обведённый список. Состояния (наведение, фокус, ошибка, только чтение) — в .field.
+const INPUT_CLASS = "field tabular-nums";
 
-const SELECT_CLASS =
-  "w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none transition-colors " +
-  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-70 " +
-  "aria-invalid:border-destructive";
+const SELECT_CLASS = "field";
 
 export function ParamField({
   def,

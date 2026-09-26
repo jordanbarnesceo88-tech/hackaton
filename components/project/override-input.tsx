@@ -145,9 +145,7 @@ export function readOverride(
   return { ok: true, value: pct ? fromPercent(checked.value) : checked.value };
 }
 
-const INPUT_CLASS =
-  "w-36 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm tabular-nums outline-none " +
-  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive";
+const INPUT_CLASS = "field w-36 tabular-nums";
 
 const BUTTON_CLASS = buttonVariants({ variant: "outline" });
 
@@ -298,7 +296,7 @@ export function OverrideInput({
         type="text"
         aria-label={`Причина изменения (необязательно): ${label}`}
         placeholder="Причина изменения (необязательно)"
-        className="w-full max-w-sm rounded-md border border-input bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-primary"
+        className="field field--sm max-w-sm"
         value={reason}
         maxLength={300}
         onChange={(e) => setReason(e.target.value)}

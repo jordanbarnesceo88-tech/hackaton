@@ -104,7 +104,7 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
                   name="add"
                   required
                   defaultValue=""
-                  className="h-9 rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="field field--lg"
                 >
                   <option value="" disabled>
                     выберите решение

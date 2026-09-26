@@ -13,9 +13,8 @@ import { hasActiveFilters, type CatalogQuery } from "./search-params";
  * объектов («Уборка склада», «Уборка терминала») различаются группой.
  */
 
-const FIELD_CLASS =
-  "h-9 w-full rounded-md border border-input bg-background px-2 text-sm outline-none transition-colors " +
-  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30";
+// lg — в одном ряду с кнопками «Показать»/«Сбросить» (lg).
+const FIELD_CLASS = "field field--lg";
 
 const LABEL_CLASS = "text-xs font-medium text-muted-foreground";
 

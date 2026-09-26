@@ -70,15 +70,10 @@ export function computingOn(shown: string, value: number | null): number | null 
   return shown.trim() !== "" && Number(shown) === value ? null : value;
 }
 
-const FIELD_CLASS =
-  // Подчёркивание вместо рамки: поле перестаёт быть коробкой и становится строкой,
-  // в которую пишут. Фокус при этом обязан остаться видимым — без рамки его больше
-  // нечем показать, и клавиатурная навигация иначе слепнет (SC 2.4.7).
-  `w-full border-0 border-b-2 border-input bg-transparent px-1 py-2 text-base
-   tabular-nums transition-colors outline-none
-   hover:border-muted-foreground
-   focus-visible:border-primary focus-visible:ring-0
-   aria-invalid:border-destructive`;
+// Общий рецепт поля (.field в globals.css), крупный размер — поля мастера и калькулятора
+// v1 стоят в формах страницы. Подчёркнутые поля без рамки были отдельным, шестым рецептом
+// поля в приложении; видимость фокуса обеспечивает сам .field (рамка + кольцо, SC 2.4.7).
+const FIELD_CLASS = "field field--lg tabular-nums";
 
 /**
  * Подпись, называющая число, которое ушло с экрана, но по которому идёт расчёт.

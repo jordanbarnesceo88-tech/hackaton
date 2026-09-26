@@ -37,10 +37,10 @@ export default async function LoginPage({
             the field has content, and screen readers may not announce it as the field's name. */}
         <label htmlFor="email" className="text-sm font-medium">Email</label>
         <input id="email" name="email" type="email" required autoComplete="email"
-          className="rounded-md border px-3 py-2 text-sm" />
+          className="field field--lg" />
         <label htmlFor="password" className="text-sm font-medium">Пароль</label>
         <input id="password" name="password" type="password" required autoComplete="current-password"
-          className="rounded-md border px-3 py-2 text-sm" />
+          className="field field--lg" />
         <button type="submit" className={buttonVariants({ size: "lg" })}>
           Войти
         </button>

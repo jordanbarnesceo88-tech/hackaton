@@ -56,7 +56,7 @@ const NETWORK_ERROR = "Не удалось связаться с серверо�
 /** Применённый файл параметров: значения, имя файла и тип объекта, для которого он проверен. */
 type Applied = { values: ParamValues; fileName: string; facility: string };
 
-const INPUT = "w-full rounded-md border bg-background px-3 py-2 text-sm";
+const INPUT = "field field--lg";
 
 export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacility?: string }) {
   const nameId = useId();

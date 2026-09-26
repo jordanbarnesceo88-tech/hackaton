@@ -475,7 +475,7 @@ function AddScenarioForm({
           id={kindId}
           value={kind}
           onChange={(e) => setKind(e.currentTarget.value === "raas" ? "raas" : "purchase")}
-          className="field h-8 py-0"
+          className="field"
         >
           <option value="purchase">Покупка</option>
           <option value="raas">Услуга (RaaS)</option>
@@ -489,7 +489,7 @@ function AddScenarioForm({
           id={productId}
           value={value}
           onChange={(e) => setChoice(e.currentTarget.value)}
-          className="field h-8 max-w-full py-0"
+          className="field max-w-full"
         >
           {groups.map((g) => (
             <optgroup key={g.process} label={g.name}>

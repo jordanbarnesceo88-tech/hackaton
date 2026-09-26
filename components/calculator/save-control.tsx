@@ -84,7 +84,7 @@ export function SaveControl({
         maxLength={120}
         placeholder="Название расчёта (необязательно)"
         onChange={(e) => setName(e.target.value)}
-        className="min-w-56 flex-1 rounded-md border px-3 py-2 text-sm"
+        className="field min-w-56 flex-1"
       />
       <Button type="button" variant="outline" onClick={handleSave} disabled={saving}>
         {saving ? "Сохранение…" : "Сохранить расчёт"}

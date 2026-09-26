@@ -91,8 +91,7 @@ export function SimControls({
           value={value ?? ""}
           onChange={(e) => onSelect(e.target.value)}
           disabled={options.length === 0}
-          className="h-9 w-full max-w-xl rounded-md border border-input bg-background px-2 text-sm
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="field max-w-xl"
         >
           {value === null && <option value="">Нет сценария для имитации</option>}
           {options.map((o) => (

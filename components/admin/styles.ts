@@ -6,9 +6,9 @@
 // .field: BCB's flat form-control recipe (border-color-only focus, no ring) — see
 // app/globals.css. aria-invalid keeps its own destructive border on top; tabular-nums stays
 // because these are numeric norm/parameter fields.
-export const INPUT_CLASS = "field tabular-nums disabled:opacity-60 aria-invalid:border-destructive";
+export const INPUT_CLASS = "field tabular-nums";
 
-export const SELECT_CLASS = "field disabled:opacity-60";
+export const SELECT_CLASS = "field";
 
 export const LABEL_CLASS = "flex min-w-0 flex-col gap-1 text-sm";
 

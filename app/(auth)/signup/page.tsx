@@ -22,14 +22,14 @@ export default function SignupPage() {
         {/* Visible labels, not placeholders — see the note in the login page. */}
         <label htmlFor="name" className="text-sm font-medium">Имя (необязательно)</label>
         <input id="name" name="name" type="text" autoComplete="name"
-          className="rounded-md border px-3 py-2 text-sm" />
+          className="field field--lg" />
         <label htmlFor="email" className="text-sm font-medium">Email</label>
         <input id="email" name="email" type="email" required autoComplete="email"
-          className="rounded-md border px-3 py-2 text-sm" />
+          className="field field--lg" />
         <label htmlFor="password" className="text-sm font-medium">Пароль</label>
         <input id="password" name="password" type="password" required minLength={8}
           autoComplete="new-password" aria-describedby="password-hint"
-          className="rounded-md border px-3 py-2 text-sm" />
+          className="field field--lg" />
         <p id="password-hint" className="-mt-2 text-xs text-muted-foreground">
           Минимум 8 символов
         </p>

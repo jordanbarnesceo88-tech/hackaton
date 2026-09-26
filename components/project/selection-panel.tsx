@@ -308,7 +308,7 @@ function ResultsTable({
                           value={manual.reason}
                           onChange={(e) => onReason(e.target.value)}
                           placeholder="например, производитель подтвердил применимость письмом — решение нужно для сравнения"
-                          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
+                          className="field"
                         />
                         <div className="flex flex-wrap gap-2">
                           <Button type="submit" size="sm" disabled={manual.reason.trim() === ""}>

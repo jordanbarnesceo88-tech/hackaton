@@ -319,6 +319,12 @@
     letter-spacing: -0.015em;
     text-wrap: balance;
   }
+  /* Checkboxes and radios take the brand colour everywhere; only some had accent-primary,
+     the rest (catalog filters, admin forms, import) rendered the browser's default blue. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
   h3 {
     font-family: var(--font-heading);
     font-weight: 600;
@@ -595,19 +601,66 @@
     font-weight: 500;
   }
 
-  /* .field — BCB's flat form-control recipe: border-color-only focus (no ring), applies to
-     text/number inputs and selects alike so the three inconsistent treatments the audit found
-     collapse into one. */
+  /* .field — ONE recipe for every text input, number input, select and textarea (BCB's flat
+     form control). Six recipes lived in the app before this, including underlined parameter
+     inputs sitting next to a boxed <select> in the same grid.
+     Heights come from the button scale (components/ui/button.tsx), so a field and the button
+     beside it line up: .field 32px = Button default, .field--sm 28px = sm (dense rows),
+     .field--lg 40px = lg (page forms: sign-in, new project, catalog filters). Type stays
+     14px at every height (13px for --sm) — the same as the buttons next to it.
+     Border is --input (BCB --line-strong), as for outline buttons: --border (--line) is
+     ~1.2:1 against the page and the field all but vanished. */
   .field {
     display: block;
     width: 100%;
+    height: 2rem;
+    padding: 0 0.625rem;
     background: var(--background);
-    border: 1px solid var(--border);
+    border: 1px solid var(--input);
     border-radius: var(--radius-md);
-    padding: 7px 10px;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
     color: var(--foreground);
     transition: border-color 0.15s;
+  }
+  .field--sm {
+    height: 1.75rem;
+    padding-inline: 0.5rem;
+    font-size: 0.8125rem;
+  }
+  .field--lg {
+    height: 2.5rem;
+    padding-inline: 0.75rem;
+  }
+  textarea.field {
+    height: auto;
+    min-height: 4rem;
+    padding-block: 0.375rem;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  /* [readonly], not :read-only — <select> always matches :read-only, and would lose hover. */
+  .field:hover:not(:disabled):not([readonly]) {
+    border-color: var(--muted-foreground);
+  }
+  .field[aria-invalid="true"] {
+    border-color: var(--destructive);
+  }
+  .field:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  /* Read-only reads as a value, not as an input waiting for one (skill rule
+     "read-only-distinction"): no fill, same frame. */
+  .field[readonly] {
+    background: transparent;
+  }
+  /* Phones: iOS Safari zooms the page into any focused control under 16px. */
+  @media (max-width: 639.98px) {
+    .field,
+    .field--sm {
+      font-size: 1rem;
+    }
   }
   /* ui-ux-pro-max review: the raw prototype does exactly this (border-color-only focus,
      `outline: none`) for its `.num-input`/`.minisel` controls — but that's a defect worth NOT
