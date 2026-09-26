@@ -648,7 +648,8 @@
      Heights come from the button scale (components/ui/button.tsx), so a field and the button
      beside it line up: .field 32px = Button default, .field--sm 28px = sm (dense rows),
      .field--lg 40px = lg (page forms: sign-in, new project, catalog filters). Type stays
-     14px at every height (13px for --sm) — the same as the buttons next to it.
+     14px at every height (13px for --sm), and the corner radius is the button's too
+     (--radius-lg, --radius-md for --sm) — the same as the buttons next to it.
      Border is --input (BCB --line-strong), as for outline buttons: --border (--line) is
      ~1.2:1 against the page and the field all but vanished. */
   .field {
@@ -658,7 +659,7 @@
     padding: 0 0.625rem;
     background: var(--background);
     border: 1px solid var(--input);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--foreground);
@@ -667,6 +668,7 @@
   .field--sm {
     height: 1.75rem;
     padding-inline: 0.5rem;
+    border-radius: var(--radius-md);
     font-size: 0.8125rem;
   }
   .field--lg {
