@@ -449,6 +449,9 @@
     line-height: 1.4;
     color: var(--muted-foreground);
     background: color-mix(in oklch, currentColor 12%, transparent);
+    /* ui-ux-pro-max review, "Compact Label Overflow": a badge should stay on one line rather
+       than wrap to a second — .chip already had this, .badge didn't. */
+    white-space: nowrap;
   }
   .badge::before {
     content: "";
@@ -521,8 +524,15 @@
     color: var(--foreground);
     transition: border-color 0.15s;
   }
+  /* ui-ux-pro-max review: the raw prototype does exactly this (border-color-only focus,
+     `outline: none`) for its `.num-input`/`.minisel` controls — but that's a defect worth NOT
+     porting, not a design choice worth keeping. WCAG 2.2 Focus Appearance wants a visible
+     indicator with real perimeter/contrast, and a 1px border tint shift alone doesn't clear
+     that bar. Keeps the border-color change (matches the rest of the BCB field recipe) and adds
+     a real 2px outline on top. */
   .field:focus-visible {
-    outline: none;
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
     border-color: var(--primary);
   }
   .field::placeholder {
