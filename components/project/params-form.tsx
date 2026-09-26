@@ -206,7 +206,14 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
                 {sectionSummaryText(s.defs.length, changedHere, problemsHere)}
               </span>
             </summary>
-            <div role="group" aria-labelledby={headingId} className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+            {/* Колонки по ~17rem, сколько поместится: поля стали узкими (ширина по значению),
+                и три колонки на всю ширину оставляли по 200px пустоты в каждой. 1440px — четыре
+                колонки, широкий экран — пять-шесть, телефон — одна. */}
+            <div
+              role="group"
+              aria-labelledby={headingId}
+              className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 gap-y-6"
+            >
               {s.defs.map((def) => (
                 <ParamField
                   key={def.key}

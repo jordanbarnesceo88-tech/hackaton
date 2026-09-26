@@ -176,6 +176,18 @@ const INPUT_CLASS = "field tabular-nums";
 
 const SELECT_CLASS = "field";
 
+/**
+ * Ширина поля — по тому, что в него пишут, а не на всю колонку: число в 2–9 знаков в поле
+ * шириной 370px читалось пустой полосой, и сетка не могла стать плотнее. 8rem вмещает
+ * «150 000 000»; размеры «Д×Ш×В» — 11rem; списки и текст — на всю колонку. Список-селект
+ * (enum) — по ширине самого длинного варианта.
+ */
+function inputWidth(def: ParamFieldProps["def"]): string {
+  if (isNumericKind(def)) return "w-32";
+  if (def.kind === "dims") return "w-44";
+  return "w-full";
+}
+
 export function ParamField({
   def,
   value,
@@ -237,7 +249,7 @@ export function ParamField({
       {def.kind === "enum" && def.options.length > 0 ? (
         <select
           id={id}
-          className={cn(SELECT_CLASS, cautionBorder && "border-caution")}
+          className={cn(SELECT_CLASS, "w-auto max-w-full", cautionBorder && "border-caution")}
           value={selectValue}
           disabled={readOnly}
           aria-required={def.required || undefined}
@@ -266,7 +278,7 @@ export function ParamField({
           autoComplete="off"
           spellCheck={false}
           placeholder={def.kind === "dims" ? "Д×Ш×В" : undefined}
-          className={cn(INPUT_CLASS, cautionBorder && "border-caution")}
+          className={cn(INPUT_CLASS, inputWidth(def), cautionBorder && "border-caution")}
           value={shown}
           readOnly={readOnly}
           aria-required={def.required || undefined}

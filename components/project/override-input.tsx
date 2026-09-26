@@ -145,7 +145,7 @@ export function readOverride(
   return { ok: true, value: pct ? fromPercent(checked.value) : checked.value };
 }
 
-const INPUT_CLASS = "field w-36 tabular-nums";
+const INPUT_CLASS = "field w-32 tabular-nums";
 
 const BUTTON_CLASS = buttonVariants({ variant: "outline" });
 

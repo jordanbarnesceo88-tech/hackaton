@@ -73,7 +73,7 @@ export function computingOn(shown: string, value: number | null): number | null 
 // Общий рецепт поля (.field в globals.css), крупный размер — поля мастера и калькулятора
 // v1 стоят в формах страницы. Подчёркнутые поля без рамки были отдельным, шестым рецептом
 // поля в приложении; видимость фокуса обеспечивает сам .field (рамка + кольцо, SC 2.4.7).
-const FIELD_CLASS = "field field--lg tabular-nums";
+const FIELD_CLASS = "field field--lg w-44 tabular-nums";
 
 /**
  * Подпись, называющая число, которое ушло с экрана, но по которому идёт расчёт.
