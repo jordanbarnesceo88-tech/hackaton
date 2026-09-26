@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import {
-  Building2,
-  Calculator,
-  Columns3,
-  FileText,
-  GitBranch,
-  ListChecks,
-  PlayCircle,
-  SlidersHorizontal,
-} from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -71,7 +62,8 @@ function openTour() {
 
 type TourStep = {
   title: string;
-  icon: React.ComponentType<{ size?: number; "aria-hidden"?: boolean; className?: string }>;
+  /** Заглушка на месте будущей картинки шага — короткое описание для alt и для того, кто будет её рисовать. */
+  imageAlt: string;
   text: string;
 };
 
@@ -79,42 +71,42 @@ type TourStep = {
 const STEPS: readonly TourStep[] = [
   {
     title: "1. Объект",
-    icon: Building2,
+    imageAlt: "Выбор типа объекта: склад, аэропорт или медучреждение",
     text: "Выбираете тип объекта — склад, аэропорт или медучреждение — и берёте демо-данные или вводите свои.",
   },
   {
     title: "2. Параметры",
-    icon: SlidersHorizontal,
+    imageAlt: "Форма параметров объекта: площадь, объём операций, занятость",
     text: "Указываете площадь, объём операций и занятость персонала по задачам — от этого считается всё дальше.",
   },
   {
     title: "3. Подбор",
-    icon: ListChecks,
+    imageAlt: "Список предложенных роботизированных решений с объяснением выбора",
     text: "Платформа предлагает подходящие роботизированные решения из каталога, объясняя, почему именно эти.",
   },
   {
     title: "4. Сравнение",
-    icon: Columns3,
+    imageAlt: "Таблица сравнения решений по окупаемости, NPV и парку",
     text: "Варианты стоят рядом по одним и тем же показателям — окупаемость, NPV, требуемый парк.",
   },
   {
     title: "5. Экономика",
-    icon: Calculator,
+    imageAlt: "Панель расчёта CAPEX, OPEX и NPV с допущениями",
     text: "Полный расчёт CAPEX, OPEX, срока окупаемости и NPV — с допущениями, которые можно поменять.",
   },
   {
     title: "6. Сценарии",
-    icon: GitBranch,
+    imageAlt: "Таблица сценариев: как есть, покупка, услуга (RaaS)",
     text: "«Как есть», покупка и услуга (RaaS) — в одной таблице, чтобы видеть компромисс между ними.",
   },
   {
     title: "7. Имитация",
-    icon: PlayCircle,
+    imageAlt: "2D-визуализация работы роботов на схеме объекта",
     text: "2D-визуализация показывает работу роботов на схеме объекта — цифры рядом текстом, движение иллюстративное.",
   },
   {
     title: "8. Отчёт",
-    icon: FileText,
+    imageAlt: "Страница отчёта с сохранённым расчётом",
     text: "Сохраняете расчёт и выгружаете отчёт — с ним можно идти к тому, кто будет спорить с цифрами.",
   },
 ];
@@ -150,17 +142,23 @@ export function OnboardingTour() {
         }}
       >
         <DialogContent aria-describedby={undefined}>
-          <div className="mb-4 flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <step.icon size={22} aria-hidden={true} />
-            </span>
-            <div>
-              <DialogTitle>{step.title}</DialogTitle>
-              <p className="text-xs text-muted-foreground">
-                Шаг {index + 1} из {STEPS.length}
-              </p>
-            </div>
+          {/* Заглушка на месте будущей картинки шага (заказчик пришлёт свои иллюстрации) —
+              нарочно оформлена как явное место-под-картинку (пунктир, подпись), а не мелкая
+              иконка в кружке: последняя читалась дёшево на карточке такого размера. Держит
+              16:9, чтобы вёрстка не прыгала, когда картинки появятся — просто заменить div на
+              <img>/<Image> с тем же alt. */}
+          <div
+            role="img"
+            aria-label={step.imageAlt}
+            className="mb-4 flex aspect-video w-full flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border bg-muted text-muted-foreground"
+          >
+            <ImageIcon size={28} aria-hidden={true} />
+            <span className="px-4 text-center text-xs">{step.imageAlt}</span>
           </div>
+          <DialogTitle>{step.title}</DialogTitle>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Шаг {index + 1} из {STEPS.length}
+          </p>
           <DialogDescription className="text-sm text-foreground">{step.text}</DialogDescription>
           {/* Полоса прогресса — точки, не проценты: восемь коротких карточек, а не форма. */}
           <div className="mt-4 flex items-center gap-1.5" aria-hidden="true">

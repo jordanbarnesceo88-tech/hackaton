@@ -104,9 +104,16 @@
      только L. */
   --background: oklch(0.942 0.002 197.1); /* --ground (light) */
   --foreground: oklch(0.264 0.025 217.3); /* --text (light) */
-  --card: oklch(1 0 0); /* --surface (light): #FFFFFF */
+  /* Card deliberately darker than --background (2026-09-26 revision) — the opposite of raw
+     BCB's own --surface, which is LIGHTER than --ground in both of its skins (a card that
+     floats above a dimmer page). Owner's explicit direction after reviewing a live deploy:
+     blocks read as sunken/recessed relative to the page, not floating above it. Not a BCB
+     literal-fidelity regression — it's the owner's own call for their own product, made with
+     the actual prototype in front of them. chart-2..5 re-stepped below to keep 3:1 on this
+     darker surface; chart-1 already cleared it (3.23:1) unchanged. */
+  --card: oklch(0.895 0.004 197.1);
   --card-foreground: oklch(0.264 0.025 217.3);
-  --popover: oklch(1 0 0);
+  --popover: oklch(0.895 0.004 197.1);
   --popover-foreground: oklch(0.264 0.025 217.3);
   --primary: oklch(0.385 0.045 201.9); /* --accent (light): #234B4E, не accent-strong — см. выше */
   --primary-foreground: oklch(1 0 0);
@@ -134,10 +141,10 @@
      separation, normal-vision separation and contrast all pass. Blue stays first so a
      single-series chart still reads as the brand. */
   --chart-1: oklch(0.575 0.163 255.5); /* #2a78d6 blue    — 4.42:1 */
-  --chart-2: oklch(0.671 0.175 40.6);  /* #eb6834 orange  — 3.20:1 */
-  --chart-3: oklch(0.644 0.140 162.3); /* #01a773 aqua    — 3.10:1 */
-  --chart-4: oklch(0.671 0.145 70.2);  /* #cd8300 yellow  — 3.07:1 */
-  --chart-5: oklch(0.681 0.141 357.5); /* #dc7099 magenta — 3.08:1 */
+  --chart-2: oklch(0.595 0.175 40.6);  /* re-stepped for darker --card, 3.19:1 */
+  --chart-3: oklch(0.554 0.140 162.3); /* re-stepped for darker --card, 3.17:1 */
+  --chart-4: oklch(0.582 0.145 70.2);  /* re-stepped for darker --card, 3.18:1 */
+  --chart-5: oklch(0.595 0.141 357.5); /* re-stepped for darker --card, 3.18:1 */
 
   /* B4: the semantics the brand pass claimed but never added, which left «экономия» and
      «оценка» as hardcoded emerald/amber utilities that no theme could reach.
@@ -171,9 +178,9 @@
      с запасом (8.78:1 на фоне при пороге 3.0, 8.78:1 под тёмным текстом при пороге 4.5). */
   --background: oklch(0.219 0.022 216.6); /* --ground (dark) */
   --foreground: oklch(0.942 0.002 197.1); /* --text (dark) */
-  --card: oklch(0.264 0.025 217.3); /* --surface (dark) */
+  --card: oklch(0.175 0.022 216.6); /* darker than --background (0.219) — same 2026-09-26 revision, see the :root card comment above */
   --card-foreground: oklch(0.942 0.002 197.1);
-  --popover: oklch(0.264 0.025 217.3);
+  --popover: oklch(0.175 0.022 216.6);
   --popover-foreground: oklch(0.942 0.002 197.1);
   --primary: oklch(0.771 0.126 201.4); /* --accent-strong (dark): #22CCD6 */
   --primary-foreground: oklch(0.219 0.022 216.6);
@@ -223,9 +230,9 @@
     color-scheme: dark;
     --background: oklch(0.219 0.022 216.6);
     --foreground: oklch(0.942 0.002 197.1);
-    --card: oklch(0.264 0.025 217.3);
+    --card: oklch(0.175 0.022 216.6);
     --card-foreground: oklch(0.942 0.002 197.1);
-    --popover: oklch(0.264 0.025 217.3);
+    --popover: oklch(0.175 0.022 216.6);
     --popover-foreground: oklch(0.942 0.002 197.1);
     --primary: oklch(0.771 0.126 201.4);
     --primary-foreground: oklch(0.219 0.022 216.6);
@@ -707,9 +714,9 @@
     color-scheme: light;
     --background: oklch(1 0 0);
     --foreground: oklch(0.264 0.025 217.3);
-    --card: oklch(1 0 0);
+    --card: oklch(0.895 0.004 197.1);
     --card-foreground: oklch(0.264 0.025 217.3);
-    --popover: oklch(1 0 0);
+    --popover: oklch(0.895 0.004 197.1);
     --popover-foreground: oklch(0.264 0.025 217.3);
     --primary: oklch(0.385 0.045 201.9);
     --primary-foreground: oklch(1 0 0);
@@ -729,10 +736,10 @@
     --caution: oklch(0.534 0.125 70.4);
     --caution-foreground: oklch(1 0 0);
     --chart-1: oklch(0.575 0.163 255.5);
-    --chart-2: oklch(0.671 0.175 40.6);
-    --chart-3: oklch(0.644 0.140 162.3);
-    --chart-4: oklch(0.671 0.145 70.2);
-    --chart-5: oklch(0.681 0.141 357.5);
+    --chart-2: oklch(0.595 0.175 40.6);
+    --chart-3: oklch(0.554 0.140 162.3);
+    --chart-4: oklch(0.582 0.145 70.2);
+    --chart-5: oklch(0.595 0.141 357.5);
   }
 }
 

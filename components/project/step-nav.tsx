@@ -70,9 +70,10 @@ export function StepNav({
   return (
     <nav
       aria-label="Шаги по ТЗ"
-      // top-0: nav moved from a top bar to a left rail (SiteRail), so main content's own
-      // scroll area starts at the very top now — nothing left to stack under.
-      className={cn("glass no-print sticky top-0 z-20 py-2", className)}
+      // top-[60px]: back under SiteHeader's own sticky --bar-h (60px) bar — the side-rail
+      // experiment (top-0) was reverted, header is a top bar again. Same approximation as
+      // before: can overlap by the extra height if the header wraps to a second line.
+      className={cn("glass no-print sticky top-[60px] z-20 py-2", className)}
     >
       {/* subtabs (BCB): подчёркнутые, равноправные — не заливка-пилюля (§6 дифференциаторы
           спеки прямо предупреждает: пилюля с фоном — облик shadcn Tabs по умолчанию, не

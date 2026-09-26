@@ -1104,7 +1104,10 @@ export function Workspace({
         />
       )}
 
-      <div className="no-print sticky top-0 z-30 -mx-2 border-b bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      {/* top-[60px]: stacks under SiteHeader's own sticky bar (--bar-h 60px), not competing
+          with it for the same y=0 — this bar's z-30 is higher than the header's z-20, so at
+          top-0 it would have painted over the header once both were stuck. */}
+      <div className="no-print sticky top-[60px] z-30 -mx-2 border-b bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/85">
         <StepNav
           active={activeStep}
           onStepClick={setActiveStep}

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { TZ_STEPS, stepLinkText } from "@/components/project/step-nav";
 import { exampleHref, EXAMPLE_OBJECT_NAME } from "@/lib/wizard/example-scenario";
 import { buttonVariants } from "@/components/ui/button";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
@@ -100,18 +99,6 @@ export default function Home() {
           полностью; аэропорт и медучреждение показаны на уровне параметров, подбора и доступных
           решений (прототип).
         </p>
-        <ol aria-label="Шаги расчёта по ТЗ" className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
-          {TZ_STEPS.map((s) => (
-            <li key={s.id} className="flex items-center gap-3">
-              <span className="tabular-nums">{stepLinkText(s)}</span>
-              {s.n < TZ_STEPS.length && (
-                <span aria-hidden="true" className="text-muted-foreground">
-                  →
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
       </div>
 
       <section className="flex flex-col gap-6 border-t pt-8">
