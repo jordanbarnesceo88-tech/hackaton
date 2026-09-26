@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Unbounded, Inter, JetBrains_Mono } from "next/font/google";
-import { SiteHeader } from "@/components/site-header";
+import { SiteRail } from "@/components/site-rail";
 import "./globals.css";
 
 // The UI is Russian, so the Cyrillic subset is the one that actually matters — with "latin"
@@ -38,9 +38,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ru"
       className={`${display.variable} ${body.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
+      {/* flex-row, not flex-col: nav is now a left rail (BCB), not a top bar. h-full on body so
+          the rail's own h-dvh has a sized ancestor rather than growing past the viewport. */}
+      <body className="h-full flex">
+        <SiteRail />
+        <main className="min-w-0 flex-1">{children}</main>
       </body>
     </html>
   );
