@@ -81,7 +81,7 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
           <p className="mt-1 text-muted-foreground">
             Отметьте от 2 до {MAX_COMPARE} решений в первой колонке таблицы каталога и нажмите «Сравнить выбранные».
           </p>
-          <Link href="/catalog" prefetch={false} className={cn(buttonVariants({ size: "lg" }), "mt-3 px-4")}>
+          <Link href="/catalog" prefetch={false} className={cn(buttonVariants({ size: "lg" }), "mt-3")}>
             Перейти в каталог
           </Link>
         </div>
@@ -116,7 +116,7 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
                   ))}
                 </select>
               </div>
-              <button type="submit" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "px-4")}>
+              <button type="submit" className={buttonVariants({ variant: "outline", size: "lg" })}>
                 Добавить к сравнению
               </button>
             </form>

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { SORT_OPTIONS, STATUS_LABELS } from "./labels";
 import type { CatalogOptions } from "./options";
 import { hasActiveFilters, type CatalogQuery } from "./search-params";
@@ -181,11 +180,11 @@ export function CatalogFiltersForm({ query, options }: { query: CatalogQuery; op
         </label>
         <div className="ml-auto flex items-center gap-2">
           {active && (
-            <Link href="/catalog" prefetch={false} className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}>
+            <Link href="/catalog" prefetch={false} className={buttonVariants({ variant: "ghost", size: "lg" })}>
               Сбросить
             </Link>
           )}
-          <button type="submit" className={cn(buttonVariants({ size: "lg" }), "px-4")}>
+          <button type="submit" className={buttonVariants({ size: "lg" })}>
             Показать
           </button>
         </div>

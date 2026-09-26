@@ -312,7 +312,7 @@ export function DemoLinks({ product }: { product: Detail }) {
           key={f.slug}
           href={`/demo?facility=${encodeURIComponent(f.slug)}`}
           prefetch={false}
-          className={cn(buttonVariants({ variant: f.slug === "warehouse" ? "default" : "outline", size: "lg" }), "px-4")}
+          className={buttonVariants({ variant: f.slug === "warehouse" ? "default" : "outline", size: "lg" })}
         >
           {demoLinkText(f.slug, f.name)}
         </Link>
