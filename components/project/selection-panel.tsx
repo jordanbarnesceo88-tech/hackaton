@@ -8,7 +8,7 @@ import type { ProductForCalc, SelectionResult, SelectionStatus } from "@/lib/tz/
 import { cn } from "@/lib/utils";
 import {
   NEEDS_VERIFICATION_LABEL,
-  STATUS_CHIP_TONE,
+  STATUS_BADGE_TONE,
   scenarioItemKey,
   statusChipLabel,
   type ScenarioItemKey,
@@ -126,7 +126,15 @@ export function selectionSummaryText(results: readonly Pick<SelectionResult, "st
   ].join(" · ");
 }
 
-const CHIP_CLASS = "inline-flex items-center rounded-full border px-2 py-0.5 text-xs leading-tight whitespace-nowrap";
+// Статус подбора — тот же .badge, что у статусов в каталоге (components/catalog/chips.tsx):
+// «требует проверки» в каталоге и в подборе раньше выглядел двумя разными метками.
+const BADGE_CLASS = "badge";
+
+// Колонка действий прижата к правому краю прокручиваемой таблицы: при 1440px таблица шире
+// своей колонки на ~190px, и «Использовать в сценариях» — главное действие строки — уезжало
+// за правый край, к нему надо было сначала прокрутить вбок. Фон — тон страницы, на которой
+// стоит таблица; линия слева отделяет прижатую колонку от уходящих под неё.
+const STICKY_ACTIONS_CLASS = "sticky right-0 bg-background shadow-[inset_1px_0_0_var(--border)]";
 
 function TextList({ items, empty = "—" }: { items: readonly string[]; empty?: string }) {
   if (items.length === 0) return <span className="text-muted-foreground">{empty}</span>;
@@ -204,7 +212,7 @@ function ResultsTable({
               Недостающие данные
             </th>
             {actions && (
-              <th scope="col" className="px-3 py-2 font-medium">
+              <th scope="col" className={cn(STICKY_ACTIONS_CLASS, "px-3 py-2 font-medium")}>
                 Действия
               </th>
             )}
@@ -231,9 +239,9 @@ function ResultsTable({
                   </th>
                   <td className="px-3 py-2">
                     <div className="flex flex-col items-start gap-1">
-                      <span className={cn(CHIP_CLASS, STATUS_CHIP_TONE[r.status])}>{statusChipLabel(r.status)}</span>
+                      <span data-tone={STATUS_BADGE_TONE[r.status]} className={BADGE_CLASS}>{statusChipLabel(r.status)}</span>
                       {r.needsVerification && (
-                        <span className={cn(CHIP_CLASS, "border-caution/50 text-caution")}>{NEEDS_VERIFICATION_LABEL}</span>
+                        <span data-tone="warn" className={BADGE_CLASS}>{NEEDS_VERIFICATION_LABEL}</span>
                       )}
                     </div>
                   </td>
@@ -261,9 +269,9 @@ function ResultsTable({
                     )}
                   </td>
                   {actions && (
-                    <td className="px-3 py-2">
+                    <td className={cn(STICKY_ACTIONS_CLASS, "px-3 py-2")}>
                       {used ? (
-                        <span className={cn(CHIP_CLASS, canUse(r) ? "border-positive/50 text-foreground" : "border-caution/50 text-caution")}>
+                        <span data-tone={canUse(r) ? "ok" : "warn"} className={BADGE_CLASS}>
                           {canUse(r) ? "✓ В сценариях" : "⚠ Добавлено вручную"}
                         </span>
                       ) : canUse(r) && canUseAction ? (
@@ -290,7 +298,8 @@ function ResultsTable({
                     <td colSpan={colCount} className="px-3 py-3">
                       <form
                         id={`${formId}-${r.productSlug}`}
-                        className="flex max-w-3xl flex-col gap-2 rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm"
+                        data-tone="warn"
+                        className="callout flex max-w-3xl flex-col gap-2"
                         onSubmit={(e) => {
                           e.preventDefault();
                           onSubmitManual();
@@ -388,7 +397,7 @@ export function SelectionPanel({
           {active.length > 0 ? (
             <ResultsTable rows={active} caption={`Подбор решений: ${process.name}`} {...tableProps} />
           ) : (
-            <p className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+            <p data-tone="warn" className="callout">
               Ни одно решение не прошло проверку ограничений объекта — причины ниже, в исключённых решениях.
             </p>
           )}
