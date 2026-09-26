@@ -518,6 +518,22 @@
     border-color: var(--primary);
     color: var(--primary-foreground);
   }
+  /* Нажатие — только для реально интерактивных чипов (button/a), не для .chip как статичной
+     метки (ProvenanceBadge и т.п. используют тот же класс без интерактивности). */
+  button.chip,
+  a.chip {
+    transition: border-color 0.14s, background 0.14s, color 0.14s, transform 0.1s ease-out;
+  }
+  button.chip:active,
+  a.chip:active {
+    transform: scale(0.96);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button.chip:active,
+    a.chip:active {
+      transform: none;
+    }
+  }
 
   /* .field — BCB's flat form-control recipe: border-color-only focus (no ring), applies to
      text/number inputs and selects alike so the three inconsistent treatments the audit found

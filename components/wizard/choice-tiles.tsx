@@ -86,11 +86,13 @@ export function ChoiceTiles({
             onClick={() => onChange(item.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={`flex w-full items-center gap-3 rounded-lg border-2 px-4 py-3 text-left
-              transition-colors outline-none
+              outline-none
+              transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out
+              motion-reduce:transition-[background-color,border-color,box-shadow]
               focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
               ${selected
                 ? "border-primary bg-primary/5"
-                : "border-border bg-card hover:border-muted-foreground"}`}
+                : "border-border bg-card hover:border-muted-foreground hover:shadow-panel hover:-translate-y-px active:translate-y-0"}`}
           >
             {badge && (
               // aria-hidden: бейдж — подсказка для глаз. Озвученный, он превращает «Склад»

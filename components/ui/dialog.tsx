@@ -37,14 +37,21 @@ function DialogContent({
     <DialogPrimitive.Portal>
       {/* .glass (BCB): тот же приём, что и у site-rail/step-nav — тонированный фон + блюр,
           а не сплошной чёрный скрим. */}
-      <DialogPrimitive.Backdrop className="glass fixed inset-0 z-[100] bg-background/40 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+      <DialogPrimitive.Backdrop className="glass fixed inset-0 z-[100] bg-background/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
       <DialogPrimitive.Popup
         className={cn(
           "shadow-pop fixed top-1/2 left-1/2 z-[100] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2",
           "rounded-panel border-2 border-border bg-card p-6 text-card-foreground",
           "data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
           "data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
-          "transition-all duration-150",
+          // Entrance gets a touch of overshoot (a "pop", not a linear ease) and takes longer
+          // than the exit — exit-faster-than-enter is standard motion-design practice: leaving
+          // should never feel like it's making the user wait. motion-reduce kills the whole
+          // transition, not just the transform, since scale+opacity together read as more
+          // motion than the button lift above.
+          "transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+          "data-[ending-style]:duration-100 data-[ending-style]:ease-in",
+          "motion-reduce:transition-none",
           className,
         )}
         {...props}
