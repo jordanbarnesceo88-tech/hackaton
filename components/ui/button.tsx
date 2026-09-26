@@ -36,8 +36,11 @@ const buttonVariantsBase = cva(
         // border-input (BCB --line-strong) в обеих темах: светлая тема раньше брала
         // --border (--line), рамка которого на фоне страницы почти не видна (~1.2:1), и
         // контурная кнопка читалась как голый текст рядом с залитой.
+        // bg-transparent, не bg-background: поверхности в светлой теме трёх тонов (страница,
+        // утопленная --card, белый --popover), и заливка тоном страницы делала одну и ту же
+        // кнопку невидимой на странице, светлой плашкой на карточке и серой — в окне тура.
         outline:
-          "border-input bg-background hover:border-primary hover:text-foreground aria-expanded:border-primary aria-expanded:text-foreground dark:bg-input/30 dark:hover:border-primary",
+          "border-input bg-transparent hover:border-primary hover:text-foreground aria-expanded:border-primary aria-expanded:text-foreground dark:bg-input/30 dark:hover:border-primary",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         // BCB's ghost hover is text-only — the button never gains a background fill, only its

@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -79,11 +80,11 @@ export function StepNav({
           спеки прямо предупреждает: пилюля с фоном — облик shadcn Tabs по умолчанию, не
           прототипа). Контейнер несёт общую нижнюю линию; активный пункт перекрывает её своей
           2px-линией акцента (-mb-px). */}
-      <ol className="flex gap-1 overflow-x-auto border-b border-border text-sm">
+      <ol className="subtabs">
         {TZ_STEPS.map((step) => {
           const current = active === step.n;
           return (
-            <li key={step.id} className="shrink-0">
+            <li key={step.id} className="flex shrink-0">
               <a
                 href={`#${step.id}`}
                 aria-current={current ? "step" : undefined}
@@ -95,11 +96,7 @@ export function StepNav({
                       }
                     : undefined
                 }
-                className={cn(
-                  "-mb-px inline-flex items-center gap-1.5 border-b-2 px-2.5 py-1.5 whitespace-nowrap transition-colors",
-                  "hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                  current ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground",
-                )}
+                className="subtab"
               >
                 {/* Пробел между номером и названием — текстовый узел, чтобы имя ссылки было
                     «1 Объект», а не «1Объект». */}
@@ -123,7 +120,7 @@ export function StepNav({
             type="button"
             onClick={() => onStepClick(active - 1)}
             disabled={active <= 1}
-            className="tap-target rounded-md px-2.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             ← Назад
           </button>
@@ -134,7 +131,7 @@ export function StepNav({
             type="button"
             onClick={() => onStepClick(active + 1)}
             disabled={active >= TZ_STEP_COUNT}
-            className="tap-target rounded-md px-2.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             Далее →
           </button>

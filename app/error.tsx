@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 /**
  * Граница ошибки верхнего уровня. Без неё необработанное исключение — например, недоступный
@@ -28,11 +29,11 @@ export default function Error({
       {error.digest ? (
         <p className="text-muted-foreground font-mono text-sm">Код обращения: {error.digest}</p>
       ) : null}
-      <div className="flex flex-wrap gap-4">
-        <button type="button" onClick={reset} className="underline underline-offset-4">
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" size="lg" onClick={reset}>
           Попробовать ещё раз
-        </button>
-        <Link href="/" className="underline underline-offset-4">
+        </Button>
+        <Link href="/" className={buttonVariants({ variant: "outline", size: "lg" })}>
           На главную
         </Link>
       </div>

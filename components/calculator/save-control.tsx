@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { saveAnalysisAction } from "@/lib/analyses/actions";
 
 const SAVE_FAILED = "Ошибка сохранения";
@@ -85,10 +86,9 @@ export function SaveControl({
         onChange={(e) => setName(e.target.value)}
         className="min-w-56 flex-1 rounded-md border px-3 py-2 text-sm"
       />
-      <button onClick={handleSave} disabled={saving}
-        className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50">
+      <Button type="button" variant="outline" onClick={handleSave} disabled={saving}>
         {saving ? "Сохранение…" : "Сохранить расчёт"}
-      </button>
+      </Button>
       {/* SC 4.1.3 Status Messages: the outcome appears without a navigation or focus change,
           so without a live region a screen-reader user gets no indication the save happened.
           role="status" is polite — it waits for a pause rather than interrupting. The wrapper

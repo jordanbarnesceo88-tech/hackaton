@@ -250,7 +250,9 @@ export function ImportForm({ facility, onApply, compact = false }: ImportFormPro
             setFile(e.currentTarget.files?.[0] ?? null);
             setLocalError(null);
           }}
-          className="max-w-full text-sm file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-sm file:font-medium hover:file:bg-muted"
+          // ::file-selector-button не принимает классы компонента — повторяет outline/default
+          // из components/ui/button.tsx вручную (32px, рамка --input, наведение — рамкой).
+          className="max-w-full text-sm file:mr-2 file:h-8 file:cursor-pointer file:rounded-lg file:border file:border-input file:bg-transparent file:px-3.5 file:text-sm file:font-medium file:transition-colors hover:file:border-primary"
         />
         <Button type="button" variant="outline" onClick={check} disabled={pending}>
           {pending ? "Проверяем файл…" : "Проверить файл"}

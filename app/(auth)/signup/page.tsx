@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { signUpAction, type SignUpState } from "@/lib/auth/actions";
 
 const initial: SignUpState = { error: null };
@@ -32,8 +33,7 @@ export default function SignupPage() {
         <p id="password-hint" className="-mt-2 text-xs text-muted-foreground">
           Минимум 8 символов
         </p>
-        <button type="submit" disabled={pending}
-          className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50">
+        <button type="submit" disabled={pending} className={buttonVariants({ size: "lg" })}>
           Зарегистрироваться
         </button>
       </form>

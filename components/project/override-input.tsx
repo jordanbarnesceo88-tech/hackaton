@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { fx } from "@/lib/tz/econ/text";
 
 /**
@@ -148,9 +149,7 @@ const INPUT_CLASS =
   "w-36 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm tabular-nums outline-none " +
   "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive";
 
-const BUTTON_CLASS =
-  "rounded-md border border-input px-2.5 py-1.5 text-sm transition-colors hover:bg-accent " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50";
+const BUTTON_CLASS = buttonVariants({ variant: "outline" });
 
 const BADGE_CLASS = "rounded bg-caution/15 px-1.5 py-0.5 text-xs font-medium text-caution";
 

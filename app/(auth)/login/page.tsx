@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
+import { buttonVariants } from "@/components/ui/button";
 
 export default async function LoginPage({
   searchParams,
@@ -40,7 +41,7 @@ export default async function LoginPage({
         <label htmlFor="password" className="text-sm font-medium">Пароль</label>
         <input id="password" name="password" type="password" required autoComplete="current-password"
           className="rounded-md border px-3 py-2 text-sm" />
-        <button type="submit" className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground">
+        <button type="submit" className={buttonVariants({ size: "lg" })}>
           Войти
         </button>
       </form>

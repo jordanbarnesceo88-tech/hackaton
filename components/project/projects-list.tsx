@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { formatYearsRu } from "@/lib/format/plural";
 import { copyProjectAction, deleteProjectAction } from "@/lib/projects/actions";
 import { ProjectActionForm, deleteConfirmText } from "./project-toolbar";
@@ -112,7 +113,7 @@ export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) 
                 <div className="flex flex-wrap items-start gap-2">
                   <Link
                     href={`/projects/${encodeURIComponent(p.id)}`}
-                    className="tap-target inline-flex h-7 items-center rounded-md border px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
                     aria-label={`Открыть проект «${p.name}»`}
                   >
                     Открыть

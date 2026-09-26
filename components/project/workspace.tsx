@@ -404,7 +404,7 @@ function ScenarioTabs({
   idBase: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className="flex flex-wrap gap-1 border-b pb-1">
+    <div role="tablist" aria-label={label} className="subtabs">
       {items.map((s) => {
         const selected = s.key === value;
         return (
@@ -427,10 +427,7 @@ function ScenarioTabs({
                 document.getElementById(`${idBase}-${next.key}`)?.focus();
               }
             }}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-              selected ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:bg-muted",
-            )}
+            className="subtab"
           >
             {s.name}
             {s.manual && (
@@ -1358,7 +1355,7 @@ export function Workspace({
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="destructive"
                 onClick={onRemoveScenario}
                 disabled={!focusSpec || focusIsAsis || scenarios.length <= SCENARIOS_MIN}
                 title={

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { formatCost } from "@/lib/format/currency";
 import { formatYearsRu } from "@/lib/format/plural";
 import { isViable, isCalculable, isStaffingRequired } from "@/lib/economics/types";
@@ -183,12 +184,7 @@ export function BestSolution({
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-4">
-        <Link
-          href={calcHref(best.id)}
-          className="rounded-md bg-primary px-5 py-2.5 font-medium text-primary-foreground
-            transition-opacity hover:opacity-90
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
+        <Link href={calcHref(best.id)} className={buttonVariants({ size: "lg" })}>
           Разобрать расчёт
         </Link>
         {viable.length > 1 && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { buttonVariants } from "@/components/ui/button";
 import { pluralRu } from "@/lib/format/plural";
 import { formatRub } from "@/lib/format/rub";
 import { fx, share } from "@/lib/tz/econ/text";
@@ -122,9 +123,7 @@ function itemViews(result: ScenarioResult, spec: ScenarioSpec | undefined, produ
   }));
 }
 
-const BUTTON_CLASS =
-  "rounded-md border border-input px-2.5 py-1.5 text-sm transition-colors hover:bg-accent " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50";
+const BUTTON_CLASS = buttonVariants({ variant: "outline" });
 
 function ItemCard({
   view,
