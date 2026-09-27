@@ -566,6 +566,8 @@ export function Workspace({
   const [activeStep, setActiveStep] = useState(1);
   const stickyRef = useRef<HTMLDivElement>(null);
   const stepsRef = useRef<HTMLDivElement>(null);
+  /** Номер последнего перехода между шагами — см. goToStep. */
+  const stepTransitionSeq = useRef(0);
   /**
    * Пейджер шагов (просьба владельца 2026-09-26; заменил «один экран на шаг» бэклога #4b): на
    * экране один шаг, остальные — `hidden`, но смонтированы, поэтому черновики полей, выбранные
@@ -603,7 +605,12 @@ export function Workspace({
     }
     const root = document.documentElement;
     root.setAttribute("data-step-dir", next > activeStep ? "next" : "prev");
-    void document.startViewTransition(apply).finished.finally(() => root.removeAttribute("data-step-dir"));
+    // Стрелки жмут быстро: новый переход начинается, пока предыдущий ещё идёт. Снимать
+    // направление может только последний — иначе завершение первого оборвало бы анимацию второго.
+    const seq = ++stepTransitionSeq.current;
+    void document.startViewTransition(apply).finished.finally(() => {
+      if (stepTransitionSeq.current === seq) root.removeAttribute("data-step-dir");
+    });
   }
 
   /** Начало шага — сразу под липкой панелью, если страница прокручена ниже него. */
