@@ -191,7 +191,7 @@ describe("importProducts", () => {
       ["ronavi-h1500", "refused", null],
       ["api-no-process", "refused", null],
     ]);
-    expect(report.items[1]?.message).toMatch(/данных организатора/);
+    expect(report.items[1]?.message).toMatch(/исходных данных каталога/);
     expect(report.items[2]?.message).toMatch(/db:seed/);
   });
 

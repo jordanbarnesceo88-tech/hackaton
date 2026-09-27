@@ -1,4 +1,4 @@
-import { originLabel } from "@/lib/tz/characteristics";
+import { originLabel, sourceRefLabel } from "@/lib/tz/characteristics";
 import type { Origin } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
 
@@ -94,7 +94,8 @@ const CHIP_CLASS = "badge max-w-full leading-tight";
 export function SourceBadge({ origin, sourceUrl, sourceRef, date, confirmed, note, className }: SourceBadgeProps) {
   const text = sourceBadgeText(origin, note);
   const url = safeHttpUrl(sourceUrl);
-  const ref = cleanNote(sourceRef);
+  // Место в источнике — подписью для показа («Каталог › №12»), а не именем служебной выгрузки.
+  const ref = cleanNote(sourceRef ? sourceRefLabel(sourceRef) : sourceRef);
   const when = formatSourceDate(date);
   const n = cleanNote(note);
   const longNote = n !== null && !isInlineNote(n) ? n : null;

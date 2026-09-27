@@ -282,7 +282,7 @@ function toCharRow(c: {
  */
 export function toCharacteristicData(row: CharRowFull): Prisma.ProductCharacteristicCreateWithoutProductInput {
   if (row.group === null) {
-    throw new Error(`Характеристика «${row.key}» не описана в словаре характеристик — группа ТЗ неизвестна`);
+    throw new Error(`Характеристика «${row.key}» не описана в словаре характеристик — группа неизвестна`);
   }
   let verifiedAt: Date | null = null;
   if (row.verifiedAt !== null) {

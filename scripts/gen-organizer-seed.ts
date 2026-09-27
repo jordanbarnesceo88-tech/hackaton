@@ -26,7 +26,7 @@ import path from "node:path";
 
 import {
   CATALOG_FILE,
-  DATASET_FILE,
+  DATASET_REF,
   DUPLICATE_ROW_MERGES,
   EXAMPLES_DOC,
   EXAMPLE_ONLY_PRODUCTS,
@@ -277,11 +277,11 @@ function buildParams(): ParamSpec[] {
         hint:
           (note ? note.replace(/\s*\n\s*/g, " ") : null) ??
           d.hint ??
-          `${name}${unit ? `, ${unit}` : ""} — значение из датасета организатора.`,
+          `${name}${unit ? `, ${unit}` : ""} — значение из демо-набора данных.`,
         example: formatExample(rawBase ?? ""),
         organizerNote: note,
         origin: "organizer",
-        sourceRef: `${DATASET_FILE} › ${sheet} › стр. ${excelRow}`,
+        sourceRef: `${DATASET_REF} › ${sheet} › стр. ${excelRow}`,
         sourceUrl: null,
         basis: d.basis ?? null,
         formula: d.formula ?? null,
@@ -949,7 +949,7 @@ function buildProduct(group: Group): ProductSeed {
         sourceType: "calc" as SourceType,
         sourceUrl: null,
         date: ORGANIZER_DATE,
-        basis: "По каталогу организатора.",
+        basis: "По каталогу.",
       };
   pb.add("solutionType", {
     ...classify,
@@ -1237,7 +1237,7 @@ function buildExampleOnly(item: (typeof EXAMPLE_ONLY_PRODUCTS)[number]): Product
     sourceType: "team-estimate" as SourceType,
     sourceUrl: null,
     date: RESEARCH_DATE,
-    basis: "Назначено вручную по разделу «Примеров решений», где организатор приводит модель (EXAMPLE_ONLY_PRODUCTS).",
+    basis: "Назначено вручную по разделу подборки «Примеры решений», где приведена модель (EXAMPLE_ONLY_PRODUCTS).",
   };
   pb.add("solutionType", { ...choice, value: stDef.name });
   pb.add("applicability", { ...choice, value: processNames(item.processes) });
@@ -1249,7 +1249,7 @@ function buildExampleOnly(item: (typeof EXAMPLE_ONLY_PRODUCTS)[number]): Product
     sourceRef: ref,
     date: ORGANIZER_DATE,
     basis:
-      "В каталоге организатора модели нет, статус не указан; «Примеры решений» приводят её как типовое " +
+      "В каталоге модели нет, статус не указан; подборка «Примеры решений» приводит её как типовое " +
       "серийное решение со ссылкой на страницу производителя — принят статус «в эксплуатации».",
   });
   for (const v of example.values) {

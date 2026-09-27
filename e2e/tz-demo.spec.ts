@@ -60,9 +60,9 @@ test("демо склада: сценарии в одной таблице, ст
   const select = sim.getByLabel("Сценарий и парк");
   const labels = (await select.locator("option:not([disabled])").allTextContents()).map((s) => s.trim());
   const byNorm =
-    labels.find((l) => l.includes("Ronavi H1500") && l.includes("по норме организатора")) ??
-    labels.find((l) => l.includes("по норме организатора"));
-  expect(byNorm, `нет варианта «по норме организатора» среди: ${labels.join(" | ")}`).toBeDefined();
+    labels.find((l) => l.includes("Ronavi H1500") && l.includes("по типовой норме")) ??
+    labels.find((l) => l.includes("по типовой норме"));
+  expect(byNorm, `нет варианта «по типовой норме» среди: ${labels.join(" | ")}`).toBeDefined();
   await select.selectOption({ label: byNorm ?? "" });
   await expect(sim.getByText(/^Не подтверждён/).filter({ visible: true }).first()).toBeVisible({ timeout: 20_000 });
 

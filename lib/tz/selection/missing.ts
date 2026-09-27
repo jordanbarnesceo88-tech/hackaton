@@ -129,7 +129,7 @@ const HARD_FLAGS: ReadonlySet<ProductFlag> = new Set(["model-not-found", "varian
 
 /** Что означает пометка качества данных — для строки «требует проверки: …». */
 export const FLAG_NOTES: Readonly<Record<ProductFlag, string>> = {
-  "duplicate-merged": "карточка собрана из нескольких строк каталога организатора",
+  "duplicate-merged": "карточка собрана из нескольких строк каталога",
   "model-not-found": "модель не найдена у производителя",
   "variant-unpublished": "вариант не опубликован производителем",
   "manufacturer-disputed": "производитель указан спорно",

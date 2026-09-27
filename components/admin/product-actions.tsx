@@ -27,7 +27,7 @@ export function ProductActions({
   const archive = useAdminForm(archiveProductAction);
   const revert = useAdminForm(
     revertProductAction,
-    "Правки администратора по этому продукту будут удалены, значения вернутся к данным организатора. Продолжить?",
+    "Правки администратора по этому продукту будут удалены, значения вернутся к исходным данным каталога. Продолжить?",
   );
   const remove = useAdminForm(deleteProductAction, "Удалить продукт без возможности восстановления?");
 
@@ -50,13 +50,13 @@ export function ProductActions({
 
       <form onSubmit={revert.onSubmit} className="flex flex-col gap-2 rounded-lg border p-3">
         <input type="hidden" name="slug" value={slug} />
-        <h3 className="text-sm font-semibold">Данные организатора</h3>
+        <h3 className="text-sm font-semibold">Исходные данные каталога</h3>
         {origin === "ORGANIZER" && inOrganizerData ? (
           <>
             <p className="text-xs text-muted-foreground">
               {editedByAdmin
-                ? "Удалить правки администратора и заново загрузить продукт из данных организатора."
-                : "Правок администратора нет — продукт совпадает с данными организатора."}
+                ? "Удалить правки администратора и заново загрузить продукт из исходных данных каталога."
+                : "Правок администратора нет — продукт совпадает с исходными данными каталога."}
             </p>
             <Button
               type="submit"
@@ -65,15 +65,15 @@ export function ProductActions({
               disabled={revert.pending || !editedByAdmin}
               className="w-fit"
             >
-              Вернуть данные организатора
+              Вернуть исходные данные
             </Button>
             <FormStatus state={revert.state} pending={revert.pending} pendingText="Возвращаю данные…" />
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
             {origin === "ADMIN"
-              ? "Продукт заведён администратором — данных организатора для него нет."
-              : "Продукта нет в текущих данных организатора — вернуть нечего; оставьте его в архиве."}
+              ? "Продукт заведён администратором — исходных данных каталога для него нет."
+              : "Продукта нет в текущих исходных данных каталога — вернуть нечего; оставьте его в архиве."}
           </p>
         )}
       </form>
@@ -97,7 +97,7 @@ export function ProductActions({
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Удалить нельзя: данные организатора — используйте «В архив».
+            Удалить нельзя: продукт из исходных данных каталога — используйте «В архив».
           </p>
         )}
       </form>

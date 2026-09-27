@@ -275,7 +275,7 @@ describe("Параметры объектов", () => {
     for (const s of PARAM_SPECS) {
       const where = `${s.facility}.${s.key}`;
       if (s.origin === "organizer") {
-        expect(s.sourceRef, where).toMatch(/^Датасеты_хакатон\.xlsx › (Склад|Аэропорт|Медучреждение) › стр\. \d+$/);
+        expect(s.sourceRef, where).toMatch(/^Демо-набор данных › (Склад|Аэропорт|Медучреждение) › стр\. \d+$/);
         if (s.formula) expect(s.basis?.trim(), where).toBeTruthy();
       } else {
         expect(["estimate", "derived"], where).toContain(s.origin);

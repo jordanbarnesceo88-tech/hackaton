@@ -14,6 +14,18 @@
 
 export type FormulaSource = "ТЗ §3.5.1" | "ТЗ §3.5.2" | "организатор" | "наш выбор";
 
+/** Подпись источника формулы для показа (сами значения `FormulaSource` — ключи, не текст). */
+export const FORMULA_SOURCE_LABELS: Readonly<Record<FormulaSource, string>> = {
+  "ТЗ §3.5.1": "базовая формула методики",
+  "ТЗ §3.5.2": "типовая расчётная зависимость",
+  организатор: "базовые данные",
+  "наш выбор": "решение платформы",
+};
+
+export function formulaSourceLabel(source: FormulaSource): string {
+  return FORMULA_SOURCE_LABELS[source];
+}
+
 export type Formula = {
   title: string;
   expression: string;
@@ -342,14 +354,14 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     source: "ТЗ §3.5.2",
   },
   roiTz: {
-    title: "ROI по ТЗ",
+    title: "ROI валовый",
     expression: "ROI = Σ CFt (t = 1…H) / CAPEX × 100 %, при CAPEX > 0",
     units: "%",
     source: "ТЗ §3.5.2",
   },
   roiNet: {
     title: "Чистый ROI",
-    expression: "ROIчист = ROI по ТЗ − 100 % (доход сверх возврата вложений)",
+    expression: "ROIчист = ROI валовый − 100 % (доход сверх возврата вложений)",
     units: "%",
     source: "наш выбор",
   },

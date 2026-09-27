@@ -9,7 +9,7 @@ export function ProvenanceBadge({
   isClass?: boolean;
 }) {
   // These three keep distinct data-source hues on purpose — the badge's whole job is telling
-// «данные организатора» from «открытый источник» from «демо-данные» at a glance, so they are
+// «базовые данные» from «открытый источник» from «демо-данные» at a glance, so they are
 // deliberately not folded into the semantic tokens. They do need dark steps, though: a
 // 100-level tint with 800-level text is unreadable on a dark surface.
 // chip: BCB's pill shape/border-radius (a prior pass left this on a small, non-pill radius,
@@ -17,7 +17,7 @@ export function ProvenanceBadge({
 // comment above explains why they're deliberately not folded into the semantic tokens.
 const base = "chip inline-block text-[10px] font-medium";
   if (source === "ORGANIZER") {
-    return <span className={`${base} bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200`}>данные организатора</span>;
+    return <span className={`${base} bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200`}>базовые данные</span>;
   }
   if (source === "PARSED") {
     return sourceUrl ? (

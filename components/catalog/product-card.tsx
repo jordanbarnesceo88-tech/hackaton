@@ -204,7 +204,7 @@ export function VerificationNotice({ product }: { product: Detail }) {
 /** Источник описания продукта: каталог организатора или правка администратора. */
 export function descriptionSourceRef(product: Pick<Detail, "origin" | "organizerCatalogId">): string {
   if (product.origin === "ADMIN") return "добавлено администратором";
-  return product.organizerCatalogId ? `каталог организатора › id ${product.organizerCatalogId}` : "каталог организатора";
+  return product.organizerCatalogId ? `каталог › id ${product.organizerCatalogId}` : "каталог";
 }
 
 /** Описание продукта (не длиннее 200 знаков) с бейджем источника. */
@@ -276,7 +276,7 @@ export function DataQualitySummary({ product }: { product: Detail }) {
       <div className="sm:col-span-2">
         <dt className="text-xs text-muted-foreground">Происхождение карточки</dt>
         <dd>
-          {product.origin === "ADMIN" ? "добавлена администратором" : "каталог организатора"}
+          {product.origin === "ADMIN" ? "добавлена администратором" : "исходные данные каталога"}
           {product.organizerRows.length > 0 && ` · строки кураторского свода ${product.organizerRows.join(", ")}`}
           {product.editedByAdmin && " · правилась администратором"}
           {` · версия данных ${product.dataVersion || "—"} · обновлена ${UPDATED_AT.format(product.updatedAt)}`}

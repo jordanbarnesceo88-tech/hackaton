@@ -1,6 +1,13 @@
 import { simSummaryRows } from "../../sim/export-rows";
 import { originLabel } from "../../tz/characteristics";
-import { FORMULAS, INCLUDED_IN_SUBSCRIPTION, MODEL_LIMITATIONS, sortRisks, type FormulaKey } from "../../tz/econ";
+import {
+  FORMULAS,
+  INCLUDED_IN_SUBSCRIPTION,
+  MODEL_LIMITATIONS,
+  formulaSourceLabel,
+  sortRisks,
+  type FormulaKey,
+} from "../../tz/econ";
 import { DEFAULT_NORMS, NORM_DEFS, isNormKey, normDef, type NormDef } from "../../tz/norms";
 import { formatParamValue } from "../../tz/params/messages";
 import { processDef } from "../../tz/processes";
@@ -428,13 +435,16 @@ export function riskRows(results: ReportResults): RiskReportRow[] {
   );
 }
 
-/** Формулы модели (ТЗ §3.5.8) для листа «О расчёте» и раздела отчёта «Формулы». */
+/**
+ * Формулы модели (ТЗ §3.5.8) для листа «О расчёте» и раздела отчёта «Формулы». `source` —
+ * подпись источника для показа (formulaSourceLabel), а не значение FormulaSource.
+ */
 export type FormulaReportRow = { key: string; title: string; expression: string; units: string; source: string };
 
 export function formulaRows(): FormulaReportRow[] {
   return (Object.keys(FORMULAS) as FormulaKey[]).map((key) => {
     const f = FORMULAS[key];
-    return { key, title: f.title, expression: f.expression, units: f.units, source: f.source };
+    return { key, title: f.title, expression: f.expression, units: f.units, source: formulaSourceLabel(f.source) };
   });
 }
 

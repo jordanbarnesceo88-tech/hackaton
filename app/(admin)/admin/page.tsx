@@ -43,8 +43,8 @@ export default async function AdminPage() {
       <div className="flex flex-col gap-2">
         <h1>Администрирование</h1>
         <p className="max-w-3xl text-muted-foreground">
-          Каталог решений, характеристики с источниками, нормативы расчёта, параметры объектов и обновление данных
-          организатора. Каждое изменение пишется в журнал: кто, когда, что было и что стало.
+          Каталог решений, характеристики с источниками, нормативы расчёта, параметры объектов и обновление исходных
+          данных. Каждое изменение пишется в журнал: кто, когда, что было и что стало.
         </p>
       </div>
 
@@ -69,7 +69,7 @@ export default async function AdminPage() {
               В архиве: <b>{formatNum(archived)}</b>
             </li>
             <li>
-              Заведены администратором: <b>{formatNum(adminProducts)}</b>; правки в данных организатора:{" "}
+              Заведены администратором: <b>{formatNum(adminProducts)}</b>; правки в исходных данных:{" "}
               <b>{formatNum(editedProducts)}</b>
             </li>
           </ul>
@@ -110,7 +110,7 @@ export default async function AdminPage() {
 
         <section className={CARD} aria-labelledby="adm-data">
           <h2 id="adm-data" className="text-lg">
-            Данные организатора
+            Исходные данные каталога
           </h2>
           {release ? (
             <>
@@ -122,7 +122,7 @@ export default async function AdminPage() {
               </p>
             </>
           ) : (
-            <p className="text-sm text-caution">Данные организатора ещё не загружены — нажмите «Обновить каталог».</p>
+            <p className="text-sm text-caution">Исходные данные ещё не загружены — нажмите «Обновить каталог».</p>
           )}
           <p className="text-sm">Обновление каталога по запросу и журнал действий администратора.</p>
           <Link href="/admin/data" className="mt-auto text-sm text-primary underline underline-offset-2">

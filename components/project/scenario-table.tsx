@@ -32,7 +32,7 @@ export const SCENARIO_ROWS = [
   { key: "effect", label: "Годовой эффект" },
   { key: "payback", label: "Окупаемость (простая)" },
   { key: "band", label: "Интерпретация" },
-  { key: "roiTz", label: "ROI по ТЗ" },
+  { key: "roiTz", label: "ROI валовый" },
   { key: "roiNet", label: "ROI чистый" },
   { key: "npv", label: "NPV" },
   { key: "dpb", label: "Дисконтированная окупаемость" },

@@ -93,7 +93,7 @@ describe("ScenarioTable: порядок строк", () => {
       "Годовой эффект",
       "Окупаемость (простая)",
       "Интерпретация",
-      "ROI по ТЗ",
+      "ROI валовый",
       "ROI чистый",
       "NPV",
       "Дисконтированная окупаемость",
@@ -153,7 +153,7 @@ describe("ScenarioTable: ячейки", () => {
     // покупка, RaaS). Ещё раз тот же текст встречается в строке «Риски» как риск
     // RAAS_ROI_UNINFORMATIVE — это ожидаемо.
     const rows = html.split("<tr>").map((r) => ({ head: /<th scope="row"[^>]*>(.*?)<\/th>/.exec(r)?.[1] ?? "", r }));
-    for (const label of ["ROI по ТЗ", "ROI чистый"]) {
+    for (const label of ["ROI валовый", "ROI чистый"]) {
       const row = rows.find((x) => text(x.head).trim() === label);
       expect(row, label).toBeDefined();
       const cells = [...(row?.r ?? "").matchAll(/<td[^>]*>(.*?)<\/td>/g)].map((m) => text(m[1] ?? ""));

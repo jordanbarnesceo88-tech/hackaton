@@ -1,3 +1,4 @@
+import { sourceRefLabel } from "../tz/characteristics";
 import { normDef, type NormKey, type NormValues } from "../tz/norms";
 import type { HandlingClass, Origin, ParamSpec, ParamValues, ProductForCalc } from "../tz/types";
 import { SIM_LIMITS, chargeThresholdsValid, expectedTasks } from "./engine";
@@ -149,7 +150,7 @@ function fleetNote(origin: Origin): string | undefined {
 function productOrigin(product: ProductForCalc, key: ProductField): { origin: Origin; note?: string } {
   const src = product.sources.find((s) => s.key === key);
   if (src) {
-    const where = src.sourceUrl ?? src.sourceRef;
+    const where = src.sourceUrl ?? (src.sourceRef === null ? null : sourceRefLabel(src.sourceRef));
     return { origin: src.origin, note: where ? `Источник: ${where}` : undefined };
   }
   // В снимке нет строки источника по ключу: обогащённые карточки заполнены из открытых
@@ -418,7 +419,7 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
       value: LAYOUT_ASSUMPTIONS.rackRowDepthM,
       unit: "м",
       origin: "estimate",
-      note: "Два ряда «спина к спине» по 1,2 м — длина европаллеты 1200 мм (датасет организатора)",
+      note: "Два ряда «спина к спине» по 1,2 м — длина европаллеты 1200 мм (по демо-набору данных)",
     },
     {
       field: "layout:chargingCornerM",

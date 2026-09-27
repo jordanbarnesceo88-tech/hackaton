@@ -16,6 +16,7 @@ import {
   opexFormulaKey,
   type FormulaKey,
   type FormulaSource,
+  FORMULA_SOURCE_LABELS,
 } from "@/lib/tz/econ/formulas";
 import { MODEL_LIMITATIONS } from "@/lib/tz/econ/limitations";
 import { fx } from "@/lib/tz/econ/text";
@@ -26,7 +27,7 @@ import type { Origin } from "@/lib/tz/types";
 import { SIM_MODEL_VERSION, TZ_MODEL_VERSION } from "@/lib/tz/version";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Методика расчёта по ТЗ — Платформа оценки роботизации" };
+export const metadata = { title: "Методика расчёта — Платформа оценки роботизации" };
 
 /**
  * Методика модели tz-1.0.0 (ТЗ §3.5.1 — прозрачная модель без недокументированных
@@ -63,10 +64,10 @@ function ungroupedFormulaKeys(): FormulaKey[] {
 
 /** Что означает метка источника формулы. */
 const FORMULA_SOURCE_NOTES: Readonly<Record<FormulaSource, string>> = {
-  "ТЗ §3.5.1": "требование прозрачной модели расчёта",
-  "ТЗ §3.5.2": "рекомендуемые расчётные зависимости ТЗ",
-  организатор: "легенда датасета организатора",
-  "наш выбор": "решение модели; почему — в нормативах и ограничениях ниже",
+  "ТЗ §3.5.1": "основа прозрачной модели расчёта",
+  "ТЗ §3.5.2": "общепринятые зависимости для расчёта парка, затрат и окупаемости",
+  организатор: "легенда демо-набора",
+  "наш выбор": "принято в модели; обоснование — в нормативах и ограничениях ниже",
 };
 
 const FORMULA_SOURCE_TONE: Readonly<Record<FormulaSource, string>> = {
@@ -264,7 +265,7 @@ export default async function TzMethodologyPage() {
   return (
     <div className="surface-data flex flex-col gap-10 py-12">
       <div className="flex max-w-3xl flex-col gap-3">
-        <h1>Методика расчёта по ТЗ</h1>
+        <h1>Методика расчёта</h1>
         <p className="text-muted-foreground">
           По этой методике (модель {TZ_MODEL_VERSION}) считаются проекты и демо-расчёт склада: подбор решений,
           CAPEX, OPEX, эффект, окупаемость, ROI, NPV, TCO и сценарии «как есть / покупка / услуга». Здесь собраны
@@ -292,7 +293,7 @@ export default async function TzMethodologyPage() {
           метка источника:{" "}
           {usedSources.map((s, i) => (
             <span key={s}>
-              «{s}» — {FORMULA_SOURCE_NOTES[s]} ({formulaBySource.get(s) ?? 0})
+              «{FORMULA_SOURCE_LABELS[s]}» — {FORMULA_SOURCE_NOTES[s]} ({formulaBySource.get(s) ?? 0})
               {i < usedSources.length - 1 ? "; " : "."}
             </span>
           ))}{" "}
@@ -314,7 +315,7 @@ export default async function TzMethodologyPage() {
                           FORMULA_SOURCE_TONE[f.source],
                         )}
                       >
-                        {f.source}
+                        {FORMULA_SOURCE_LABELS[f.source]}
                       </span>
                     </dt>
                     <dd className="font-mono text-sm break-words">{f.expression}</dd>
@@ -333,8 +334,8 @@ export default async function TzMethodologyPage() {
         <div className="flex max-w-3xl flex-col gap-2 text-sm text-muted-foreground">
           <p>
             Всё, что участвует в расчёте, но не является параметром объекта. У каждого норматива — допустимый
-            диапазон, происхождение и обоснование; у значений организатора и ТЗ указано место в источнике, у
-            открытых источников — ссылка. Оценка всегда помечена как оценка и говорит, на чём держится.
+            диапазон, происхождение и обоснование; у базовых данных указано место в демо-наборе, у открытых
+            источников — ссылка. Оценка всегда помечена как оценка и говорит, на чём держится.
           </p>
           <p>
             Всего нормативов: {normRows.length}; по происхождению:{" "}
@@ -418,7 +419,7 @@ export default async function TzMethodologyPage() {
       <section id="processes" className="flex scroll-mt-16 flex-col gap-4">
         <h2>Процессы и спрос</h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Иерархия каталога ТЗ — отрасль, тип объекта, процесс, тип решения, продукт. Процесс говорит, из каких
+          Иерархия каталога — отрасль, тип объекта, процесс, тип решения, продукт. Процесс говорит, из каких
           параметров объекта считается суточный спрос, какой персонал он занимает и какие параметры ограничивают
           выбор робота. Экономика и имитация в этой версии реализованы для перемещения паллет на складе; остальные
           процессы и типы объектов показаны на уровне параметров, подбора и доступных решений.
@@ -473,7 +474,7 @@ export default async function TzMethodologyPage() {
         <h2>Имитация</h2>
         <p className="text-sm text-muted-foreground">
           Имитация (модель {SIM_MODEL_VERSION}) проверяет, выдерживает ли рассчитанный парк пиковый поток на
-          планировке объекта (ТЗ §3.6.2: визуализация подтверждает расчёт, а не украшает его). Экономика берёт
+          планировке объекта (визуализация подтверждает расчёт, а не украшает его). Экономика берёт
           производительность робота по циклу с той же планировки, поэтому схема на экране и расчёт не расходятся.
         </p>
         <dl className="flex flex-col gap-3 text-sm">
@@ -542,20 +543,20 @@ export default async function TzMethodologyPage() {
         <h2>Версии</h2>
         <p className="text-sm text-muted-foreground">
           Проект хранит версию модели, версию имитации и хэш использованных данных (продукты сценариев,
-          нормативы, описания параметров и версия данных организатора). Если при повторном открытии что-то из этого изменилось, проект
+          нормативы, описания параметров и версия исходных данных). Если при повторном открытии что-то из этого изменилось, проект
           показывает сохранённый расчёт и предлагает пересчитать на актуальных данных — числа не подменяются
-          молча (ТЗ §3.1.5).
+          молча.
         </p>
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[max-content_1fr]">
           <dt className="font-medium">Модель расчёта</dt>
           <dd className="font-mono">{TZ_MODEL_VERSION}</dd>
           <dt className="font-medium">Модель имитации</dt>
           <dd className="font-mono">{SIM_MODEL_VERSION}</dd>
-          <dt className="font-medium">Датасеты организатора</dt>
+          <dt className="font-medium">Демо-набор данных</dt>
           <dd className="font-mono">{ORGANIZER_DATA_VERSION.datasets}</dd>
-          <dt className="font-medium">Каталог организатора</dt>
+          <dt className="font-medium">Каталог</dt>
           <dd className="font-mono">{ORGANIZER_DATA_VERSION.catalog}</dd>
-          <dt className="font-medium">«Примеры решений» организатора</dt>
+          <dt className="font-medium">Подборка «Примеры решений»</dt>
           <dd className="font-mono">{ORGANIZER_DATA_VERSION.examples}</dd>
           <dt className="font-medium">Исследование открытых источников</dt>
           <dd className="font-mono break-words">{ORGANIZER_DATA_VERSION.research}</dd>
@@ -579,8 +580,8 @@ export default async function TzMethodologyPage() {
           </dd>
         </dl>
         <p className="text-xs text-muted-foreground">
-          Версия данных организатора — дата выгрузки и начало контрольной суммы исходного файла. Сами файлы
-          организатора в репозиторий не входят: из них извлекаются только нужные поля со ссылкой на источник.
+          Версия исходных данных — дата выгрузки и начало контрольной суммы исходного файла. Сами исходные файлы в
+          репозиторий не входят: из них извлекаются только нужные поля со ссылкой на источник.
         </p>
       </section>
 

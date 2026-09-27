@@ -517,7 +517,7 @@ describe("каталог: правки администратора и данн�
     asAdmin();
     const res = await actions.deleteProductAction(INIT, form({ slug: PRODUCT, confirm: "yes" }));
     expect(res).toMatchObject({ status: "error", seq: 0 });
-    expect(res.message).toBe("Удалить нельзя: данные организатора — используйте «В архив»");
+    expect(res.message).toBe("Удалить нельзя: продукт из исходных данных каталога — используйте «В архив»");
     expect(await prisma.catalogProduct.count({ where: { slug: PRODUCT } })).toBe(1);
   });
 

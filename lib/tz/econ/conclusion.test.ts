@@ -151,7 +151,7 @@ describe("риски", () => {
     const p = ok(results, "p1");
     expect(codes(p)).toEqual(expect.arrayContaining(["LABOR_SHARE_ESTIMATE", "ROUTE_ESTIMATE", "FLEET_COST_MISSING", "STAFF_REDUCTION"]));
     expect(p.risks.find((x) => x.code === "FLEET_COST_MISSING")?.text).toBe(
-      "Стоимость существующего парка погрузчиков в датасете не задана — эффект занижен, оценка консервативна",
+      "Стоимость существующего парка погрузчиков в исходных данных не задана — эффект занижен, оценка консервативна",
     );
     expect(p.risks.find((x) => x.code === "STAFF_REDUCTION")?.text).toBe(
       "Высвобождение 11,9 FTE — учесть трудовые и социальные обязательства",

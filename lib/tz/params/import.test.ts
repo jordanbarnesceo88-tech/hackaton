@@ -59,8 +59,8 @@ describe("шаблон параметров", () => {
     expect(rows).toHaveLength(defs.length + 1);
     const payroll = rows.find((r) => r[0] === "payrollTaxMultiplier");
     expect(payroll?.[4]).toBe("1,302");
-    expect(payroll?.[9]).toContain("Зафиксировано организатором");
-    expect(rows.find((r) => r[0] === "totalAreaM2")?.[9]).toBe("Организатор: Датасеты_хакатон.xlsx › Склад");
+    expect(payroll?.[9]).toContain("Значение фиксировано в демо-наборе");
+    expect(rows.find((r) => r[0] === "totalAreaM2")?.[9]).toBe("Базовые данные: Датасеты_хакатон.xlsx › Склад");
   });
 
   it("CSV-шаблон → разбор (раскладка template) → значения равны базовым, отчёт «ок»", async () => {
@@ -154,7 +154,7 @@ describe("шаблон параметров", () => {
     const def = r.report.find((i) => i.key === "activeAreaM2");
     expect(def).toMatchObject({ code: "defaulted", severity: "info" });
     expect(def?.message.replace(/\s/g, " ")).toBe(
-      "Нет в файле — взято значение по умолчанию: 10 000 м² (Организатор, Датасеты_хакатон.xlsx › Склад)",
+      "Нет в файле — взято значение по умолчанию: 10 000 м² (Базовые данные, Датасеты_хакатон.xlsx › Склад)",
     );
     expect(r.report.find((i) => i.key === "robotsCount")).toMatchObject({
       code: "unknown_key",

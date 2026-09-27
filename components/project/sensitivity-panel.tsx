@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMRub, formatRub } from "@/lib/format/rub";
+import { boundsSourceLabel } from "@/lib/tz/econ/sensitivity";
 import { fx, rangeText } from "@/lib/tz/econ/text";
 import type { SensitivityRow } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
@@ -245,7 +246,7 @@ export function SensitivityPanel({
                         {clamped ? " *" : ""}
                         <div className="text-xs text-muted-foreground">база {leverValueText(r.base, r.unit)}</div>
                       </td>
-                      <td className={TD}>{r.boundsSource}</td>
+                      <td className={TD}>{boundsSourceLabel(r.boundsSource)}</td>
                       <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>
                         {vLow === null ? "отказ расчёта" : formatRub(vLow)}
                       </td>

@@ -76,7 +76,7 @@ export function ChangeLog({
       <h3 className="section-title">{title}</h3>
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Корректировок пока нет: все значения расчётные или взяты из данных организатора.
+          Корректировок пока нет: все значения — расчётные или базовые.
         </p>
       ) : (
         <div className="data-table-wrap">

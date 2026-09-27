@@ -147,7 +147,7 @@ export default async function AdminProductPage({ params }: { params: Promise<{ s
         <h1>{detail.name}</h1>
         <p className="text-sm text-muted-foreground">
           {detail.manufacturer ?? "производитель не указан"} · <code>{detail.slug}</code>
-          {detail.organizerCatalogId ? ` · id каталога организатора ${detail.organizerCatalogId}` : ""}
+          {detail.organizerCatalogId ? ` · id в исходном каталоге ${detail.organizerCatalogId}` : ""}
         </p>
         <div className="flex flex-wrap gap-1.5">
           <span className={cn(CHIP_CLASS, detail.origin === "ADMIN" ? "bg-secondary" : "bg-primary/5")}>
@@ -243,9 +243,9 @@ export default async function AdminProductPage({ params }: { params: Promise<{ s
             Характеристики
           </h2>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Все ключи словаря ТЗ §3.3.4 по шести группам. Правка ставит значению происхождение «администратор» и
+            Все ключи словаря характеристик по шести группам. Правка ставит значению происхождение «администратор» и
             сохраняется при «Обновить каталог». Новое или изменённое значение можно отметить «Подтверждено» только со
-            ссылкой на первоисточник; у подтверждённого значения организатора отметка сохраняется и без ссылки.
+            ссылкой на первоисточник; у подтверждённого значения из базовых данных отметка сохраняется и без ссылки.
             «Дата проверки» и «Подтверждение» в группе «Качество данных» пересчитываются после каждой правки.
           </p>
         </div>

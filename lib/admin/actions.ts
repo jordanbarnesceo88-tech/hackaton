@@ -74,7 +74,7 @@ const MSG = {
   unchanged: "Изменений нет — значения совпадают с сохранёнными",
   error: "Не удалось сохранить, попробуйте ещё раз",
   inProjects: "Продукт используется в проектах — переведите его в архив вместо удаления",
-  organizerDelete: "Удалить нельзя: данные организатора — используйте «В архив»",
+  organizerDelete: "Удалить нельзя: продукт из исходных данных каталога — используйте «В архив»",
 } as const;
 
 function seqOf(prev: unknown): number {
@@ -789,17 +789,17 @@ export async function revertProductAction(prev: AdminFormState, formData: FormDa
         });
         if (!product) return { kind: "fail", message: MSG.productNotFound };
         if (product.origin !== "ORGANIZER") {
-          return { kind: "fail", message: "Продукт заведён администратором — данных организатора для него нет" };
+          return { kind: "fail", message: "Продукт заведён администратором — исходных данных каталога для него нет" };
         }
         if (!catalogProduct(slug)) {
           return {
             kind: "fail",
-            message: "Продукта нет в текущих данных организатора — вернуть нечего; оставьте его в архиве",
+            message: "Продукта нет в текущих исходных данных каталога — вернуть нечего; оставьте его в архиве",
           };
         }
         const adminKeys = product.characteristics.map((c) => c.key).sort();
         if (!product.editedByAdmin && adminKeys.length === 0) {
-          return { kind: "fail", message: "Правок администратора нет — продукт уже совпадает с данными организатора" };
+          return { kind: "fail", message: "Правок администратора нет — продукт уже совпадает с исходными данными каталога" };
         }
         await tx.productCharacteristic.deleteMany({ where: { productId: product.id, origin: "admin" } });
         await tx.catalogProduct.update({ where: { id: product.id }, data: { editedByAdmin: false } });
@@ -817,7 +817,7 @@ export async function revertProductAction(prev: AdminFormState, formData: FormDa
           },
         ]);
         const chars = adminKeys.length > 0 ? `, снято правок характеристик — ${adminKeys.length}` : "";
-        return { kind: "ok", message: `Данные организатора восстановлены${chars}` };
+        return { kind: "ok", message: `Исходные данные каталога восстановлены${chars}` };
       },
       { maxWait: 10_000, timeout: 60_000 },
     );
@@ -918,7 +918,7 @@ function parseCharInput(fd: FormData, key: keyof typeof CHARACTERISTIC_KEYS): Pa
     if (nums.length === 0 && valueText === null) {
       return {
         ok: false,
-        message: `${label}: укажите значение — число, диапазон «от–до» или текст. Чтобы вернуть значение организатора, нажмите «Вернуть данные организатора»`,
+        message: `${label}: укажите значение — число, диапазон «от–до» или текст. Чтобы вернуть исходное значение, нажмите «Вернуть исходные данные»`,
       };
     }
   } else if (def.kind === "list") {
@@ -935,7 +935,7 @@ function parseCharInput(fd: FormData, key: keyof typeof CHARACTERISTIC_KEYS): Pa
     if (valueText === null) {
       return {
         ok: false,
-        message: `${label}: укажите значение. Чтобы вернуть значение организатора, нажмите «Вернуть данные организатора»`,
+        message: `${label}: укажите значение. Чтобы вернуть исходное значение, нажмите «Вернуть исходные данные»`,
       };
     }
   }

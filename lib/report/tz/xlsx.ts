@@ -1,6 +1,7 @@
 // только сервер: exceljs не попадает в клиентский бандл
 import ExcelJS from "exceljs";
 import { ORGANIZER_DATA_VERSION } from "../../data/organizer/version.generated";
+import { boundsSourceLabel } from "../../tz/econ";
 import type { ParamSpec, ScenarioResult } from "../../tz/types";
 import {
   CHANGES_HEADER,
@@ -494,7 +495,7 @@ function cashflowBlock(ws: ExcelJS.Worksheet, results: ReportResults, res: Scena
     labelValue(
       ws,
       r++,
-      `ROI по ТЗ за ${H !== null ? yearsCount(H) : "горизонт"}, %`,
+      `ROI валовый за ${H !== null ? yearsCount(H) : "горизонт"}, %`,
       rH !== null
         ? formula(`IF(B${capexRow}>0,SUM(G${r1}:G${rH})/B${capexRow}*100,"—")`, res.roiTzPct ?? "—")
         : numOr(res.roiTzPct),
@@ -503,7 +504,7 @@ function cashflowBlock(ws: ExcelJS.Worksheet, results: ReportResults, res: Scena
     labelValue(
       ws,
       r++,
-      "ROI чистый (ROI по ТЗ − 100 %), %",
+      "ROI чистый (ROI валовый − 100 %), %",
       formula(`IF(ISNUMBER(B${roiRow}),B${roiRow}-100,"—")`, res.roiNetPct ?? "—"),
       FMT.pctUnits,
     );
@@ -592,7 +593,7 @@ function sensitivitySheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
           s.base,
           s.low,
           s.high,
-          s.boundsSource,
+          boundsSourceLabel(s.boundsSource),
           numOr(s.npvLow),
           numOr(s.npvHigh),
           s.swing,
@@ -735,9 +736,9 @@ function aboutSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
     ["Модель расчёта", results.modelVersion],
     ["Модель имитации", results.simModelVersion],
     ["Версия данных проекта (хэш снимков продуктов и нормативов)", results.dataVersion],
-    ["Датасеты организатора в этой сборке", ORGANIZER_DATA_VERSION.datasets],
-    ["Каталог организатора в этой сборке", ORGANIZER_DATA_VERSION.catalog],
-    ["«Примеры решений» организатора в этой сборке", ORGANIZER_DATA_VERSION.examples],
+    ["Демо-набор данных в этой сборке", ORGANIZER_DATA_VERSION.datasets],
+    ["Каталог в этой сборке", ORGANIZER_DATA_VERSION.catalog],
+    ["Подборка «Примеры решений» в этой сборке", ORGANIZER_DATA_VERSION.examples],
     ["Исследование открытых источников", ORGANIZER_DATA_VERSION.research],
   ];
   for (const [k, v] of versions) putRow(ws, r++, [k, v]);

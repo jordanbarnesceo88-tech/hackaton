@@ -29,7 +29,7 @@ export const STATUS_TONE: Readonly<Record<ProductStatus, "ok" | "warn" | undefin
 export const LEVEL_LABELS: Readonly<Record<ProductLevel, string>> = {
   identification: "только идентификация",
   enriched: "характеристики с источниками",
-  examples: "из «Примеров решений» организатора",
+  examples: "из подборки «Примеры решений»",
 };
 
 /**
@@ -39,12 +39,12 @@ export const LEVEL_LABELS: Readonly<Record<ProductLevel, string>> = {
  */
 export const LEVEL_HINTS: Readonly<Record<ProductLevel, string>> = {
   identification:
-    "Карточка содержит только поля каталога организатора (название, тип, статус, компания, цена); " +
+    "Карточка содержит только поля каталога (название, тип, статус, компания, цена); " +
     "технических характеристик с источниками нет.",
   enriched:
     "Характеристики найдены у производителя и в открытых источниках; у каждой указаны источник, " +
     "дата проверки и признак подтверждения.",
-  examples: "Характеристики взяты из документа организатора «Примеры решений».",
+  examples: "Характеристики взяты из подборки «Примеры решений».",
 };
 
 /** Варианты сортировки списка в порядке показа в фильтре. */

@@ -289,7 +289,7 @@ export function parseParamsSheets(sheets: readonly SheetData[], defs: readonly P
     return {
       ok: false,
       message:
-        "Не найдена строка заголовков. Используйте шаблон (столбцы «Ключ» и «Значение») или лист датасета организатора (столбцы «Параметр» и «Базовое значение»)",
+        "Не найдена строка заголовков. Используйте шаблон (столбцы «Ключ» и «Значение») или лист в формате демо-набора данных (столбцы «Параметр» и «Базовое значение»)",
     };
   }
   const own = candidates.find((c) => sheetIsFacility(c.sheet.name, facility));

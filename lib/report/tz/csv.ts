@@ -71,7 +71,7 @@ function cashflowSection(results: ReportResults, r: ScenarioOk): CsvCell[][] {
   const summary: CsvCell[] = [];
   if (r.kind !== "asis") {
     summary.push("NPV, ₽", r.npvRub === null ? "—" : Math.round(r.npvRub));
-    summary.push("ROI по ТЗ, %", r.roiTzPct === null ? "—" : Math.round(r.roiTzPct * 10) / 10);
+    summary.push("ROI валовый, %", r.roiTzPct === null ? "—" : Math.round(r.roiTzPct * 10) / 10);
   }
   summary.push(`TCO за ${yearsCount(f.T)}, ₽`, Math.round(r.tcoRub));
   rows.push(summary);

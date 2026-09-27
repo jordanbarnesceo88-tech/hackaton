@@ -39,8 +39,8 @@ export const DEMO_PROJECT_ID = "demo-warehouse";
 /** Владелец демо-проекта — демо-пользователь из scripts/seed-v2.ts (DEMO_ACCOUNTS). */
 export const DEMO_PROJECT_OWNER = "demo@demo.local";
 
-export const DEMO_PROJECT_NAME = "Склад организатора (демо)";
-export const DEMO_OBJECT_NAME = "Распределительный центр — датасет организатора";
+export const DEMO_PROJECT_NAME = "Демо-склад";
+export const DEMO_OBJECT_NAME = "Распределительный центр (демо-данные)";
 
 const FACILITY = "warehouse";
 

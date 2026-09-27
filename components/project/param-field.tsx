@@ -40,11 +40,11 @@ export type ParamFieldProps = {
   formula?: string | null;
 };
 
-/** Примечание к бейджу базового значения из датасета организатора. */
-export const ORGANIZER_DEMO_NOTE = "демо-значение организатора";
+/** Примечание к базовому значению из демо-набора данных (бейджем в форме больше не выводится). */
+export const ORGANIZER_DEMO_NOTE = "демо-значение";
 
-/** Текст о зафиксированном параметре (min = max у организатора). */
-export const LOCKED_NOTICE = "значение зафиксировано организатором; изменение будет записано в журнал";
+/** Текст о зафиксированном параметре (min = max в демо-наборе). */
+export const LOCKED_NOTICE = "значение фиксировано в демо-наборе; изменение будет записано в журнал";
 
 /** Подпись поля с единицей: «Общая площадь склада, м²»; у безразмерных — только название. */
 export function paramLabelText(def: Pick<ParamSpec, "label" | "unit">): string {
@@ -68,7 +68,7 @@ export function rangeLine(def: ParamSpec): string | null {
   if (def.locked || (def.min === null && def.max === null)) return null;
   const text = rangeText(def);
   if (!text) return null;
-  return `${def.origin === "organizer" ? "диапазон организатора" : "допустимый диапазон"}: ${text}`;
+  return `${def.origin === "organizer" ? "типовой диапазон" : "допустимый диапазон"}: ${text}`;
 }
 
 /**
@@ -91,7 +91,7 @@ export function paramHelpLines(def: ParamSpec, formula?: string | null): string[
   const hint = def.hint.trim();
   if (hint) lines.push(hint);
   const note = (def.organizerNote ?? "").trim();
-  if (note && note !== hint) lines.push(`Примечание организатора: ${note}`);
+  if (note && note !== hint) lines.push(`Примечание: ${note}`);
   const exRange = [examplePhrase(def), rangeLine(def) ?? ""].filter((s) => s !== "").join(" · ");
   if (exRange) lines.push(exRange);
   const f = (formula ?? def.formula ?? "").trim();
@@ -319,18 +319,18 @@ export function ParamField({
         </ul>
       )}
 
+      {/* Базовое значение из демо-набора данных бейджем не помечается (решение владельца,
+          2026-09-27): это обычное значение по умолчанию, и бейдж на каждом из полусотни полей
+          был шумом. Бейдж остаётся там, где он что-то сообщает: оценка или открытый источник
+          вместо демо-набора и значение, заданное человеком. */}
+      {(value === null || changed || def.origin !== "organizer" || !atOrganizerBase) && (
       <div className="flex flex-wrap items-start gap-2">
         {value === null ? (
           // Пустому полю источник не приписывается: бейдж «Оценка» рядом с пустотой читался бы
           // как «пусто — это оценка». Почему значения нет, говорит подсказка поля.
           <span className="text-xs text-muted-foreground">не задано</span>
         ) : atOrganizerBase && !changed ? (
-          <SourceBadge
-            origin={def.origin}
-            sourceRef={def.sourceRef}
-            sourceUrl={def.sourceUrl}
-            note={def.origin === "organizer" ? ORGANIZER_DEMO_NOTE : def.basis}
-          />
+          <SourceBadge origin={def.origin} sourceRef={def.sourceRef} sourceUrl={def.sourceUrl} note={def.basis} />
         ) : (
           <SourceBadge origin="user" />
         )}
@@ -354,6 +354,7 @@ export function ParamField({
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

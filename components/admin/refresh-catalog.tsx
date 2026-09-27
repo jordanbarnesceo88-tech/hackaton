@@ -21,7 +21,7 @@ export function RefreshCatalog() {
         <FormStatus
           state={form.state}
           pending={form.pending}
-          pendingText="Сверяю каталог с данными организатора…"
+          pendingText="Сверяю каталог с исходными данными…"
           className="text-sm"
         />
       </div>
