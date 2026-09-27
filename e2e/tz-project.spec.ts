@@ -23,7 +23,7 @@ const PURCHASE = "Покупка — Ronavi H1500";
  * же, как пользователь, — вкладкой в панели шагов («5 Экономика»).
  */
 async function openStep(page: Page, label: string) {
-  await page.getByRole("navigation", { name: "Шаги по ТЗ" }).getByRole("link", { name: label, exact: true }).click();
+  await page.getByRole("navigation", { name: "Шаги расчёта" }).getByRole("link", { name: label, exact: true }).click();
   // Смена шага идёт через View Transition: новый шаг показывается кадром позже клика. Ждём
   // его заголовок, чтобы не читать таблицы раньше (allInnerTexts не ждёт появления).
   const n = label.split(" ")[0];

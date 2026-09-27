@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +65,7 @@ export function StepNav({
 }) {
   return (
     <nav
-      aria-label="Шаги по ТЗ"
+      aria-label="Шаги расчёта"
       // xl:top-[60px]: under SiteHeader, which is sticky (and exactly 60px, one row) only from
       // xl; below xl the header scrolls away and this bar takes the top — see site-header.tsx.
       className={cn("glass no-print sticky top-0 z-20 py-2 xl:top-[60px]", className)}
@@ -74,7 +74,12 @@ export function StepNav({
           спеки прямо предупреждает: пилюля с фоном — облик shadcn Tabs по умолчанию, не
           прототипа). Контейнер несёт общую нижнюю линию; активный пункт перекрывает её своей
           2px-линией акцента (-mb-px). */}
-      <ol className="subtabs">
+      {/* Вкладки шагов и стрелки листания — один ряд: стрелки справа, вне прокрутки вкладок,
+          поэтому на телефоне, где видна только часть вкладок, листать можно всегда. Отдельная
+          строка «← Назад · Шаг N из 8 · Далее →» съедала высоту липкой панели ради подписей,
+          которые дублировали подчёркнутую вкладку и заголовок шага. */}
+      <div className="flex items-end gap-3">
+      <ol className="subtabs min-w-0 flex-1">
         {TZ_STEPS.map((step) => {
           const current = active === step.n;
           return (
@@ -109,28 +114,28 @@ export function StepNav({
         })}
       </ol>
       {onStepClick && active !== undefined && (
-        <div className="mt-1.5 flex items-center justify-between gap-3 text-sm">
+        <div className="flex shrink-0 items-center gap-1.5 pb-1">
           <button
             type="button"
+            aria-label={`Предыдущий шаг (${active - 1} из ${TZ_STEP_COUNT})`}
             onClick={() => onStepClick(active - 1)}
             disabled={active <= 1}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "outline", size: "icon-round" })}
           >
-            ← Назад
+            <ChevronLeft aria-hidden={true} />
           </button>
-          <span className="text-xs text-muted-foreground">
-            Шаг {active} из {TZ_STEP_COUNT}
-          </span>
           <button
             type="button"
+            aria-label={`Следующий шаг (${active + 1} из ${TZ_STEP_COUNT})`}
             onClick={() => onStepClick(active + 1)}
             disabled={active >= TZ_STEP_COUNT}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "outline", size: "icon-round" })}
           >
-            Далее →
+            <ChevronRight aria-hidden={true} />
           </button>
         </div>
       )}
+      </div>
     </nav>
   );
 }

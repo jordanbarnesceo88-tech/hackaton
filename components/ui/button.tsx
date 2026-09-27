@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils"
  *   default 32px — действия внутри панели, тулбара, формы шага;
  *   lg  40px — главное действие страницы или формы (вход, «Создать проект», фильтры каталога);
  *   xl  48px — входы на первом экране и «Далее» в мастере.
+ * Круглые кнопки-значки: icon-round 32px — стрелки листания шагов; icon-round-lg 44px —
+ * плавающая «Наверх» (44px — палец на телефоне). Подпись у них — только aria-label.
  * В одном ряду — один размер; иерархию задаёт вариант (одна default-кнопка, остальные
  * outline/ghost), а не разный рост кнопок.
  */
@@ -71,6 +73,8 @@ const buttonVariantsBase = cva(
         "icon-sm":
           "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-10",
+        "icon-round": "size-8 rounded-full",
+        "icon-round-lg": "size-11 rounded-full [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {

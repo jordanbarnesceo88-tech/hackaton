@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { WarehouseSimulation } from "@/components/sim/warehouse-simulation";
 import { isAbortError, yieldToPage } from "@/components/sim/run-headless";
 import { buildSimVariants, storedMatches, type SimScenario } from "@/components/sim/variants";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { Button } from "@/components/ui/button";
 import { pluralRu } from "@/lib/format/plural";
 import { formatNum } from "@/lib/format/rub";
@@ -1515,6 +1516,15 @@ export function Workspace({
 
       <StepPager active={activeStep} onStep={(n) => goToStep(n, { focusHeading: true })} />
       </div>
+
+      {/* «Наверх» на длинных шагах (параметры, подбор, сравнение, экономика, сценарии,
+          имитация) — кнопка сама появляется только после прокрутки. */}
+      <BackToTop
+        onTop={() => {
+          const id = TZ_STEPS.find((st) => st.n === activeStep)?.id;
+          if (id) document.getElementById(`${uid}-h-${id}`)?.focus({ preventScroll: true });
+        }}
+      />
     </div>
   );
 }

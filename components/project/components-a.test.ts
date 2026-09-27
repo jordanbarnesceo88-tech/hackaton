@@ -261,9 +261,9 @@ describe("stepHeading", () => {
     ]);
   });
 
-  it("StepNav: подпись «Шаги по ТЗ», ссылки-якоря, текущий шаг отмечен", () => {
+  it("StepNav: подпись «Шаги расчёта», ссылки-якоря, текущий шаг отмечен", () => {
     const html = renderToStaticMarkup(createElement(StepNav, { active: 3 }));
-    expect(html).toContain('aria-label="Шаги по ТЗ"');
+    expect(html).toContain('aria-label="Шаги расчёта"');
     expect(html).toContain('href="#object"');
     expect(html).toContain('href="#report"');
     expect(html.match(/aria-current="step"/g)).toHaveLength(1);
