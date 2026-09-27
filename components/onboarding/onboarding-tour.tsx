@@ -118,7 +118,14 @@ const STEPS: readonly TourStep[] = [
   },
 ];
 
-export function OnboardingTour({ triggerSize = "default" }: { triggerSize?: ButtonProps["size"] }) {
+export function OnboardingTour({
+  triggerSize = "default",
+  triggerClassName,
+}: {
+  triggerSize?: ButtonProps["size"];
+  /** Раскладка кнопки в ряду вызывающего (например, во всю ширину на телефоне) — не её вид. */
+  triggerClassName?: string;
+}) {
   const open = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [index, setIndex] = useState(0);
   const nextRef = useRef<HTMLButtonElement>(null);
@@ -147,6 +154,7 @@ export function OnboardingTour({ triggerSize = "default" }: { triggerSize?: Butt
         type="button"
         variant="outline"
         size={triggerSize}
+        className={triggerClassName}
         onClick={() => {
           // С начала, а не с того шага, на котором тур закрыли: onOpenChange(true) здесь не
           // вызывается (окно открывается снаружи, не своим триггером), поэтому сброс — тут.

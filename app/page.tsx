@@ -1,122 +1,151 @@
 import Link from "next/link";
 import { exampleHref, EXAMPLE_OBJECT_NAME } from "@/lib/wizard/example-scenario";
 import { buttonVariants } from "@/components/ui/button";
+import { Accordion, AccordionItem } from "@/components/ui/accordion";
+import { ThemedScreenshot } from "@/components/landing/themed-screenshot";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
+import { cn } from "@/lib/utils";
+import scenariosLight from "@/public/landing/scenarios-light.png";
+import scenariosDark from "@/public/landing/scenarios-dark.png";
+import capexLight from "@/public/landing/capex-light.png";
+import capexDark from "@/public/landing/capex-dark.png";
+import staffLight from "@/public/landing/staff-light.png";
+import staffDark from "@/public/landing/staff-dark.png";
+import sensitivityLight from "@/public/landing/sensitivity-light.png";
+import sensitivityDark from "@/public/landing/sensitivity-dark.png";
 
 /**
  * Первый экран.
  *
- * Раньше здесь стоял redirect("/onboarding"), и человек попадал сразу на вопрос «в какой вы
- * отрасли?», не зная, зачем отвечать. Экран построен на трёх возражениях, которые задаёт
- * финансовый директор, и ответах на них: это содержание, а не украшение. Обещание продукта —
- * не «посчитайте ROI», а «получите цифру, с которой можно идти к тому, кто будет спорить».
+ * Построен на возражениях, которые задаёт финансовый директор, и ответах на них: это
+ * содержание, а не украшение. Обещание продукта — не «посчитайте ROI», а «получите цифру, с
+ * которой можно идти к тому, кто будет спорить».
  *
- * Сверху — расчёт по методике ТЗ (модель tz-1.0.0): демо-расчёт склада на данных организатора
- * без входа и проекты после входа (путь жюри ТЗ §5.4). Прежняя упрощённая модель v1 не удалена,
- * но в демонстрации по ТЗ не участвует (§5.7) — её входы перенесены в нижнюю секцию без
- * изменения текстов и адресов ссылок.
+ * Пересборка 2026-09-27 (просьба владельца: «слишком много текста, добавить картинки»):
+ * - поля страницы — те же, что у остальных страниц (.surface-data), текст держит меру строки
+ *   сам;
+ * - вопросы свёрнуты в раскрывающиеся пункты, в каждом ответе — снимок экрана, который этот
+ *   ответ показывает (снимки — настоящие экраны демо-расчёта, scripts/capture-landing-shots.mjs);
+ * - на первом экране — снимок сравнения сценариев рядом с кнопками.
  */
 const OBJECTIONS = [
   {
     q: "«Цены вы взяли с потолка?»",
     a:
       "Нет. Каждая цена помечена как оценка, у каждой названы источник и дата проверки. У " +
-      "классов решений это опубликованный диапазон со ссылками — отдельно на цену, отдельно " +
-      "на производительность; класс без обеих ссылок в каталог не попадает. У конкретных " +
-      "моделей источник назван в обосновании: сторонняя оценка с диапазоном либо страница " +
-      "дистрибьютора. Вендоры не публикуют прайс на промышленных роботов, поэтому точной " +
-      "цены здесь не может быть ни у кого — и мы говорим это прямо, а не показываем одно " +
-      "число с видом уверенности.",
+      "классов решений это опубликованный диапазон со ссылками — отдельно на цену и на " +
+      "производительность; класс без обеих ссылок в каталог не попадает. Вендоры не публикуют " +
+      "прайс на промышленных роботов, поэтому точной цены здесь не может быть ни у кого — и " +
+      "платформа говорит это прямо, а не показывает одно число с видом уверенности.",
+    shot: { light: capexLight, dark: capexDark, alt: "Статьи CAPEX: сумма, формула с подстановкой чисел и происхождение каждой цены" },
   },
   {
     q: "«Почему замещается столько людей?»",
     a:
-      "Потому что вы сами назвали, сколько человек делает каждую работу. Модель это число " +
-      "больше не выводит: она выводила его одним делителем на все задачи сразу, занижала " +
-      "выработку в десятки раз и получала паллетайзер, «замещающий» весь штат комбината с " +
-      "окупаемостью в одиннадцать дней. Где у работы есть опубликованный норматив, он " +
-      "подставлен подсказкой со ссылкой — и виден. Дальше результат масштабируется покрытием: " +
-      "парк, закрывающий половину работы, освобождает половину людей, а не всех. Решение, " +
-      "обслуживающее площадь, не «замещает» тех, кто собирает заказы — у них разная работа и " +
-      "разные мерки.",
+      "Потому что вы сами называете, сколько человек делает каждую работу: численность вводится " +
+      "по задачам, а не выводится одним делителем на всё сразу. Где у работы есть опубликованный " +
+      "норматив, он подставлен подсказкой со ссылкой. Результат масштабируется покрытием: парк, " +
+      "закрывающий половину работы, освобождает половину людей, а не всех. Решение, обслуживающее " +
+      "площадь, не «замещает» тех, кто собирает заказы, — у них разная работа и разные мерки.",
+    shot: { light: staffLight, dark: staffDark, alt: "Раздел параметров «Персонал»: численность и зарплаты по задачам" },
   },
   {
     q: "«А если ставка и сроки другие?»",
     a:
-      "Все допущения — ставка дисконтирования, горизонт, срок службы техники, доля " +
-      "замещения — редактируются, а диаграмма чувствительности показывает, какое из них " +
-      "двигает результат сильнее всего. Обычно это стоимость труда, а не цена робота.",
+      "Все допущения — ставка дисконтирования, горизонт, срок службы техники, доля замещения — " +
+      "редактируются, а диаграмма чувствительности показывает, какое из них сильнее всего двигает " +
+      "результат. Обычно это стоимость труда, а не цена робота.",
+    shot: { light: sensitivityLight, dark: sensitivityDark, alt: "Диаграмма чувствительности NPV к параметрам расчёта" },
   },
 ];
 
 // Первый ряд — три входа одного размера (xl): одно основное действие залито, остальные —
-// контурные. Иерархию задаёт вариант, не рост кнопки: раньше «Как это работает» была на 20px
-// ниже соседей, а «Создать проект» выходила без рамки (buttonVariants без слияния классов).
+// контурные. Иерархию задаёт вариант, не рост кнопки.
+// На телефоне входы — во всю ширину: в столбик кнопки разной длины читались как разные кнопки.
 /** Основное действие первого экрана. */
-const CTA_PRIMARY = buttonVariants({ variant: "default", size: "xl" });
+const CTA_PRIMARY = cn(buttonVariants({ variant: "default", size: "xl" }), "w-full sm:w-auto");
 
 /** Второстепенные входы первого ряда — тот же размер, контур. */
-const CTA_SECONDARY = buttonVariants({ variant: "outline", size: "xl" });
+const CTA_SECONDARY = cn(buttonVariants({ variant: "outline", size: "xl" }), "w-full sm:w-auto");
 
-/**
- * Входы прежней модели v1 — ступенью ниже первого ряда (lg — размер главного действия
- * раздела): она в демонстрации по ТЗ не участвует, но ссылки остаются рабочими.
- */
-const CTA_QUIET = buttonVariants({ variant: "outline", size: "lg" });
+/** Входы упрощённой модели — ступенью ниже первого ряда (lg — главное действие раздела). */
+const CTA_QUIET = cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto");
+
+/** Ссылки подвала. */
+const FOOTER_LINK = "tap-target font-medium underline underline-offset-4 hover:text-primary";
 
 export default function Home() {
   return (
-    <div className="surface-prose flex flex-col gap-10 py-16">
-      <div className="flex flex-col gap-4">
-        <h1>Окупится ли роботизация вашего объекта</h1>
-        <p className="text-lg text-muted-foreground">
-          Расчёт по методике ТЗ: подбор решений, CAPEX/OPEX/TCO, сценарии «как есть / покупка /
-          услуга» и имитация работы склада на демо-данных
-        </p>
-      </div>
-
-      {/* Два входа в расчёт по ТЗ. Демо-расчёт открывается без входа и ничего не сохраняет
-          (гость, ТЗ §3.1.2); проект требует входа и сохраняется с версиями модели и данных. */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/demo" className={CTA_PRIMARY}>
-            Открыть демо-расчёт склада
-          </Link>
-          <Link href="/projects/new" className={CTA_SECONDARY}>
-            Создать проект
-          </Link>
-          {/* Онбординг-тур: восемь карточек по шагам пути жюри (ТЗ §5.4), см.
-              components/onboarding/onboarding-tour.tsx. Открывается сам один раз новому
-              посетителю и по этой кнопке — в любой момент повторно. */}
-          <OnboardingTour triggerSize="xl" />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Демо-расчёт — без входа, на базовых значениях демо-набора данных; изменения в нём не
-          сохраняются. В проекте параметры вводятся вручную или загружаются из файла Excel/CSV по
-          шаблону, сценарии сравниваются в одной таблице, а результат сохраняется и выгружается в
-          отчёт и Excel. У демо-аккаунта уже есть готовый проект склада. Склад рассчитывается
-          полностью; аэропорт и медучреждение показаны на уровне параметров, подбора и доступных
-          решений (прототип).
-        </p>
-      </div>
-
-      <section className="flex flex-col gap-6 border-t pt-8">
-        <h2>Что спросит ваш финансовый директор</h2>
-        {OBJECTIONS.map((o) => (
-          <div key={o.q} className="flex flex-col gap-1.5">
-            <h3>{o.q}</h3>
-            <p className="text-muted-foreground">{o.a}</p>
+    <div className="surface-data flex flex-col gap-20 py-12 lg:py-16">
+      {/* Первый экран: текст и входы слева, настоящий экран расчёта справа. Колонка текста —
+          42rem: ровно столько, чтобы три входа первого ряда стояли в одну строку; две колонки —
+          с xl (1280px), ниже снимок встаёт под текст во всю ширину. */}
+      <section className="grid items-center gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
+        <div className="flex flex-col gap-6">
+          <h1>Окупится ли роботизация вашего объекта</h1>
+          <p className="text-lg text-muted-foreground">
+            Подбор роботизированных решений, CAPEX, OPEX и TCO, сценарии «как есть / покупка / услуга» и
+            проверка парка имитацией — у каждого числа есть источник.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/demo" className={CTA_PRIMARY}>
+              Открыть демо-расчёт склада
+            </Link>
+            <Link href="/projects/new" className={CTA_SECONDARY}>
+              Создать проект
+            </Link>
+            {/* Онбординг-тур: карточки по шагам расчёта, см. components/onboarding/onboarding-tour.tsx.
+                Открывается сам один раз новому посетителю и по этой кнопке — в любой момент. */}
+            <OnboardingTour triggerSize="xl" triggerClassName="w-full sm:w-auto" />
           </div>
-        ))}
+          <p className="text-sm text-muted-foreground">
+            Демо-расчёт открывается без входа и ничего не сохраняет. Проект сохраняется с версиями модели и данных
+            и выгружается в отчёт и Excel. Склад рассчитывается полностью, аэропорт и медучреждение — на уровне
+            параметров и подбора (прототип).
+          </p>
+        </div>
+        <ThemedScreenshot
+          light={scenariosLight}
+          dark={scenariosDark}
+          alt="Сравнение сценариев демо-склада: «как есть», покупка и услуга рядом, рекомендованный отмечен звездой"
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          fetchPriority="high"
+        />
       </section>
 
-      {/* Прежняя модель v1: 47 типов объектов, расчёт в долларах с пересчётом в рубли. Тексты и
-          адреса ссылок не меняются — на них опираются e2e-тесты v1. Второй вход важен не меньше
-          первого: пример ведёт на посчитанные числа, а не на пустую форму. */}
-      <section className="flex flex-col gap-4 border-t pt-8">
-        <h2>Быстрая оценка по 47 типам объектов (упрощённая модель v1)</h2>
-        <p className="text-sm text-muted-foreground">
-          прежняя модель в долларах с пересчётом в рубли; в демонстрации по ТЗ не участвует
+      {/* Возражения — свёрнутыми пунктами: вопрос виден сразу, ответ и снимок — по раскрытию. */}
+      <section className="grid gap-8 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-14">
+        <div className="flex flex-col gap-3">
+          <h2>Что спросит ваш финансовый директор</h2>
+          <p className="text-muted-foreground">
+            Три вопроса, с которых обычно начинается разговор о роботизации, — и где в расчёте на них ответ.
+          </p>
+        </div>
+        <Accordion>
+          {OBJECTIONS.map((o) => (
+            <AccordionItem key={o.q} title={o.q}>
+              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+                <p className="max-w-prose text-muted-foreground">{o.a}</p>
+                <ThemedScreenshot
+                  light={o.shot.light}
+                  dark={o.shot.dark}
+                  alt={o.shot.alt}
+                  sizes="(min-width: 1280px) 40vw, (min-width: 1024px) 60vw, 100vw"
+                />
+              </div>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </section>
+
+      {/* Упрощённая модель: 47 типов объектов, расчёт в долларах с пересчётом в рубли. Тексты
+          ссылок не меняются — на них опираются e2e-тесты. Второй вход ведёт на посчитанные
+          числа, а не на пустую форму. */}
+      <section className="flex flex-col gap-4 border-t pt-10">
+        <h2>Быстрая оценка по 47 типам объектов</h2>
+        <p className="max-w-3xl text-muted-foreground">
+          Упрощённая модель в долларах с пересчётом в рубли: шесть шагов без регистрации — или сразу готовый
+          расчёт для «{EXAMPLE_OBJECT_NAME}».
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/onboarding" className={CTA_QUIET}>
@@ -126,22 +155,18 @@ export default function Home() {
             Посмотреть на готовом примере
           </Link>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Шесть шагов, без регистрации — или сразу готовый расчёт для «{EXAMPLE_OBJECT_NAME}»:
-          шесть решений, из них окупается одно. Сохранить расчёт можно потом.
-        </p>
       </section>
 
-      {/* Входы в прозу: формулы и нормативы модели ТЗ, методика прежней модели («откуда
+      {/* Входы в прозу: формулы и нормативы модели, методика упрощённой модели («откуда
           цифры») и словарь — для того, кто на «ЭПЗ» и «AS/RS» ещё останавливается. */}
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm">
-        <Link href="/methodology/tz" className="tap-target font-medium underline underline-offset-4">
-          Формулы и нормативы модели ТЗ
+        <Link href="/methodology/tz" className={FOOTER_LINK}>
+          Формулы и нормативы модели
         </Link>
-        <Link href="/methodology" className="tap-target font-medium underline underline-offset-4">
+        <Link href="/methodology" className={FOOTER_LINK}>
           Откуда цифры и как считается модель
         </Link>
-        <Link href="/glossary" className="tap-target font-medium underline underline-offset-4">
+        <Link href="/glossary" className={FOOTER_LINK}>
           Словарь терминов
         </Link>
       </footer>
