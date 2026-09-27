@@ -108,7 +108,7 @@ export default function Home() {
           light={scenariosLight}
           dark={scenariosDark}
           alt="Сравнение сценариев демо-склада: «как есть», покупка и услуга рядом, рекомендованный отмечен звездой"
-          sizes="(min-width: 1024px) 50vw, 100vw"
+          sizes="(min-width: 1280px) 45vw, 100vw"
           fetchPriority="high"
         />
       </section>
