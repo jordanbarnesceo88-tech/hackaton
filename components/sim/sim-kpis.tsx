@@ -1,7 +1,7 @@
 import { formatNum } from "@/lib/format/rub";
 import { simSummaryRows } from "@/lib/sim/export-rows";
 import { simWasRun, type SimRunSummary } from "@/lib/sim/metrics";
-import { formatSimClock, simPhaseLabel } from "./draw-scene";
+import { formatSimClock, simPhaseLabel } from "./scene-model";
 import {
   FLOW_UNIT,
   bottleneckText,

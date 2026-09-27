@@ -477,7 +477,11 @@ describe("layout-svg — схема склада", () => {
     }
     const html = renderToStaticMarkup(createElement(WarehouseLayoutSvg, { layout, label: "Схема" }));
     const points = layout.receiving.length + layout.shipping.length + layout.chargers.length;
-    expect(count(html, "<rect")).toBe(1 + layout.zones.length + racks.length + points);
+    // Изометрия: у каждой точки операции — площадка на полу, стеллажи — коробки (длинные ряды
+    // режутся на куски для порядка отрисовки, поэтому коробок не меньше, чем стеллажей).
+    expect(count(html, 'class="iso-pad"')).toBe(points);
+    expect(count(html, "iso-box iso-rack")).toBeGreaterThanOrEqual(racks.length);
+    for (const label of ["Приёмка", "Хранение", "Отгрузка", "Зарядка"]) expect(html).toContain(`>${label}<`);
     expect(count(html, "Зарядная станция C")).toBe(3);
     expect(html).not.toMatch(/NaN|Infinity/);
   });

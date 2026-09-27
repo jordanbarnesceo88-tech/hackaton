@@ -8,13 +8,13 @@ import { simWasRun, summarize, type SimRunSummary } from "@/lib/sim/metrics";
 import type { SimEngineState } from "@/lib/sim/state";
 import { formatNum } from "@/lib/format/rub";
 import { originLabel } from "@/lib/tz/characteristics";
-import { formatSimClock, simPhaseLabel } from "./draw-scene";
+import { formatSimClock, simPhaseLabel } from "./scene-model";
 import { SIM_FOOTER, exportSimPng } from "./export-png";
 import { parseSimInputKey, simInputKey } from "./input-key";
 import { canvasAriaLabel, statusText, storedCheck, withFinalVerdict, type RunStatus } from "./kpi-text";
 import { DEFAULT_SPEED } from "./playback";
 import { isAbortError, runHeadless } from "./run-headless";
-import { SimCanvas } from "./sim-canvas";
+import { SimIsoScene } from "./sim-iso-scene";
 import { SimControls, type AcceptFleetControl } from "./sim-controls";
 import { SimKpis } from "./sim-kpis";
 import { SimLegend } from "./sim-legend";
@@ -362,7 +362,7 @@ export function WarehouseSimulation({
         <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <div className="grid content-start gap-2">
             {layout ? (
-              <SimCanvas
+              <SimIsoScene
                 layout={layout}
                 finalState={done?.state ?? null}
                 playRef={playRef}
