@@ -1,5 +1,5 @@
 // 5. Экономика — арифмометр: Xiaohei крутит ручку допущения, машина печатает чек с CAPEX, OPEX, окупаемостью и NPV.
-import { Scene, INK, RED, BLUE, ORANGE, measure } from "../lib.mjs";
+import { Scene, INK, RED, BLUE, ORANGE, measure } from "../../lib.mjs";
 
 const WHITE = { fill: "#fff", fillStyle: "solid" };
 

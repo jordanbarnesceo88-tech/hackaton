@@ -1,5 +1,5 @@
 // 3. Подбор — подобрать ключ: с доски ключей-роботов (каталог) Xiaohei взял тот, что открыл замок объекта.
-import { Scene, INK, RED, BLUE, ORANGE, measure } from "../lib.mjs";
+import { Scene, INK, RED, BLUE, ORANGE, measure } from "../../lib.mjs";
 
 export default function draw() {
   const s = new Scene(3);

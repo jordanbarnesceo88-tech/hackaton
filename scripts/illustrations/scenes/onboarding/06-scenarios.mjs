@@ -1,5 +1,5 @@
 // 6. Сценарии — три дороги из одной точки; Xiaohei смотрит на все три разом в тройную подзорную трубу.
-import { Scene, RED, BLUE, ORANGE } from "../lib.mjs";
+import { Scene, RED, BLUE, ORANGE } from "../../lib.mjs";
 
 const WHITE = { fill: "#fff", fillStyle: "solid" };
 const DASH = { stroke: ORANGE, strokeWidth: 4, roughness: 0.6, strokeLineDash: [18, 12] };

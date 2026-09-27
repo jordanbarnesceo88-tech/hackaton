@@ -1,5 +1,5 @@
 // 8. Отчёт — щит: Xiaohei закрывается отчётом от града вопросов «а цифры откуда?», вопросы отскакивают.
-import { Scene, INK, RED, measure } from "../lib.mjs";
+import { Scene, INK, RED, measure } from "../../lib.mjs";
 
 const WHITE = { fill: "#fff", fillStyle: "solid" };
 

@@ -12,7 +12,7 @@ export const ORANGE = "#ee7a16";
 export const BLUE = "#2e6bd0";
 
 // Шрифты (OFL) не хранятся в репозитории: скачиваются один раз в кэш node_modules.
-const FONT_DIR = new URL("../../node_modules/.cache/onboarding-illustrations/", import.meta.url);
+const FONT_DIR = new URL("../../node_modules/.cache/illustrations/", import.meta.url);
 const FONTS = {
   "Neucha.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/neucha/Neucha.ttf",
   "Pangolin-Regular.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/pangolin/Pangolin-Regular.ttf",
@@ -62,7 +62,9 @@ const fmt = (d) => d.replace(/-?\d+\.\d+/g, (n) => String(Math.round(+n * 10) / 
 
 /** Одна картинка. Все случайности — от seed, поэтому пересборка даёт тот же файл. */
 export class Scene {
-  constructor(seed = 1) {
+  constructor(seed = 1, { w = W, h = H } = {}) {
+    this.w = w;
+    this.h = h;
     this.parts = [];
     this.seed = seed * 101;
     this.rand = mulberry32(seed * 7 + 3);
@@ -97,6 +99,7 @@ export class Scene {
   path(d, o) { return this.push(gen.path(d, this.opts(o))); }
   /** Белая заливка без контура — прячет линии за предметом переднего плана. */
   mask(pts) { this.parts.push(`<path d="M${pts.map((p) => p.join(" ")).join("L")}Z" fill="#fff"/>`); return this; }
+  maskEllipse(cx, cy, w, h) { this.parts.push(`<ellipse cx="${cx}" cy="${cy}" rx="${w / 2}" ry="${h / 2}" fill="#fff"/>`); return this; }
   /** Штриховка внутри многоугольника, без контура. */
   hatch(pts, o = {}) { return this.push(gen.polygon(pts, this.opts({ stroke: "none", fill: INK, fillStyle: "hachure", ...o }))); }
 
@@ -171,6 +174,7 @@ export class Scene {
   }
 
   svg() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><!-- собрано scripts/onboarding-illustrations/build.mjs — правится там, не здесь --><rect width="${W}" height="${H}" fill="#fff"/>${this.parts.join("")}</svg>\n`;
+    const { w, h } = this;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><!-- собрано scripts/illustrations/build.mjs — правится там, не здесь --><rect width="${w}" height="${h}" fill="#fff"/>${this.parts.join("")}</svg>\n`;
   }
 }

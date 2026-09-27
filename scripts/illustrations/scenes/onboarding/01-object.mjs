@@ -1,5 +1,5 @@
 // 1. Объект — автомат-хваталка: Xiaohei джойстиком вытаскивает «склад» из кучи объектов.
-import { Scene, INK, RED, BLUE, ORANGE } from "../lib.mjs";
+import { Scene, INK, RED, BLUE, ORANGE } from "../../lib.mjs";
 
 export default function draw() {
   const s = new Scene(1);

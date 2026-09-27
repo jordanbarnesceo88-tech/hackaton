@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { connection } from "next/server";
+import { Illustration } from "@/components/illustration";
+import { CalcMap } from "@/components/methodology/calc-map";
+import { FORMULA_GROUPS, METHODOLOGY_SECTIONS } from "@/components/methodology/sections";
 import { SourceBadge } from "@/components/project/source-badge";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { getNormRows, latestDataRelease, type DataReleaseRow } from "@/lib/catalog/queries";
 import { ORGANIZER_DATA_VERSION } from "@/lib/data/organizer/version.generated";
 import { prisma } from "@/lib/db/client";
@@ -8,16 +12,7 @@ import { pluralRu } from "@/lib/format/plural";
 import { LAYOUT_ASSUMPTIONS } from "@/lib/sim/layout";
 import { BOTTLENECK_RULES, endQueueLimit } from "@/lib/sim/metrics";
 import { originLabel } from "@/lib/tz/characteristics";
-import {
-  CAPEX_LINE_KEYS,
-  FORMULAS,
-  OPEX_LINE_KEYS,
-  capexFormulaKey,
-  opexFormulaKey,
-  type FormulaKey,
-  type FormulaSource,
-  FORMULA_SOURCE_LABELS,
-} from "@/lib/tz/econ/formulas";
+import { FORMULAS, type FormulaKey, type FormulaSource, FORMULA_SOURCE_LABELS } from "@/lib/tz/econ/formulas";
 import { MODEL_LIMITATIONS } from "@/lib/tz/econ/limitations";
 import { fx } from "@/lib/tz/econ/text";
 import { NORM_DEFS, resolveNorms, type NormValues } from "@/lib/tz/norms";
@@ -42,19 +37,6 @@ export const metadata = { title: "Методика расчёта — Платф
  *
  * Прежняя страница /methodology (модель v1) не меняется.
  */
-
-/** Группы формул в порядке расчёта: спрос → парк → труд → CAPEX → OPEX → финансы. */
-const FORMULA_GROUPS: readonly { title: string; keys: readonly FormulaKey[] }[] = [
-  { title: "Режим работы и спрос", keys: ["workHours", "demandDay", "peakPerHour"] },
-  { title: "Производительность и парк", keys: ["thrNorm", "thrCycle", "thrEff", "fleet", "coverage", "chargers"] },
-  { title: "Труд", keys: ["roleCost", "baselineLabour", "releasedFte", "remainingLabour", "operatingStaff"] },
-  { title: "CAPEX", keys: [...CAPEX_LINE_KEYS.map(capexFormulaKey), "capexTotal"] },
-  { title: "OPEX", keys: [...OPEX_LINE_KEYS.map(opexFormulaKey), "opexTotal"] },
-  {
-    title: "Эффект, окупаемость, ROI, NPV и TCO",
-    keys: ["effect", "payback", "roiTz", "roiNet", "npv", "discountedPayback", "tco", "cashflow", "batteryYear", "reinvest", "breakEvenSalary"],
-  },
-];
 
 /** Формулы, не попавшие ни в одну группу (новая формула не должна пропасть со страницы). */
 function ungroupedFormulaKeys(): FormulaKey[] {
@@ -223,14 +205,13 @@ function processStatus(p: ProcessDef): { text: string; tone: string } {
 
 const FACILITIES: readonly FacilitySlug[] = ["warehouse", "airport", "medical"];
 
-const SECTIONS = [
-  { id: "formulas", title: "Формулы" },
-  { id: "norms", title: "Нормативы и допущения" },
-  { id: "processes", title: "Процессы и спрос" },
-  { id: "simulation", title: "Имитация" },
-  { id: "versions", title: "Версии" },
-  { id: "limitations", title: "Ограничения" },
-] as const;
+/**
+ * Вступление раздела с рисунком: текст слева, рисунок справа (с 1280px), ниже — друг под другом.
+ * Рисунки — метафоры раздела в том же стиле, что тур (scripts/illustrations/scenes/methodology);
+ * на широком экране рисунок держится рядом, пока читается длинный текст раздела.
+ */
+const INTRO_GRID = "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] xl:gap-10";
+const INTRO_FIGURE = "max-w-xl xl:sticky xl:top-20 xl:max-w-none";
 
 /**
  * Обёртка широкой таблицы: прокрутка внутри рамки. `relative` делает её содержащим блоком для
@@ -274,7 +255,7 @@ export default async function TzMethodologyPage() {
           верификации при обследовании объекта.
         </p>
         <nav aria-label="Разделы методики" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          {SECTIONS.map((s) => (
+          {METHODOLOGY_SECTIONS.map((s) => (
             <a key={s.id} href={`#${s.id}`} className="tap-target text-primary underline-offset-4 hover:underline">
               {s.title}
             </a>
@@ -284,6 +265,9 @@ export default async function TzMethodologyPage() {
           </Link>
         </nav>
       </div>
+
+      {/* Карта расчёта: весь путь числа на одном рисунке, станции — ссылки на разделы ниже. */}
+      <CalcMap />
 
       {/* ——— Формулы ——— */}
       <section id="formulas" className="flex scroll-mt-16 flex-col gap-4">
@@ -299,8 +283,8 @@ export default async function TzMethodologyPage() {
           ))}{" "}
           Спрос и численность персонала берутся из параметров объекта, коэффициенты — из нормативов ниже.
         </p>
-        {[...FORMULA_GROUPS, ...(extraFormulas.length > 0 ? [{ title: "Прочие", keys: extraFormulas }] : [])].map((g) => (
-          <div key={g.title} className="flex flex-col gap-2">
+        {[...FORMULA_GROUPS, ...(extraFormulas.length > 0 ? [{ id: "f-other", title: "Прочие", keys: extraFormulas }] : [])].map((g) => (
+          <div key={g.id} id={g.id} className="flex scroll-mt-16 flex-col gap-2">
             <h3>{g.title}</h3>
             <dl className="grid gap-x-6 gap-y-3 lg:grid-cols-2">
               {g.keys.map((key) => {
@@ -331,34 +315,41 @@ export default async function TzMethodologyPage() {
       {/* ——— Нормативы ——— */}
       <section id="norms" className="flex scroll-mt-16 flex-col gap-4">
         <h2>Нормативы и допущения</h2>
-        <div className="flex max-w-3xl flex-col gap-2 text-sm text-muted-foreground">
-          <p>
-            Всё, что участвует в расчёте, но не является параметром объекта. У каждого норматива — допустимый
-            диапазон, происхождение и обоснование; у базовых данных указано место в демо-наборе, у открытых
-            источников — ссылка. Оценка всегда помечена как оценка и говорит, на чём держится.
-          </p>
-          <p>
-            Всего нормативов: {normRows.length}; по происхождению:{" "}
-            {originCounts.map((c, i) => (
-              <span key={c.origin}>
-                {originInline(c.origin)} — {c.n}
-                {i < originCounts.length - 1 ? ", " : "."}
-              </span>
-            ))}
-            {editedCount > 0 && ` Изменено администратором: ${editedCount}.`}
-          </p>
-          <p>
-            Значения правит администратор; выйти за границы нельзя — расчёт прижимает значение к диапазону. Проект
-            хранит нормативы, по которым он посчитан, поэтому правка не меняет уже сохранённые расчёты: при
-            повторном открытии проект предложит пересчитать на актуальных данных.
-          </p>
-          {from !== "db" && (
-            <p className="text-caution">
-              {from === "code"
-                ? "Таблица нормативов в базе пуста (данные ещё не синхронизированы) — показаны значения из кода, которыми она засевается."
-                : "База данных недоступна — показаны значения из кода, которыми засевается таблица нормативов."}
+        <div className={INTRO_GRID}>
+          <div className="flex max-w-3xl flex-col gap-2 text-sm text-muted-foreground">
+            <p>
+              Всё, что участвует в расчёте, но не является параметром объекта. У каждого норматива — допустимый
+              диапазон, происхождение и обоснование; у базовых данных указано место в демо-наборе, у открытых
+              источников — ссылка. Оценка всегда помечена как оценка и говорит, на чём держится.
             </p>
-          )}
+            <p>
+              Всего нормативов: {normRows.length}; по происхождению:{" "}
+              {originCounts.map((c, i) => (
+                <span key={c.origin}>
+                  {originInline(c.origin)} — {c.n}
+                  {i < originCounts.length - 1 ? ", " : "."}
+                </span>
+              ))}
+              {editedCount > 0 && ` Изменено администратором: ${editedCount}.`}
+            </p>
+            <p>
+              Значения правит администратор; выйти за границы нельзя — расчёт прижимает значение к диапазону. Проект
+              хранит нормативы, по которым он посчитан, поэтому правка не меняет уже сохранённые расчёты: при
+              повторном открытии проект предложит пересчитать на актуальных данных.
+            </p>
+            {from !== "db" && (
+              <p className="text-caution">
+                {from === "code"
+                  ? "Таблица нормативов в базе пуста (данные ещё не синхронизированы) — показаны значения из кода, которыми она засевается."
+                  : "База данных недоступна — показаны значения из кода, которыми засевается таблица нормативов."}
+              </p>
+            )}
+          </div>
+          <Illustration
+            src="/methodology/01-norms.svg"
+            alt="Рисунок: человечек толкает ползунок норматива дальше «макс», но ограничитель не пускает; на ползунке бирка «источник», под направляющей — диапазон"
+            className={INTRO_FIGURE}
+          />
         </div>
         <div className={TABLE_WRAP}>
           <table className="w-full border-collapse text-sm">
@@ -418,12 +409,19 @@ export default async function TzMethodologyPage() {
       {/* ——— Процессы ——— */}
       <section id="processes" className="flex scroll-mt-16 flex-col gap-4">
         <h2>Процессы и спрос</h2>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Иерархия каталога — отрасль, тип объекта, процесс, тип решения, продукт. Процесс говорит, из каких
-          параметров объекта считается суточный спрос, какой персонал он занимает и какие параметры ограничивают
-          выбор робота. Экономика и имитация в этой версии реализованы для перемещения паллет на складе; остальные
-          процессы и типы объектов показаны на уровне параметров, подбора и доступных решений.
-        </p>
+        <div className={INTRO_GRID}>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Иерархия каталога — отрасль, тип объекта, процесс, тип решения, продукт. Процесс говорит, из каких
+            параметров объекта считается суточный спрос, какой персонал он занимает и какие параметры ограничивают
+            выбор робота. Экономика и имитация в этой версии реализованы для перемещения паллет на складе;
+            остальные процессы и типы объектов показаны на уровне параметров, подбора и доступных решений.
+          </p>
+          <Illustration
+            src="/methodology/02-processes.svg"
+            alt="Рисунок: вложенные коробки — склад, перемещение паллет, AMR паллетный, H1500; человечек вынимает коробку типа решения из коробки процесса, а спрос считается на уровне процесса"
+            className={INTRO_FIGURE}
+          />
+        </div>
         {FACILITIES.map((facility) => (
           <div key={facility} className="flex flex-col gap-2">
             <h3>{facilityLabel(facility)}</h3>
@@ -470,133 +468,160 @@ export default async function TzMethodologyPage() {
       </section>
 
       {/* ——— Имитация ——— */}
-      <section id="simulation" className="flex max-w-3xl scroll-mt-16 flex-col gap-4">
+      <section id="simulation" className="flex scroll-mt-16 flex-col gap-4">
         <h2>Имитация</h2>
-        <p className="text-sm text-muted-foreground">
-          Имитация (модель {SIM_MODEL_VERSION}) проверяет, выдерживает ли рассчитанный парк пиковый поток на
-          планировке объекта (визуализация подтверждает расчёт, а не украшает его). Экономика берёт
-          производительность робота по циклу с той же планировки, поэтому схема на экране и расчёт не расходятся.
-        </p>
-        <dl className="flex flex-col gap-3 text-sm">
-          <div>
-            <dt className="font-medium">Планировка</dt>
-            <dd className="text-muted-foreground">
-              Прямоугольник 2 : 1 площадью активной зоны A: ширина √(2A), глубина √(A/2). Вдоль одной стены — полоса
-              приёмки с воротами шириной {num(LAYOUT_ASSUMPTIONS.dockStripM)} м, в её углу — зарядка{" "}
-              {num(LAYOUT_ASSUMPTIONS.chargingCornerM)} × {num(LAYOUT_ASSUMPTIONS.chargingCornerM)} м, вдоль
-              противоположной — полоса отгрузки; между ними хранение с тремя поперечными проездами и стеллажными
-              проходами (шаг — ширина прохода + {num(LAYOUT_ASSUMPTIONS.rackRowDepthM)} м двойного ряда стеллажей,
-              отступ от стены {num(LAYOUT_ASSUMPTIONS.rackMarginM)} м, места хранения через{" "}
-              {num(LAYOUT_ASSUMPTIONS.slotPitchM)} м). Площадь, ширина проездов и число ворот — параметры объекта;
-              размеры полос и шагов — допущения модели. Маршрут идёт по проходам.
-            </dd>
+        <div className={INTRO_GRID}>
+          <div className="flex max-w-3xl flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Имитация (модель {SIM_MODEL_VERSION}) проверяет, выдерживает ли рассчитанный парк пиковый поток на
+              планировке объекта (визуализация подтверждает расчёт, а не украшает его). Экономика берёт
+              производительность робота по циклу с той же планировки, поэтому схема на экране и расчёт не расходятся.
+            </p>
+            <dl className="flex flex-col gap-3 text-sm">
+              <div>
+                <dt className="font-medium">Планировка</dt>
+                <dd className="text-muted-foreground">
+                  Прямоугольник 2 : 1 площадью активной зоны A: ширина √(2A), глубина √(A/2). Вдоль одной стены — полоса
+                  приёмки с воротами шириной {num(LAYOUT_ASSUMPTIONS.dockStripM)} м, в её углу — зарядка{" "}
+                  {num(LAYOUT_ASSUMPTIONS.chargingCornerM)} × {num(LAYOUT_ASSUMPTIONS.chargingCornerM)} м, вдоль
+                  противоположной — полоса отгрузки; между ними хранение с тремя поперечными проездами и стеллажными
+                  проходами (шаг — ширина прохода + {num(LAYOUT_ASSUMPTIONS.rackRowDepthM)} м двойного ряда стеллажей,
+                  отступ от стены {num(LAYOUT_ASSUMPTIONS.rackMarginM)} м, места хранения через{" "}
+                  {num(LAYOUT_ASSUMPTIONS.slotPitchM)} м). Площадь, ширина проездов и число ворот — параметры объекта;
+                  размеры полос и шагов — допущения модели. Маршрут идёт по проходам.
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Поток и роботы</dt>
+                <dd className="text-muted-foreground">
+                  Дискретное время с шагом 1 с. Задания поступают как испытания Бернулли от генератора с зерном: сначала{" "}
+                  {num(applied.simWarmupMin)} мин прогрева на среднем потоке, затем {num(applied.simPeakMin)} мин на
+                  пиковом; показатели считаются по пиковому окну. Задание получает ближайший свободный робот, очередь —
+                  по порядку поступления. Робот уходит на зарядку при {valueText(applied.chargeStartSoc, "доля")} заряда и
+                  возвращается в работу при {valueText(applied.chargeStopSoc, "доля")}. Ворота и зарядная станция
+                  обслуживают одного робота за раз.
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Вердикт</dt>
+                <dd className="text-muted-foreground">
+                  «Подтверждено», если за пиковое окно обслужено не меньше {valueText(applied.simServedShareMin, "доля")}{" "}
+                  заданий, очередь в конце окна не больше max({num(endQueueMin)}; {num(endQueueSharePct)} % часового
+                  пикового потока), 95-й перцентиль ожидания не больше {num(applied.simP95WaitMaxMin)} мин и ни один
+                  робот не разрядился до нуля. Иначе — «не подтверждено» с узким местом: парк (роботы заняты не меньше{" "}
+                  {num(BOTTLENECK_RULES.fleetBusyShare * 100)} % времени и очередь растёт), ворота (заняты не меньше{" "}
+                  {num(BOTTLENECK_RULES.pointUtilShare * 100)} % окна при ожидании у ворот от{" "}
+                  {num(BOTTLENECK_RULES.pointWaitShare * 100)} % времени) или зарядка (ожидание станции от{" "}
+                  {num(BOTTLENECK_RULES.chargerWaitShare * 100)} % времени парка). Подтверждённый парк с простоем от{" "}
+                  {valueText(applied.simOversizedIdleShare, "доля")} помечается как избыточный.
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Три варианта парка</dt>
+                <dd className="text-muted-foreground">
+                  Парк по расчёту, парк по паспортной норме производителя и минимальный устойчивый парк — наименьшее
+                  число роботов, при котором имитация ещё подтверждает расчёт (перебор двоичным поиском в диапазоне от 1
+                  до удвоенного расчётного парка). Расхождение нормы и цикла показывается как риск.
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Воспроизводимость</dt>
+                <dd className="text-muted-foreground">
+                  Прогон детерминирован: одинаковые входы и зерно дают одинаковый результат на сервере и в браузере.
+                  В движке нет часов и функций, которые разные движки JavaScript могут округлять по-разному: случайность
+                  — только от генератора с зерном (mulberry32), время — счётчик шагов модели, корень считается методом
+                  Ньютона с фиксированным числом шагов. При сохранении проекта имитация выполняется на сервере и
+                  хранится вместе с расчётом; в браузере запуск идёт по частям со строкой состояния и пределом 60 с.
+                  Ничего не запускается само.
+                </dd>
+              </div>
+            </dl>
           </div>
-          <div>
-            <dt className="font-medium">Поток и роботы</dt>
-            <dd className="text-muted-foreground">
-              Дискретное время с шагом 1 с. Задания поступают как испытания Бернулли от генератора с зерном: сначала{" "}
-              {num(applied.simWarmupMin)} мин прогрева на среднем потоке, затем {num(applied.simPeakMin)} мин на
-              пиковом; показатели считаются по пиковому окну. Задание получает ближайший свободный робот, очередь —
-              по порядку поступления. Робот уходит на зарядку при {valueText(applied.chargeStartSoc, "доля")} заряда и
-              возвращается в работу при {valueText(applied.chargeStopSoc, "доля")}. Ворота и зарядная станция
-              обслуживают одного робота за раз.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">Вердикт</dt>
-            <dd className="text-muted-foreground">
-              «Подтверждено», если за пиковое окно обслужено не меньше {valueText(applied.simServedShareMin, "доля")}{" "}
-              заданий, очередь в конце окна не больше max({num(endQueueMin)}; {num(endQueueSharePct)} % часового
-              пикового потока), 95-й перцентиль ожидания не больше {num(applied.simP95WaitMaxMin)} мин и ни один
-              робот не разрядился до нуля. Иначе — «не подтверждено» с узким местом: парк (роботы заняты не меньше{" "}
-              {num(BOTTLENECK_RULES.fleetBusyShare * 100)} % времени и очередь растёт), ворота (заняты не меньше{" "}
-              {num(BOTTLENECK_RULES.pointUtilShare * 100)} % окна при ожидании у ворот от{" "}
-              {num(BOTTLENECK_RULES.pointWaitShare * 100)} % времени) или зарядка (ожидание станции от{" "}
-              {num(BOTTLENECK_RULES.chargerWaitShare * 100)} % времени парка). Подтверждённый парк с простоем от{" "}
-              {valueText(applied.simOversizedIdleShare, "доля")} помечается как избыточный.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">Три варианта парка</dt>
-            <dd className="text-muted-foreground">
-              Парк по расчёту, парк по паспортной норме производителя и минимальный устойчивый парк — наименьшее
-              число роботов, при котором имитация ещё подтверждает расчёт (перебор двоичным поиском в диапазоне от 1
-              до удвоенного расчётного парка). Расхождение нормы и цикла показывается как риск.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">Воспроизводимость</dt>
-            <dd className="text-muted-foreground">
-              Прогон детерминирован: одинаковые входы и зерно дают одинаковый результат на сервере и в браузере.
-              В движке нет часов и функций, которые разные движки JavaScript могут округлять по-разному: случайность
-              — только от генератора с зерном (mulberry32), время — счётчик шагов модели, корень считается методом
-              Ньютона с фиксированным числом шагов. При сохранении проекта имитация выполняется на сервере и
-              хранится вместе с расчётом; в браузере запуск идёт по частям со строкой состояния и пределом 60 с.
-              Ничего не запускается само.
-            </dd>
-          </div>
-        </dl>
+          <Illustration
+            src="/methodology/03-simulation.svg"
+            alt="Рисунок: песочные часы пикового окна — задания сыплются через горлышко, где работают роботы парка; над горлышком копится очередь, человечек засекает 120 минут пика"
+            className={INTRO_FIGURE}
+          />
+        </div>
       </section>
 
       {/* ——— Версии ——— */}
-      <section id="versions" className="flex max-w-3xl scroll-mt-16 flex-col gap-4">
+      <section id="versions" className="flex scroll-mt-16 flex-col gap-4">
         <h2>Версии</h2>
-        <p className="text-sm text-muted-foreground">
-          Проект хранит версию модели, версию имитации и хэш использованных данных (продукты сценариев,
-          нормативы, описания параметров и версия исходных данных). Если при повторном открытии что-то из этого изменилось, проект
-          показывает сохранённый расчёт и предлагает пересчитать на актуальных данных — числа не подменяются
-          молча.
-        </p>
-        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[max-content_1fr]">
-          <dt className="font-medium">Модель расчёта</dt>
-          <dd className="font-mono">{TZ_MODEL_VERSION}</dd>
-          <dt className="font-medium">Модель имитации</dt>
-          <dd className="font-mono">{SIM_MODEL_VERSION}</dd>
-          <dt className="font-medium">Демо-набор данных</dt>
-          <dd className="font-mono">{ORGANIZER_DATA_VERSION.datasets}</dd>
-          <dt className="font-medium">Каталог</dt>
-          <dd className="font-mono">{ORGANIZER_DATA_VERSION.catalog}</dd>
-          <dt className="font-medium">Подборка «Примеры решений»</dt>
-          <dd className="font-mono">{ORGANIZER_DATA_VERSION.examples}</dd>
-          <dt className="font-medium">Исследование открытых источников</dt>
-          <dd className="font-mono break-words">{ORGANIZER_DATA_VERSION.research}</dd>
-          <dt className="font-medium">Выпуск данных в базе</dt>
-          <dd>
-            {release ? (
-              <>
-                <span className="font-mono">{release.version}</span>
-                <span className="text-muted-foreground">
-                  {" "}
-                  — синхронизирован{" "}
-                  {new Intl.DateTimeFormat("ru-RU", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Moscow" }).format(
-                    release.seededAt,
-                  )}{" "}
-                  (МСК)
-                </span>
-              </>
-            ) : (
-              <span className="text-muted-foreground">данные ещё не синхронизированы</span>
-            )}
-          </dd>
-        </dl>
-        <p className="text-xs text-muted-foreground">
-          Версия исходных данных — дата выгрузки и начало контрольной суммы исходного файла. Сами исходные файлы в
-          репозиторий не входят: из них извлекаются только нужные поля со ссылкой на источник.
-        </p>
+        <div className={INTRO_GRID}>
+          <div className="flex max-w-3xl flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Проект хранит версию модели, версию имитации и хэш использованных данных (продукты сценариев,
+              нормативы, описания параметров и версия исходных данных). Если при повторном открытии что-то из этого изменилось, проект
+              показывает сохранённый расчёт и предлагает пересчитать на актуальных данных — числа не подменяются
+              молча.
+            </p>
+            <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[max-content_1fr]">
+              <dt className="font-medium">Модель расчёта</dt>
+              <dd className="font-mono">{TZ_MODEL_VERSION}</dd>
+              <dt className="font-medium">Модель имитации</dt>
+              <dd className="font-mono">{SIM_MODEL_VERSION}</dd>
+              <dt className="font-medium">Демо-набор данных</dt>
+              <dd className="font-mono">{ORGANIZER_DATA_VERSION.datasets}</dd>
+              <dt className="font-medium">Каталог</dt>
+              <dd className="font-mono">{ORGANIZER_DATA_VERSION.catalog}</dd>
+              <dt className="font-medium">Подборка «Примеры решений»</dt>
+              <dd className="font-mono">{ORGANIZER_DATA_VERSION.examples}</dd>
+              <dt className="font-medium">Исследование открытых источников</dt>
+              <dd className="font-mono break-words">{ORGANIZER_DATA_VERSION.research}</dd>
+              <dt className="font-medium">Выпуск данных в базе</dt>
+              <dd>
+                {release ? (
+                  <>
+                    <span className="font-mono">{release.version}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — синхронизирован{" "}
+                      {new Intl.DateTimeFormat("ru-RU", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Moscow" }).format(
+                        release.seededAt,
+                      )}{" "}
+                      (МСК)
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">данные ещё не синхронизированы</span>
+                )}
+              </dd>
+            </dl>
+            <p className="text-xs text-muted-foreground">
+              Версия исходных данных — дата выгрузки и начало контрольной суммы исходного файла. Сами исходные файлы в
+              репозиторий не входят: из них извлекаются только нужные поля со ссылкой на источник.
+            </p>
+          </div>
+          <Illustration
+            src="/methodology/04-versions.svg"
+            alt="Рисунок: человечек закрывает банку со снимком расчёта, на этикетке — tz-1.0.0, sim-1.0.0 и версия данных; на полке старая банка с вопросом «пересчитать?»"
+            className={INTRO_FIGURE}
+          />
+        </div>
       </section>
 
       {/* ——— Ограничения ——— */}
-      <section id="limitations" className="flex max-w-3xl scroll-mt-16 flex-col gap-4">
+      <section id="limitations" className="flex scroll-mt-16 flex-col gap-4">
         <h2>Ограничения</h2>
-        <p className="text-sm text-muted-foreground">
-          Чего модель не учитывает и где она упрощает. Те же ограничения печатаются в отчёте и выгрузке Excel рядом
-          с результатом.
-        </p>
-        <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
-          {MODEL_LIMITATIONS.map((text) => (
-            <li key={text}>{text}</li>
-          ))}
-        </ul>
+        <div className={INTRO_GRID}>
+          <div className="flex max-w-3xl flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Чего модель не учитывает и где она упрощает. Те же ограничения печатаются в отчёте и выгрузке Excel рядом
+              с результатом.
+            </p>
+            <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
+              {MODEL_LIMITATIONS.map((text) => (
+                <li key={text}>{text}</li>
+              ))}
+            </ul>
+          </div>
+          <Illustration
+            src="/methodology/05-limits.svg"
+            alt="Рисунок: человечек светит фонариком — в луче склад и робот (считается полностью), на краю луча аэропорт и медучреждение (прототип), за лучом темнота (вне модели)"
+            className={INTRO_FIGURE}
+          />
+        </div>
       </section>
 
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm">
@@ -607,6 +632,8 @@ export default async function TzMethodologyPage() {
           Методика прежней модели v1
         </Link>
       </footer>
+      {/* Страница длинная: кнопка возвращает к карте расчёта в начале. */}
+      <BackToTop />
     </div>
   );
 }

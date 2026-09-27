@@ -1,5 +1,5 @@
 // 2. Параметры — портновский сантиметр: Xiaohei снимает мерки со склада, на складе — бирка размера.
-import { Scene, INK, RED, measure } from "../lib.mjs";
+import { Scene, INK, RED, measure } from "../../lib.mjs";
 
 export default function draw() {
   const s = new Scene(2);

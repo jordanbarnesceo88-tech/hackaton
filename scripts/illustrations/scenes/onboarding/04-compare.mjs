@@ -1,5 +1,5 @@
 // 4. Сравнение — опознание: три робота-варианта у одной ростовой стены, Xiaohei заносит их в одну таблицу.
-import { Scene, INK, RED, BLUE } from "../lib.mjs";
+import { Scene, INK, RED, BLUE } from "../../lib.mjs";
 
 const WHITE = { fill: "#fff", fillStyle: "solid" };
 

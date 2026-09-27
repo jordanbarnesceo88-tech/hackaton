@@ -2,8 +2,8 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import { preload } from "react-dom";
-import Image from "next/image";
 import { Button, type ButtonProps } from "@/components/ui/button";
+import { Illustration } from "@/components/illustration";
 import {
   Dialog,
   DialogContent,
@@ -71,7 +71,7 @@ function openTour() {
 type TourStep = {
   title: string;
   /**
-   * Рисунок шага, 16:9 (public/onboarding, собираются scripts/onboarding-illustrations): не
+   * Рисунок шага, 16:9 (public/onboarding, собираются scripts/illustrations): не
    * снимок экрана, а метафора шага — главное действие делает чёрный человечек.
    */
   image: string;
@@ -204,17 +204,9 @@ export function OnboardingTour({
               Шаг {index + 1} из {STEPS.length}
             </p>
           </DialogHeader>
-          {/* Рисунок шага: 16:9, SVG (next/image не пережимает .svg и отдаёт как есть).
-              Отступы: по бокам — поле окна, сверху и снизу по 16px, чтобы текст шага стоял
-              рядом с картинкой, а не отдельно от неё. Фон у рисунков белый — это «лист
-              бумаги», и в тёмной теме он остаётся листом, только приглушён, чтобы не слепил. */}
-          <Image
-            src={step.image}
-            alt={step.imageAlt}
-            width={1600}
-            height={900}
-            className="mt-4 aspect-video h-auto w-full rounded-lg border border-border bg-white dark:brightness-90"
-          />
+          {/* Рисунок шага, 16:9. Отступы: по бокам — поле окна, сверху и снизу по 16px, чтобы
+              текст шага стоял рядом с картинкой, а не отдельно от неё. */}
+          <Illustration src={step.image} alt={step.imageAlt} className="mt-4 aspect-video" />
           <DialogDescription className="mt-4 text-base text-foreground">{step.text}</DialogDescription>
           {/* Полоса прогресса — точки, не проценты: восемь коротких карточек, а не форма. */}
           <div className="mt-6 flex items-center gap-1.5" aria-hidden="true">

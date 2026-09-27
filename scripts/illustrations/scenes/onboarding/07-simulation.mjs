@@ -1,5 +1,5 @@
 // 7. Имитация — настольная игра: Xiaohei двигает фишки-роботы по плану склада, цифры записаны рядом в блокноте.
-import { Scene, INK, RED, BLUE, ORANGE, measure } from "../lib.mjs";
+import { Scene, INK, RED, BLUE, ORANGE, measure } from "../../lib.mjs";
 
 const WHITE = { fill: "#fff", fillStyle: "solid" };
 const TL = [440, 372], TR = [1160, 372], BL = [320, 652], BR = [1280, 652];
