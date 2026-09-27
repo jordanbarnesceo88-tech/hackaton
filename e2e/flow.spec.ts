@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { exampleHref } from "../lib/wizard/example-scenario";
 
 test("anonymous flow: onboarding → compare → calculate", async ({ page }) => {
   // Подбор стал пошаговым: отрасль → тип объекта → параметры → решения. Параметры
@@ -49,10 +50,10 @@ test("anonymous flow: onboarding → compare → calculate", async ({ page }) =>
 });
 
 test("готовый пример ведёт прямо на посчитанные числа, без набора", async ({ page }) => {
-  // Путь, которым пойдёт судья: он смотрит двадцать проектов и опрос заполнять не будет.
-  // Если эта кнопка когда-нибудь приведёт на отказ или на умолчания, демонстрации нет.
-  await page.goto("/");
-  await page.getByRole("link", { name: "Посмотреть на готовом примере" }).click();
+  // Готовый пример упрощённой модели — ссылка сразу на посчитанный расчёт, без опроса. С главной
+  // его вход убран (2026-09-27), поэтому тест открывает тот же адрес, что строит exampleHref():
+  // если пример когда-нибудь приведёт на отказ или на умолчания, это видно здесь.
+  await page.goto(exampleHref());
 
   await expect(page).toHaveURL(/\/compare\/warehouse/);
   // Состояние подбора полное, поэтому колонки с числами обязаны быть на месте.
@@ -64,16 +65,16 @@ test("готовый пример ведёт прямо на посчитанн�
   await expect(page.getByText(/Распределительный центр/).first()).toBeVisible();
 });
 
-test("первый экран объясняет продукт и ведёт в подбор", async ({ page }) => {
+test("первый экран объясняет продукт и ведёт в расчёт", async ({ page }) => {
   await page.goto("/");
-  // Редиректа в опрос больше нет: судья, открывший ссылку, попадал сразу на вопрос
-  // «в какой вы отрасли?», не зная, зачем отвечать.
+  // Редиректа в опрос нет: открывший ссылку видит, что это за продукт, а не вопрос
+  // «в какой вы отрасли?».
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: /Откуда цифры/ })).toBeVisible();
 
-  await page.getByRole("link", { name: "Проверить свой объект" }).click();
-  await expect(page).toHaveURL(/\/onboarding/);
+  await page.getByRole("link", { name: "Открыть демо-расчёт склада" }).click();
+  await expect(page).toHaveURL(/\/demo/);
 });
 
 test("справочник показывает источники, выведенные из данных", async ({ page }) => {
@@ -86,4 +87,8 @@ test("справочник показывает источники, выведе
   const rows = page.locator("tbody tr");
   await expect(rows).toHaveCount(22);
   await expect(page.getByRole("heading", { name: "Чем мы не даём себе соврать" })).toBeVisible();
+
+  // Отсюда же — вход в опрос упрощённой модели: с главной он убран.
+  await page.getByRole("link", { name: /Проверить свой объект/ }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
 });

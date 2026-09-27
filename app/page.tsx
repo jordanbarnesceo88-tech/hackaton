@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { exampleHref, EXAMPLE_OBJECT_NAME } from "@/lib/wizard/example-scenario";
 import { buttonVariants } from "@/components/ui/button";
 import { Accordion, AccordionItem } from "@/components/ui/accordion";
 import { ThemedScreenshot } from "@/components/landing/themed-screenshot";
@@ -68,9 +67,6 @@ const CTA_PRIMARY = cn(buttonVariants({ variant: "default", size: "xl" }), "w-fu
 /** Второстепенные входы первого ряда — тот же размер, контур. */
 const CTA_SECONDARY = cn(buttonVariants({ variant: "outline", size: "xl" }), "w-full sm:w-auto");
 
-/** Входы упрощённой модели — ступенью ниже первого ряда (lg — главное действие раздела). */
-const CTA_QUIET = cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto");
-
 /** Ссылки подвала. */
 const FOOTER_LINK = "tap-target font-medium underline underline-offset-4 hover:text-primary";
 
@@ -85,7 +81,7 @@ export default function Home() {
           <h1>Окупится ли роботизация вашего объекта</h1>
           <p className="text-lg text-muted-foreground">
             Подбор роботизированных решений, CAPEX, OPEX и TCO, сценарии «как есть / покупка / услуга» и
-            проверка парка имитацией — у каждого числа есть источник.
+            проверка парка имитацией.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/demo" className={CTA_PRIMARY}>
@@ -100,8 +96,7 @@ export default function Home() {
           </div>
           <p className="text-sm text-muted-foreground">
             Демо-расчёт открывается без входа и ничего не сохраняет. Проект сохраняется с версиями модели и данных
-            и выгружается в отчёт и Excel. Склад рассчитывается полностью, аэропорт и медучреждение — на уровне
-            параметров и подбора (прототип).
+            и выгружается в отчёт и Excel.
           </p>
         </div>
         <ThemedScreenshot
@@ -136,25 +131,6 @@ export default function Home() {
             </AccordionItem>
           ))}
         </Accordion>
-      </section>
-
-      {/* Упрощённая модель: 47 типов объектов, расчёт в долларах с пересчётом в рубли. Тексты
-          ссылок не меняются — на них опираются e2e-тесты. Второй вход ведёт на посчитанные
-          числа, а не на пустую форму. */}
-      <section className="flex flex-col gap-4 border-t pt-10">
-        <h2>Быстрая оценка по 47 типам объектов</h2>
-        <p className="max-w-3xl text-muted-foreground">
-          Упрощённая модель в долларах с пересчётом в рубли: шесть шагов без регистрации — или сразу готовый
-          расчёт для «{EXAMPLE_OBJECT_NAME}».
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/onboarding" className={CTA_QUIET}>
-            Проверить свой объект
-          </Link>
-          <Link href={exampleHref()} className={CTA_QUIET}>
-            Посмотреть на готовом примере
-          </Link>
-        </div>
       </section>
 
       {/* Входы в прозу: формулы и нормативы модели, методика упрощённой модели («откуда
