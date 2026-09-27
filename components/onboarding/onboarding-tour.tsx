@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, useSyncExternalStore } from "react";
-import { Image as ImageIcon } from "lucide-react";
+import { preload } from "react-dom";
+import Image from "next/image";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
@@ -69,7 +70,12 @@ function openTour() {
 
 type TourStep = {
   title: string;
-  /** Заглушка на месте будущей картинки шага — короткое описание для alt и для того, кто будет её рисовать. */
+  /**
+   * Рисунок шага, 16:9 (public/onboarding, собираются scripts/onboarding-illustrations): не
+   * снимок экрана, а метафора шага — главное действие делает чёрный человечек.
+   */
+  image: string;
+  /** Что нарисовано: метафору не восстановить из текста шага, поэтому alt её пересказывает. */
   imageAlt: string;
   text: string;
 };
@@ -78,42 +84,58 @@ type TourStep = {
 const STEPS: readonly TourStep[] = [
   {
     title: "1. Объект",
-    imageAlt: "Выбор типа объекта: склад, аэропорт или медучреждение",
+    image: "/onboarding/01-object.svg",
+    imageAlt:
+      "Рисунок: чёрный человечек автоматом-хваталкой достаёт склад из кучи игрушечных объектов, рядом аэропорт и медучреждение; на пульте кнопки «демо» и «свои»",
     text: "Выбираете тип объекта — склад, аэропорт или медучреждение — и берёте демо-данные или вводите свои.",
   },
   {
     title: "2. Параметры",
-    imageAlt: "Форма параметров объекта: площадь, объём операций, занятость",
+    image: "/onboarding/02-params.svg",
+    imageAlt:
+      "Рисунок: человечек снимает мерки со склада портновским сантиметром; на складе бирка — площадь, заказы в день, люди по задачам",
     text: "Указываете площадь, объём операций и занятость персонала по задачам — от этого считается всё дальше.",
   },
   {
     title: "3. Подбор",
-    imageAlt: "Список предложенных роботизированных решений с объяснением выбора",
+    image: "/onboarding/03-match.svg",
+    imageAlt:
+      "Рисунок: человечек взял с ключницы-каталога ключ-робота и открыл им замок объекта; на ключе бирка «почему этот»",
     text: "Платформа предлагает подходящие роботизированные решения из каталога, объясняя, почему именно эти.",
   },
   {
     title: "4. Сравнение",
-    imageAlt: "Таблица сравнения решений по окупаемости, NPV и парку",
+    image: "/onboarding/04-compare.svg",
+    imageAlt:
+      "Рисунок: три робота-варианта A, B и C стоят у одной ростовой стены, человечек заносит их в одну таблицу — окупаемость, NPV, парк",
     text: "Варианты стоят рядом по одним и тем же показателям — окупаемость, NPV, требуемый парк.",
   },
   {
     title: "5. Экономика",
-    imageAlt: "Панель расчёта CAPEX, OPEX и NPV с допущениями",
+    image: "/onboarding/05-economics.svg",
+    imageAlt:
+      "Рисунок: человечек крутит ручку допущений, и машина печатает чек — CAPEX, OPEX, окупаемость, NPV",
     text: "Полный расчёт CAPEX, OPEX, срока окупаемости и NPV — с допущениями, которые можно поменять.",
   },
   {
     title: "6. Сценарии",
-    imageAlt: "Таблица сценариев: как есть, покупка, услуга (RaaS)",
+    image: "/onboarding/06-scenarios.svg",
+    imageAlt:
+      "Рисунок: из одной точки расходятся три дороги — покупка с крутым подъёмом вначале, услуга со шлагбаумами оплаты каждый месяц и как есть; человечек смотрит на все три в тройную подзорную трубу",
     text: "«Как есть», покупка и услуга (RaaS) — в одной таблице, чтобы видеть компромисс между ними.",
   },
   {
     title: "7. Имитация",
-    imageAlt: "2D-визуализация работы роботов на схеме объекта",
+    image: "/onboarding/07-simulation.svg",
+    imageAlt:
+      "Рисунок: человечек двигает фишки-роботы по плану склада, как в настольной игре; настоящие цифры записаны рядом в блокноте",
     text: "2D-визуализация показывает работу роботов на схеме объекта — цифры рядом текстом, движение иллюстративное.",
   },
   {
     title: "8. Отчёт",
-    imageAlt: "Страница отчёта с сохранённым расчётом",
+    image: "/onboarding/08-report.svg",
+    imageAlt:
+      "Рисунок: человечек закрывается отчётом с источниками от вопросов «а цифры откуда?», вопросы отскакивают",
     text: "Сохраняете расчёт и выгружаете отчёт — с ним можно идти к тому, кто будет спорить с цифрами.",
   },
 ];
@@ -132,6 +154,8 @@ export function OnboardingTour({
   const step = STEPS[index]!;
   const isFirst = index === 0;
   const isLast = index === STEPS.length - 1;
+  // Рисунок следующего шага — заранее: по «Далее» он появляется сразу, а не догружается.
+  if (open && !isLast) preload(STEPS[index + 1]!.image, { as: "image" });
 
   function next() {
     if (isLast) {
@@ -180,20 +204,17 @@ export function OnboardingTour({
               Шаг {index + 1} из {STEPS.length}
             </p>
           </DialogHeader>
-          {/* Заглушка на месте будущей картинки шага (заказчик пришлёт свои иллюстрации) —
-              нарочно оформлена как явное место-под-картинку (пунктир, подпись), а не мелкая
-              иконка в кружке: последняя читалась дёшево на карточке такого размера. Держит
-              16:9, чтобы вёрстка не прыгала, когда картинки появятся — просто заменить div на
-              <img>/<Image> с тем же alt. Отступы: по бокам — поле окна, сверху и снизу по
-              16px, чтобы текст шага стоял рядом с картинкой, а не отдельно от неё. */}
-          <div
-            role="img"
-            aria-label={step.imageAlt}
-            className="mt-4 flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted text-muted-foreground"
-          >
-            <ImageIcon size={32} aria-hidden={true} />
-            <span className="px-6 text-center text-sm">{step.imageAlt}</span>
-          </div>
+          {/* Рисунок шага: 16:9, SVG (next/image не пережимает .svg и отдаёт как есть).
+              Отступы: по бокам — поле окна, сверху и снизу по 16px, чтобы текст шага стоял
+              рядом с картинкой, а не отдельно от неё. Фон у рисунков белый — это «лист
+              бумаги», и в тёмной теме он остаётся листом, только приглушён, чтобы не слепил. */}
+          <Image
+            src={step.image}
+            alt={step.imageAlt}
+            width={1600}
+            height={900}
+            className="mt-4 aspect-video h-auto w-full rounded-lg border border-border bg-white dark:brightness-90"
+          />
           <DialogDescription className="mt-4 text-base text-foreground">{step.text}</DialogDescription>
           {/* Полоса прогресса — точки, не проценты: восемь коротких карточек, а не форма. */}
           <div className="mt-6 flex items-center gap-1.5" aria-hidden="true">

@@ -31,6 +31,10 @@ test("«Назад»/«Далее» листают шаги; «Как это р�
   await tour.getByRole("button", { name: "Далее" }).click();
   await tour.getByRole("button", { name: "Далее" }).click();
   await expect(tour.getByText("Шаг 3 из 8")).toBeVisible();
+  // У шага свой рисунок, и он действительно загрузился (а не битая ссылка с alt).
+  const picture = tour.getByRole("img", { name: /^Рисунок: .*ключ/ });
+  await expect(picture).toBeVisible();
+  await expect.poll(() => picture.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   await tour.getByRole("button", { name: "Назад" }).click();
   await expect(tour.getByText("Шаг 2 из 8")).toBeVisible();
 
