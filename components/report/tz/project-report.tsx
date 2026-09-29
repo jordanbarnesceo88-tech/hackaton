@@ -10,6 +10,7 @@ import { PrintButton } from "@/components/report/print-button";
 import { pluralRu } from "@/lib/format/plural";
 import { formatNum, formatRub } from "@/lib/format/rub";
 import type { ParamsSource } from "@/lib/projects/queries";
+import { displayDataText } from "@/lib/tz/characteristics";
 import {
   MANUAL_NOTE,
   changeRows,
@@ -331,7 +332,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
                         <div className="text-muted-foreground">{scoreFactorsText(s.score.contributions)}</div>
                       )}
                     </td>
-                    <td className={`${TD} text-xs`}>{s.reasons.join("; ") || "—"}</td>
+                    <td className={`${TD} text-xs`}>{s.reasons.map(displayDataText).join("; ") || "—"}</td>
                     <td className={`${TD} text-xs`}>{s.limitations.join("; ") || "—"}</td>
                     <td className={`${TD} text-xs`}>{missingText(s)}</td>
                   </tr>
@@ -380,7 +381,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
                         </td>
                       ) : (
                         <>
-                          <td className={`${TD} text-xs`}>{s.reasons.join("; ") || "—"}</td>
+                          <td className={`${TD} text-xs`}>{s.reasons.map(displayDataText).join("; ") || "—"}</td>
                           <td className={`${TD} text-xs`}>{s.limitations.join("; ") || "—"}</td>
                           <td className={`${TD} text-xs`}>{missingText(s)}</td>
                         </>

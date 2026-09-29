@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { displayDataText } from "@/lib/tz/characteristics";
 import type { ProcessDef } from "@/lib/tz/processes";
 import type { ProductForCalc, SelectionResult, SelectionStatus } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
@@ -89,7 +90,7 @@ export function manualAddWarning(r: Pick<SelectionResult, "status" | "reasons" |
       (r.missing.length > 0 ? `не хватает данных: ${r.missing.map((m) => m.label).join(", ")}` : "не хватает данных");
     return `Решение не прошло проверку данных: ${why}. ${tail}`;
   }
-  const reasons = r.reasons.length > 0 ? r.reasons.join("; ") : "причина не указана";
+  const reasons = r.reasons.length > 0 ? r.reasons.map(displayDataText).join("; ") : "причина не указана";
   return `Решение не прошло проверку ограничений: ${reasons}. ${tail}`;
 }
 
@@ -142,7 +143,7 @@ function TextList({ items, empty = "—" }: { items: readonly string[]; empty?: 
     <ul className="grid gap-1 pl-4">
       {items.map((t, i) => (
         <li key={i} className="list-disc">
-          {t}
+          {displayDataText(t)}
         </li>
       ))}
     </ul>

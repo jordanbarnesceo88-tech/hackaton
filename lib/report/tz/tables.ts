@@ -1,5 +1,5 @@
 import { simSummaryRows } from "../../sim/export-rows";
-import { originLabel } from "../../tz/characteristics";
+import { displayDataText, originLabel } from "../../tz/characteristics";
 import {
   FORMULAS,
   INCLUDED_IN_SUBSCRIPTION,
@@ -77,8 +77,8 @@ export function selectionReportRows(results: ReportResults): SelectionReportRow[
     statusLabel: SELECTION_STATUS_LABELS[s.status] ?? s.status,
     score: s.score.total,
     needsVerification: s.needsVerification,
-    reasons: s.reasons.join("; "),
-    limitations: s.limitations.join("; "),
+    reasons: s.reasons.map(displayDataText).join("; "),
+    limitations: s.limitations.map(displayDataText).join("; "),
     missing: s.missing.map((m) => `${m.label}: ${m.howToFix}`).join("; "),
     contributions: s.score.contributions
       .map((c) => `${c.label}: ${formatParamValue(c.points)} из ${formatParamValue(Math.round(c.weight * 100))} — ${c.explanation}`)
