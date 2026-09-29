@@ -706,7 +706,7 @@ describe("ParamField и ParamsForm", () => {
     const locked = renderToStaticMarkup(
       createElement(ParamField, { def: WORK_DAYS, value: 365, changed: false, onChange: () => {}, onReset: () => {} }),
     );
-    expect(locked).toContain("значение фиксировано в демо-наборе; изменение будет записано в журнал");
+    expect(locked).toContain("значение фиксировано в демо-наборе; изменение попадёт в журнал корректировок");
 
     // Без обработчиков поле только для чтения: серверная страница не передаёт функций.
     const view = renderToStaticMarkup(createElement(ParamField, { def: AREA, value: 30000, changed: true }));

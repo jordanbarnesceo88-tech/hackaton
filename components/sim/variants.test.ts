@@ -25,17 +25,17 @@ describe("simVariantLabel", () => {
       "Покупка — Ronavi H1500 — парк по расчёту (11)",
     );
     expect(simVariantLabel("Покупка — Ronavi H1500", "minStable", 9)).toBe(
-      "Покупка — Ronavi H1500 — минимальный по имитации (9)",
+      "Покупка — Ronavi H1500 — минимальный устойчивый парк (9)",
     );
     expect(simVariantLabel("Покупка — Ronavi H1500", "byNorm", 3)).toBe(
-      "Покупка — Ronavi H1500 — парк по типовой норме (3)",
+      "Покупка — Ronavi H1500 — парк по паспортной норме (3)",
     );
   });
 
   it("says why the number is missing instead of printing 0 or null", () => {
     expect(simVariantLabel("Услуга", "calculated", null)).toBe("Услуга — парк по расчёту (нет данных)");
-    expect(simVariantLabel("Услуга", "minStable", null)).toBe("Услуга — минимальный по имитации (не определён)");
-    expect(simVariantLabel("Услуга", "byNorm", 0)).toBe("Услуга — парк по типовой норме (нет нормы)");
+    expect(simVariantLabel("Услуга", "minStable", null)).toBe("Услуга — минимальный устойчивый парк (не определён)");
+    expect(simVariantLabel("Услуга", "byNorm", 0)).toBe("Услуга — парк по паспортной норме (нет нормы)");
   });
 });
 
@@ -50,8 +50,8 @@ describe("buildSimVariants", () => {
     expect({ ...v[1]!.input!, robots: { ...v[1]!.input!.robots, count: 11 } }).toEqual(calculated);
     expect(v.map((x) => x.label)).toEqual([
       "Покупка — H1500 — парк по расчёту (11)",
-      "Покупка — H1500 — минимальный по имитации (9)",
-      "Покупка — H1500 — парк по типовой норме (3)",
+      "Покупка — H1500 — минимальный устойчивый парк (9)",
+      "Покупка — H1500 — парк по паспортной норме (3)",
     ]);
   });
 
@@ -59,7 +59,7 @@ describe("buildSimVariants", () => {
     const v = buildSimVariants({ scenarioName: "Покупка — H1500", calculated, byNorm: null, minStableFleet: null });
     expect(v[1]!.input).toBeNull();
     expect(v[2]!.input).toBeNull();
-    expect(v[2]!.label).toBe("Покупка — H1500 — парк по типовой норме (нет нормы)");
+    expect(v[2]!.label).toBe("Покупка — H1500 — парк по паспортной норме (нет нормы)");
   });
 
   describe("«Откуда параметры» of each variant describes that variant's own run", () => {
@@ -88,13 +88,13 @@ describe("buildSimVariants", () => {
 
     it("puts M robots and the calculated chargers into the minimal variant", () => {
       expect(row(1, "calc:fleet")).toMatchObject({ value: 9, origin: "derived" });
-      expect(row(1, "calc:fleet").note).toMatch(/перебору имитацией/);
+      expect(row(1, "calc:fleet").note).toMatch(/имитация подтверждает/);
       expect(row(1, "calc:chargers")).toMatchObject({ value: 2, origin: "derived" });
     });
 
     it("puts K robots and its own chargers into the by-norm variant", () => {
       expect(row(2, "calc:fleet")).toMatchObject({ value: 3, origin: "derived" });
-      expect(row(2, "calc:fleet").note).toMatch(/типовая норма/);
+      expect(row(2, "calc:fleet").note).toMatch(/паспортная норма/);
       expect(row(2, "calc:chargers")).toMatchObject({ value: byNorm.layout.chargers, origin: "derived" });
     });
 
@@ -149,8 +149,8 @@ describe("simOptions", () => {
     });
     expect(opts.filter((o) => !o.disabled).map((o) => o.label)).toEqual([
       "Покупка — H1500 — парк по расчёту (11)",
-      "Покупка — H1500 — минимальный по имитации (9)",
-      "Покупка — H1500 — парк по типовой норме (3)",
+      "Покупка — H1500 — минимальный устойчивый парк (9)",
+      "Покупка — H1500 — парк по паспортной норме (3)",
       "Услуга — H1500 — парк по расчёту (11)",
     ]);
     expect(opts.at(-1)).toEqual({

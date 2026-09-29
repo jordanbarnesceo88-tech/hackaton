@@ -26,7 +26,7 @@ export const OPEX_LABELS: Readonly<Record<OpexLineKey, string>> = {
   operatingStaff: "Персонал эксплуатации (диспетчер парка)",
   remainingLabour: "ФОТ оставшегося персонала процесса",
   uncoveredLabour: "ФОТ процессов без роботов (охват сравнения)",
-  baselineLabour: "ФОТ персонала процессов (как есть)",
+  baselineLabour: "ФОТ персонала процессов («Как есть»)",
 };
 
 function line(

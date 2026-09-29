@@ -46,7 +46,7 @@ describe("isoSceneSvg", () => {
     for (const label of ["Приёмка", "Хранение", "Отгрузка", "Зарядка"]) expect(svg).toContain(`>${label}<`);
     expect(count(svg, "iso-box iso-rack")).toBeGreaterThanOrEqual(rackRects(layout).length);
     expect(count(svg, 'class="iso-pad"')).toBe(layout.receiving.length + layout.shipping.length + layout.chargers.length);
-    expect(count(svg, "Зарядная станция C")).toBe(3);
+    expect(count(svg, "Зарядная станция З")).toBe(3);
     expect(svg).not.toContain('class="iso-bot"');
     expect(svg).not.toContain("iso-hud-clock");
     expect(svg).not.toMatch(/NaN|Infinity/);

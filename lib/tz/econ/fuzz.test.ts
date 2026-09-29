@@ -238,7 +238,7 @@ describe("фаззинг: 500 случайных контекстов", () => {
         }
       }
       expect(conclusion.headline).not.toMatch(/NaN|Infinity|undefined/);
-      expect(conclusion.disclaimer).toBe("Результат является предварительной оценкой и требует верификации при обследовании объекта.");
+      expect(conclusion.disclaimer).toBe("Результат расчёта — предварительная оценка, его нужно проверить при обследовании объекта.");
     }
     // Фаззинг должен проверять и расчёты, и отказы, а не только одно из двух.
     expect(ok).toBeGreaterThan(200);

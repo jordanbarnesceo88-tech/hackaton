@@ -29,7 +29,7 @@ export function RecommendationPanel({
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         <p className="text-xs text-muted-foreground">
-          Решения этой категории, отсортированные по NPV при ваших параметрах.
+          Решения этого типа, отсортированные по NPV при ваших параметрах.
         </p>
         {ranked.map((r) => {
           const isSelected = r.id === selectedId;

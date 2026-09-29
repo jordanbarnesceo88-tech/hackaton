@@ -117,7 +117,7 @@ export function CharacteristicRow({ c }: { c: CatalogCharacteristic }) {
         {c.formula && <div className="mt-0.5 text-xs text-muted-foreground">Формула: {c.formula}</div>}
         {c.note && <div className="mt-0.5 text-xs text-muted-foreground">Примечание: {c.note}</div>}
         {c.granularity === "row" && (
-          <div className="mt-0.5 text-xs text-muted-foreground">источник указан для всей строки свода, а не для этого поля</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">источник указан для всей записи о продукте, без привязки к этому полю</div>
         )}
         <Alternatives c={c} />
       </td>

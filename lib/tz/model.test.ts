@@ -151,7 +151,7 @@ describe("buildProjectModel — базовый склад организатор
   });
 
   it("вывод с оговоркой о предварительной оценке", () => {
-    expect(model.conclusion.disclaimer).toMatch(/предварительной оценкой/);
+    expect(model.conclusion.disclaimer).toMatch(/предварительная оценка/);
     expect(model.conclusion.headline.length).toBeGreaterThan(0);
   });
 

@@ -197,8 +197,8 @@ export function SensitivityPanel({
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            Каждая строка — полный пересчёт с одним параметром на границе диапазона; остальные входы — как в базовом
-            расчёте. Размах — разница {metricLabel} между границами; строки отсортированы по размаху.
+            Каждая строка — полный пересчёт с одним параметром на границе диапазона; остальные параметры — как в
+            базовом расчёте. Размах — разница {metricLabel} между границами; строки отсортированы по размаху.
           </p>
           <div className="data-table-wrap">
             <table className="print-table w-full border-collapse text-sm">

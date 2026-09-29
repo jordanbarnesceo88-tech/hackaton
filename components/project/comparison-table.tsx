@@ -137,7 +137,7 @@ export const COMPARISON_METRICS: readonly ComparisonMetric[] = [
   {
     key: "thrNorm",
     group: "Технические",
-    label: "Производительность по норме",
+    label: "Паспортная норма",
     unit: throughputUnitOf,
     text: (r) => fmtValue(r.thrNorm),
   },
@@ -152,7 +152,7 @@ export const COMPARISON_METRICS: readonly ComparisonMetric[] = [
   {
     key: "thrEff",
     group: "Технические",
-    label: "Производительность принятая",
+    label: "Принятая производительность",
     unit: throughputUnitOf,
     text: (r) => fmtValue(r.thrEff),
     value: (r) => r.thrEff,
@@ -176,7 +176,7 @@ export const COMPARISON_METRICS: readonly ComparisonMetric[] = [
   {
     key: "priceRub",
     group: "Экономика",
-    label: "Цена за единицу",
+    label: "Цена робота",
     unit: null,
     text: (r) => (r.priceRub === null ? NO_DATA : formatRub(r.priceRub)),
   },
@@ -424,7 +424,7 @@ export function ComparisonTable({ rows, pinned }: ComparisonTableProps) {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Нет решений для сравнения — отметьте продукты в подборе (шаг 3).
+        Нет решений для сравнения — добавьте их в подборе (шаг 3).
       </p>
     );
   }

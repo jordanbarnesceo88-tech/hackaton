@@ -80,7 +80,7 @@ export function FacilityStep({
             className="field field--lg"
           />
           <span className="text-sm text-muted-foreground">
-            Название вернётся в расчёте и в отчёте.
+            Название появится в расчёте и в отчёте.
           </span>
         </label>
       )}

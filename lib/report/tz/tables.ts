@@ -200,7 +200,7 @@ export function equipmentRows(results: ReportResults): EquipmentReportRow[] {
         productName: "—",
         unit: "",
         item: null,
-        note: refusal || (r.kind === "asis" ? "текущий процесс, без роботов" : "позиций нет"),
+        note: refusal || (r.kind === "asis" ? "текущий процесс, без роботов" : "решение не выбрано"),
       });
       continue;
     }

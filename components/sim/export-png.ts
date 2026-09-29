@@ -177,7 +177,7 @@ export async function exportSimPng(
   const filename = simPngFilename(meta.scenarioName, meta.seed);
   const canvas = document.createElement("canvas");
   const measure = canvas.getContext("2d");
-  if (!measure) throw new Error("браузер не дал канву для сборки PNG");
+  if (!measure) throw new Error("браузер не смог подготовить картинку");
 
   const innerW = PAGE_W - 2 * PAD;
   const geom = isoGeometry(layout);
@@ -202,7 +202,7 @@ export async function exportSimPng(
   canvas.width = PAGE_W * PNG_DPR;
   canvas.height = pageH * PNG_DPR;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("браузер не дал канву для сборки PNG");
+  if (!ctx) throw new Error("браузер не смог подготовить картинку");
   ctx.setTransform(PNG_DPR, 0, 0, PNG_DPR, 0, 0);
   ctx.fillStyle = PAGE_BG;
   ctx.fillRect(0, 0, PAGE_W, pageH);
@@ -216,7 +216,7 @@ export async function exportSimPng(
   ctx.fillStyle = MUTED;
   ctx.font = font(14);
   const sub = [
-    `seed ${meta.seed}`,
+    `зерно ${meta.seed}`,
     `модель ${summary.simModelVersion || SIM_MODEL_VERSION}`,
     meta.clockText,
     `выгружено ${meta.dateText}`,

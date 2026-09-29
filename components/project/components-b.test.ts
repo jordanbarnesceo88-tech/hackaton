@@ -243,7 +243,7 @@ describe("Отказ расчёта", () => {
     expect(refusalFieldLabel("norm:utilization")).toBe("Норматив «Коэффициент загрузки робота»");
     expect(refusalFieldLabel("unknown")).toBe("unknown");
     expect(refusalFieldLabel("scenario:add")).toBe("Сценарий покупки или услуги");
-    expect(refusalFieldLabel("scenario:items")).toBe("Решение (продукт) для сценария");
+    expect(refusalFieldLabel("scenario:items")).toBe("Решение для сценария");
   });
 
   it("без кнопок (отчёт, чтение) отказ не зовёт нажать «Подставить оценку»", () => {
@@ -318,7 +318,7 @@ describe("Трассировка «Как посчитано»", () => {
   it("если результата в подстановке нет — он приписывается «= результат единица»", () => {
     const step: TraceStep = {
       key: "baselineLabour",
-      label: "ФОТ персонала процесса (как есть)",
+      label: "ФОТ персонала процесса («Как есть»)",
       formula: "ФОТбаз = численность × c",
       substituted: "25 × 1 874 880 ₽",
       value: 46_872_000,
@@ -326,7 +326,7 @@ describe("Трассировка «Как посчитано»", () => {
       origin: "derived",
     };
     expect(plain(traceStepText(step))).toBe(
-      "ФОТ персонала процесса (как есть): ФОТбаз = численность × c = 25 × 1 874 880 ₽ = 46 872 000 ₽/год",
+      "ФОТ персонала процесса («Как есть»): ФОТбаз = численность × c = 25 × 1 874 880 ₽ = 46 872 000 ₽/год",
     );
     expect(traceParts(step).appended).toBe(true);
   });
@@ -440,7 +440,7 @@ describe("Рендер компонентов на результатах дви
     expect(t).toContain("OPEX за год по статьям");
     expect(t).toContain("Денежный поток по годам");
     expect(t).toContain("Как посчитано");
-    expect(t).toContain("Количество роботов");
+    expect(t).toContain("Число роботов");
     expect(t).toContain("Цена робота, ₽");
     expect(t).not.toContain("Ставка RaaS, ₽/мес за робота");
     expect(linesTotal(p.capexLines)).toBeCloseTo(p.capexRub, 6);
@@ -555,7 +555,7 @@ describe("Рендер компонентов на результатах дви
       {
         at: "2026-09-25T09:30:00.000Z",
         scenario: "Покупка",
-        fieldLabel: "Количество роботов",
+        fieldLabel: "Число роботов",
         auto: 11,
         old: null,
         new: 12,

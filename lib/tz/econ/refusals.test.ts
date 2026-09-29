@@ -41,7 +41,7 @@ describe("отказы расчёта", () => {
     const r = refused(computeScenarios(ctx, [asis, purchase(FIXTURE_DMR600.slug)]), "p1");
     expect(r.refusal.reason).toBe("throughput_required");
     expect(r.refusal.message).toBe(
-      "Нет производительности для «DMR 600»: укажите её вручную в поле «Производительность, паллет/ч» или выберите другой продукт",
+      "Нет производительности для «DMR 600»: укажите её вручную в поле «Производительность, паллет/ч» или выберите другое решение",
     );
     expect(r.refusal.fields).toEqual(["item:pallet-transport:throughput"]);
   });
@@ -73,7 +73,7 @@ describe("отказы расчёта", () => {
     const ctx = withProduct({ ...FIXTURE_H1500, priceRub: null });
     const r = refused(computeScenarios(ctx, fixtureSpecs()), "p1");
     expect(r.refusal.reason).toBe("price_required");
-    expect(r.refusal.message).toBe("Нет цены «Ronavi H1500»: укажите цену за единицу, ₽");
+    expect(r.refusal.message).toBe("Нет цены «Ronavi H1500»: укажите цену робота, ₽");
     expect(r.refusal.fields).toEqual(["item:pallet-transport:price"]);
     // Посчитанный парк показывается и в отказе.
     expect(r.items[0]?.n).toBe(10);
@@ -106,7 +106,7 @@ describe("отказы расчёта", () => {
     for (const key of ["asis", "p1"]) {
       const r = refused(results, key);
       expect(r.refusal.reason).toBe("calc_not_supported");
-      expect(r.refusal.message).toBe("Экономика для процесса «Уборка склада» в прототипе не рассчитывается (§5.7)");
+      expect(r.refusal.message).toBe("Экономика для процесса «Уборка склада» в прототипе не рассчитывается");
     }
   });
 
@@ -131,7 +131,7 @@ describe("отказы расчёта", () => {
     expect(refused(results, "p1").refusal.message).toBe("Продукт «no-such-product» не найден в каталоге — выберите другой");
 
     const empty = computeScenarios(fixtureContext(20), [asis, { key: "p1", name: "Пустой", kind: "purchase", items: [] }]);
-    expect(refused(empty, "p1").refusal.message).toBe("В сценарии «Пустой» не выбрано ни одного решения: добавьте продукт");
+    expect(refused(empty, "p1").refusal.message).toBe("В сценарии «Пустой» не выбрано ни одного решения: добавьте решение");
     expect(refused(empty, "asis").refusal.reason).toBe("invalid_inputs");
 
     // Без ctx.paramLabels — встроенная русская подпись (DEFAULT_PARAM_LABELS), а не ключ.

@@ -324,7 +324,7 @@ function ResultsTable({
                           maxLength={500}
                           value={manual.reason}
                           onChange={(e) => onReason(e.target.value)}
-                          placeholder="например, производитель подтвердил применимость письмом — решение нужно для сравнения"
+                          placeholder="Например, производитель подтвердил применимость письмом — решение нужно для сравнения"
                           className="field"
                         />
                         <div className="flex flex-wrap gap-2">

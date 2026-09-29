@@ -90,7 +90,7 @@ export function fleetLines(r: ItemResult): string[] {
   if (r.n !== null) {
     const exact = r.nExact === null ? null : `⌈${fx(r.nExact, 2)}⌉ = ${r.nAuto ?? "—"}`;
     lines.push(
-      r.nOverridden ? `Роботов: ${r.n} — задано вручную${exact ? ` (расчёт: ${exact})` : ""}` : `Роботов: ${exact ?? r.n}`,
+      r.nOverridden ? `Роботов: ${r.n} — задано вами${exact ? ` (расчёт: ${exact})` : ""}` : `Роботов: ${exact ?? r.n}`,
     );
   }
   lines.push(`Охват пикового спроса: ${fx(r.coverage * 100, 1)} %`);

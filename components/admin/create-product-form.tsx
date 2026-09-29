@@ -78,7 +78,7 @@ export function CreateProductForm({
         <Button type="submit" disabled={form.pending}>
           Создать продукт
         </Button>
-        <FormStatus state={form.state} pending={form.pending} pendingText="Создаю…" />
+        <FormStatus state={form.state} pending={form.pending} pendingText="Создаём…" />
       </div>
     </form>
   );

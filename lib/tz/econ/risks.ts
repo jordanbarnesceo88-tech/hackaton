@@ -223,7 +223,7 @@ export function scenarioRisks(
     );
     const F = ok.items.reduce((a, r) => a + r.releasedFte, 0);
     if (F > 0) {
-      add("STAFF_REDUCTION", "low", `Высвобождение ${fx(F, 1)} FTE — учесть трудовые и социальные обязательства`);
+      add("STAFF_REDUCTION", "low", `Высвобождается ставок: ${fx(F, 1)} — учтите трудовые и социальные обязательства`);
     }
   }
   return sortRisks(risks);

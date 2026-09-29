@@ -286,8 +286,8 @@ export function risksCellText(r: ScenarioResult): string {
 export function verdictCellText(r: ScenarioResult, recommendedKey: string | null): string {
   if (r.status === "refused") return "Не рассчитан";
   if (recommendedKey !== null && r.key === recommendedKey) return "★ Рекомендуется";
-  if (r.kind === "asis") return "Базовый вариант (текущий процесс)";
-  return isViableScenario(r) ? "Окупается (NPV ≥ 0), но уступает рекомендуемому" : "Не окупается в пределах горизонта";
+  if (r.kind === "asis") return "База сравнения";
+  return isViableScenario(r) ? "Окупается (NPV ≥ 0), но уступает рекомендуемому" : "Не окупается за горизонт расчёта";
 }
 
 type Cell = [value: number | null, text: string];
@@ -328,7 +328,7 @@ function tableCell(key: ScenarioRowKey, r: ScenarioResult, results: ReportResult
     case "payback":
       return asis ? DASH : years(r.paybackYears, "не окупается");
     case "band":
-      return asis ? [null, "базовый вариант"] : [null, interpretBand(r.paybackYears, scenarioNorms(results, r.key)).text];
+      return asis ? [null, "база сравнения"] : [null, interpretBand(r.paybackYears, scenarioNorms(results, r.key)).text];
     case "roiTz":
       return asis ? DASH : roi(r.roiTzPct);
     case "roiNet":
@@ -336,7 +336,7 @@ function tableCell(key: ScenarioRowKey, r: ScenarioResult, results: ReportResult
     case "npv":
       return asis ? DASH : money(r.npvRub);
     case "dpb":
-      return asis ? DASH : years(r.discountedPaybackYears, "не окупается в горизонте");
+      return asis ? DASH : years(r.discountedPaybackYears, "не окупается за горизонт");
     case "tco":
       return money(r.tcoRub);
     case "tcoDelta":
@@ -452,7 +452,7 @@ export function paramsRows(results: ReportResults, defs: readonly ParamSpec[]): 
     const source = missing
       ? "не задано — в расчёт не входит"
       : changed
-        ? `Задано вами (по умолчанию ${formatParamValue(def.base)})`
+        ? `Задано вами (базовое: ${formatParamValue(def.base)})`
         : defaultSourceText(def);
     rows.push({
       key: def.key,
@@ -647,7 +647,7 @@ export type ChangeReportRow = {
 };
 
 const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
-  quantity: "количество роботов",
+  quantity: "число роботов",
   price: "цена робота",
   throughput: "производительность",
   service: "сервис за робота в год",

@@ -36,7 +36,7 @@ describe("CSV проекта для русского Excel", () => {
     expect(iCompare).toBeGreaterThan(0);
     expect(iFirstFlow).toBeGreaterThan(iCompare);
     expect(rows[rows.length - 1]).toEqual([
-      "Результат является предварительной оценкой и требует верификации при обследовании объекта.",
+      "Результат расчёта — предварительная оценка, его нужно проверить при обследовании объекта.",
     ]);
     const flows = rows.filter((r) => (r[0] ?? "").startsWith("Денежный поток: ")).map((r) => r[0]);
     expect(flows).toEqual(results.results.map((r) => `Денежный поток: ${r.name}${r.key === "p2" ? " ⚠" : ""}`));

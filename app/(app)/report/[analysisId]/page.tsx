@@ -9,6 +9,7 @@ import { sensitivity } from "@/lib/economics/sensitivity";
 import { resultsDiverged } from "@/lib/analyses/diverged";
 import { isCalculable } from "@/lib/economics/types";
 import { formatCost } from "@/lib/format/currency";
+import { pluralRu } from "@/lib/format/plural";
 import { SensitivityChart } from "@/components/calculator/sensitivity-chart";
 import { economicsRows, REPORT_LABELS } from "@/components/calculator/economics-rows";
 import { ProvenanceBadge } from "@/components/provenance-badge";
@@ -80,7 +81,7 @@ export default async function ReportPage({
 
       <header className="border-b-2 border-primary pb-3">
         <div className="text-xs font-medium uppercase tracking-wide text-primary">
-          Robotization ROI
+          Платформа оценки роботизации
         </div>
         {/* Размеры заголовков здесь заданы явно и НЕ подчиняются экранной шкале: отчёт
             печатается на A4, где 40-пиксельный заголовок съедает четверть первой страницы,
@@ -115,12 +116,12 @@ export default async function ReportPage({
           <div>Площадь: {p.areaM2} м²</div>
           <div>Стоимость труда: {money(a.laborCostPerHourUsd)}/час</div>
           <div>Операций в сутки: {p.opsPerDay}</div>
-          <div>Замещение труда: {(a.laborReplacementPct * 100).toFixed(0)}%</div>
-          <div>Остаточный надзор: {(a.residualSupervisionPct * 100).toFixed(0)}%</div>
+          <div>Замещение труда: {(a.laborReplacementPct * 100).toFixed(0)} %</div>
+          <div>Остаточный надзор: {(a.residualSupervisionPct * 100).toFixed(0)} %</div>
           <div>Персонал (замещаемый): {p.staffCount}</div>
-          <div>Ставка дисконтирования: {(a.discountRate * 100).toFixed(0)}%</div>
-          <div>Горизонт ROI: {a.roiHorizonYears} лет</div>
-          <div>Срок службы техники: {a.assetLifeYears} лет</div>
+          <div>Ставка дисконтирования: {(a.discountRate * 100).toFixed(0)} %</div>
+          <div>Горизонт ROI: {a.roiHorizonYears} {pluralRu(a.roiHorizonYears, ["год", "года", "лет"])}</div>
+          <div>Срок службы техники: {a.assetLifeYears} {pluralRu(a.assetLifeYears, ["год", "года", "лет"])}</div>
         </div>
       </section>
 
@@ -147,7 +148,7 @@ export default async function ReportPage({
             она нужнее всего. */}
         {(p.quantityOverride !== undefined || p.capexPerUnitUsdOverride !== undefined) && (
           <p data-tone="warn" className="callout callout--sm mt-2">
-            Часть входных данных задана вручную, а не рассчитана:
+            Часть значений задана вручную:
             {p.quantityOverride !== undefined && ` количество единиц — ${p.quantityOverride}`}
             {p.quantityOverride !== undefined && p.capexPerUnitUsdOverride !== undefined && ";"}
             {p.capexPerUnitUsdOverride !== undefined &&

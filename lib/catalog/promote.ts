@@ -112,7 +112,7 @@ function unusableThroughputReason(c: CharRow): string | null {
     return "производительность указана только текстом, числа для расчёта нет";
   }
   if (asQualifier(c.qualifier) === "до" && finiteOrNull(c.valueMin) === null) {
-    return `указан только предел производительности («${formatCharValue(c)}»), а не типичное значение — в расчёт не идёт`;
+    return `указан только предел производительности («${formatCharValue(c)}») без типичного значения — в расчёт не идёт`;
   }
   if (asScope(c.scope) === "per-fleet") {
     return "производительность указана на весь парк, а не на одного робота — в расчёт не идёт";

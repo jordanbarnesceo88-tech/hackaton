@@ -40,12 +40,12 @@ export default function draw() {
   });
 
   // блокнот с настоящими цифрами — рядом с доской
-  const nw = measure("загрузка 78%", 44) + 50, nx = 1540 - nw;
+  const nw = measure("загрузка 78 %", 44) + 50, nx = 1540 - nw;
   s.raw(`<g transform="rotate(4 ${nx + nw / 2} 330)">`);
   s.rect(nx, 250, nw, 180, { strokeWidth: 3, ...WHITE });
   for (let x = nx + 20; x < nx + nw - 10; x += 26) s.circle(x, 250, 12, { strokeWidth: 2 });
   s.text("3 робота", nx + 24, 326, { size: 44 });
-  s.text("загрузка 78%", nx + 24, 390, { size: 44 });
+  s.text("загрузка 78 %", nx + 24, 390, { size: 44 });
   s.raw(`</g>`);
   s.text("цифры — рядом", 1550, 196, { size: 58, color: RED, rotate: -3, anchor: "end" });
   s.text("для наглядности", 470, 330, { size: 48, color: BLUE, rotate: -2 });

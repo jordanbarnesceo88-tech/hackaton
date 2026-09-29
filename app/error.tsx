@@ -23,8 +23,8 @@ export default function Error({
     <div className="surface-prose flex flex-col gap-6 py-16">
       <h1>Что-то сломалось</h1>
       <p className="text-muted-foreground">
-        Страница не открылась. Расчёты и сохранённые данные при этом не пострадали — попробуйте
-        ещё раз, а если повторится, откройте главную и начните заново.
+        Страница не открылась. Расчёты и сохранённые данные не пострадали. Попробуйте ещё раз,
+        а если ошибка повторится, откройте главную и начните заново.
       </p>
       {error.digest ? (
         <p className="text-muted-foreground font-mono text-sm">Код обращения: {error.digest}</p>

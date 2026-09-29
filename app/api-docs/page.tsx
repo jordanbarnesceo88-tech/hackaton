@@ -176,7 +176,7 @@ export default function ApiDocsPage() {
         </ul>
         <p className="text-sm text-muted-foreground">
           Запросы с телом принимаются только с заголовком <code className="font-mono text-xs">Content-Type: application/json</code>.
-          На стенде API работает через HTTPS, как и сайт.
+          API, как и сайт, работает через HTTPS.
         </p>
       </section>
 
@@ -247,7 +247,7 @@ export default function ApiDocsPage() {
       })}
 
       <p className="max-w-3xl text-sm text-muted-foreground">
-        Результат расчёта является предварительной оценкой и требует верификации при обследовании объекта.
+        Результат расчёта — предварительная оценка, его нужно проверить при обследовании объекта.
       </p>
     </div>
   );

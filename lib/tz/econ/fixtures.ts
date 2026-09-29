@@ -178,7 +178,7 @@ export const FIXTURE_H1500: ProductForCalc = {
     },
     {
       key: "raasRubMonth",
-      label: "Ставка RaaS (аренда)",
+      label: "Ставка RaaS",
       value: "от 100 000 ₽/мес",
       origin: "research",
       sourceUrl: "https://robotrends.ru/robopedia/ronavi-robotics",

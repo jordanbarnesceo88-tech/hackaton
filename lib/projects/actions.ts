@@ -258,7 +258,7 @@ export async function saveProjectAction(projectId: string, input: SaveProjectInp
     );
     if (!specs.ok) return fail("invalid", `Сценарии не сохранены: ${specs.errors.join("; ")}`);
     const changes = validatePendingChanges(input.changes);
-    if (!changes.ok) return fail("invalid", `Журнал изменений не принят: ${changes.errors.join("; ")}`);
+    if (!changes.ok) return fail("invalid", `Журнал корректировок не принят: ${changes.errors.join("; ")}`);
 
     const saved = await storeProjectCalculation(prisma, {
       projectId: id,

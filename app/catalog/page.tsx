@@ -36,7 +36,7 @@ function activeFilterLabels(query: CatalogQuery, options: CatalogOptions): strin
   if (query.status) out.push(`статус «${STATUS_LABELS[query.status]}»`);
   if (query.level) out.push(`глубина описания «${LEVEL_LABELS[query.level]}»`);
   if (query.confirmed) out.push("только с подтверждёнными данными");
-  if (query.raas) out.push("есть модель RaaS");
+  if (query.raas) out.push("есть ставка RaaS");
   return out;
 }
 
@@ -69,14 +69,14 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
       <header className="flex max-w-4xl flex-col gap-2">
         <h1>Каталог роботизированных решений</h1>
         <p className="text-muted-foreground">
-          Решения из каталога, дополненные характеристиками из открытых источников. В карточке у
+          Решения из базового каталога, дополненные характеристиками из открытых источников. В карточке у
           каждой характеристики указаны источник, дата проверки и признак подтверждения первоисточником; спорные
           значения показаны вместе с альтернативами.
         </p>
         <p className="text-xs text-muted-foreground">
           {release
             ? `Выпуск данных ${release.version} от ${RELEASE_DATE.format(release.seededAt)} · всего в каталоге ${formatNum(hierarchyProducts.length)} ${pluralRu(hierarchyProducts.length, ["продукт", "продукта", "продуктов"])}`
-            : "Данные каталога ещё не загружены: выполните npm run db:seed."}
+            : "Данные каталога ещё не загружены — обратитесь к администратору."}
         </p>
       </header>
 

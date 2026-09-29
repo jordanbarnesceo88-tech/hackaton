@@ -176,10 +176,10 @@ export function NormsPanel({
       {showOverrides && (
         <div className="flex flex-col gap-2 rounded-md border px-3 py-3">
           <p className="text-sm font-medium">
-            Переопределения сценария{scenarioName ? ` «${scenarioName}»` : ""}
+            Корректировки сценария{scenarioName ? ` «${scenarioName}»` : ""}
           </p>
           <p className="text-xs text-muted-foreground">
-            Значения — в процентах; допустим только диапазон норматива. Каждое изменение записывается в журнал
+            Значения вводятся в процентах, в пределах диапазона норматива. Каждое изменение записывается в журнал
             корректировок.
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -66,13 +66,13 @@ describe("verdictBadge", () => {
     expect(byNorm.verdict).toBe("NOT_CONFIRMED");
     const b = verdictBadge({ ...byNorm, minStableFleet: 9 });
     expect(b.tone).toBe("not-confirmed");
-    expect(b.text).toBe("Не подтверждён: парк роботов — минимальный парк по имитации 9");
+    expect(b.text).toBe("Не подтверждён: парк роботов — минимальный устойчивый парк 9");
     expect(verdictBadge({ ...byNorm, minStableFleet: null }).text).toBe("Не подтверждён: парк роботов");
   });
 
   it("flags an oversized fleet with the smaller stable one", () => {
     const b = verdictBadge({ ...demo, oversized: true, fleet: 11, minStableFleet: 9 });
-    expect(b).toEqual({ tone: "oversized", text: "Расчёт подтверждён имитацией · парк избыточен: минимальный по имитации 9" });
+    expect(b).toEqual({ tone: "oversized", text: "Расчёт подтверждён имитацией · парк избыточен: минимальный устойчивый парк 9" });
   });
 
   it("does not suggest more robots when the robot cannot lift the load", () => {
@@ -118,7 +118,7 @@ describe("statusText", () => {
   it("reports progress, then duration, seed and model version", () => {
     expect(plain(statusText({ kind: "running", pct: 42.4 }))).toBe("Имитация: выполняется… 42 %");
     expect(plain(statusText({ kind: "done", durationMs: 17.2, seed: 1, modelVersion: "sim-1.0.0" }))).toBe(
-      "Имитация завершена за 17 мс · seed 1 · модель sim-1.0.0",
+      "Имитация завершена за 17 мс · зерно 1 · модель sim-1.0.0",
     );
     expect(statusText({ kind: "error", message: "бюджет" })).toBe("Имитация остановлена: бюджет");
   });

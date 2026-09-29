@@ -191,7 +191,7 @@ export function lockedChangedIssue(def: ParamSpec, row?: number): ParamIssue {
     def,
     "locked_changed",
     "warning",
-    `${def.label}: значение фиксировано в демо-наборе (${withUnit(def.base, def.unit)}); изменение будет записано в журнал`,
+    `${def.label}: значение фиксировано в демо-наборе (${withUnit(def.base, def.unit)}); изменение попадёт в журнал корректировок`,
     row,
   );
 }

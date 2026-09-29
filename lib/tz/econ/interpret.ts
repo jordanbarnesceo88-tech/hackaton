@@ -16,7 +16,7 @@ export function interpretBand(
   const fast = norms.paybackBandFastYears;
   const slow = Math.max(fast, norms.paybackBandSlowYears);
   if (pb === null || !Number.isFinite(pb) || pb < 0) {
-    return { band: "none", text: "не окупается в пределах горизонта" };
+    return { band: "none", text: "не окупается за горизонт расчёта" };
   }
   if (pb < fast) return { band: "fast", text: `быстрая окупаемость (менее ${yearsGen(fast)})` };
   if (pb <= slow) {

@@ -118,7 +118,7 @@ function activeArea(ctx: Pick<ScenarioContext, "params" | "paramLabels">): numbe
 /** Статья инфраструктуры площадки: для мобильных роботов — площадь × удельная стоимость. */
 function infrastructureLine(ctx: Pick<ScenarioContext, "params" | "paramLabels">, items: readonly ItemCalc[], norms: NormValues): LineItem {
   if (!items.some((c) => c.product.mobile)) {
-    return line("infrastructure", 0, "стационарная система — разметка и навигация для мобильных роботов не нужны", "derived");
+    return line("infrastructure", 0, "стационарное решение — разметка и навигация для мобильных роботов не нужны", "derived");
   }
   const area = activeArea(ctx);
   const rate = norms.siteInfraRubPerM2;
@@ -154,7 +154,7 @@ function purchaseItemLines(c: ItemCalc): LineItem[] {
       ? line("chargers", c.chargers * chargerRub, `${fx(c.chargers)} × ${rub(chargerRub)}`, normDef("chargerRub").origin, {
           originNote: analogNote(isRonavi(p), "Ronavi"),
         })
-      : line("chargers", 0, "стационарная система — зарядные станции не нужны", "derived");
+      : line("chargers", 0, "стационарное решение — зарядные станции не нужны", "derived");
   const perUnit = c.norms.commissioningRubPerUnit;
   const commissioning = line(
     "commissioning",

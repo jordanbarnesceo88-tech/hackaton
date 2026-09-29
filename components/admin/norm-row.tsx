@@ -130,8 +130,7 @@ export function NormRow({ norm }: { norm: NormRowValues }) {
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Значение {fx(norm.value)}. Этого норматива нет в текущей модели расчёта — расчёт его не читает, править
-            его незачем.
+            Значение {fx(norm.value)}. Текущая модель расчёта этот норматив не использует — править его незачем.
           </p>
         )}
       </div>

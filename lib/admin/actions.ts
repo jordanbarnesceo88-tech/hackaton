@@ -69,7 +69,7 @@ export type AdminFormState = {
 };
 
 const MSG = {
-  badRequest: "Форма пришла в неожиданном виде — обновите страницу и попробуйте ещё раз",
+  badRequest: "Не удалось прочитать форму — обновите страницу и попробуйте ещё раз",
   productNotFound: "Продукт не найден — возможно, его удалили. Обновите страницу",
   unchanged: "Изменений нет — значения совпадают с сохранёнными",
   error: "Не удалось сохранить, попробуйте ещё раз",
@@ -704,7 +704,7 @@ export async function archiveProductAction(prev: AdminFormState, formData: FormD
       return {
         kind: "ok",
         message: archived
-          ? "Продукт в архиве: в каталоге и подборе его больше нет, сохранённые проекты его сохраняют"
+          ? "Продукт в архиве: в каталоге и подборе его больше нет, в сохранённых проектах он остаётся"
           : "Продукт возвращён из архива",
       };
     });
@@ -1204,7 +1204,7 @@ export async function updateNormAction(prev: AdminFormState, formData: FormData)
   try {
     outcome = await prisma.$transaction(async (tx): Promise<TxOutcome> => {
       const row = await tx.norm.findUnique({ where: { key } });
-      if (!row) return { kind: "fail", message: "Норматива нет в базе — выполните «Обновить каталог» на странице «Данные»" };
+      if (!row) return { kind: "fail", message: "Норматива нет в базе — нажмите «Обновить каталог» в разделе «Данные и журнал»" };
       if (row.value === value) {
         return {
           kind: "fail",
@@ -1259,7 +1259,7 @@ export async function resetNormAction(prev: AdminFormState, formData: FormData):
   try {
     outcome = await prisma.$transaction(async (tx): Promise<TxOutcome> => {
       const row = await tx.norm.findUnique({ where: { key } });
-      if (!row) return { kind: "fail", message: "Норматива нет в базе — выполните «Обновить каталог» на странице «Данные»" };
+      if (!row) return { kind: "fail", message: "Норматива нет в базе — нажмите «Обновить каталог» в разделе «Данные и журнал»" };
       if (row.value === def.value && !row.editedByAdmin) {
         return { kind: "fail", message: "Уже значение по умолчанию" };
       }

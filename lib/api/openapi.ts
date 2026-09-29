@@ -453,9 +453,9 @@ const SCHEMAS: Record<string, Schema> = {
     {
       key: str("Ключ ^[a-z0-9-]{1,40}$", { pattern: "^[a-z0-9-]{1,40}$" }),
       name: str("Название, 1–80 символов"),
-      kind: str("asis — как есть, purchase — покупка, raas — услуга", { enum: ["asis", "purchase", "raas"] }),
+      kind: str("asis — «Как есть», purchase — покупка, raas — услуга (RaaS)", { enum: ["asis", "purchase", "raas"] }),
       items: arr(ref("ScenarioItem"), "Позиции (у «Как есть» — пусто)"),
-      normOverrides: { type: "object", description: "Нормативы, переопределённые в сценарии: ключ → число в [min, max]", additionalProperties: { type: "number" } },
+      normOverrides: { type: "object", description: "Нормативы, изменённые в сценарии: ключ → число в [min, max]", additionalProperties: { type: "number" } },
     },
     ["key", "name", "kind", "items"],
     "Сценарий. В проекте 3–10 сценариев, ровно один «Как есть»",
@@ -478,7 +478,7 @@ const SCHEMAS: Record<string, Schema> = {
       dataVersion: str("Хэш снимков продуктов, нормативов и описаний параметров"),
       calculatedAt: str("Момент расчёта", { format: "date-time" }),
       organizer: { type: "object", description: "Версии исходных данных в этой сборке", additionalProperties: { type: "string" } },
-      paramDefsFrom: str("Описания параметров из БД или из кода", { enum: ["db", "code"] }),
+      paramDefsFrom: str("Откуда описания параметров: db — из базы данных; code — в базе их ещё нет, взяты описания по умолчанию", { enum: ["db", "code"] }),
     },
     ["modelVersion", "simModelVersion", "dataVersion", "calculatedAt"],
     "Версии расчёта (воспроизводимость)",
@@ -493,7 +493,7 @@ const SCHEMAS: Record<string, Schema> = {
       capexRub: orNull(num("CAPEX, ₽")),
       opexYearRub: orNull(num("OPEX в год, ₽")),
       effectYearRub: orNull(num("Годовой эффект относительно «Как есть», ₽")),
-      paybackYears: orNull(num("Простая окупаемость, лет (CAPEX / эффект)")),
+      paybackYears: orNull(num("Простой срок окупаемости, лет (CAPEX / эффект)")),
       band: orNull(str("Интервал окупаемости", { enum: ["fast", "moderate", "slow", "none"] })),
       roiTzPct: orNull(num("ROI валовый, %")),
       npvRub: orNull(num("NPV за горизонт, ₽")),
@@ -599,7 +599,7 @@ const SCHEMAS: Record<string, Schema> = {
       objectName: orNull(str("Объект")),
       facility: FACILITY_SCHEMA,
       url: str("Адрес на сайте"),
-      isDemo: bool("Засеянный демо-проект (только чтение и копирование)"),
+      isDemo: bool("Общий демо-проект: режим чтения, можно скопировать"),
       copiedFromId: orNull(str("Из какого проекта скопирован")),
       createdAt: str("Создан", { format: "date-time" }),
       updatedAt: str("Изменён", { format: "date-time" }),
@@ -691,7 +691,7 @@ const SCHEMAS: Record<string, Schema> = {
       hasConflict: bool("Источники расходятся сильнее допуска"),
     },
     ["key", "group", "display", "origin", "confirmed"],
-    "Характеристика с провенансом",
+    "Характеристика с источником",
   ),
   CatalogProductDetail: {
     allOf: [
@@ -699,7 +699,7 @@ const SCHEMAS: Record<string, Schema> = {
       obj(
         {
           organizerCatalogId: orNull(str("Id в исходном каталоге")),
-          organizerRows: arr(int("Строка"), "Строки кураторского свода"),
+          organizerRows: arr(int("Строка"), "Строки в исходных данных каталога"),
           industries: arr(str("Отрасль"), "Отрасли"),
           archived: bool("В архиве"),
           editedByAdmin: bool("Правлен администратором"),
@@ -715,7 +715,7 @@ const SCHEMAS: Record<string, Schema> = {
         "Поля карточки",
       ),
     ],
-    description: "Карточка продукта: колонки, иерархия и характеристики с провенансом",
+    description: "Карточка продукта: колонки, иерархия и характеристики с источниками",
   },
   Range: obj(
     {
@@ -736,7 +736,7 @@ const SCHEMAS: Record<string, Schema> = {
         enum: [...API_IMPORT_ORIGINS],
       }),
       sourceType: str(
-        "Тип источника; допустим при своём origin: " +
+        "Тип источника; допустимые значения зависят от origin: " +
           Object.entries(SOURCE_TYPES_BY_ORIGIN)
             .map(([o, types]) => `${o} → ${types.join(" | ")}`)
             .join("; "),
@@ -754,7 +754,7 @@ const SCHEMAS: Record<string, Schema> = {
       alternatives: arr({ type: "object", description: "Sourced без alternatives" }, "Другие найденные значения, до 10"),
     },
     ["value", "origin", "sourceType", "sourceUrl", "date", "confirmed"],
-    "Значение характеристики с провенансом",
+    "Значение характеристики с источником",
     { additionalProperties: false },
   ),
   ProductSeed: obj(
@@ -794,7 +794,7 @@ const SCHEMAS: Record<string, Schema> = {
       created: int("Создано"),
       updated: int("Обновлено"),
       unchanged: int("Без изменений"),
-      refused: int("Отказано (slug из исходных данных каталога, данные не засеяны)"),
+      refused: int("Отказано (slug из исходных данных каталога или базовые данные не загружены)"),
       failed: int("Не записано из-за ошибки базы"),
       valid: int("Прошли проверку (пробный прогон)"),
       items: arr(
@@ -824,8 +824,8 @@ const SCHEMAS: Record<string, Schema> = {
       group: str("Группа"),
       order: int("Порядок"),
       unit: orNull(str("Единица")),
-      value: num("Значение в таблице (или из кода)"),
-      defaultValue: orNull(num("Значение по умолчанию из кода модели")),
+      value: num("Значение в таблице нормативов (если таблица пуста — значение по умолчанию)"),
+      defaultValue: orNull(num("Значение по умолчанию, заданное в модели")),
       effectiveValue: orNull(num("Значение, с которым считает модель (после границ и взаимных ограничений)")),
       min: orNull(num("Нижняя граница")),
       max: orNull(num("Верхняя граница")),
@@ -840,7 +840,7 @@ const SCHEMAS: Record<string, Schema> = {
     "Норматив модели",
   ),
   NormsResponse: obj(
-    { source: str("db — таблица Norm; code — таблица пуста, значения из кода", { enum: ["db", "code"] }), norms: arr(ref("NormRow"), "Нормативы") },
+    { source: str("db — из таблицы нормативов; code — таблица пуста, показаны значения по умолчанию", { enum: ["db", "code"] }), norms: arr(ref("NormRow"), "Нормативы") },
     ["source", "norms"],
     "Нормативы",
   ),
@@ -888,9 +888,9 @@ const SCHEMAS: Record<string, Schema> = {
     "Параметры типа объекта",
   ),
   Health: obj(
-    { ok: bool("Приложение и база доступны"), db: bool("База ответила"), modelVersion: str("Версия модели"), simModelVersion: str("Версия имитации") },
+    { ok: bool("Платформа и база доступны"), db: bool("База ответила"), modelVersion: str("Версия модели"), simModelVersion: str("Версия имитации") },
     ["ok", "db", "modelVersion", "simModelVersion"],
-    "Состояние сервиса",
+    "Состояние платформы",
   ),
 };
 
@@ -910,15 +910,15 @@ export const OPENAPI: OpenApiDocument = {
       "Все ответы — JSON; ошибка — { error, details? } с сообщением по-русски. Денежные величины — в рублях. " +
       "Доступ: гость — чтение и расчёт без сохранения; пользователь — cookie сессии после входа на сайте; " +
       `администратор — сессия с ролью ADMIN или заголовок Authorization: Bearer <ADMIN_API_TOKEN> (не короче ${ADMIN_TOKEN_MIN_LENGTH} символов). ` +
-      "Результат расчёта является предварительной оценкой и требует верификации при обследовании объекта.",
+      "Результат расчёта — предварительная оценка, его нужно проверить при обследовании объекта.",
   },
-  servers: [{ url: "/", description: "Тот же сервер, что и сайт (на стенде — через HTTPS)" }],
+  servers: [{ url: "/", description: "Тот же сервер, что и сайт (через HTTPS)" }],
   tags: [
-    { name: "Каталог", description: "Каталог решений с провенансом характеристик" },
+    { name: "Каталог", description: "Каталог решений с источниками характеристик" },
     { name: "Нормативы", description: "Нормативы экономической модели" },
     { name: "Параметры объектов", description: "Описания параметров склада, аэропорта и медучреждения" },
     { name: "Расчёт и проекты", description: "Расчёт сценариев и проекты пользователя" },
-    { name: "Служебные", description: "Описание API, состояние сервиса, шаблоны загрузки" },
+    { name: "Служебные", description: "Описание API, состояние платформы, шаблоны загрузки" },
   ],
   paths: {
     "/api/v1/catalog": {
@@ -990,7 +990,7 @@ export const OPENAPI: OpenApiDocument = {
         summary: "Импорт продуктов каталога",
         description:
           `Создаёт или обновляет до ${IMPORT_MAX_PRODUCTS} продуктов по списку ProductSeed. ` +
-          "Проверка всё-или-ничего: при ошибке в любой позиции ничего не пишется (422). У каждой характеристики — провенанс: " +
+          "Проверка всё-или-ничего: при ошибке в любой позиции ничего не пишется (422). У каждой характеристики есть origin, и от него зависят обязательные поля: " +
           "organizer → sourceRef; research → sourceUrl, asInSource и дата; estimate, derived, choice → basis; derived → formula. " +
           "Продукты записываются с origin ADMIN: синхронизация исходных данных каталога их не трогает, правки администратора в админке импорт не перезаписывает. " +
           "Slug из исходных данных каталога не принимается — такой продукт дополняют в админке. ?dryRun=1 — только проверить, без записи.",
@@ -1054,8 +1054,8 @@ export const OPENAPI: OpenApiDocument = {
         operationId: "listNorms",
         summary: "Нормативы модели",
         description:
-          "Все нормативы расчёта с метаданными: значение, значение по умолчанию, итоговое значение расчёта, границы, происхождение, " +
-          "обоснование и источник (без недокументированных коэффициентов).",
+          "Все нормативы, которые использует модель, и их метаданные: значение, значение по умолчанию, итоговое значение расчёта, " +
+          "границы, происхождение, обоснование и источник.",
         tags: ["Нормативы"],
         "x-access": "public",
         security: PUBLIC,
@@ -1072,7 +1072,7 @@ export const OPENAPI: OpenApiDocument = {
         description:
           "Записывает новые значения нормативов одной транзакцией. Значение вне [min, max] прижимается к границе (clamped: true), " +
           "фиксированный норматив (min = max) не меняется. Строка помечается правкой администратора — синхронизация данных её не перезаписывает. " +
-          "Каждое изменение пишется в журнал ChangeLog (кто, когда, было, стало, причина). Расчёты новых и пересчитанных проектов используют новые значения.",
+          "Каждое изменение пишется в журнал действий администратора (кто, когда, было, стало, причина). Расчёты новых и пересчитанных проектов используют новые значения.",
         tags: ["Нормативы"],
         "x-access": "admin",
         security: ADMIN,
@@ -1157,8 +1157,8 @@ export const OPENAPI: OpenApiDocument = {
         summary: "Расчёт сценариев без сохранения",
         description:
           "Считает сценарии для объекта: подбор решений, состав оборудования, CAPEX, OPEX, эффект, окупаемость, ROI, NPV, TCO, чувствительность, " +
-          "вывод и проверку парка имитацией — те же функции, что у «Нового проекта», поэтому числа совпадают с проектом на тех же параметрах. " +
-          "Без params — базовые значения демо-набора; без scenarios — сценарии по умолчанию из подбора. В БД ничего не пишется. " +
+          "вывод и проверку парка имитацией. Расчёт тот же, что у «Нового проекта», поэтому числа совпадают с проектом на тех же параметрах. " +
+          "Без params — базовые значения демо-набора; без scenarios — сценарии по умолчанию из подбора. Ничего не сохраняется. " +
           "Лимит: 60 запросов за 15 минут с одного IP.",
         tags: ["Расчёт и проекты"],
         "x-access": "public",
@@ -1178,7 +1178,7 @@ export const OPENAPI: OpenApiDocument = {
                       },
                     }
                   : {}),
-                scenarios: { summary: "Свои сценарии: как есть, покупка и услуга одного робота", value: { facility: "warehouse", scenarios: exampleScenarios } },
+                scenarios: { summary: "Свои сценарии: «Как есть», покупка и услуга (RaaS) одного робота", value: { facility: "warehouse", scenarios: exampleScenarios } },
               },
             },
           },
@@ -1291,13 +1291,13 @@ export const OPENAPI: OpenApiDocument = {
     "/api/health": {
       get: {
         operationId: "health",
-        summary: "Состояние сервиса",
-        description: "Проверка живости для Docker, CI и внешнего мониторинга: приложение отвечает и база доступна. Возвращает версии моделей.",
+        summary: "Состояние платформы",
+        description: "Проверка работоспособности для Docker, CI и внешнего мониторинга: платформа отвечает, база доступна. Возвращает версии моделей.",
         tags: ["Служебные"],
         "x-access": "public",
         security: PUBLIC,
         responses: {
-          "200": jsonResponse("Сервис и база доступны", ref("Health"), {
+          "200": jsonResponse("Платформа и база доступны", ref("Health"), {
             example: { summary: "Всё в порядке", value: { ok: true, db: true, modelVersion: TZ_MODEL_VERSION, simModelVersion: SIM_MODEL_VERSION } },
           }),
           "503": jsonResponse("База недоступна", ref("Health"), {

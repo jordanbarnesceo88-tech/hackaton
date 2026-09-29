@@ -72,7 +72,7 @@ describe("книга XLSX проекта", () => {
     const ws = sheet("Сводка");
     expect(ws.getCell("B2").value).toBe("=cmd");
     const last = ws.getCell(ws.rowCount, 1).value;
-    expect(last).toBe("Результат является предварительной оценкой и требует верификации при обследовании объекта.");
+    expect(last).toBe("Результат расчёта — предварительная оценка, его нужно проверить при обследовании объекта.");
   });
 
   it("NPV покупки — формула «год 0 + NPV(ставка; годы 1…H)» с результатом расчёта", () => {
@@ -157,7 +157,7 @@ describe("книга XLSX проекта", () => {
     for (let r = head + 1; r <= about.rowCount && about.getCell(r, 1).value !== "Ограничения модели"; r++) {
       if (about.getCell(r, 4).value) sources.add(about.getCell(r, 4).value);
     }
-    const labels = new Set<unknown>(["базовая формула методики", "типовая расчётная зависимость", "базовые данные", "решение платформы"]);
+    const labels = new Set<unknown>(["базовая формула методики", "типовая расчётная зависимость", "базовые данные", "наш выбор"]);
     expect([...sources].filter((s) => !labels.has(s))).toEqual([]);
     expect(sources.has("типовая расчётная зависимость")).toBe(true);
     const sens = sheet("Чувствительность");
@@ -173,7 +173,7 @@ describe("книга XLSX проекта", () => {
     expect(sim.getCell("B1").value).toBe("Покупка — Ronavi H1500");
     expect(sim.getCell("C1").value).toBe("Покупка — DMR Carrier P ⚠");
     const log = sheet("Журнал корректировок");
-    expect(log.getCell("D2").value).toBe("Перемещение паллет: приёмка → хранение → отгрузка: количество роботов");
+    expect(log.getCell("D2").value).toBe("Перемещение паллет: приёмка → хранение → отгрузка: число роботов");
     const params = sheet("Параметры объекта");
     expect(params.getCell("A1").value).toBe("Раздел");
     expect(params.rowCount).toBeGreaterThan(40);

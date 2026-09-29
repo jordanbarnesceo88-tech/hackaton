@@ -102,7 +102,7 @@ test("проект склада: создать, скорректировать,
   const economics = page.locator("#economics");
   await economics.getByRole("tablist", { name: "Сценарий для экономики" }).getByRole("tab", { name: PURCHASE }).click();
   await expect(economics.getByRole("heading", { name: PURCHASE, exact: true })).toBeVisible();
-  const qty = economics.getByLabel("Количество роботов", { exact: true });
+  const qty = economics.getByLabel("Число роботов", { exact: true });
   await qty.fill(String(manualN));
   await qty.press("Enter");
   await expect(economics.getByText("задано вами").first()).toBeVisible();
@@ -138,10 +138,10 @@ test("проект склада: создать, скорректировать,
   // 7. Отчёт для печати в PDF: оговорка и журнал корректировок с правкой числа роботов.
   await report.getByRole("link", { name: "Отчёт (PDF)" }).click();
   await expect(page).toHaveURL(/\/projects\/[^/]+\/report$/);
-  await expect(page.getByText(/предварительной оценкой/).first()).toBeVisible();
+  await expect(page.getByText(/предварительная оценка/).first()).toBeVisible();
   const changes = page.locator("#changes");
   await expect(changes.getByRole("heading", { name: "Журнал корректировок" })).toBeVisible();
-  await expect(changes).toContainText("Количество роботов");
+  await expect(changes).toContainText("Число роботов");
   await expectNoHorizontalScroll(page);
 
   // 8. Копия проекта (ТЗ §3.1.3) открывается сразу после копирования.

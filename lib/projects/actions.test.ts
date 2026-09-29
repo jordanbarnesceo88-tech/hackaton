@@ -300,7 +300,7 @@ describe("действия проектов", () => {
     const changes = await getProjectChanges(prisma, projectId, userA);
     const labels = new Map(changes?.map((c) => [c.field, c.fieldLabel]));
     expect(labels.get(`item:${PT}:quantity`)).toBe(
-      "Количество роботов (Перемещение паллет: приёмка → хранение → отгрузка)",
+      "Число роботов (Перемещение паллет: приёмка → хранение → отгрузка)",
     );
     expect(labels.get("param:forkliftSalaryRubMonth")).toMatch(/^Параметр: Средняя з\/п оператора погрузчика/);
     expect(changes?.find((c) => c.field === `item:${PT}:quantity`)?.scenarioKey).toBe("p1");

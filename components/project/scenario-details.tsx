@@ -47,8 +47,8 @@ export function parseItemOverrideField(field: string): { process: string; kind: 
 
 export const KIND_LABELS: Readonly<Record<ScenarioKind, string>> = {
   asis: "Как есть (текущий процесс)",
-  purchase: "Покупка оборудования",
-  raas: "Услуга (RaaS, подписка)",
+  purchase: "Покупка",
+  raas: "Услуга (RaaS)",
 };
 
 /** Короткая единица потока: «паллет/сут» → «пал./сут». */
@@ -84,7 +84,7 @@ export function fleetCardLines(r: ItemResult): string[] {
         : `Роботов: ${exact ?? r.n}`,
     );
   }
-  lines.push(`Охват спроса: ${fx(r.coverage * 100, 1)} %`);
+  lines.push(`Охват пикового спроса: ${fx(r.coverage * 100, 1)} %`);
   lines.push(`Зарядных станций: ${r.chargers}`);
   lines.push(`Постов диспетчера парка: ${r.operatorPosts}`);
   lines.push(`Высвобождается ставок: ${fx(r.releasedFte, 1)} из ${fx(r.headcount)}`);
@@ -165,7 +165,7 @@ function ItemCard({
   }[] = [
     {
       k: "quantity",
-      label: "Количество роботов",
+      label: "Число роботов",
       unit: "шт.",
       auto: r?.nAuto ?? null,
       value: it?.quantityOverride ?? (r?.nOverridden && r.n !== null ? r.n : undefined),

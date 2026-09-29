@@ -47,7 +47,7 @@ export function useAdminForm(action: AdminAction, confirmText?: string): AdminFo
 export function FormStatus({
   state,
   pending,
-  pendingText = "Сохраняю…",
+  pendingText = "Сохраняем…",
   className,
 }: {
   state: AdminFormState;

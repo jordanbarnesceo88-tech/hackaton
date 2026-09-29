@@ -17,8 +17,8 @@ export default function NotFound() {
     <div className="surface-prose flex flex-col gap-6 py-16">
       <h1>Страница не найдена</h1>
       <p className="text-muted-foreground">
-        Такой страницы нет. Обычно это значит, что ссылка устарела: решение убрали из каталога,
-        расчёт удалили или адрес набран с опечаткой.
+        Обычно это значит, что ссылка устарела: решение убрали из каталога, расчёт удалили или
+        адрес набран с опечаткой.
       </p>
       <div className="flex flex-wrap gap-3">
         <Link href="/" className={buttonVariants({ size: "lg" })}>
