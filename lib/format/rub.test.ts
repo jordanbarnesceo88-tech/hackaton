@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatMRub, formatNum, formatPct, formatRub } from "./rub";
+import { formatMlnRub, formatMRub, formatNum, formatPct, formatRub, mlnInText } from "./rub";
 
 /**
  * ICU ставит неразрывный пробел (U+00A0) между группами разрядов; такие строки сравниваем после
@@ -63,6 +63,33 @@ describe("formatMRub", () => {
   it("нечисловой вход — прочерк", () => {
     expect(formatMRub(NaN)).toBe("—");
     expect(formatMRub(-Infinity)).toBe("—");
+  });
+});
+
+describe("formatMlnRub", () => {
+  it("любая сумма — в миллионах с одним знаком", () => {
+    expect(norm(formatMlnRub(38_500_000))).toBe("38,5 млн ₽");
+    expect(norm(formatMlnRub(9_321_602))).toBe("9,3 млн ₽");
+    expect(norm(formatMlnRub(1_055_102))).toBe("1,1 млн ₽");
+    expect(norm(formatMlnRub(0))).toBe("0,0 млн ₽");
+    expect(norm(formatMlnRub(-4_108_652))).toMatch(/4,1 млн ₽$/);
+  });
+
+  it("нечисловой вход — прочерк", () => {
+    expect(formatMlnRub(null)).toBe("—");
+    expect(formatMlnRub(NaN)).toBe("—");
+  });
+});
+
+describe("mlnInText", () => {
+  it("суммы от миллиона во фразе — в миллионах, меньшие — как были", () => {
+    expect(norm(mlnInText("Рекомендуемый сценарий: Покупка — AMR 1500. NPV 3\u00a0983\u00a0162 ₽ за 5 лет"))).toBe(
+      "Рекомендуемый сценарий: Покупка — AMR 1500. NPV 4,0 млн ₽ за 5 лет",
+    );
+    expect(norm(mlnInText("Цена 2 200 000 ₽ не подтверждена"))).toBe("Цена 2,2 млн ₽ не подтверждена");
+    expect(norm(mlnInText("NPV -4 108 652 ₽"))).toMatch(/NPV .4,1 млн ₽$/);
+    expect(mlnInText("Покупка окупается при зарплате от 110 939 ₽/мес")).toBe("Покупка окупается при зарплате от 110 939 ₽/мес");
+    expect(mlnInText("NPV от -28,1 млн ₽ до 36,1 млн ₽")).toBe("NPV от -28,1 млн ₽ до 36,1 млн ₽");
   });
 });
 

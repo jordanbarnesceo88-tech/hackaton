@@ -65,6 +65,27 @@ export function formatMRub(n: number | null | undefined): string {
   return `${fmt(n / 1_000_000, 1)}${UNIT_SEP}млн${UNIT_SEP}₽`;
 }
 
+/**
+ * Сумма всегда в миллионах с одним знаком: 38500000 → «38,5 млн ₽», 1055102 → «1,1 млн ₽».
+ * Для отчёта, где все суммы основной части — в одних единицах (точные рубли — в приложениях).
+ */
+export function formatMlnRub(n: number | null | undefined): string {
+  if (typeof n !== "number" || !Number.isFinite(n)) return DASH;
+  return `${fmt(n / 1_000_000, 1)}${UNIT_SEP}млн${UNIT_SEP}₽`;
+}
+
+/**
+ * Суммы от миллиона рублей внутри готовой фразы — в миллионах, как `formatMlnRub`:
+ * «цена 2 200 000 ₽ не подтверждена» → «цена 2,2 млн ₽ не подтверждена». Меньшие суммы
+ * («при зарплате от 110 939 ₽/мес») не меняются: в миллионах они потеряли бы смысл.
+ */
+export function mlnInText(text: string): string {
+  return text.replace(/([-−])?(\d{1,3}(?:[ \u00A0\u202F]\d{3}){2,})[ \u00A0\u202F]?₽/g, (_m, sign: string | undefined, digits: string) => {
+    const v = Number(digits.replace(/[ \u00A0\u202F]/g, ""));
+    return formatMlnRub(sign ? -v : v);
+  });
+}
+
 /** Число в ru-RU с заданным числом знаков после запятой: 2.9 → «2,9» при digits = 1. */
 export function formatNum(n: number | null | undefined, digits = 0): string {
   if (typeof n !== "number" || !Number.isFinite(n)) return DASH;

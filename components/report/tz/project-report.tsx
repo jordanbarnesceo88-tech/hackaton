@@ -8,7 +8,7 @@ import { SensitivityPanel } from "@/components/project/sensitivity-panel";
 import { safeHttpUrl } from "@/components/project/source-badge";
 import { PrintButton } from "@/components/report/print-button";
 import { pluralRu } from "@/lib/format/plural";
-import { formatNum, formatRub } from "@/lib/format/rub";
+import { formatMlnRub, formatNum, formatRub, mlnInText } from "@/lib/format/rub";
 import type { ParamsSource } from "@/lib/projects/queries";
 import { displayDataText } from "@/lib/tz/characteristics";
 import {
@@ -227,15 +227,22 @@ function SummarySection({ results }: { results: ProjectResults }) {
   const rows = new Map(scenarioTableRows(results).map((r) => [r.rowKey, r]));
   const rec = columns.findIndex((c) => c.recommended);
   const { headline, bullets } = results.conclusion;
+  // Суммы — в миллионах из чисел строки, прочие показатели (окупаемость, имитация) — текстом ячейки.
+  const cellText = (key: (typeof SUMMARY_ROW_KEYS)[number], i: number): string => {
+    const row = rows.get(key);
+    if (!row) return "—";
+    const v = row.values[i];
+    return row.kind === "rub" && typeof v === "number" ? formatMlnRub(v) : (row.cells[i] ?? "—");
+  };
   return (
     <Section id="summary" title={SECTION_TITLES.summary}>
-      <p className="text-base font-semibold">{headline}</p>
+      <p className="text-base font-semibold">{mlnInText(headline)}</p>
       {rec >= 0 && (
         <dl className="report-block grid grid-cols-2 gap-2 sm:grid-cols-4">
           {KEY_FIGURES.map(([key, label]) => (
             <div key={key} className="rounded-md border px-3 py-2">
               <dt className="text-xs text-muted-foreground">{label}</dt>
-              <dd className="text-lg font-semibold tabular-nums">{rows.get(key)?.cells[rec] ?? "—"}</dd>
+              <dd className="text-lg font-semibold tabular-nums">{cellText(key, rec)}</dd>
             </div>
           ))}
         </dl>
@@ -263,9 +270,9 @@ function SummarySection({ results }: { results: ProjectResults }) {
                   <th scope="row" className={`${TD} text-left font-normal`}>
                     {row.label}
                   </th>
-                  {row.cells.map((cell, i) => (
+                  {row.cells.map((_, i) => (
                     <td key={columns[i]?.key ?? i} className={cn(TD, "text-right tabular-nums", i === rec && "font-semibold")}>
-                      {cell}
+                      {cellText(key, i)}
                     </td>
                   ))}
                 </tr>
@@ -279,12 +286,12 @@ function SummarySection({ results }: { results: ProjectResults }) {
           <h3 className="text-base font-semibold">Основания вывода и риски</h3>
           <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
             {bullets.map((b, i) => (
-              <li key={i}>{b}</li>
+              <li key={i}>{mlnInText(b)}</li>
             ))}
           </ul>
         </>
       )}
-      <Note>★ — рекомендуемый сценарий. Полное сравнение — в разделе 2, таблицы для проверки расчёта — в приложениях.</Note>
+      <Note>★ — рекомендуемый сценарий. Суммы в разделах 1–7 — в млн ₽; в приложениях — в рублях, для точной проверки расчёта. Полное сравнение — в разделе 2.</Note>
     </Section>
   );
 }
@@ -330,6 +337,12 @@ function Toolbar({ projectId }: { projectId: string }) {
 
 // ——————————————————————————— Параметры объекта ———————————————————————————
 
+/** Источник базового значения кратко: «Базовые данные, Демо-набор данных › Склад › стр. 4» → «Базовые данные». */
+function shortSource(source: string): string {
+  const i = source.indexOf(",");
+  return i < 0 ? source : source.slice(0, i);
+}
+
 function ParamsSection({ results, defs }: { results: ProjectResults; defs: readonly ParamSpec[] }) {
   const rows = paramsRows(results, defs);
   const defByKey = new Map(defs.map((d) => [d.key, d]));
@@ -346,46 +359,65 @@ function ParamsSection({ results, defs }: { results: ProjectResults; defs: reado
     <Section id="params" title={SECTION_TITLES.params} appendix>
       <Note>
         Значения, с которыми выполнен расчёт. Параметров: {rows.length} · задано вами: {changed} · вне допустимого диапазона:{" "}
-        {outOfRange}. Источник — откуда взято базовое значение; значение, заданное вами, так и подписано.
+        {outOfRange}. Источник — откуда взято базовое значение; место в источнике по каждому параметру — в выгрузке Excel, лист
+        «Параметры объекта».
       </Note>
+      {/* Одна страница A4: значение вместе с единицей, базовое — только у заданных вами, источник — кратко. */}
       <div className={TABLE_WRAP}>
-        <table className={TABLE}>
+        <table className={cn(TABLE, "params-table")}>
           <thead className="border-b">
             <tr>
-              <th scope="col" className={TH}>Параметр</th>
-              <th scope="col" className={`${TH} text-right`}>Значение</th>
-              <th scope="col" className={TH}>Ед.</th>
-              <th scope="col" className={`${TH} text-right`}>Базовое</th>
-              <th scope="col" className={TH}>Диапазон</th>
-              <th scope="col" className={TH}>Источник</th>
-              <th scope="col" className={TH}>Замечания</th>
+              <th scope="col" className={cn(TH, "w-[46%]")}>
+                Параметр
+              </th>
+              <th scope="col" className={`${TH} text-right`}>
+                Значение
+              </th>
+              <th scope="col" className={TH}>
+                Допустимый диапазон
+              </th>
+              <th scope="col" className={TH}>
+                Источник
+              </th>
             </tr>
           </thead>
           {sections.map((s) => (
             <tbody key={s.name}>
               <tr>
-                <th scope="colgroup" colSpan={7} className="border-t bg-muted/20 px-2 py-1 text-left text-xs font-semibold">
+                <th scope="colgroup" colSpan={4} className="border-t bg-muted/20 px-2 py-0.5 text-left text-xs font-semibold">
                   {s.name}
                 </th>
               </tr>
-              {s.items.map(({ row, notes }) => (
+              {s.items.map(({ row }) => (
                 <tr key={row.key} className={cn(row.outOfRange && "bg-caution/10")}>
-                  <th scope="row" className={`${TD} text-left font-normal`}>{row.label}</th>
-                  <td className={cn(TD, "text-right tabular-nums", row.changed && "font-semibold")}>
+                  <th scope="row" className={`${TD} text-left font-normal`}>
+                    {row.label}
+                  </th>
+                  <td className={cn(TD, "text-right tabular-nums whitespace-nowrap", row.changed && "font-semibold")}>
                     {row.outOfRange && <span className="mr-1 text-caution">⚠</span>}
                     {row.cells[2]}
+                    {row.unit ? `\u00A0${row.unit}` : ""}
+                    {row.changed && <span className="ml-1 font-normal text-muted-foreground">(базовое {row.cells[4]})</span>}
                   </td>
-                  <td className={TD}>{row.unit}</td>
-                  <td className={`${TD} text-right tabular-nums text-muted-foreground`}>{row.cells[4]}</td>
                   <td className={`${TD} tabular-nums`}>{row.cells[5]}</td>
-                  <td className={`${TD} text-xs break-words`}>{row.source}</td>
-                  <td className={`${TD} text-xs`}>{notes.join("; ")}</td>
+                  <td className={TD}>{shortSource(row.source)}</td>
                 </tr>
               ))}
             </tbody>
           ))}
         </table>
       </div>
+      {view.some((v) => v.notes.length > 0) && (
+        <ul className="flex list-disc flex-col gap-0.5 pl-5 text-xs">
+          {view
+            .filter((v) => v.notes.length > 0)
+            .map((v) => (
+              <li key={v.row.key}>
+                {v.row.label}: {v.notes.join("; ")}
+              </li>
+            ))}
+        </ul>
+      )}
     </Section>
   );
 }
@@ -590,7 +622,7 @@ function EquipmentSection({ results }: { results: ProjectResults }) {
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>{formatNum(it.chargers)}</td>
                   <td className={`${TD} text-right tabular-nums`}>{formatNum(it.operatorPosts)}</td>
-                  <td className={`${TD} text-xs`}>{i === 0 ? software : ""}</td>
+                  <td className={`${TD} text-xs`}>{i === 0 ? mlnInText(software) : ""}</td>
                   <td className={`${TD} text-xs`}>
                     <ul className="flex flex-col gap-0.5">
                       {fleetLines(it).map((l, li) => (
@@ -631,6 +663,7 @@ function EconomicsSection({ results, defs }: { results: ProjectResults; defs: re
         paramLabels={paramLabels}
         print
         readOnly
+        mln
       />
       {manual && <Note>{MANUAL_NOTE}</Note>}
     </Section>
@@ -774,6 +807,7 @@ function SensitivitySection({ results }: { results: ProjectResults }) {
               metric={r.kind === "asis" ? "tco" : "npv"}
               baseValue={r.kind === "asis" ? r.tcoRub : r.npvRub}
               print
+              mln
             />
             {all > rows.length && (
               <Note>
@@ -913,7 +947,7 @@ function ConclusionSection({ results }: { results: ProjectResults }) {
                 <tr key={i}>
                   <td className={`${TD} text-xs`}>{r.scenarioTitle}</td>
                   <td className={`${TD} text-xs whitespace-nowrap`}>{r.severity}</td>
-                  <td className={`${TD} text-xs`}>{r.text}</td>
+                  <td className={`${TD} text-xs`}>{mlnInText(r.text)}</td>
                 </tr>
               ))}
             </tbody>

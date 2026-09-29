@@ -1,7 +1,7 @@
 "use client";
 
 import { formatYearsRu, pluralRu } from "@/lib/format/plural";
-import { formatPct, formatRub } from "@/lib/format/rub";
+import { formatMlnRub, formatPct, formatRub, mlnInText } from "@/lib/format/rub";
 import { BOTTLENECK_LABELS } from "@/lib/sim/export-rows";
 import type { SimSummaryStored } from "@/lib/sim/types";
 import { isViableScenario, pickRecommended } from "@/lib/tz/econ/conclusion";
@@ -109,11 +109,13 @@ type CellCtx = {
   sim?: SimSummaryStored | null;
   recommended: boolean;
   bands: Pick<NormValues, "paybackBandFastYears" | "paybackBandSlowYears">;
+  /** Формат сумм: по умолчанию полные рубли; отчёт передаёт миллионы (formatMlnRub). */
+  money?: (n: number) => string;
 };
 
-function signedRub(v: number): string {
-  if (v > 0) return `+${formatRub(v)}`;
-  return formatRub(v);
+function signedRub(v: number, money: (n: number) => string = formatRub): string {
+  if (v > 0) return `+${money(v)}`;
+  return money(v);
 }
 
 /**
@@ -122,19 +124,20 @@ function signedRub(v: number): string {
  */
 export function scenarioCell(key: ScenarioRowKey, r: ScenarioOk, ctx: CellCtx): ScenarioCell {
   const asis = r.kind === "asis";
+  const money = ctx.money ?? formatRub;
   const dash: ScenarioCell = { text: "—", muted: true };
   switch (key) {
     case "composition":
       return { text: compositionText(r) };
     case "capex":
-      return { text: formatRub(r.capexRub) };
+      return { text: money(r.capexRub) };
     case "opex":
-      return { text: formatRub(r.opexYearRub) };
+      return { text: money(r.opexYearRub) };
     case "labour":
-      return { text: formatRub(r.processLabourYearRub) };
+      return { text: money(r.processLabourYearRub) };
     case "effect":
       if (asis) return { text: "база сравнения", muted: true };
-      return { text: formatRub(r.effectYearRub), tone: r.effectYearRub > 0 ? "good" : "bad" };
+      return { text: money(r.effectYearRub), tone: r.effectYearRub > 0 ? "good" : "bad" };
     case "payback":
       if (asis) return dash;
       return r.paybackYears === null ? { text: "не окупается", tone: "bad" } : { text: formatYearsRu(r.paybackYears) };
@@ -151,17 +154,17 @@ export function scenarioCell(key: ScenarioRowKey, r: ScenarioOk, ctx: CellCtx): 
     }
     case "npv":
       if (asis || r.npvRub === null) return dash;
-      return { text: formatRub(r.npvRub), tone: r.npvRub >= 0 ? "good" : "bad" };
+      return { text: money(r.npvRub), tone: r.npvRub >= 0 ? "good" : "bad" };
     case "dpb":
       if (asis) return dash;
       return r.discountedPaybackYears === null
         ? { text: "не окупается за горизонт", tone: "bad" }
         : { text: formatYearsRu(r.discountedPaybackYears) };
     case "tco":
-      return { text: formatRub(r.tcoRub) };
+      return { text: money(r.tcoRub) };
     case "tcoDelta":
       if (asis) return { text: "база сравнения", muted: true };
-      return { text: signedRub(r.tcoDeltaVsAsIsRub), tone: r.tcoDeltaVsAsIsRub < 0 ? "good" : "bad" };
+      return { text: signedRub(r.tcoDeltaVsAsIsRub, money), tone: r.tcoDeltaVsAsIsRub < 0 ? "good" : "bad" };
     case "sim":
       return { text: simCellText(ctx.sim), muted: !ctx.sim };
     case "risks":
@@ -179,7 +182,8 @@ const TH = "px-3 py-2 text-left align-bottom font-medium";
 const TD = "border-t px-3 py-2 align-top";
 const TOP_RISKS = 3;
 
-function RisksCell({ risks, print }: { risks: readonly Risk[]; print: boolean }) {
+function RisksCell({ risks, print, mln = false }: { risks: readonly Risk[]; print: boolean; mln?: boolean }) {
+  const text = (t: string) => (mln ? mlnInText(t) : t);
   const top = risks.slice(0, TOP_RISKS);
   const rest = risks.slice(TOP_RISKS);
   return (
@@ -189,7 +193,7 @@ function RisksCell({ risks, print }: { risks: readonly Risk[]; print: boolean })
         <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
           {top.map((r) => (
             <li key={`${r.code}-${r.text}`}>
-              <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {r.text}
+              <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {text(r.text)}
             </li>
           ))}
         </ul>
@@ -203,7 +207,7 @@ function RisksCell({ risks, print }: { risks: readonly Risk[]; print: boolean })
             <ul className="mt-1 flex flex-col gap-1">
               {rest.map((r) => (
                 <li key={`${r.code}-${r.text}`}>
-                  <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {r.text}
+                  <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {text(r.text)}
                 </li>
               ))}
             </ul>
@@ -221,6 +225,7 @@ export function ScenarioTable({
   norms = DEFAULT_NORMS,
   print = false,
   readOnly = false,
+  mln = false,
   paramLabels,
 }: {
   results: readonly ScenarioResult[];
@@ -236,6 +241,8 @@ export function ScenarioTable({
   print?: boolean;
   /** Только чтение (гость, чужой снимок): отказ не зовёт к кнопкам исправления. */
   readOnly?: boolean;
+  /** Суммы — в миллионах (отчёт: все суммы основной части в одних единицах). */
+  mln?: boolean;
   /** Подписи параметров объекта — для полей отказа 'param:<ключ>'. */
   paramLabels?: Readonly<Record<string, string>>;
 }) {
@@ -289,11 +296,11 @@ export function ScenarioTable({
                 if (row.key === "risks") {
                   return (
                     <td key={r.key} className={cn(TD, colClass(r.key))}>
-                      {r.kind === "asis" ? <span className="text-muted-foreground">—</span> : <RisksCell risks={r.risks} print={print} />}
+                      {r.kind === "asis" ? <span className="text-muted-foreground">—</span> : <RisksCell risks={r.risks} print={print} mln={mln} />}
                     </td>
                   );
                 }
-                const c = scenarioCell(row.key, r, { sim: sim[r.key], recommended: r.key === recKey, bands: norms });
+                const c = scenarioCell(row.key, r, { sim: sim[r.key], recommended: r.key === recKey, bands: norms, money: mln ? formatMlnRub : undefined });
                 return (
                   <td
                     key={r.key}

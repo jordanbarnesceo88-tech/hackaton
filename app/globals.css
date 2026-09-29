@@ -1079,6 +1079,12 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+  /* Параметры объекта — на одном листе: строки в одну линию, поля ячеек меньше. */
+  .report-print .params-table th,
+  .report-print .params-table td {
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
   /* Приложения — таблицы для проверки расчёта — начинаются с нового листа. */
   .report-print .report-appendix {
     break-before: page;
