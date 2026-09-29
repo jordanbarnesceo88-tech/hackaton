@@ -65,8 +65,14 @@
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
+  --color-scrim: var(--scrim);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-border-faint: var(--border-faint);
+  /* BCB panel radius (--r-lg, 16px) — the prototype's card/panel/chart-container radius, kept
+     distinct from --radius-xl (14px, derived from the button/input --radius scale) because the
+     audit found panels using the button radius read visibly tighter-cornered than the prototype. */
+  --radius-panel: 1rem;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -84,35 +90,59 @@
      popup, and the autofilled email/password fields on /login and /signup. Declared in all
      three token blocks so it tracks the theme exactly as the tokens do. */
   color-scheme: light;
-  /* Не чистый белый: под насыщенным синим акцентом он читается как отсутствие решения, а не
-     как решение. Карточка при этом остаётся белой — так она отделяется от фона сама, без
-     границы и тени, что и есть язык, к которому мы идём. Оттенок взят от акцента (264), чтобы
-     нейтраль была выбранной, а не унаследованной. */
-  --background: oklch(0.978 0.004 264);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  /* --rail-w (BCB): ширина развёрнутой боковой панели (components/site-rail.tsx). Не цвет —
+     объявлена один раз здесь, а не по разу на тему, и наследуется во .dark без переопределения. */
+  --rail-w: 13.25rem;
+  /* Палитра порта BCB (docs/design/PROTOTYPE-DESIGN-SYSTEM.md), светлый облик прототипа
+     (`:root[data-skin="light"]`), переведённая в oklch 1:1 по тону/насыщенности. Три пары —
+     primary/primary-foreground, destructive/background, positive и caution против
+     background/card — пересчитаны по светлоте, а не взяты сырыми: raw accent-strong
+     (#1E9BA3) даёт только 2.82:1 на фоне (нужно 3.0) и 3.35:1 под белым текстом (нужно 4.5);
+     raw ok/warn/crit дают 3.4–3.9:1 против требуемых 4.5, потому что в прототипе это цвета
+     ЗАЛИВКИ (--ok-bg и т.п.), а здесь это цвет ЧЕРНИЛ текста поверх --background и --card
+     напрямую (grep по компонентам: text-positive/text-caution — не bg-заливка). Все пары
+     ниже проверены npm run check:contrast; H и C — из прототипа без изменений, менялась
+     только L. */
+  --background: oklch(0.942 0.002 197.1); /* --ground (light) */
+  --foreground: oklch(0.264 0.025 217.3); /* --text (light) */
+  /* Card deliberately darker than --background (2026-09-26 revision) — the opposite of raw
+     BCB's own --surface, which is LIGHTER than --ground in both of its skins (a card that
+     floats above a dimmer page). Owner's explicit direction after reviewing a live deploy:
+     blocks read as sunken/recessed relative to the page, not floating above it. Not a BCB
+     literal-fidelity regression — it's the owner's own call for their own product, made with
+     the actual prototype in front of them. chart-2..5 re-stepped below to keep 3:1 on this
+     darker surface; chart-1 already cleared it (3.23:1) unchanged. */
+  --card: oklch(0.895 0.004 197.1);
+  --card-foreground: oklch(0.264 0.025 217.3);
+  /* Popover/modal stay on raw BCB --surface (white here, oklch(0.264…) in dark), NOT on the
+     darkened --card above. The card revision is about panels sitting IN the page; a popover
+     or modal sits ABOVE it, and with --card's values the tour dialog in dark mode was darker
+     than the page it covered — no scrim can then make the surround read darker than the
+     popup, which the owner asked for (2026-09-26). */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.42 0.17 264); /* deep blue (brand) */
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  /* 0.556 давало 4.74:1 на чистом белом и 4.46:1 на тонированном фоне — под порогом
-     4.5 для текста. Затемнено ровно настолько, чтобы вернуться выше него; проверяется
-     скриптом npm run check:contrast, а не на глаз. */
-  --muted-foreground: oklch(0.542 0 0);
-  --accent: oklch(0.96 0.02 250); /* faint blue surface (hovers/subtle) */
-  --accent-foreground: oklch(0.42 0.17 264);
-  /* Darkened from L .577. --destructive is only ever ink or a light tint here (never a solid
-     fill behind light text), so a darker step is a pure gain: on its own 5% tint the hero's
-     "не окупается" panel measured 4.36:1, under the 4.5 AA floor for the very message whose
-     job is to deliver bad news legibly. Now 6.07:1, and 6.64:1 on plain white. */
-  --destructive: oklch(0.50 0.200 27.3);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.55 0.15 264); /* visible brand-blue focus ring */
+  --popover-foreground: oklch(0.264 0.025 217.3);
+  /* Modal scrim: a dark ink wash, measured against the real page (skill rule "scrim and
+     modal legibility"): page under it composites to ~rgb(111,120,122), popup (--popover)
+     4.5:1 lighter than its surround. The previous backdrop was --background at 40% — the
+     page's own light tone, so opening the dialog LIGHTENED the page around a darker card. */
+  --scrim: oklch(0.2 0.02 217 / 0.55);
+  --primary: oklch(0.385 0.045 201.9); /* --accent (light): #234B4E, не accent-strong — см. выше */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.971 0.003 197.1); /* --surface-2 (light) */
+  --secondary-foreground: oklch(0.264 0.025 217.3);
+  --muted: oklch(0.971 0.003 197.1); /* --surface-2 (light) */
+  --muted-foreground: oklch(0.443 0.029 267.6); /* --text-muted (light), 7.70:1 на card */
+  --accent: oklch(0.917 0.011 197.0); /* --surface-hover (light) */
+  --accent-foreground: oklch(0.264 0.025 217.3);
+  --destructive: oklch(0.549 0.183 31.0); /* --crit (light), L снижена 0.585→0.549 для 4.5:1 на фоне */
+  --border: oklch(0.889 0.008 197.0); /* --line (light) */
+  --border-faint: oklch(0.936 0.005 197.1); /* --line-faint (light): weaker divider, e.g. table rows */
+  --input: oklch(0.804 0.014 202.4); /* --line-strong (light) */
+  --ring: oklch(0.385 0.045 201.9); /* = primary */
+  /* --accent-bg: BCB's tinted-primary wash for hover/pressed chips and badge fills. Defined
+     once here (not per theme): color-mix resolves --primary live at point of use, so it tracks
+     whichever theme is active on the same element without a .dark/media duplicate. */
+  --accent-bg: color-mix(in oklch, var(--primary) 12%, transparent);
   /* Categorical, not a ramp. These sit in shadcn's categorical chart slots, so a single-hue
      blue→cyan sequence was the wrong shape twice over: it encoded identity as magnitude, and
      the pale end failed contrast (chart-5 was 1.80:1 on white, against a 3:1 minimum for
@@ -122,67 +152,85 @@
      separation, normal-vision separation and contrast all pass. Blue stays first so a
      single-series chart still reads as the brand. */
   --chart-1: oklch(0.575 0.163 255.5); /* #2a78d6 blue    — 4.42:1 */
-  --chart-2: oklch(0.671 0.175 40.6);  /* #eb6834 orange  — 3.20:1 */
-  --chart-3: oklch(0.644 0.140 162.3); /* #01a773 aqua    — 3.10:1 */
-  --chart-4: oklch(0.671 0.145 70.2);  /* #cd8300 yellow  — 3.07:1 */
-  --chart-5: oklch(0.681 0.141 357.5); /* #dc7099 magenta — 3.08:1 */
+  --chart-2: oklch(0.595 0.175 40.6);  /* re-stepped for darker --card, 3.19:1 */
+  --chart-3: oklch(0.554 0.140 162.3); /* re-stepped for darker --card, 3.17:1 */
+  --chart-4: oklch(0.582 0.145 70.2);  /* re-stepped for darker --card, 3.18:1 */
+  --chart-5: oklch(0.595 0.141 357.5); /* re-stepped for darker --card, 3.18:1 */
 
   /* B4: the semantics the brand pass claimed but never added, which left «экономия» and
-     «оценка» as hardcoded emerald/amber utilities that no theme could reach. */
-  --positive: oklch(0.52 0.13 158);
-  --positive-foreground: oklch(0.985 0 0);
-  --caution: oklch(0.52 0.12 75);
-  --caution-foreground: oklch(0.985 0 0);
+     «оценка» as hardcoded emerald/amber utilities that no theme could reach.
+     --ok/--warn (BCB) hues kept, L lowered for 4.5:1 ink-on-background (see note above). */
+  --positive: oklch(0.508 0.137 157.2); /* --ok (light) */
+  --positive-foreground: oklch(1 0 0);
+  --caution: oklch(0.534 0.125 70.4); /* --warn (light) */
+  --caution-foreground: oklch(1 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* --shadow-panel/--shadow-pop: BCB's two elevation shadows, ported as rgba (not oklch —
+     box-shadow keeps its own color space; the prototype specifies these in rgba). */
+  --shadow-panel: 0 14px 34px rgba(22, 40, 45, 0.12);
+  --shadow-pop: 0 24px 60px rgba(22, 40, 45, 0.22);
+  --glass-bg: rgba(255, 255, 255, 0.93);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.264 0.025 217.3);
+  --sidebar-primary: oklch(0.385 0.045 201.9);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.917 0.011 197.0);
+  --sidebar-accent-foreground: oklch(0.264 0.025 217.3);
+  --sidebar-border: oklch(0.889 0.008 197.0);
+  --sidebar-ring: oklch(0.385 0.045 201.9);
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.62 0.16 264); /* brand blue (dark) */
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.30 0.03 250);
-  --accent-foreground: oklch(0.90 0.03 240);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.62 0.16 264);
+  /* Палитра порта BCB — тёмный облик прототипа (`:root` в BCB_Platform_demo.html), базовый
+     и единственный облик, под который сам прототип проектировался. Раскладка та же, что в
+     §1 светлого блока: H/C из прототипа без изменений. accent-strong (#22CCD6, ярко-циан)
+     здесь и служит primary — в тёмном облике, в отличие от светлого, он проходит контраст
+     с запасом (8.78:1 на фоне при пороге 3.0, 8.78:1 под тёмным текстом при пороге 4.5). */
+  --background: oklch(0.219 0.022 216.6); /* --ground (dark) */
+  --foreground: oklch(0.942 0.002 197.1); /* --text (dark) */
+  --card: oklch(0.175 0.022 216.6); /* darker than --background (0.219) — same 2026-09-26 revision, see the :root card comment above */
+  --card-foreground: oklch(0.942 0.002 197.1);
+  --popover: oklch(0.264 0.025 217.3); /* raw BCB --surface (dark) — above the page, see :root */
+  --popover-foreground: oklch(0.942 0.002 197.1);
+  --scrim: oklch(0.1 0.015 217 / 0.72); /* page composites to ~rgb(4,11,13), under the popup */
+  --primary: oklch(0.771 0.126 201.4); /* --accent-strong (dark): #22CCD6 */
+  --primary-foreground: oklch(0.219 0.022 216.6);
+  --secondary: oklch(0.307 0.032 208.7); /* --surface-2 (dark) */
+  --secondary-foreground: oklch(0.942 0.002 197.1);
+  --muted: oklch(0.307 0.032 208.7); /* --surface-2 (dark) */
+  --muted-foreground: oklch(0.694 0.020 213.5); /* --text-muted (dark), 6.36:1 на фоне */
+  --accent: oklch(0.374 0.041 207.5); /* --surface-hover (dark) */
+  --accent-foreground: oklch(0.942 0.002 197.1);
+  --destructive: oklch(0.674 0.181 29.7); /* --crit (dark), 5.40:1 на фоне — без правки */
+  --border: oklch(0.374 0.035 210.0); /* --line (dark) — сплошной, не полупрозрачный: так у прототипа */
+  --border-faint: oklch(0.329 0.034 210.7); /* --line-faint (dark): weaker divider, e.g. table rows */
+  --input: oklch(0.466 0.045 208.1); /* --line-strong (dark), граница контрола ярче обычной */
+  --ring: oklch(0.771 0.126 201.4); /* = primary */
   /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
-     re-validated against oklch(0.205 0 0). */
+     re-validated against oklch(0.205 0 0). Chart palette is out of scope for the BCB port —
+     BCB has no five-way categorical chart palette (only four detection-category hues, a
+     different domain), and this one is already CVD/contrast-validated. Left unchanged. */
   --chart-1: oklch(0.659 0.163 256.0); /* #4792f3 — 5.70:1 */
-  --chart-2: oklch(0.526 0.173 37.9);  /* #b83800 — 3.08:1 */
+  --chart-2: oklch(0.562 0.173 37.9);  /* re-stepped for the BCB dark --card, 3.00:1 */
   --chart-3: oklch(0.660 0.141 162.0); /* #14ac77 — 6.14:1 */
-  --chart-4: oklch(0.524 0.124 59.1);  /* #9d5500 — 3.19:1 */
+  --chart-4: oklch(0.548 0.124 59.1);  /* re-stepped for the BCB dark --card, 3.01:1 */
   --chart-5: oklch(0.660 0.140 357.2); /* #d46a93 — 5.36:1 */
-  --positive: oklch(0.70 0.15 158);
-  --positive-foreground: oklch(0.145 0 0);
-  --caution: oklch(0.75 0.14 75);
-  --caution-foreground: oklch(0.145 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --positive: oklch(0.806 0.158 159.6); /* --ok (dark), 10.04:1 на фоне — без правки */
+  --positive-foreground: oklch(0.219 0.022 216.6);
+  --caution: oklch(0.839 0.133 83.3); /* --warn (dark), 10.45:1 на фоне — без правки */
+  --caution-foreground: oklch(0.219 0.022 216.6);
+  --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.42);
+  --shadow-pop: 0 26px 70px rgba(0, 0, 0, 0.6);
+  --glass-bg: rgba(22, 40, 45, 0.92);
+  --sidebar: oklch(0.264 0.025 217.3);
+  --sidebar-foreground: oklch(0.942 0.002 197.1);
+  --sidebar-primary: oklch(0.771 0.126 201.4);
+  --sidebar-primary-foreground: oklch(0.219 0.022 216.6);
+  --sidebar-accent: oklch(0.374 0.041 207.5);
+  --sidebar-accent-foreground: oklch(0.942 0.002 197.1);
+  --sidebar-border: oklch(0.374 0.035 210.0);
+  --sidebar-ring: oklch(0.771 0.126 201.4);
 }
 
 /* The same values under the OS preference. Duplicated on purpose and kept adjacent: CSS cannot
@@ -192,43 +240,49 @@
 @media screen and (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.62 0.16 264); /* brand blue (dark) */
-    --primary-foreground: oklch(0.145 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.30 0.03 250);
-    --accent-foreground: oklch(0.90 0.03 240);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.62 0.16 264);
+    --background: oklch(0.219 0.022 216.6);
+    --foreground: oklch(0.942 0.002 197.1);
+    --card: oklch(0.175 0.022 216.6);
+    --card-foreground: oklch(0.942 0.002 197.1);
+    --popover: oklch(0.264 0.025 217.3);
+    --popover-foreground: oklch(0.942 0.002 197.1);
+    --scrim: oklch(0.1 0.015 217 / 0.72);
+    --primary: oklch(0.771 0.126 201.4);
+    --primary-foreground: oklch(0.219 0.022 216.6);
+    --secondary: oklch(0.307 0.032 208.7);
+    --secondary-foreground: oklch(0.942 0.002 197.1);
+    --muted: oklch(0.307 0.032 208.7);
+    --muted-foreground: oklch(0.694 0.020 213.5);
+    --accent: oklch(0.374 0.041 207.5);
+    --accent-foreground: oklch(0.942 0.002 197.1);
+    --destructive: oklch(0.674 0.181 29.7);
+    --border: oklch(0.374 0.035 210.0);
+    --border-faint: oklch(0.329 0.034 210.7);
+    --input: oklch(0.466 0.045 208.1);
+    --ring: oklch(0.771 0.126 201.4);
     /* Selected for the dark card surface, not flipped: the same five hues re-stepped and
-       re-validated against oklch(0.205 0 0). */
+       re-validated against oklch(0.205 0 0). Chart palette out of scope for the BCB port —
+       see the .dark block above for why. */
     --chart-1: oklch(0.659 0.163 256.0); /* #4792f3 — 5.70:1 */
-    --chart-2: oklch(0.526 0.173 37.9);  /* #b83800 — 3.08:1 */
+    --chart-2: oklch(0.562 0.173 37.9);  /* re-stepped for the BCB dark --card, 3.00:1 */
     --chart-3: oklch(0.660 0.141 162.0); /* #14ac77 — 6.14:1 */
-    --chart-4: oklch(0.524 0.124 59.1);  /* #9d5500 — 3.19:1 */
+    --chart-4: oklch(0.548 0.124 59.1);  /* re-stepped for the BCB dark --card, 3.01:1 */
     --chart-5: oklch(0.660 0.140 357.2); /* #d46a93 — 5.36:1 */
-    --positive: oklch(0.70 0.15 158);
-    --positive-foreground: oklch(0.145 0 0);
-    --caution: oklch(0.75 0.14 75);
-    --caution-foreground: oklch(0.145 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --positive: oklch(0.806 0.158 159.6);
+    --positive-foreground: oklch(0.219 0.022 216.6);
+    --caution: oklch(0.839 0.133 83.3);
+    --caution-foreground: oklch(0.219 0.022 216.6);
+    --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.42);
+    --shadow-pop: 0 26px 70px rgba(0, 0, 0, 0.6);
+    --glass-bg: rgba(22, 40, 45, 0.92);
+    --sidebar: oklch(0.264 0.025 217.3);
+    --sidebar-foreground: oklch(0.942 0.002 197.1);
+    --sidebar-primary: oklch(0.771 0.126 201.4);
+    --sidebar-primary-foreground: oklch(0.219 0.022 216.6);
+    --sidebar-accent: oklch(0.374 0.041 207.5);
+    --sidebar-accent-foreground: oklch(0.942 0.002 197.1);
+    --sidebar-border: oklch(0.374 0.035 210.0);
+    --sidebar-ring: oklch(0.771 0.126 201.4);
   }
 }
 
@@ -249,13 +303,18 @@
   /* Контраст размеров был 20px против 14px — отношение 1.43, при котором глаз читает
      страницу одним сплошным блоком, и никакая палитра этого не исправит. Опросные
      интерфейсы, на которые мы равняемся, держатся примерно на 2.5. */
+  /* Phones: Unbounded is a very wide face, and a single long Russian word
+     («роботизированных») at the old ~28px floor ran past a 375px screen. The fluid term is
+     steeper so phones land at ~26px while desktop still caps at 40px (type scale 40/16);
+     overflow-wrap breaks a word only if it still cannot fit. */
   h1 {
     font-family: var(--font-heading);
     font-weight: 700;
-    font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.5rem);
+    font-size: clamp(1.5rem, 0.9rem + 3vw, 2.5rem);
     line-height: 1.1;
     letter-spacing: -0.022em;
     text-wrap: balance;
+    overflow-wrap: break-word;
   }
   h2 {
     font-family: var(--font-heading);
@@ -264,6 +323,13 @@
     line-height: 1.2;
     letter-spacing: -0.015em;
     text-wrap: balance;
+    overflow-wrap: break-word;
+  }
+  /* Checkboxes and radios take the brand colour everywhere; only some had accent-primary,
+     the rest (catalog filters, admin forms, import) rendered the browser's default blue. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
   }
   h3 {
     font-family: var(--font-heading);
@@ -305,6 +371,89 @@
   }
 }
 
+/* Пейджер рабочей области проекта (goToStep в components/project/workspace.tsx): шаг
+   сменяется горизонтальным сдвигом — вперёд текущий уходит влево, а новый въезжает справа;
+   назад — зеркально. Имя перехода выдаётся блоку шагов только на время этого перехода
+   (data-step-dir на <html>), а у корня анимация на это время снята: шапка, липкая панель
+   шагов и всё вне блока стоят на месте. Размер группы не анимируется — новый шаг сразу
+   занимает свою высоту, сдвигаются только снимки. Выход короче входа: уходящее не должно
+   заставлять ждать. */
+:root[data-step-dir] .workspace-steps {
+  view-transition-name: workspace-steps;
+}
+:root[data-step-dir]::view-transition-old(root),
+:root[data-step-dir]::view-transition-new(root) {
+  animation: none;
+}
+:root[data-step-dir]::view-transition-group(workspace-steps) {
+  animation-duration: 0s;
+}
+:root[data-step-dir="next"]::view-transition-old(workspace-steps) {
+  animation: step-out-left 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+:root[data-step-dir="next"]::view-transition-new(workspace-steps) {
+  animation: step-in-right 320ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+:root[data-step-dir="prev"]::view-transition-old(workspace-steps) {
+  animation: step-out-right 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+:root[data-step-dir="prev"]::view-transition-new(workspace-steps) {
+  animation: step-in-left 320ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes step-out-left {
+  to { opacity: 0; transform: translateX(-7rem); }
+}
+@keyframes step-in-right {
+  from { opacity: 0; transform: translateX(7rem); }
+}
+@keyframes step-out-right {
+  to { opacity: 0; transform: translateX(7rem); }
+}
+@keyframes step-in-left {
+  from { opacity: 0; transform: translateX(-7rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-step-dir]::view-transition-old(workspace-steps),
+  :root[data-step-dir]::view-transition-new(workspace-steps) {
+    animation: none;
+  }
+}
+/* Печать рабочей области — все шаги, как до пейджера: на бумаге листать нечем. */
+@media print {
+  .workspace-steps > section[hidden] {
+    display: flex !important;
+  }
+}
+
+/* Порт эффектов BCB (docs/design/PROTOTYPE-DESIGN-SYSTEM.md): четыре keyframes из прототипа,
+   переносимые как переиспользуемая инфраструктура. `pulse`/`bubble-in` общего назначения;
+   `march`/`halo` рассчитаны на SVG со `stroke-dasharray`/`transform-box: fill-box` и здесь
+   пока не подключены ни к одному компоненту — в прототипе это анимация выбранного агента и
+   активного маршрута на изометрической карте (SVG), а собственная 2D-сцена этого приложения
+   рисуется на `<canvas>` (components/facility-visualization.tsx), где CSS-анимация тегов не
+   применяется в принципе. Оставлены здесь как готовый примитив на случай SVG-сцены. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes march {
+  to { stroke-dashoffset: -14; }
+}
+@keyframes halo {
+  0% { transform: scale(0.7); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-tone,
+  .animate-bubble-in {
+    animation: none;
+  }
+}
+
 @layer components {
   /* WCAG 2.2 SC 2.5.8 (AA): цель нажатия — минимум 24×24 CSS-пикселя. Текстовая ссылка в
      строке имеет высоту строки, то есть 19–22 пикселя, и на телефоне в неё промахиваются.
@@ -327,22 +476,454 @@
   /* Ширина выбирается по РОЛИ поверхности, а не одна на всё приложение.
      «Везде 100vw» — не ответ: строка длиннее ~75 знаков теряется при переходе на следующую,
      и вопрос во всю ширину монитора не читается. Но и max-w-3xl на калькуляторе оставлял две
-     трети экрана пустыми, а таблицу сравнения жал в колонку с обрезанными столбцами. */
+     трети экрана пустыми, а таблицу сравнения жал в колонку с обрезанными столбцами.
 
-  /* Проза, формы, шаги опроса. */
+     Расширено по запросу (2026-09-26): везде по сайту ~80–90vw. Для .surface-data это буквально
+     90vw — там нет риска для чтения, только польза от простора. Для .surface-prose (вопросы
+     визарда, абзацы лендинга) взят компромисс: 85vw снаружи, но с внутренним потолком 70rem
+     (≈1120px, ~90–100 знаков в строке) — иначе на широком мониторе абзац растягивается в строки
+     по 200+ знаков, которые физически неудобно читать (это не вкусовщина, а эргономика чтения).
+     Раздел при этом всё равно визуально шире, чем был. */
+
+  /* Проза, формы, шаги опроса. Внешняя геометрия — та же, что у .surface-data (просьба
+     владельца 2026-09-27: у главной левый край не совпадал с остальными страницами — 184px
+     против 58px при 1440), а читаемую меру строки держат дети: не шире 72rem (~110 знаков),
+     выровнены по тому же левому краю. Заодно совпали шапка-прогресс мастера v1 (она на
+     .surface-data) и его шаги. */
   .surface-prose {
-    width: 100%;
-    max-width: 42rem;
+    width: min(96vw, 120rem);
     margin-inline: auto;
-    padding-inline: 1.5rem;
+    padding-inline: clamp(1rem, 2vw, 2rem);
+  }
+  .surface-prose > * {
+    max-width: 72rem;
   }
 
-  /* Данные: таблицы и панели занимают монитор, но не липнут к краям. */
+  /* Данные: таблицы, панели, визуализация, калькулятор — то, что раньше называли «дизайн» в
+     запросе на расширение. Второе расширение (2026-09-26, «поля всё ещё съедают место»): 96vw и
+     поле до 2rem — при 1440px по ~58px пустоты с каждой стороны вместо ~130px, колонка данных
+     1325px вместо 1181px. */
   .surface-data {
-    width: 100%;
-    max-width: 96rem;
+    width: min(96vw, 120rem);
     margin-inline: auto;
-    padding-inline: clamp(1.5rem, 4vw, 4rem);
+    padding-inline: clamp(1rem, 2vw, 2rem);
+  }
+
+  /* Два уровня возвышения из BCB: панель (карточка) и всплывающая поверхность (поповер/модал).
+     print не наследует их: box-shadow не печатается ни в одном браузере вне зависимости от
+     print-color-adjust, так что .report-block ими не задета. */
+  .shadow-panel {
+    box-shadow: var(--shadow-panel);
+  }
+  .shadow-pop {
+    box-shadow: var(--shadow-pop);
+  }
+
+  /* Стеклянная поверхность из BCB (тулбары, сегменты карты) — полупрозрачная заливка своим же
+     тоном плюс размытие фона. Готова для sticky-шапок/оверлеев; заявку никуда не навешивает
+     сама по себе. */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Пульсирующая точка критического статуса (BCB: `.badge[data-tone="crit"]::before`). */
+  .animate-pulse-tone {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  /* Появление тоста/всплывающей подсказки (BCB: `.toast`, `.asst__bubble.is-in`). */
+  .animate-bubble-in {
+    animation: bubble-in 0.24s ease-out;
+  }
+
+  /* .badge — BCB's borderless, tone-colored status label with its signature ::before dot
+     (6×6, currentColor — one property drives both text and dot). Asymmetric padding
+     (2px 9px 2px 7px) leaves the dot visually centered in its own smaller margin rather than
+     matching the label side. Distinct from .chip below: two different prototype anatomies that
+     a prior pass had collapsed into one. */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px 2px 7px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    background: color-mix(in oklch, currentColor 12%, transparent);
+    /* ui-ux-pro-max review, "Compact Label Overflow": a badge should stay on one line rather
+       than wrap to a second — .chip already had this, .badge didn't. */
+    white-space: nowrap;
+  }
+  .badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .badge[data-tone="ok"] {
+    color: var(--positive);
+  }
+  .badge[data-tone="warn"] {
+    color: var(--caution);
+  }
+  .badge[data-tone="crit"] {
+    color: var(--destructive);
+  }
+  /* Не из палитры BCB ok/warn/crit/idle — источник/происхождение данных (organizer/tz/user)
+     семантически "это важно, это ввод" (ТЗ §3.2.5, §3.3.4), а не тревога/успех/предупреждение;
+     info даёт этому свой тон вместо натягивания на ближайший из четырёх. */
+  .badge[data-tone="info"] {
+    color: var(--primary);
+  }
+  /* Пульс — только для действительно живого/срочного статуса (data-live), не для любого
+     тона "crit": в каталоге "исключено из подбора" тоже crit-цвета, но это статичный факт,
+     а не сигнал тревоги, и пульсирующая точка на каждой такой строке списка была бы шумом. */
+  .badge[data-tone="crit"][data-live="true"]::before {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .badge[data-tone="crit"][data-live="true"]::before {
+      animation: none;
+    }
+  }
+
+  /* .chip — BCB's neutral bordered tag/filter pill: fixed 1px neutral border regardless of
+     state, no dot, no tone color by default. Toggles to a solid --primary fill when pressed
+     (aria-pressed), matching the prototype's `.chip[aria-pressed="true"]`. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--input);
+    border-radius: 9999px;
+    background: var(--secondary);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    transition: border-color 0.14s, background 0.14s, color 0.14s;
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+  /* Нажатие — только для реально интерактивных чипов (button/a), не для .chip как статичной
+     метки (ProvenanceBadge и т.п. используют тот же класс без интерактивности). */
+  button.chip,
+  a.chip {
+    transition: border-color 0.14s, background 0.14s, color 0.14s, transform 0.1s ease-out;
+  }
+  button.chip:active,
+  a.chip:active {
+    transform: scale(0.96);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button.chip:active,
+    a.chip:active {
+      transform: none;
+    }
+  }
+
+  /* .subtabs/.subtab — BCB subtabs: underlined, equal-weight items, NOT a filled pill (the
+     design spec's §6 differentiators name the background pill as shadcn Tabs' default look,
+     not the prototype's). The container carries the shared bottom line; the active item
+     overlays it with its own 2px accent line (-1px margin). Active = aria-selected (a real
+     tablist) or aria-current (step links). Both the step nav and the scenario tabs use it —
+     they had drifted into two different tab looks on the same screen. */
+  .subtabs {
+    position: relative; /* same reason as .data-table-wrap: a scroll box contains its abs. children */
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+  .subtab {
+    margin-bottom: -1px;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.375rem;
+    border-bottom: 2px solid transparent;
+    padding: 0.375rem 0.625rem;
+    white-space: nowrap;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .subtab:hover {
+    color: var(--foreground);
+  }
+  .subtab:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  .subtab[aria-selected="true"],
+  .subtab[aria-current]:not([aria-current="false"]) {
+    border-bottom-color: var(--primary);
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  /* Заголовки внутри шага рабочей области: h2 — сам шаг (глобальный стиль), .section-title —
+     раздел шага («Нормативы и допущения», «Состав сценариев», «Журнал корректировок»),
+     .block-title — блок внутри раздела («CAPEX по статьям», «Денежный поток по годам»).
+     Раньше всё это было 14–16px полужирным и отделялось от соседей 16–24px, поэтому раздел
+     «Нормативы и допущения» читался продолжением таблицы над ним. */
+  .section-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .block-title {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  /* .callout — ONE notice block for warnings, errors, confirmations and neutral notes: a tinted
+     frame and fill in the tone's colour, body text in --foreground (tone-coloured body text on
+     its own tint sat at the edge of 4.5:1). Tone via data-tone, the same vocabulary as .badge
+     (ok / warn / crit / info; none = neutral). --sm for a note attached to one field or row.
+     ~25 notices were hand-rolled before this in four drifting variants — full tinted box vs
+     left accent bar, radius md vs lg, tinted vs plain text, three paddings.
+     Short status LABELS are .badge; a sentence is a .callout (a badge never wraps). */
+  .callout {
+    --tone: var(--muted-foreground);
+    border: 1px solid color-mix(in oklch, var(--tone) 40%, transparent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklch, var(--tone) 10%, transparent);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+  }
+  .callout--sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+  .callout[data-tone="ok"] {
+    --tone: var(--positive);
+  }
+  .callout[data-tone="warn"] {
+    --tone: var(--caution);
+  }
+  .callout[data-tone="crit"] {
+    --tone: var(--destructive);
+  }
+  .callout[data-tone="info"] {
+    --tone: var(--primary);
+  }
+
+  /* .field — ONE recipe for every text input, number input, select and textarea (BCB's flat
+     form control). Six recipes lived in the app before this, including underlined parameter
+     inputs sitting next to a boxed <select> in the same grid.
+     Heights come from the button scale (components/ui/button.tsx), so a field and the button
+     beside it line up: .field 32px = Button default, .field--sm 28px = sm (dense rows),
+     .field--lg 40px = lg (page forms: sign-in, new project, catalog filters). Type stays
+     14px at every height (13px for --sm), and the corner radius is the button's too
+     (--radius-lg, --radius-md for --sm) — the same as the buttons next to it.
+     Border is --input (BCB --line-strong), as for outline buttons: --border (--line) is
+     ~1.2:1 against the page and the field all but vanished. */
+  .field {
+    display: block;
+    width: 100%;
+    height: 2rem;
+    padding: 0 0.625rem;
+    background: var(--background);
+    border: 1px solid var(--input);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--foreground);
+    transition: border-color 0.15s;
+  }
+  .field--sm {
+    height: 1.75rem;
+    padding-inline: 0.5rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+  }
+  .field--lg {
+    height: 2.5rem;
+    padding-inline: 0.75rem;
+  }
+  textarea.field {
+    height: auto;
+    min-height: 4rem;
+    padding-block: 0.375rem;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  /* [readonly], not :read-only — <select> always matches :read-only, and would lose hover. */
+  .field:hover:not(:disabled):not([readonly]) {
+    border-color: var(--muted-foreground);
+  }
+  .field[aria-invalid="true"] {
+    border-color: var(--destructive);
+  }
+  .field:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  /* Read-only reads as a value, not as an input waiting for one (skill rule
+     "read-only-distinction"): no fill, same frame. */
+  .field[readonly] {
+    background: transparent;
+  }
+  /* Phones: iOS Safari zooms the page into any focused control under 16px. */
+  @media (max-width: 639.98px) {
+    .field,
+    .field--sm {
+      font-size: 1rem;
+    }
+  }
+  /* ui-ux-pro-max review: the raw prototype does exactly this (border-color-only focus,
+     `outline: none`) for its `.num-input`/`.minisel` controls — but that's a defect worth NOT
+     porting, not a design choice worth keeping. WCAG 2.2 Focus Appearance wants a visible
+     indicator with real perimeter/contrast, and a 1px border tint shift alone doesn't clear
+     that bar. Keeps the border-color change (matches the rest of the BCB field recipe) and adds
+     a real 2px outline on top. */
+  .field:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+    border-color: var(--primary);
+  }
+  .field::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  /* .tiles/.tile — BCB's KPI-tile pattern: ONE shared bordered/rounded container; cells are
+     divided by a hairline, never individually bordered/radiused/shadowed. Opt-in grid columns
+     via inline style or a wrapper utility — this only owns the shared edge + divider logic. */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    overflow: hidden;
+    background: var(--card);
+  }
+  .tile {
+    padding: 14px 16px;
+    border-right: 1px solid var(--border-faint);
+  }
+  .tile:last-child {
+    border-right: none;
+  }
+  .tile__label {
+    margin-bottom: 4px;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+  }
+  .tile__value {
+    font-family: var(--font-mono);
+    font-size: 1.625rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .tile__unit {
+    margin-left: 4px;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+  .tile[data-dir="up"] .tile__value {
+    color: var(--positive);
+  }
+  .tile[data-dir="down"] .tile__value {
+    color: var(--destructive);
+  }
+
+  /* .panel-label — BCB's "instrument label" panel-header typography: uppercase, tracked,
+     accent-colored. Flagged by both the raw CSS and the design spec as the defining visual
+     differentiator of a BCB panel header; a prior pass rendered CardTitle as a plain heading. */
+  .panel-label {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+  }
+
+  /* .data-table-wrap/.data-table — BCB table anatomy: no border/radius/card-background on the
+     wrapper (a prior pass gave every table a bordered-card look BCB's raw `.table-wrap`
+     explicitly doesn't have — tables read as bare grids), uppercase-tracked header labels,
+     and a two-tier border: a real line under the header, a --border-faint hairline between
+     rows. Deliberately NOT sticky: this app's tables sit under a mix of page layouts (some
+     under the sticky site header alone, some also under the sticky step-nav), and getting a
+     per-page `top` offset right for each without a way to visually check it here risked a
+     worse bug (a table header hiding under the app chrome) than the gap it would close. */
+  .data-table-wrap {
+    overflow-x: auto;
+    /* The scroll box must also be the containing block: cells carry .sr-only text (position:
+       absolute), and an absolute box whose containing block lies OUTSIDE a scroll container is
+       not clipped by it. Each «(лучшее в строке)» hint inside a scrolled-off column then
+       stretched the whole document — /demo was 647px wide on a 375px phone. */
+    position: relative;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  .data-table thead th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table tbody td,
+  .data-table tbody th[scope="row"] {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-faint);
+  }
+  .data-table tbody tr:last-child > td,
+  .data-table tbody tr:last-child > th[scope="row"] {
+    border-bottom: none;
+  }
+
+  /* .empty-state — BCB's empty-state block: centered, generous vertical padding (44px/22px,
+     BCB --sp-7/--sp-5), muted text. A prior pass kept only the color intent (muted text) —
+     every empty message in the app was plain inline-flow paragraph/cell text. */
+  .empty-state {
+    padding: 44px 22px;
+    text-align: center;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+  }
+
+  /* D2 (differentiator, docs/design/PROTOTYPE-DESIGN-SYSTEM.md §6.2): a 45° corner bevel and a
+     dashed ruler-tick top edge, standing in for the prototype's HUD-bracket corners — a
+     deliberately subtler device for a financial tool rather than a dispatch console. Opt-in
+     per-surface, not a default; .surface-data-rule needs `relative` positioning on its host. */
+  .surface-data-edge {
+    clip-path: polygon(0 12px, 12px 0, 100% 0, 100% 100%, 0 100%);
+  }
+  .surface-data-rule {
+    position: relative;
+  }
+  .surface-data-rule::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 8px);
   }
 }
 
@@ -368,32 +949,33 @@
   .dark {
     color-scheme: light;
     --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --foreground: oklch(0.264 0.025 217.3);
+    --card: oklch(0.895 0.004 197.1);
+    --card-foreground: oklch(0.264 0.025 217.3);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.42 0.17 264);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.96 0.02 250);
-    --accent-foreground: oklch(0.42 0.17 264);
-    --destructive: oklch(0.50 0.200 27.3);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.55 0.15 264);
-    --positive: oklch(0.52 0.13 158);
-    --positive-foreground: oklch(0.985 0 0);
-    --caution: oklch(0.52 0.12 75);
-    --caution-foreground: oklch(0.985 0 0);
+    --popover-foreground: oklch(0.264 0.025 217.3);
+    --primary: oklch(0.385 0.045 201.9);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.971 0.003 197.1);
+    --secondary-foreground: oklch(0.264 0.025 217.3);
+    --muted: oklch(0.971 0.003 197.1);
+    --muted-foreground: oklch(0.443 0.029 267.6);
+    --accent: oklch(0.917 0.011 197.0);
+    --accent-foreground: oklch(0.264 0.025 217.3);
+    --destructive: oklch(0.549 0.183 31.0);
+    --border: oklch(0.889 0.008 197.0);
+    --input: oklch(0.804 0.014 202.4);
+    --ring: oklch(0.385 0.045 201.9);
+    --border-faint: oklch(0.936 0.005 197.1);
+    --positive: oklch(0.508 0.137 157.2);
+    --positive-foreground: oklch(1 0 0);
+    --caution: oklch(0.534 0.125 70.4);
+    --caution-foreground: oklch(1 0 0);
     --chart-1: oklch(0.575 0.163 255.5);
-    --chart-2: oklch(0.671 0.175 40.6);
-    --chart-3: oklch(0.644 0.140 162.3);
-    --chart-4: oklch(0.671 0.145 70.2);
-    --chart-5: oklch(0.681 0.141 357.5);
+    --chart-2: oklch(0.595 0.175 40.6);
+    --chart-3: oklch(0.554 0.140 162.3);
+    --chart-4: oklch(0.582 0.145 70.2);
+    --chart-5: oklch(0.595 0.141 357.5);
   }
 }
 
@@ -424,6 +1006,11 @@
   }
   .report-section {
     break-before: auto;
+  }
+  /* Блоки, общие с рабочей областью (LineItems и др.), печатаются прежним кеглем: отчёт
+     свёрстан под 10pt, экранные 16px заголовка блока в нём выпирали бы. */
+  .report-print .block-title {
+    font-size: 0.875rem;
   }
   /* Заголовок раздела или подраздела не остаётся последней строкой страницы. */
   .report-print h2,

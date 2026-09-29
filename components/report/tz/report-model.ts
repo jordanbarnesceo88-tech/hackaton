@@ -28,12 +28,12 @@ import type {
 export const REPORT_TOP_LEVERS = 5;
 
 /**
- * Откуда параметры проекта — одной фразой. Демо-данные названы по датасету организатора того
+ * Откуда параметры проекта — одной фразой. Демо-данные названы по листу демо-набора того
  * типа объекта, для которого создан проект: у организатора отдельные листы «Склад»,
  * «Аэропорт» и «Медучреждение» (ТЗ §5.5 — демо-проекты всех трёх типов).
  */
 export function paramsSourceText(ps: ParamsSource, facility: string): string {
-  if (ps.kind === "demo") return `демо-данные организатора (датасет «${facilityLabelOf(facility)}»)`;
+  if (ps.kind === "demo") return `демо-набор данных, лист «${facilityLabelOf(facility)}»`;
   if (ps.kind === "upload") return ps.fileName ? `загружены из файла «${ps.fileName}»` : "загружены из файла";
   if (ps.kind === "api") return "переданы через API";
   return "введены вручную";
@@ -205,7 +205,7 @@ export function scenarioSelectionLimitations(results: ReportResults): { product:
 
 /**
  * Замечания к параметру для отчёта. Выход за диапазон назван по происхождению диапазона:
- * «организатора» — только если описание от организатора, иначе «допустимого». Замечание
+ * «типового» — только если описание от организатора, иначе «допустимого». Замечание
  * проверки о том же выходе за диапазон (`out_of_range`) не повторяется.
  */
 export function paramNotes(def: ParamSpec, value: number | string | null, issues: readonly ParamIssue[], rangeText: string): string[] {
@@ -213,7 +213,7 @@ export function paramNotes(def: ParamSpec, value: number | string | null, issues
   const outOfRange =
     typeof value === "number" && ((def.min !== null && value < def.min) || (def.max !== null && value > def.max));
   if (outOfRange) {
-    out.push(`⚠ вне ${def.origin === "organizer" ? "диапазона организатора" : "допустимого диапазона"} (${rangeText})`);
+    out.push(`⚠ вне ${def.origin === "organizer" ? "типового диапазона" : "допустимого диапазона"} (${rangeText})`);
   }
   for (const i of issues) {
     if (i.key !== def.key) continue;

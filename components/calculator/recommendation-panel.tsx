@@ -1,3 +1,4 @@
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCost } from "@/lib/format/currency";
 import { formatYearsRu } from "@/lib/format/plural";
@@ -65,8 +66,9 @@ export function RecommendationPanel({
                 )}
                 {!isSelected && (
                   <button
+                    type="button"
                     onClick={() => onSelect(r.id)}
-                    className="rounded-md border px-2 py-1 text-xs font-medium"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
                   >
                     Сделать основным
                   </button>

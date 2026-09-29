@@ -64,13 +64,13 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
       </header>
 
       {selection.overflow > 0 && (
-        <p className="rounded-lg border border-caution/40 bg-caution/10 px-4 py-2 text-sm">
+        <p data-tone="warn" className="callout">
           Сравнить можно не больше {MAX_COMPARE} решений — показаны первые {MAX_COMPARE}; не вошло в сравнение:{" "}
           {selection.overflow}.
         </p>
       )}
       {missing.length > 0 && (
-        <p className="rounded-lg border border-caution/40 bg-caution/10 px-4 py-2 text-sm">
+        <p data-tone="warn" className="callout">
           Не найдены в каталоге: {missing.join(", ")}. Возможно, ссылка устарела.
         </p>
       )}
@@ -81,7 +81,7 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
           <p className="mt-1 text-muted-foreground">
             Отметьте от 2 до {MAX_COMPARE} решений в первой колонке таблицы каталога и нажмите «Сравнить выбранные».
           </p>
-          <Link href="/catalog" prefetch={false} className={cn(buttonVariants({ size: "lg" }), "mt-3 px-4")}>
+          <Link href="/catalog" prefetch={false} className={cn(buttonVariants({ size: "lg" }), "mt-3")}>
             Перейти в каталог
           </Link>
         </div>
@@ -104,7 +104,7 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
                   name="add"
                   required
                   defaultValue=""
-                  className="h-9 rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="field field--lg"
                 >
                   <option value="" disabled>
                     выберите решение
@@ -116,7 +116,7 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
                   ))}
                 </select>
               </div>
-              <button type="submit" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "px-4")}>
+              <button type="submit" className={buttonVariants({ variant: "outline", size: "lg" })}>
                 Добавить к сравнению
               </button>
             </form>

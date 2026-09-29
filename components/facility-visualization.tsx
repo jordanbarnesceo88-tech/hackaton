@@ -108,6 +108,21 @@ export function FacilityVisualization({
     // read as a physical simulation we don't claim to be). The real figures live in the KPIs.
     const speed = 0.15;
 
+    // Canvas 2D can't read Tailwind classes or inherit `var()` through CSS — fillStyle needs an
+    // actual color string. Custom properties DO inherit through the DOM to the canvas element
+    // itself, so reading them here (once, not per-frame) keeps the scene's palette in sync with
+    // the BCB port in app/globals.css (:root / .dark) instead of the two unrelated hardcoded
+    // hex values this had before. Read once per effect run — a live OS theme flip mid-animation
+    // won't repaint until the next layout/pause/renderCount change re-runs this effect, which is
+    // an acceptable gap for a decorative scene (SC 1.1.1: the canvas carries no information the
+    // KPI column beside it doesn't already state in text).
+    const themeStyle = getComputedStyle(canvas);
+    // Fallbacks mirror the dark-theme --background/--primary oklch values (app/globals.css)
+    // exactly, not unrelated stock hex, so a failed custom-property read still matches the
+    // ported BCB palette instead of reverting to the old pre-port slate/cyan look.
+    const sceneBackground = themeStyle.getPropertyValue("--background").trim() || "oklch(0.219 0.022 216.6)";
+    const robotColor = themeStyle.getPropertyValue("--primary").trim() || "oklch(0.771 0.126 201.4)";
+
     const draw = () => {
       const now = performance.now();
       const dt = Math.min(now - last, 100); // clamp dt (e.g. after tab refocus)
@@ -145,7 +160,7 @@ export function FacilityVisualization({
       // каждом месте, и одно из них однажды забыли бы.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = sceneBackground;
       ctx.fillRect(0, 0, W, H);
 
       for (const z of layout.zones) {
@@ -155,7 +170,7 @@ export function FacilityVisualization({
         ctx.globalAlpha = 1;
       }
 
-      ctx.fillStyle = "#22d3ee";
+      ctx.fillStyle = robotColor;
       for (const r of robotsRef.current) {
         ctx.beginPath();
         ctx.arc(r.pos.x * W, r.pos.y * H, 5, 0, Math.PI * 2);
@@ -236,7 +251,7 @@ export function FacilityVisualization({
   return (
     <Card className="md:col-span-2">
       <CardHeader>
-        <CardTitle as="h2">Визуализация работы роботов</CardTitle>
+        <CardTitle as="h2" className="panel-label">Визуализация работы роботов</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="relative">
@@ -282,14 +297,32 @@ export function FacilityVisualization({
           </button>
         </div>
         <div className="flex flex-col gap-3 text-sm">
-          <div>
-            Роботов в работе: <b>{renderCount}</b>
-            {overflow ? ` (всего ${q})` : ""}
+          {/* .tiles/.tile (BCB KPI-tile pattern, app/globals.css): one shared bordered/rounded
+              strip, cells divided by a hairline rather than each carrying its own
+              border/radius/shadow — a prior pass left these three metrics as plain prose. */}
+          <div className="tiles">
+            <div className="tile">
+              <div className="tile__label">Роботов в работе</div>
+              <div className="tile__value">
+                {renderCount}
+                {overflow && <span className="tile__unit">из {q}</span>}
+              </div>
+            </div>
+            <div className="tile">
+              <div className="tile__label">Производительность</div>
+              <div className="tile__value">
+                {deployed === null ? "—" : deployed.toLocaleString("ru-RU")}
+                {deployed !== null && <span className="tile__unit">{capacityUnit}</span>}
+              </div>
+            </div>
+            <div className="tile">
+              <div className="tile__label">Загрузка</div>
+              <div className="tile__value">
+                {util === null ? "—" : util.toFixed(0)}
+                {util !== null && <span className="tile__unit">%</span>}
+              </div>
+            </div>
           </div>
-          <div>
-            Производительность: <b>{deployed === null ? "—" : `${deployed.toLocaleString("ru-RU")} ${capacityUnit}`}</b>
-          </div>
-          <div>Загрузка: <b>{util === null ? "—" : `${util.toFixed(0)}%`}</b></div>
           <div>
             <div className="mb-1">Накопленная экономия (за год):</div>
             {!hasNumbers ? (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { formatCost } from "@/lib/format/currency";
 import { formatYearsRu } from "@/lib/format/plural";
 import { isViable, isCalculable, isStaffingRequired } from "@/lib/economics/types";
@@ -83,9 +84,9 @@ export function BestSolution({
     return (
       <div
         data-testid="best-solution"
-        className="rounded-lg border-2 border-border bg-muted/30 p-6"
+        className="rounded-panel border border-border bg-muted/30 p-6"
       >
-        <div className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+        <div className="panel-label text-muted-foreground">
           Пока нечем считать
         </div>
         <p className="mt-2 max-w-prose">
@@ -109,9 +110,9 @@ export function BestSolution({
     return (
       <div
         data-testid="best-solution"
-        className="rounded-lg border-2 border-caution/40 bg-caution/5 p-6"
+        className="rounded-panel border border-caution/40 bg-caution/5 p-6"
       >
-        <div className="text-sm font-medium tracking-wide text-caution uppercase">
+        <div className="panel-label text-caution">
           Не окупается
         </div>
         <p className="mt-2 max-w-prose">
@@ -139,9 +140,9 @@ export function BestSolution({
   return (
     <div
       data-testid="best-solution"
-      className="rounded-lg border-2 border-primary bg-primary/5 p-6"
+      className="rounded-panel border border-primary bg-primary/5 p-6"
     >
-      <div className="text-sm font-medium tracking-wide text-primary uppercase">
+      <div className="panel-label">
         Окупается за {formatYearsRu(r.discountedPaybackYears!)}
       </div>
       <h2 className="mt-1">
@@ -183,12 +184,7 @@ export function BestSolution({
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-4">
-        <Link
-          href={calcHref(best.id)}
-          className="rounded-md bg-primary px-5 py-2.5 font-medium text-primary-foreground
-            transition-opacity hover:opacity-90
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
+        <Link href={calcHref(best.id)} className={buttonVariants({ size: "lg" })}>
           Разобрать расчёт
         </Link>
         {viable.length > 1 && (

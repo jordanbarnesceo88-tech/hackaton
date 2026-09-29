@@ -32,7 +32,7 @@ export const SCENARIO_ROWS = [
   { key: "effect", label: "Годовой эффект" },
   { key: "payback", label: "Окупаемость (простая)" },
   { key: "band", label: "Интерпретация" },
-  { key: "roiTz", label: "ROI по ТЗ" },
+  { key: "roiTz", label: "ROI валовый" },
   { key: "roiNet", label: "ROI чистый" },
   { key: "npv", label: "NPV" },
   { key: "dpb", label: "Дисконтированная окупаемость" },
@@ -246,10 +246,10 @@ export function ScenarioTable({
   const colClass = (key: string) => cn(key === recKey && "bg-primary/5");
 
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="data-table-wrap">
       <table className="print-table w-full border-collapse text-sm">
         <caption className="sr-only">Сравнение сценариев: показатели по столбцам сценариев</caption>
-        <thead className="bg-muted/40">
+        <thead className="border-b border-border">
           <tr>
             <th scope="col" className={`${TH} text-muted-foreground`}>
               Показатель

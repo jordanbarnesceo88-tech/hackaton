@@ -100,7 +100,7 @@ export type ProjectReportProps = {
 const TH = "px-2 py-1.5 text-left align-bottom font-medium text-muted-foreground";
 const TD = "border-t px-2 py-1 align-top";
 const TABLE = "print-table w-full border-collapse text-sm";
-const TABLE_WRAP = "overflow-x-auto rounded-md border";
+const TABLE_WRAP = "data-table-wrap";
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -131,7 +131,7 @@ function ReportHeader({ project, results, liveDataVersion }: Pick<ProjectReportP
     <>
       <header className="report-block border-b-2 border-primary pb-3">
         <div className="text-xs font-medium uppercase tracking-wide text-primary">
-          Предварительная оценка роботизации · модель по методике ТЗ
+          Предварительная оценка роботизации · модель платформы
         </div>
         {/* Размеры заданы явно, а не экранной шкалой: отчёт печатается на A4. */}
         <h1 className="text-2xl font-semibold">Отчёт по проекту: {project.name}</h1>
@@ -222,7 +222,7 @@ function ParamsSection({ results, defs }: { results: ProjectResults; defs: reado
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Параметр</th>
               <th scope="col" className={`${TH} text-right`}>Значение</th>
@@ -300,7 +300,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
   return (
     <Section id="selection" title="Подобранные решения">
       <Note>
-        Подбор по процессам объекта (ТЗ §3.4): статус, причины включения или исключения, ограничения и недостающие данные;
+        Подбор по процессам объекта: статус, причины включения или исключения, ограничения и недостающие данные;
         балл 0–100 раскладывается на вклады факторов (очки / вес).
       </Note>
       <h3 className="text-base font-semibold">Решения в сценариях</h3>
@@ -309,7 +309,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Решение</th>
                 <th scope="col" className={TH}>Статус</th>
@@ -355,7 +355,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
           <h4 className="text-sm font-semibold">{processLabel(g.process)}</h4>
           <div className={TABLE_WRAP}>
             <table className={TABLE}>
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH}>Решение</th>
                   <th scope="col" className={TH}>Статус</th>
@@ -410,7 +410,7 @@ function EquipmentSection({ results }: { results: ProjectResults }) {
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Сценарий и решение</th>
               <th scope="col" className={`${TH} text-right`}>Роботов</th>
@@ -515,8 +515,8 @@ function LinesSection({ results }: { results: ProjectResults }) {
   return (
     <Section id="lines" title="CAPEX и OPEX по статьям">
       <Note>
-        Каждая статья — с формулой, подстановкой чисел и происхождением значения (организатор, открытый источник, оценка с
-        обоснованием, норматив). Статья услуги (RaaS), принятая входящей в подписку, показана с нулём и пометкой — это
+        Каждая статья — с формулой, подстановкой чисел и происхождением значения (базовые данные, открытый источник, оценка
+        с обоснованием, норматив). Статья услуги (RaaS), принятая входящей в подписку, показана с нулём и пометкой — это
         допущение, которое проверяется по договору.
       </Note>
       {results.results.map((r) => (
@@ -580,7 +580,7 @@ function CashflowSection({ results }: { results: ProjectResults }) {
             </p>
             <div className={TABLE_WRAP}>
               <table className={TABLE}>
-                <thead className="bg-muted/40">
+                <thead className="border-b">
                   <tr>
                     <th scope="col" className={TH}>Год</th>
                     {CASHFLOW_COLUMNS.map((c) => (
@@ -628,8 +628,8 @@ function SensitivitySection({ results }: { results: ProjectResults }) {
     <Section id="sensitivity" title="Чувствительность">
       <Note>
         По каждому сценарию — {REPORT_TOP_LEVERS} сильнейших рычагов из рассчитанных; полный перечень — в выгрузке Excel, лист
-        «Чувствительность». Для вариантов роботизации результат — NPV, для «Как есть» — TCO. Границы — из диапазона
-        организатора, норматива или ±20 %.
+        «Чувствительность». Для вариантов роботизации результат — NPV, для «Как есть» — TCO. Границы — из типового
+        диапазона, норматива или ±20 %.
       </Note>
       {groups.length === 0 && <p className="text-sm text-muted-foreground">Чувствительность не рассчитана: нет рассчитанных сценариев.</p>}
       {groups.map((r) => {
@@ -692,7 +692,7 @@ function SimSection({ results }: { results: ProjectResults }) {
           </ul>
           <div className={TABLE_WRAP}>
             <table className={TABLE}>
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH}>Показатель</th>
                   {table.columns.map((c) => (
@@ -778,7 +778,7 @@ function ConclusionSection({ results }: { results: ProjectResults }) {
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Сценарий</th>
                 <th scope="col" className={TH}>Важность</th>
@@ -810,12 +810,13 @@ function FormulasSection() {
   return (
     <Section id="formulas" title="Формулы">
       <Note>
-        Формулы модели {TZ_MODEL_VERSION}. Источник: «ТЗ» — расчётные зависимости ТЗ, «организатор» — легенда датасета
-        организатора, «наш выбор» — решение модели, обоснованное в методике.
+        Формулы модели {TZ_MODEL_VERSION}. Источник: «типовая расчётная зависимость» — общепринятая зависимость для
+        расчёта парка, затрат и окупаемости, «базовые данные» — легенда демо-набора, «решение платформы» — решение
+        модели, обоснованное в методике.
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Показатель</th>
               <th scope="col" className={TH}>Формула</th>
@@ -853,7 +854,7 @@ function NormsSection({ results }: { results: ProjectResults }) {
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
-          <thead className="bg-muted/40">
+          <thead className="border-b">
             <tr>
               <th scope="col" className={TH}>Норматив</th>
               <th scope="col" className={`${TH} text-right`}>Значение</th>
@@ -955,7 +956,7 @@ function SourcesSection({ results }: { results: ProjectResults }) {
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Характеристика</th>
                 <th scope="col" className={TH}>Значение</th>
@@ -1017,12 +1018,12 @@ function ChangesSection({ results, defs, changes }: { results: ProjectResults; d
     <Section id="changes" title="Журнал корректировок">
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Корректировок нет: все значения расчётные или взяты из данных организатора и каталога.
+          Корректировок нет: все значения расчётные или взяты из исходных данных и каталога.
         </p>
       ) : (
         <div className={TABLE_WRAP}>
           <table className={TABLE}>
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>Когда</th>
                 <th scope="col" className={TH}>Кто</th>

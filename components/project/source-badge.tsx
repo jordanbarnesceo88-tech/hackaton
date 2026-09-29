@@ -1,4 +1,4 @@
-import { originLabel } from "@/lib/tz/characteristics";
+import { originLabel, sourceRefLabel } from "@/lib/tz/characteristics";
 import type { Origin } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
 
@@ -72,40 +72,45 @@ export function formatSourceDate(date: string | null | undefined): string | null
   return m ? `${m[3]}.${m[2]}.${m[1]}` : d;
 }
 
-/** Цвет бейджа по происхождению: оценка — предупреждающий, значение пользователя — основной. */
-const ORIGIN_TONE: Readonly<Record<Origin, string>> = {
-  organizer: "border-primary/30 bg-primary/5 text-foreground",
-  research: "border-positive/40 bg-positive/10 text-foreground",
-  estimate: "border-caution/40 bg-caution/10 text-foreground",
-  derived: "border-border bg-muted text-foreground",
-  choice: "border-border bg-muted text-foreground",
-  tz: "border-primary/30 bg-primary/5 text-foreground",
-  admin: "border-border bg-secondary text-secondary-foreground",
-  user: "border-primary/50 bg-primary/10 font-medium text-primary",
+/** Тон бейджа по происхождению (data-tone на .badge, app/globals.css): оценка — предупреждающий,
+    исследование — подтверждающий, ввод пользователя/организатора/ТЗ — информационный. */
+const ORIGIN_TONE: Readonly<Record<Origin, "info" | "ok" | "warn" | undefined>> = {
+  organizer: "info",
+  research: "ok",
+  estimate: "warn",
+  derived: undefined,
+  choice: undefined,
+  tz: "info",
+  // Was its own distinct bg-secondary treatment pre-port; collapsing it to the same
+  // undefined/default look as derived/choice erased the one distinction this badge exists to
+  // show (ТЗ §3.2.5/§3.3.4: an admin override should read differently from a computed value).
+  // "warn" restores a visible, distinct treatment without a new CSS token.
+  admin: "warn",
+  user: "info",
 };
 
-const CHIP_CLASS =
-  "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-xs leading-tight";
+const CHIP_CLASS = "badge max-w-full leading-tight";
 
 export function SourceBadge({ origin, sourceUrl, sourceRef, date, confirmed, note, className }: SourceBadgeProps) {
   const text = sourceBadgeText(origin, note);
   const url = safeHttpUrl(sourceUrl);
-  const ref = cleanNote(sourceRef);
+  // Место в источнике — подписью для показа («Каталог › №12»), а не именем служебной выгрузки.
+  const ref = cleanNote(sourceRef ? sourceRefLabel(sourceRef) : sourceRef);
   const when = formatSourceDate(date);
   const n = cleanNote(note);
   const longNote = n !== null && !isInlineNote(n) ? n : null;
   const hasDetails = url !== null || ref !== null || when !== null || confirmed !== undefined || longNote !== null;
 
   if (!hasDetails) {
-    return <span className={cn(CHIP_CLASS, "self-start", ORIGIN_TONE[origin], className)}>{text}</span>;
+    return <span data-tone={ORIGIN_TONE[origin]} className={cn(CHIP_CLASS, "self-start", className)}>{text}</span>;
   }
 
   return (
     <details className={cn("group/source inline-block max-w-full self-start align-middle", className)}>
       <summary
+        data-tone={ORIGIN_TONE[origin]}
         className={cn(
           CHIP_CLASS,
-          ORIGIN_TONE[origin],
           "cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         )}

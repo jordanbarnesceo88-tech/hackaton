@@ -54,36 +54,22 @@ export const TABLE_FOOTNOTE =
 
 export function CatalogTable({ items, caption }: { items: readonly CatalogListItem[]; caption: string }) {
   return (
-    <div className="relative overflow-x-auto rounded-lg border bg-card">
-      <table className="w-full border-collapse text-sm">
+    <div className="data-table-wrap relative">
+      <table className="data-table">
         <caption className="sr-only">{caption}</caption>
-        <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+        <thead>
           <tr>
-            <th scope="col" className="w-10 px-3 py-2 font-medium">
+            <th scope="col" className="w-10">
               <span className="sr-only">Сравнить</span>
               <span aria-hidden="true">⇄</span>
             </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Решение и производитель
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Тип решения
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Статус
-            </th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">
-              Цена за единицу
-            </th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">
-              Производительность
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Полнота данных
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Пометки
-            </th>
+            <th scope="col">Решение и производитель</th>
+            <th scope="col">Тип решения</th>
+            <th scope="col">Статус</th>
+            <th scope="col" className="text-right">Цена за единицу</th>
+            <th scope="col" className="text-right">Производительность</th>
+            <th scope="col">Полнота данных</th>
+            <th scope="col">Пометки</th>
           </tr>
         </thead>
         <tbody>
@@ -91,8 +77,8 @@ export function CatalogTable({ items, caption }: { items: readonly CatalogListIt
             const checkboxId = `cmp-${item.slug}`;
             const processes = processesText(item.processes);
             return (
-              <tr key={item.slug} className="border-t align-top">
-                <td className="px-3 py-2">
+              <tr key={item.slug} className="align-top">
+                <td>
                   <input
                     id={checkboxId}
                     type="checkbox"
@@ -102,7 +88,7 @@ export function CatalogTable({ items, caption }: { items: readonly CatalogListIt
                     aria-label={`Сравнить: ${item.name}`}
                   />
                 </td>
-                <th scope="row" className="min-w-56 px-3 py-2 text-left font-normal">
+                <th scope="row" className="min-w-56 text-left font-normal">
                   <Link
                     href={productHref(item.slug)}
                     prefetch={false}
@@ -116,28 +102,28 @@ export function CatalogTable({ items, caption }: { items: readonly CatalogListIt
                     </div>
                   )}
                 </th>
-                <td className="min-w-44 px-3 py-2">
+                <td className="min-w-44">
                   {item.solutionType ? item.solutionType.name : <span className="text-muted-foreground">{NO_DATA}</span>}
                   {processes && <div className="mt-0.5 text-xs text-muted-foreground">{processes}</div>}
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <StatusChip status={item.status} />
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                <td className="whitespace-nowrap text-right tabular-nums">
                   <span className={item.priceRub === null ? "text-muted-foreground" : undefined}>{priceText(item.priceRub)}</span>
                   {item.raasRubMonth !== null && (
                     <div className="text-xs text-muted-foreground">RaaS: {formatRub(item.raasRubMonth)}/мес</div>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                <td className="whitespace-nowrap text-right tabular-nums">
                   <span className={item.throughputPerH === null ? "text-muted-foreground" : "font-medium"}>
                     {throughputText(item.throughputPerH, item.throughputUnit)}
                   </span>
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <CompletenessBar pct={item.completenessPct} />
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <QualityChips needsVerification={item.needsVerification} level={item.level} excluded={item.excluded} />
                 </td>
               </tr>

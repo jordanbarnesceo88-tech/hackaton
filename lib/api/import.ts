@@ -158,7 +158,7 @@ const ORGANIZER_SLUGS: ReadonlySet<string> = new Set(CATALOG.map((p) => p.slug))
 /** Сообщение отказа для slug из данных организатора. */
 export function organizerSlugMessage(slug: string): string {
   return (
-    `«${slug}» — продукт из данных организатора: его обновляет синхронизация, и правка через API ` +
+    `«${slug}» — продукт из исходных данных каталога: его обновляет синхронизация, и правка через API ` +
     `откатилась бы при следующем обновлении каталога. Дополните его в админке (/admin/catalog/${slug}) ` +
     "или импортируйте под другим slug"
   );
@@ -358,7 +358,7 @@ function checkSourced(
 
   // Правила провенанса (ТЗ §3.3.4: у каждой характеристики источник, дата и подтверждение).
   if (originOk) {
-    if (o === "organizer" && !sourceRef) errors.push(`${where}: у значения организатора нужен sourceRef — где именно (файл, лист, строка)`);
+    if (o === "organizer" && !sourceRef) errors.push(`${where}: у значения из базовых данных (origin: organizer) нужен sourceRef — где именно (файл, лист, строка)`);
     if (o === "research") {
       if (!sourceUrl) errors.push(`${where}: у значения из открытого источника нужна ссылка sourceUrl`);
       if (!asInSource) errors.push(`${where}: у значения из открытого источника нужна цитата asInSource — как в источнике`);
@@ -423,10 +423,10 @@ function checkSeed(raw: unknown, where: string, errors: string[]): ProductSeed |
     errors.push(`${where}: slug «${slug}» занят адресом API — выберите другой`);
   }
   if (raw.organizerCatalogId !== undefined && raw.organizerCatalogId !== null) {
-    errors.push(`${where}: organizerCatalogId задаёт только синхронизация данных организатора — передайте null или уберите поле`);
+    errors.push(`${where}: organizerCatalogId задаёт только синхронизация исходных данных каталога — передайте null или уберите поле`);
   }
   if (raw.organizerRows !== undefined && !(Array.isArray(raw.organizerRows) && raw.organizerRows.length === 0)) {
-    errors.push(`${where}: organizerRows задаёт только синхронизация данных организатора — передайте [] или уберите поле`);
+    errors.push(`${where}: organizerRows задаёт только синхронизация исходных данных каталога — передайте [] или уберите поле`);
   }
   const level = raw.level;
   if (typeof level !== "string" || !LEVELS.has(level)) {
@@ -480,7 +480,7 @@ function checkSeed(raw: unknown, where: string, errors: string[]): ProductSeed |
     for (const [key, s] of Object.entries(raw.characteristics)) {
       if (s === undefined) continue;
       if (!isCharKey(key)) {
-        errors.push(`${where}.characteristics: ключ «${key}» не входит в словарь характеристик ТЗ §3.3.4`);
+        errors.push(`${where}.characteristics: ключ «${key}» не входит в словарь характеристик`);
         continue;
       }
       const checked = checkSourced(s, `${where}.characteristics.${key}`, false, errors);

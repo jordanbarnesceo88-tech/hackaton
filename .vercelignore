@@ -9,8 +9,13 @@ node_modules
 # .env would put the localhost:5433 dev credentials inside the deployment bundle.
 .env
 .env.*
+# Local credentials notes (e.g. .demo-credentials.txt, untracked): not an .env name, so the
+# two lines above let it through — the CLI uploads the working tree, not the git commit.
+*credentials*
 
 # Not part of the running app.
+.agents
+.claude
 e2e
 test-results
 playwright-report

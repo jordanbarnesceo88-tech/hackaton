@@ -11,6 +11,18 @@ import { test, expect, type Page } from "@playwright/test";
 
 test.use({ viewport: { width: 1366, height: 768 } });
 
+/**
+ * Рабочая область — пейджер: на экране один шаг, остальные скрыты (hidden). Шаг открывают так
+ * же, как пользователь, — вкладкой в панели шагов («5 Экономика»).
+ */
+async function openStep(page: Page, label: string) {
+  await page.getByRole("navigation", { name: "Шаги расчёта" }).getByRole("link", { name: label, exact: true }).click();
+  // Смена шага идёт через View Transition: новый шаг показывается кадром позже клика. Ждём
+  // его заголовок, чтобы не читать таблицы раньше (allInnerTexts не ждёт появления).
+  const n = label.split(" ")[0];
+  await expect(page.getByRole("heading", { level: 2, name: new RegExp(`^Шаг ${n} из`) })).toBeVisible();
+}
+
 /** Страница не шире окна: у жюри экран 1366×768, горизонтальной прокрутки быть не должно. */
 async function expectNoHorizontalScroll(page: Page) {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
@@ -27,6 +39,7 @@ test("демо склада: сценарии в одной таблице, ст
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Демо-расчёт");
 
   // Шаг 6: базовый сценарий, покупка и услуга — столбцы одной таблицы (ТЗ §2.2 шаг 6, §3.5.5).
+  await openStep(page, "6 Сценарии");
   const scenarios = page.locator("#scenarios").getByRole("table", { name: /Сравнение сценариев/ });
   for (const name of ["Как есть", "Покупка — Ronavi H1500", "Услуга (RaaS) — Ronavi H1500"]) {
     await expect(scenarios.getByRole("columnheader", { name }), `столбец «${name}»`).toBeVisible();
@@ -36,6 +49,7 @@ test("демо склада: сценарии в одной таблице, ст
   await expectNoHorizontalScroll(page);
 
   // Шаг 7: имитация подтверждает расчётный парк (ТЗ §3.6.2).
+  await openStep(page, "7 Имитация");
   const sim = page.locator("#simulation");
   await expect(sim.getByText("Расчёт подтверждён имитацией").filter({ visible: true }).first()).toBeVisible({
     timeout: 20_000,
@@ -46,9 +60,9 @@ test("демо склада: сценарии в одной таблице, ст
   const select = sim.getByLabel("Сценарий и парк");
   const labels = (await select.locator("option:not([disabled])").allTextContents()).map((s) => s.trim());
   const byNorm =
-    labels.find((l) => l.includes("Ronavi H1500") && l.includes("по норме организатора")) ??
-    labels.find((l) => l.includes("по норме организатора"));
-  expect(byNorm, `нет варианта «по норме организатора» среди: ${labels.join(" | ")}`).toBeDefined();
+    labels.find((l) => l.includes("Ronavi H1500") && l.includes("по типовой норме")) ??
+    labels.find((l) => l.includes("по типовой норме"));
+  expect(byNorm, `нет варианта «по типовой норме» среди: ${labels.join(" | ")}`).toBeDefined();
   await select.selectOption({ label: byNorm ?? "" });
   await expect(sim.getByText(/^Не подтверждён/).filter({ visible: true }).first()).toBeVisible({ timeout: 20_000 });
 
@@ -78,11 +92,13 @@ for (const facility of ["airport", "medical"] as const) {
       page.getByText("Прототип: экономика и имитация реализованы для склада").filter({ visible: true }).first(),
     ).toBeVisible();
     // Параметры объекта (шаг 2) показаны с полями ввода — уровень «входные параметры» §5.5.
+    await openStep(page, "2 Параметры");
     const params = page.locator("#params");
     await expect(params).toBeVisible();
     await expect(params.getByRole("heading", { name: /Шаг 2 из 8/ })).toBeVisible();
     await expect(params.getByRole("textbox").first()).toBeVisible();
     // Подбор решений (шаг 3) тоже есть — уровень «доступные решения».
+    await openStep(page, "3 Подбор");
     await expect(page.locator("#selection").getByRole("heading", { name: /Шаг 3 из 8/ })).toBeVisible();
     await expectNoHorizontalScroll(page);
   });

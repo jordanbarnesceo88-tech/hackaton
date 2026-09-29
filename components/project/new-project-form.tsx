@@ -35,8 +35,8 @@ type Source = "demo" | "upload" | "manual";
 const SOURCE_OPTIONS: readonly { value: Source; label: string; note: string }[] = [
   {
     value: "demo",
-    label: "Демо-данные организатора",
-    note: "Базовые значения датасета организатора для выбранного типа объекта (Датасеты_хакатон.xlsx).",
+    label: "Демо-данные объекта",
+    note: "Базовые значения демо-набора данных для выбранного типа объекта.",
   },
   {
     value: "upload",
@@ -46,7 +46,7 @@ const SOURCE_OPTIONS: readonly { value: Source; label: string; note: string }[] 
   {
     value: "manual",
     label: "Заполнить вручную (от базовых значений)",
-    note: "Проект создаётся на базовых значениях организатора — поправьте их в шаге 2 рабочей области.",
+    note: "Проект создаётся на базовых демо-значениях — поправьте их в шаге 2 рабочей области.",
   },
 ];
 
@@ -56,7 +56,7 @@ const NETWORK_ERROR = "Не удалось связаться с серверо�
 /** Применённый файл параметров: значения, имя файла и тип объекта, для которого он проверен. */
 type Applied = { values: ParamValues; fileName: string; facility: string };
 
-const INPUT = "w-full rounded-md border bg-background px-3 py-2 text-sm";
+const INPUT = "field field--lg";
 
 export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacility?: string }) {
   const nameId = useId();

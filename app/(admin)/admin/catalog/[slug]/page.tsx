@@ -13,7 +13,7 @@ import {
 } from "@/components/admin/format";
 import { ProductActions } from "@/components/admin/product-actions";
 import { ProductForm } from "@/components/admin/product-form";
-import { CHIP_CLASS } from "@/components/admin/styles";
+import { BADGE_CLASS, CHIP_CLASS } from "@/components/admin/styles";
 import { SourceBadge } from "@/components/project/source-badge";
 import { requireAdmin } from "@/lib/auth/guards";
 import { isoDate } from "@/lib/catalog/product-for-calc";
@@ -77,7 +77,7 @@ function CharValue({ c }: { c: CatalogCharacteristic }) {
           note={c.basis ?? c.note}
         />
         {c.hasConflict && (
-          <span className={cn(CHIP_CLASS, "border-caution/40 bg-caution/10")}>⚠ источники расходятся</span>
+          <span data-tone="warn" className={BADGE_CLASS}>источники расходятся</span>
         )}
       </div>
       {c.asInSource && (
@@ -147,7 +147,7 @@ export default async function AdminProductPage({ params }: { params: Promise<{ s
         <h1>{detail.name}</h1>
         <p className="text-sm text-muted-foreground">
           {detail.manufacturer ?? "производитель не указан"} · <code>{detail.slug}</code>
-          {detail.organizerCatalogId ? ` · id каталога организатора ${detail.organizerCatalogId}` : ""}
+          {detail.organizerCatalogId ? ` · id в исходном каталоге ${detail.organizerCatalogId}` : ""}
         </p>
         <div className="flex flex-wrap gap-1.5">
           <span className={cn(CHIP_CLASS, detail.origin === "ADMIN" ? "bg-secondary" : "bg-primary/5")}>
@@ -158,7 +158,7 @@ export default async function AdminProductPage({ params }: { params: Promise<{ s
           </span>
           <span className={cn(CHIP_CLASS, "bg-muted")}>{STATUS_LABELS[detail.status]}</span>
           {detail.editedByAdmin && detail.origin === "ORGANIZER" && (
-            <span className={cn(CHIP_CLASS, "border-caution/40 bg-caution/10")}>правка администратора</span>
+            <span data-tone="warn" className={BADGE_CLASS}>правка администратора</span>
           )}
           {detail.archived && <span className={cn(CHIP_CLASS, "bg-muted")}>в архиве</span>}
           {detail.excluded && <span className={cn(CHIP_CLASS, "bg-muted")}>исключён из подбора</span>}
@@ -203,7 +203,7 @@ export default async function AdminProductPage({ params }: { params: Promise<{ s
           Колонки пересчитываются из характеристик при каждой правке — руками их не меняют.
         </p>
         {reasons.length > 0 ? (
-          <div className="rounded-lg border border-caution/40 bg-caution/5 p-3 text-sm">
+          <div data-tone="warn" className="callout">
             <p className="font-medium">Требует проверки:</p>
             <ul className="list-disc pl-5">
               {reasons.map((r) => (
@@ -243,9 +243,9 @@ export default async function AdminProductPage({ params }: { params: Promise<{ s
             Характеристики
           </h2>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Все ключи словаря ТЗ §3.3.4 по шести группам. Правка ставит значению происхождение «администратор» и
+            Все ключи словаря характеристик по шести группам. Правка ставит значению происхождение «администратор» и
             сохраняется при «Обновить каталог». Новое или изменённое значение можно отметить «Подтверждено» только со
-            ссылкой на первоисточник; у подтверждённого значения организатора отметка сохраняется и без ссылки.
+            ссылкой на первоисточник; у подтверждённого значения из базовых данных отметка сохраняется и без ссылки.
             «Дата проверки» и «Подтверждение» в группе «Качество данных» пересчитываются после каждой правки.
           </p>
         </div>

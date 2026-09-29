@@ -41,7 +41,7 @@ export function SensitivityChart({
   return (
     <Card className="md:col-span-2">
       <CardHeader>
-        <CardTitle as="h2">Чувствительность NPV к допущениям</CardTitle>
+        <CardTitle as="h2" className="panel-label">Чувствительность NPV к допущениям</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         <p className="text-xs text-muted-foreground">{caption}</p>

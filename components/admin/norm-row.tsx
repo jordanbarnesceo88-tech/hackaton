@@ -8,7 +8,7 @@ import { fx } from "@/lib/tz/econ/text";
 import type { Origin } from "@/lib/tz/types";
 import { FormStatus, useAdminForm } from "./admin-form";
 import { numberInputValue } from "./format";
-import { CHIP_CLASS, INPUT_CLASS, LABEL_CLASS, LABEL_TEXT_CLASS } from "./styles";
+import { BADGE_CLASS, INPUT_CLASS, LABEL_CLASS, LABEL_TEXT_CLASS } from "./styles";
 
 export type NormRowValues = {
   key: string;
@@ -63,7 +63,7 @@ export function NormRow({ norm }: { norm: NormRowValues }) {
         <div className="flex flex-wrap items-center gap-1.5">
           <SourceBadge origin={norm.origin} sourceUrl={norm.sourceUrl} sourceRef={norm.sourceRef} note={norm.basis} />
           {norm.editedByAdmin && (
-            <span className={`${CHIP_CLASS} border-caution/40 bg-caution/10`}>правка администратора</span>
+            <span data-tone="warn" className={BADGE_CLASS}>правка администратора</span>
           )}
         </div>
       </div>

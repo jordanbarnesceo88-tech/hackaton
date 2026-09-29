@@ -190,7 +190,7 @@ const INTERNAL = spec({
   min: 0,
   max: 5000,
   origin: "estimate",
-  basis: "В датасете организатора нет числа внутренних перемещений; 0 — не учитываются.",
+  basis: "В демо-наборе данных нет числа внутренних перемещений; 0 — не учитываются.",
   order: 4,
 });
 
@@ -261,9 +261,9 @@ describe("stepHeading", () => {
     ]);
   });
 
-  it("StepNav: подпись «Шаги по ТЗ», ссылки-якоря, текущий шаг отмечен", () => {
+  it("StepNav: подпись «Шаги расчёта», ссылки-якоря, текущий шаг отмечен", () => {
     const html = renderToStaticMarkup(createElement(StepNav, { active: 3 }));
-    expect(html).toContain('aria-label="Шаги по ТЗ"');
+    expect(html).toContain('aria-label="Шаги расчёта"');
     expect(html).toContain('href="#object"');
     expect(html).toContain('href="#report"');
     expect(html.match(/aria-current="step"/g)).toHaveLength(1);
@@ -525,7 +525,7 @@ describe("чипы статуса подбора", () => {
 
 describe("SourceBadge", () => {
   it("текст — происхождение; короткое примечание в бейдже, длинное — в раскрытии", () => {
-    expect(sourceBadgeText("organizer")).toBe("Организатор");
+    expect(sourceBadgeText("organizer")).toBe("Базовые данные");
     expect(sourceBadgeText("estimate", "аналог: Ronavi")).toBe("Оценка · аналог: Ronavi");
     expect(sourceBadgeText("estimate", "x".repeat(41))).toBe("Оценка");
     expect(sourceBadgeText("user")).toBe("Задано вами");
@@ -578,9 +578,9 @@ describe("ParamField и ParamsForm", () => {
     expect(paramInputText("1С:ERP")).toBe("1С:ERP");
   });
 
-  it("подсказки: пример, диапазон организатора, формула; у оценки — «допустимый диапазон»", () => {
+  it("подсказки: пример, типовой диапазон, формула; у оценки — «допустимый диапазон»", () => {
     const lines = paramHelpLines(AREA).map(sp);
-    expect(lines).toEqual(["Типичный склад", "например, 20 000 · диапазон организатора: 10 000–100 000 м²"]);
+    expect(lines).toEqual(["Типичный склад", "например, 20 000 · типовой диапазон: 10 000–100 000 м²"]);
     expect(paramHelpLines(spec({ key: "x", example: "например, 5" }))).toEqual(["например, 5"]);
     expect(sp(rangeLine(INTERNAL) ?? "")).toBe("допустимый диапазон: 0–5 000 паллет/сут");
     expect(rangeLine(WORK_DAYS)).toBeNull();
@@ -594,9 +594,9 @@ describe("ParamField и ParamsForm", () => {
     expect(paramHelpLines(ACTIVE).join("\n")).not.toMatch(/^формула:/m);
   });
 
-  it("вне диапазона: у организатора — «диапазона организатора», у оценки — «допустимого диапазона»", () => {
+  it("вне диапазона: у базовых данных — «типового диапазона», у оценки — «допустимого диапазона»", () => {
     expect(sp(outOfRangeText(AREA, 150000))).toBe(
-      "Общая площадь склада: 150 000 вне диапазона организатора 10 000–100 000 м² — проверьте значение",
+      "Общая площадь склада: 150 000 вне типового диапазона 10 000–100 000 м² — проверьте значение",
     );
     expect(sp(outOfRangeText(INTERNAL, 6000))).toBe(
       "Внутренние перемещения: 6 000 вне допустимого диапазона 0–5 000 паллет/сут — проверьте значение",
@@ -607,9 +607,9 @@ describe("ParamField и ParamsForm", () => {
       label: INTERNAL.label,
       code: "out_of_range" as const,
       severity: "warning" as const,
-      message: "Внутренние перемещения: 6 000 вне диапазона организатора 0–5 000 паллет/сут — проверьте значение",
+      message: "Внутренние перемещения: 6 000 вне типового диапазона 0–5 000 паллет/сут — проверьте значение",
     };
-    expect(paramWarningText(INTERNAL, 6000, libIssue)).not.toContain("организатора");
+    expect(paramWarningText(INTERNAL, 6000, libIssue)).not.toContain("типового диапазона");
     expect(paramWarningText(INTERNAL, 6000, { ...libIssue, code: "unknown_key", message: "другое" })).toBe("другое");
     expect(paramWarningText(INTERNAL, 100, null)).toBeNull();
     expect(paramWarningText(WORK_DAYS, 300, null)).toBeNull();
@@ -620,7 +620,7 @@ describe("ParamField и ParamsForm", () => {
       createElement(ParamField, { def: INTERNAL, value: 6000, changed: true, onChange: () => {}, onReset: () => {} }),
     );
     expect(sp(html)).toContain("вне допустимого диапазона 0–5 000 паллет/сут");
-    expect(html).not.toContain("диапазона организатора");
+    expect(html).not.toContain("типового диапазона");
   });
 
   it("ввод разбирается по-русски, нераспознанный — не уходит в модель", () => {
@@ -651,13 +651,15 @@ describe("ParamField и ParamsForm", () => {
     expect(liveParamDraft(null, 20000)).toBeNull();
   });
 
-  it("поле: id p-{key}, демо-значение организатора, вне диапазона — предупреждение", () => {
+  it("поле: id p-{key}, базовое значение без бейджа, вне диапазона — предупреждение", () => {
     const base = renderToStaticMarkup(
       createElement(ParamField, { def: AREA, value: 20000, changed: false, onChange: () => {}, onReset: () => {} }),
     );
     expect(base).toContain('id="p-totalAreaM2"');
     expect(base).toContain('inputMode="decimal"');
-    expect(base).toContain("Организатор · демо-значение организатора");
+    // Базовое значение из демо-набора бейджем не помечается — ни происхождения, ни примечания.
+    expect(base).not.toContain(sourceBadgeText("organizer"));
+    expect(base).not.toContain("демо-значение");
     expect(base).not.toContain("вернуть базовое");
     expectClean(base);
 
@@ -666,7 +668,7 @@ describe("ParamField и ParamsForm", () => {
     );
     expect(out).toContain("Задано вами");
     expect(out).toContain("вернуть базовое");
-    expect(sp(out)).toContain("вне диапазона организатора 10 000–100 000 м²");
+    expect(sp(out)).toContain("вне типового диапазона 10 000–100 000 м²");
     expect(out).toContain("border-caution");
 
     const err = renderToStaticMarkup(
@@ -691,7 +693,7 @@ describe("ParamField и ParamsForm", () => {
     // Пустому полю источник не приписывается.
     const empty = renderToStaticMarkup(
       createElement(ParamField, {
-        def: spec({ key: "cleanersCount", kind: "integer", origin: "estimate", basis: "в датасете нет" }),
+        def: spec({ key: "cleanersCount", kind: "integer", origin: "estimate", basis: "в демо-наборе нет" }),
         value: null,
         changed: false,
         onChange: () => {},
@@ -704,7 +706,7 @@ describe("ParamField и ParamsForm", () => {
     const locked = renderToStaticMarkup(
       createElement(ParamField, { def: WORK_DAYS, value: 365, changed: false, onChange: () => {}, onReset: () => {} }),
     );
-    expect(locked).toContain("значение зафиксировано организатором; изменение будет записано в журнал");
+    expect(locked).toContain("значение фиксировано в демо-наборе; изменение будет записано в журнал");
 
     // Без обработчиков поле только для чтения: серверная страница не передаёт функций.
     const view = renderToStaticMarkup(createElement(ParamField, { def: AREA, value: 30000, changed: true }));

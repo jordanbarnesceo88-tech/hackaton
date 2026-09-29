@@ -24,13 +24,13 @@ export type AdminChangeEntry = {
  */
 export function ChangeTable({ entries, caption }: { entries: readonly AdminChangeEntry[]; caption: string }) {
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">Записей пока нет.</p>;
+    return <p className="empty-state">Записей пока нет.</p>;
   }
   return (
     <div className={TABLE_WRAP_CLASS}>
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{caption}</caption>
-        <thead className="bg-muted/40">
+        <thead className="border-b border-border">
           <tr>
             <th scope="col" className={TH_CLASS}>
               Когда

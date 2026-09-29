@@ -1,6 +1,7 @@
 import type { SimEngineState } from "@/lib/sim/state";
 import { SIM_MODEL_VERSION, type SimLayout, type SimSummaryStored } from "@/lib/sim/types";
-import { LEGEND_ITEMS, SCENE_BG, SCENE_FONT_FAMILY, drawLegendSwatch, drawScene } from "./draw-scene";
+import { ISO_LEGEND, SWATCH_H, SWATCH_W, isoGeometry, isoSceneSvg, isoStyleSheet, isoSwatchMarkup } from "./iso-scene";
+import { SCENE_FONT_FAMILY } from "./scene-model";
 import { kpiLines, verdictBadge, type VerdictTone } from "./kpi-text";
 
 /**
@@ -125,6 +126,29 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string
   return lines;
 }
 
+/**
+ * Рисует SVG в прямоугольник канвы. SVG приходит строкой data:-адреса (его CSP страницы
+ * разрешает) и растрируется браузером сразу в размере буфера — схема в PNG остаётся чёткой.
+ */
+async function drawSvg(ctx: CanvasRenderingContext2D, svg: string, x: number, y: number, w: number, h: number): Promise<void> {
+  const sized = svg.replace(/^<svg([^>]*?) width="[^"]*" height="[^"]*"/, `<svg$1 width="${Math.round(w * PNG_DPR)}" height="${Math.round(h * PNG_DPR)}"`);
+  const img = new Image();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("браузер не смог нарисовать схему для PNG"));
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(sized)}`;
+  });
+  ctx.drawImage(img, x, y, w, h);
+}
+
+/** Образец легенды отдельным SVG — те же спрайты, что на схеме, в светлой палитре листа. */
+function swatchSvg(item: (typeof ISO_LEGEND)[number]): string {
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" class="iso-root" viewBox="0 0 ${SWATCH_W} ${SWATCH_H}" width="${SWATCH_W}" height="${SWATCH_H}">` +
+    `<style>${isoStyleSheet("light")}</style>${isoSwatchMarkup(item.swatch)}</svg>`
+  );
+}
+
 /** Скачивание Blob под именем `filename` через временную ссылку. */
 function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -156,7 +180,8 @@ export async function exportSimPng(
   if (!measure) throw new Error("браузер не дал канву для сборки PNG");
 
   const innerW = PAGE_W - 2 * PAD;
-  const sceneH = Math.round(innerW / 2);
+  const geom = isoGeometry(layout);
+  const sceneH = Math.round((innerW * geom.vb.h) / geom.vb.w);
   const lines = kpiLines(summary);
   const badge = verdictBadge(meta.finalSummary ?? summary);
 
@@ -166,7 +191,7 @@ export async function exportSimPng(
     ...wrap(measure, PNG_DISCLAIMER, innerW),
   ];
   const kpiRows = Math.ceil(lines.length / 2);
-  const legendRows = Math.ceil(LEGEND_ITEMS.length / LEGEND_COLS);
+  const legendRows = Math.ceil(ISO_LEGEND.length / LEGEND_COLS);
 
   const headerH = 70;
   const legendH = legendRows * 26 + 16;
@@ -198,27 +223,24 @@ export async function exportSimPng(
   ].filter(Boolean);
   ctx.fillText(sub.join(" · "), PAD, 56, innerW);
 
-  // Схема — та же функция, что на экране.
+  // Схема — та же изометрия, что на экране, в светлой палитре листа.
   let y = headerH;
-  drawScene(ctx, layout, state, { W: innerW, H: sceneH, dpr: PNG_DPR, scale: 1.4, labels: true, x: PAD, y });
+  await drawSvg(ctx, isoSceneSvg(layout, state, { style: "light" }), PAD, y, innerW, sceneH);
   y += sceneH;
 
-  // Легенда на тёмной полосе: голубые и жёлтые значки на белом не читаются.
-  ctx.fillStyle = SCENE_BG;
-  ctx.fillRect(PAD, y, innerW, legendH - 8);
+  // Легенда: образцы — те же спрайты и материалы, что на схеме.
   const colW = innerW / LEGEND_COLS;
-  ctx.font = font(13);
-  ctx.textBaseline = "middle";
-  LEGEND_ITEMS.forEach((item, i) => {
+  for (const [i, item] of ISO_LEGEND.entries()) {
     const col = i % LEGEND_COLS;
     const row = Math.floor(i / LEGEND_COLS);
-    const cx = PAD + col * colW + 18;
+    const x0 = PAD + col * colW;
     const cy = y + 8 + row * 26 + 13;
-    drawLegendSwatch(ctx, item, cx, cy, 12);
-    ctx.fillStyle = "#e2e8f0";
+    await drawSvg(ctx, swatchSvg(item), x0, cy - SWATCH_H / 2, SWATCH_W, SWATCH_H);
+    ctx.fillStyle = TEXT;
     ctx.font = font(13);
-    ctx.fillText(item.label, cx + 18, cy, colW - 40);
-  });
+    ctx.textBaseline = "middle";
+    ctx.fillText(item.label, x0 + SWATCH_W + 8, cy, colW - SWATCH_W - 16);
+  }
   y += legendH;
 
   // Вердикт и показатели в две колонки.

@@ -28,7 +28,7 @@ export function BreakEvenNote({
   const current = assumptions.laborCostPerHourUsd;
 
   return (
-    <div className="md:col-span-2 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+    <div className="callout md:col-span-2">
       <span className="font-medium">Точка безубыточности (по ставке труда): </span>
       {rate === null ? (
         <span className="text-muted-foreground">

@@ -96,7 +96,7 @@ describe("syncOrganizerData: идемпотентность", () => {
   it("выпуск данных записан с версией и составом выгрузок", async () => {
     const release = await db.dataRelease.findUniqueOrThrow({ where: { version: organizerReleaseVersion() } });
     expect(release.organizerVersion).toMatchObject({ products: CATALOG.length, norms: NORM_DEFS.length });
-    expect(release.note).toContain("Данные организатора");
+    expect(release.note).toContain("Исходные данные: демо-набор данных");
     const product = await db.catalogProduct.findUniqueOrThrow({ where: { slug: "ronavi-h1500" } });
     expect(product.dataVersion).toBe(release.version);
   });

@@ -66,8 +66,8 @@ export function paramSourceNote(def: ParamSpec): string {
   if (def.sourceRef && def.sourceUrl) parts.push(def.sourceUrl);
   if (def.formula) parts.push(`Формула: ${def.formula}`);
   if (def.basis) parts.push(`Основание: ${def.basis}`);
-  if (def.organizerNote) parts.push(`Примечание организатора: ${def.organizerNote}`);
-  if (def.locked) parts.push("Зафиксировано организатором — изменение будет записано в журнал");
+  if (def.organizerNote) parts.push(`Примечание: ${def.organizerNote}`);
+  if (def.locked) parts.push("Значение фиксировано в демо-наборе — изменение будет записано в журнал");
   return parts.join(". ");
 }
 

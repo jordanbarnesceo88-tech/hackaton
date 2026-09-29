@@ -67,7 +67,7 @@ export function CompareForm({ children }: { children: ReactNode }) {
           </span>
           {message && <span className="block text-caution">{message}</span>}
         </p>
-        <button type="submit" className={cn(buttonVariants({ size: "lg" }), "ml-auto px-4")}>
+        <button type="submit" className={cn(buttonVariants({ size: "lg" }), "ml-auto")}>
           Сравнить выбранные
         </button>
       </div>

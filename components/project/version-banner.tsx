@@ -84,7 +84,8 @@ export function VersionBanner({
   return (
     <div
       role="status"
-      className="no-print flex flex-col gap-2 rounded-md border border-caution/50 bg-caution/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+      data-tone="warn"
+      className="callout no-print flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex flex-col gap-1">
         <p>{versionBannerText(stored, changed)}</p>

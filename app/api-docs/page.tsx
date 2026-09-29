@@ -146,7 +146,7 @@ export default function ApiDocsPage() {
       <div className="flex max-w-3xl flex-col gap-3">
         <h1 className="text-2xl font-semibold">API платформы</h1>
         <p className="text-muted-foreground">
-          Методы для интеграций (ТЗ §3.8): каталог решений с источниками характеристик, нормативы модели, параметры объектов,
+          Методы для интеграций: каталог решений с источниками характеристик, нормативы модели, параметры объектов,
           расчёт сценариев без сохранения и проекты пользователя. Ответы — JSON, суммы — в рублях. Машиночитаемое описание в
           формате OpenAPI 3.1:{" "}
           <a className="tap-target font-mono text-sm underline" href="/api/v1/openapi.json">

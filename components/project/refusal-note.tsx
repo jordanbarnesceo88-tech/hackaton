@@ -85,10 +85,7 @@ export function RefusalNote({
 }) {
   const fields = [...new Set(refusal.fields)];
   return (
-    <div
-      role="note"
-      className={cn("rounded-md border border-caution/40 bg-caution/10 px-3 py-2 text-sm", className)}
-    >
+    <div role="note" data-tone="warn" className={cn("callout", className)}>
       <p className="font-medium text-caution">Сценарий не рассчитан: {REFUSAL_TITLES[refusal.reason]}</p>
       <p className="mt-1">{refusalMessage(refusal, actionable)}</p>
       {fields.length > 0 && (

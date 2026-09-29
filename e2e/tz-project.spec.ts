@@ -18,6 +18,18 @@ const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD ?? "demo-user-2026";
 /** Сценарий, который тест корректирует и чей NPV сверяет до и после перезагрузки. */
 const PURCHASE = "Покупка — Ronavi H1500";
 
+/**
+ * Рабочая область — пейджер: на экране один шаг, остальные скрыты (hidden). Шаг открывают так
+ * же, как пользователь, — вкладкой в панели шагов («5 Экономика»).
+ */
+async function openStep(page: Page, label: string) {
+  await page.getByRole("navigation", { name: "Шаги расчёта" }).getByRole("link", { name: label, exact: true }).click();
+  // Смена шага идёт через View Transition: новый шаг показывается кадром позже клика. Ждём
+  // его заголовок, чтобы не читать таблицы раньше (allInnerTexts не ждёт появления).
+  const n = label.split(" ")[0];
+  await expect(page.getByRole("heading", { level: 2, name: new RegExp(`^Шаг ${n} из`) })).toBeVisible();
+}
+
 async function login(page: Page, email: string, password: string) {
   await page.goto("/login");
   await page.locator("#email").fill(email);
@@ -66,7 +78,7 @@ test("проект склада: создать, скорректировать,
   await expect(page).toHaveURL(/\/projects\/new$/);
   await page.getByLabel("Название проекта").fill(name);
   await page.getByRole("radio", { name: /^Склад/ }).check();
-  await page.getByRole("radio", { name: /Демо-данные организатора/ }).check();
+  await page.getByRole("radio", { name: /Демо-данные объекта/ }).check();
   await page.getByRole("button", { name: "Создать проект" }).click();
   await expect(page).toHaveURL(/\/projects\/(?!new$)[^/?#]+$/, { timeout: 60_000 });
   const projectUrl = page.url();
@@ -74,39 +86,48 @@ test("проект склада: создать, скорректировать,
   await expect(page.getByText(/Расчёт выполнен за/).first()).toBeVisible();
 
   // 2. Подбор объясняет исключение числами (ТЗ §3.4.3).
+  await openStep(page, "3 Подбор");
   await expect(page.locator("#selection")).toContainText("600 кг < масса груза 800 кг");
 
-  // 3. Ручная корректировка авто-значения (ТЗ §3.5.4): число роботов покупки H1500.
-  const economics = page.locator("#economics");
-  await economics.getByRole("tablist", { name: "Сценарий для экономики" }).getByRole("tab", { name: PURCHASE }).click();
-  await expect(economics.getByRole("heading", { name: PURCHASE, exact: true })).toBeVisible();
+  // 3. Ручная корректировка авто-значения (ТЗ §3.5.4): число роботов покупки H1500. Авто-парк
+  // читается в таблице сценариев (шаг 6), правка — в экономике (шаг 5).
+  await openStep(page, "6 Сценарии");
   const autoFleet = await scenarioCell(page, PURCHASE, "Состав оборудования");
   const autoN = Number(/(\d+)\s+робот/.exec(autoFleet)?.[1]);
   expect(autoN, `в составе оборудования нет числа роботов: «${autoFleet}»`).toBeGreaterThan(0);
   const manualN = autoN + 1;
   // «12 роботов», «2 робота» — число с любым падежом слова.
   const manualFleet = new RegExp(`(^|\\D)${manualN}\\s+робот`);
+  await openStep(page, "5 Экономика");
+  const economics = page.locator("#economics");
+  await economics.getByRole("tablist", { name: "Сценарий для экономики" }).getByRole("tab", { name: PURCHASE }).click();
+  await expect(economics.getByRole("heading", { name: PURCHASE, exact: true })).toBeVisible();
   const qty = economics.getByLabel("Количество роботов", { exact: true });
   await qty.fill(String(manualN));
   await qty.press("Enter");
   await expect(economics.getByText("задано вами").first()).toBeVisible();
   await page.getByRole("button", { name: "Пересчитать", exact: true }).click();
+  await openStep(page, "6 Сценарии");
   await expect.poll(() => scenarioCell(page, PURCHASE, "Состав оборудования")).toMatch(manualFleet);
 
   // 4. Сохранение: сервер пересчитывает модель и имитацию сам.
+  await openStep(page, "8 Отчёт");
   await page.getByRole("button", { name: "Сохранить проект" }).click();
   await expect(page.getByText(/^Проект сохранён/)).toBeVisible({ timeout: 90_000 });
+  await openStep(page, "6 Сценарии");
   const npvBefore = await scenarioCell(page, PURCHASE, "NPV");
   expect(npvBefore).toMatch(/\d/);
   await expectNoHorizontalScroll(page);
 
   // 5. Повторное открытие воспроизводит расчёт по снимку (ТЗ §3.1.5).
   await page.reload();
+  await openStep(page, "6 Сценарии");
   await expect(scenarioTable(page)).toBeVisible();
   expect(await scenarioCell(page, PURCHASE, "NPV"), "NPV после перезагрузки").toBe(npvBefore);
   expect(await scenarioCell(page, PURCHASE, "Состав оборудования")).toMatch(manualFleet);
 
   // 6. Excel по сохранённому расчёту (ТЗ §3.7.3).
+  await openStep(page, "8 Отчёт");
   const report = page.locator("#report");
   const [xlsx] = await Promise.all([
     page.waitForEvent("download"),
@@ -125,15 +146,18 @@ test("проект склада: создать, скорректировать,
 
   // 8. Копия проекта (ТЗ §3.1.3) открывается сразу после копирования.
   await page.goto(projectUrl);
+  await openStep(page, "8 Отчёт");
   await page.locator("#report").getByRole("button", { name: "Копировать проект" }).click();
   await expect(page).not.toHaveURL(projectUrl, { timeout: 30_000 });
   await expect(page).toHaveURL(/\/projects\/(?!new$)[^/?#]+$/);
   await expect(page.locator("#object")).toContainText(`${name} (копия)`);
 
   // 9. Удаление копии и исходного проекта (подтверждение принимается).
+  await openStep(page, "8 Отчёт");
   await page.locator("#report").getByRole("button", { name: "Удалить проект" }).click();
   await expect(page).toHaveURL(/\/projects$/, { timeout: 30_000 });
   await page.goto(projectUrl);
+  await openStep(page, "8 Отчёт");
   await page.locator("#report").getByRole("button", { name: "Удалить проект" }).click();
   await expect(page).toHaveURL(/\/projects$/, { timeout: 30_000 });
   await expect(page.getByRole("main")).not.toContainText(name);

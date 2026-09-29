@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { formatYearsRu } from "@/lib/format/plural";
 import { copyProjectAction, deleteProjectAction } from "@/lib/projects/actions";
 import { ProjectActionForm, deleteConfirmText } from "./project-toolbar";
@@ -58,17 +59,17 @@ const TD = "border-t px-3 py-2 align-top";
 export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) {
   if (items.length === 0) {
     return (
-      <p className="rounded-md border px-4 py-6 text-sm text-muted-foreground">
-        Проектов пока нет. Нажмите «Новый проект», выберите тип объекта и источник параметров — демо-данные
-        организатора, файл Excel/CSV или ручной ввод.
+      <p className="empty-state">
+        Проектов пока нет. Нажмите «Новый проект», выберите тип объекта и источник параметров — демо-данные,
+        файл Excel/CSV или ручной ввод.
       </p>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="data-table-wrap">
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">Мои проекты</caption>
-        <thead className="bg-muted/40">
+        <thead className="border-b border-border">
           <tr>
             <th scope="col" className={TH}>
               Проект
@@ -98,7 +99,7 @@ export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) 
                   {p.name}
                 </Link>
                 {p.isDemo && (
-                  <span className="ml-2 rounded-full border border-caution/50 bg-caution/10 px-2 py-0.5 text-xs">демо</span>
+                  <span data-tone="warn" className="badge ml-2">демо</span>
                 )}
                 {p.objectName && <span className="block text-xs text-muted-foreground">{p.objectName}</span>}
               </th>
@@ -112,7 +113,7 @@ export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) 
                 <div className="flex flex-wrap items-start gap-2">
                   <Link
                     href={`/projects/${encodeURIComponent(p.id)}`}
-                    className="tap-target inline-flex h-7 items-center rounded-md border px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
                     aria-label={`Открыть проект «${p.name}»`}
                   >
                     Открыть

@@ -70,7 +70,7 @@ test("гость: каталог по процессу и карточка пр�
   await expect(page.getByRole("heading", { level: 1 })).toContainText("H1500");
   await expect(page.getByRole("heading", { name: "Качество данных" })).toBeVisible();
   // Бейдж происхождения значения (ТЗ §3.3.4): данные каталога организатора.
-  await expect(page.getByText("Организатор", { exact: true }).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText("Базовые данные", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
 

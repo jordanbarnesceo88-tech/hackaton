@@ -108,7 +108,7 @@ describe("validateParamValues", () => {
       expect(i.severity).toBe("warning");
       expect(i.code).toBe("out_of_range");
       expect(i.message.replace(/\s/g, " ")).toBe(
-        "Средняя з/п оператора погрузчика (gross): 200 000 вне диапазона организатора 80 000–170 000 руб./мес. — проверьте значение",
+        "Средняя з/п оператора погрузчика (gross): 200 000 вне типового диапазона 80 000–170 000 руб./мес. — проверьте значение",
       );
       expect(values.forkliftSalaryRubMonth).toBe(200000);
       expect(hasErrors(issues)).toBe(false);
@@ -119,7 +119,7 @@ describe("validateParamValues", () => {
       const i = only(issues, "workDaysPerYear");
       expect(i).toMatchObject({ code: "locked_changed", severity: "warning" });
       expect(i.message).toBe(
-        "Рабочих дней в году: значение зафиксировано организатором (365 дн.); изменение будет записано в журнал",
+        "Рабочих дней в году: значение фиксировано в демо-наборе (365 дн.); изменение будет записано в журнал",
       );
       expect(values.workDaysPerYear).toBe(300);
       expect(validateParamValues(defs, { hasWms: "да" }, { origin: "manual" }).issues).toEqual([]);

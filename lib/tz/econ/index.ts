@@ -57,7 +57,14 @@ export {
 } from "./finance";
 export { comparisonScope, computeScenariosCore } from "./core";
 export { computeScenarios } from "./scenario";
-export { horizonBounds, leverBounds, scenarioSensitivity, type LeverBounds } from "./sensitivity";
+export {
+  BOUNDS_SOURCE_LABELS,
+  boundsSourceLabel,
+  horizonBounds,
+  leverBounds,
+  scenarioSensitivity,
+  type LeverBounds,
+} from "./sensitivity";
 export { interpretBand } from "./interpret";
 export {
   ESTIMATE_SHARE_LIMIT,
@@ -80,8 +87,10 @@ export {
 export {
   CAPEX_LINE_KEYS,
   FORMULAS,
+  FORMULA_SOURCE_LABELS,
   OPEX_LINE_KEYS,
   capexFormulaKey,
+  formulaSourceLabel,
   opexFormulaKey,
   type CapexLineKey,
   type Formula,

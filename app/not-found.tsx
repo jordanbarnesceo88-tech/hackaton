@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 export const metadata = { title: "Страница не найдена — Платформа оценки роботизации" };
 
@@ -19,11 +20,11 @@ export default function NotFound() {
         Такой страницы нет. Обычно это значит, что ссылка устарела: решение убрали из каталога,
         расчёт удалили или адрес набран с опечаткой.
       </p>
-      <div className="flex flex-wrap gap-4">
-        <Link href="/" className="underline underline-offset-4">
+      <div className="flex flex-wrap gap-3">
+        <Link href="/" className={buttonVariants({ size: "lg" })}>
           На главную
         </Link>
-        <Link href="/analyses" className="underline underline-offset-4">
+        <Link href="/analyses" className={buttonVariants({ variant: "outline", size: "lg" })}>
           Мои расчёты
         </Link>
       </div>

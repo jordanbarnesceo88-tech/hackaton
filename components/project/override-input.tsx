@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { fx } from "@/lib/tz/econ/text";
 
 /**
@@ -144,15 +145,12 @@ export function readOverride(
   return { ok: true, value: pct ? fromPercent(checked.value) : checked.value };
 }
 
-const INPUT_CLASS =
-  "w-36 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm tabular-nums outline-none " +
-  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive";
+const INPUT_CLASS = "field w-32 tabular-nums";
 
-const BUTTON_CLASS =
-  "rounded-md border border-input px-2.5 py-1.5 text-sm transition-colors hover:bg-accent " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50";
+const BUTTON_CLASS = buttonVariants({ variant: "outline" });
 
-const BADGE_CLASS = "rounded bg-caution/15 px-1.5 py-0.5 text-xs font-medium text-caution";
+// Значение, заданное человеком, — тот же тон, что у SourceBadge для origin "user" (info).
+const BADGE_CLASS = "badge";
 
 export function OverrideInput({
   label,
@@ -219,7 +217,7 @@ export function OverrideInput({
         <span className="text-muted-foreground">{label}</span>
         <span className="tabular-nums">
           {overridden ? withUnit(value) : autoText}
-          {overridden && <span className={`ml-2 ${BADGE_CLASS}`}>{badge}</span>}
+          {overridden && <span data-tone="info" className={`ml-2 ${BADGE_CLASS}`}>{badge}</span>}
         </span>
         {overridden && <span className="text-xs text-muted-foreground">авто: {autoText}</span>}
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -282,7 +280,7 @@ export function OverrideInput({
         <span className="tabular-nums">авто: {autoText}</span>
         {overridden && (
           <>
-            <span className={BADGE_CLASS}>{badge}</span>
+            <span data-tone="info" className={BADGE_CLASS}>{badge}</span>
             <span className="tabular-nums text-foreground">{withUnit(value)}</span>
             <button
               type="button"
@@ -299,7 +297,7 @@ export function OverrideInput({
         type="text"
         aria-label={`Причина изменения (необязательно): ${label}`}
         placeholder="Причина изменения (необязательно)"
-        className="w-full max-w-sm rounded-md border border-input bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-primary"
+        className="field field--sm max-w-sm"
         value={reason}
         maxLength={300}
         onChange={(e) => setReason(e.target.value)}

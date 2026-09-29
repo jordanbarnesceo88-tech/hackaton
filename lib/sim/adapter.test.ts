@@ -234,6 +234,14 @@ describe("toSimInput", () => {
     for (const p of r.provenance) expect(p.label.length).toBeGreaterThan(0);
   });
 
+  it("источник характеристики продукта без ссылки — место в источнике под названием набора, без имени файла", () => {
+    const base = product();
+    const speed = { ...base.sources[0]!, sourceRef: "catalog_export_v4.csv › №10" };
+    const r = toSimInput({ ...BASE_ARGS, product: product({ sources: [speed] }) });
+    if (!r.ok) throw new Error(r.message);
+    expect(r.provenance.find((p) => p.field === "product:speedMps")!.note).toBe("Источник: Каталог › №10");
+  });
+
   it("заведомо ошибочные величины — отказ out_of_range с подсказкой про единицы", () => {
     const r = toSimInput({ ...BASE_ARGS, params: { ...PARAMS, activeAreaM2: 5e8 }, fleet: 5000, peakPerH: 1e7 });
     expect(r.ok).toBe(false);

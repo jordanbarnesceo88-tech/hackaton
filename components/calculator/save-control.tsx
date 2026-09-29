@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { saveAnalysisAction } from "@/lib/analyses/actions";
 
 const SAVE_FAILED = "Ошибка сохранения";
@@ -83,24 +84,38 @@ export function SaveControl({
         maxLength={120}
         placeholder="Название расчёта (необязательно)"
         onChange={(e) => setName(e.target.value)}
-        className="min-w-56 flex-1 rounded-md border px-3 py-2 text-sm"
+        className="field min-w-56 flex-1"
       />
-      <button onClick={handleSave} disabled={saving}
-        className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50">
+      <Button type="button" variant="outline" onClick={handleSave} disabled={saving}>
         {saving ? "Сохранение…" : "Сохранить расчёт"}
-      </button>
+      </Button>
       {/* SC 4.1.3 Status Messages: the outcome appears without a navigation or focus change,
           so without a live region a screen-reader user gets no indication the save happened.
           role="status" is polite — it waits for a pause rather than interrupting. The wrapper
           is always rendered so the region exists in the tree before the text arrives; injecting
-          an aria-live node and its content in the same tick is unreliably announced. */}
+          an aria-live node and its content in the same tick is unreliably announced.
+
+          Styled as BCB's toast (surface-3 fill, tone-colored left accent, panel shadow,
+          bubble-in entrance) but kept INLINE next to the button rather than floated/fixed —
+          this message's lifecycle is tied to a specific save snapshot (see msgFor/describesAttempt
+          above) and auto-dismisses only when the inputs change, not on a timer; a floating toast
+          implies "transient, dismiss after N seconds", which isn't true of this one. */}
       <span role="status" aria-live="polite" className="text-sm">
         {currentMsg === "unauth" ? (
-          <>
+          <span
+            data-tone="warn"
+            className="animate-bubble-in shadow-panel inline-flex items-center gap-2 rounded-md border-l-[3px] border-l-caution bg-secondary px-3 py-1.5"
+          >
             <Link href="/login" className="underline">Войдите</Link>, чтобы сохранить расчёт
-          </>
+          </span>
         ) : currentMsg ? (
-          <span className="text-muted-foreground">{currentMsg}</span>
+          <span
+            className={`animate-bubble-in shadow-panel inline-flex items-center gap-2 rounded-md border-l-[3px] bg-secondary px-3 py-1.5 ${
+              currentMsg === SAVE_FAILED ? "border-l-destructive text-destructive" : "border-l-positive text-muted-foreground"
+            }`}
+          >
+            {currentMsg}
+          </span>
         ) : null}
       </span>
       {savedId && (

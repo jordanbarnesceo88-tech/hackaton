@@ -36,7 +36,7 @@ describe("simSummaryRows", () => {
   it("незаполненные поля перебора и нормы подписаны словами", () => {
     const rows = new Map(simSummaryRows(toStored(runSimSync(warehouseBaseInput(11)))));
     expect(rows.get("Минимальный парк по имитации")).toBe("не определён");
-    expect(rows.get("Парк по норме организатора")).toBe("нет нормы");
+    expect(rows.get("Парк по типовой норме")).toBe("нет нормы");
     expect(rows.get("Вердикт при парке по норме")).toBe("не проверялся");
     expect(rows.get("Модель имитации")).toBe("sim-1.0.0");
   });

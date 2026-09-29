@@ -31,7 +31,7 @@ export function RegionSelect({
       <select
         id="region"
         value={selected}
-        className="rounded-md border px-3 py-2 text-sm"
+        className="field field--lg"
         onChange={(e) => {
           // «— свои значения —» is a real choice, not a no-op. The select became controlled
           // when the parent took ownership of the selection, so bailing out here left

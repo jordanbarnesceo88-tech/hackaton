@@ -68,7 +68,7 @@ function Summary({ state }: { state: ImportState }) {
   if (!s) return null;
   const source =
     state.layout === "organizer"
-      ? `Распознан лист датасета организатора${state.sheetName ? ` «${state.sheetName}»` : ""}`
+      ? `Распознан оригинальный лист данных${state.sheetName ? ` «${state.sheetName}»` : ""}`
       : `Распознан шаблон платформы${state.sheetName ? ` (лист «${state.sheetName}»)` : ""}`;
   return (
     <>
@@ -224,7 +224,7 @@ export function ImportForm({ facility, onApply, compact = false }: ImportFormPro
       </p>
       <p id={hintId} className={cn("text-xs text-muted-foreground", !compact && "mt-1")}>
         Скачайте шаблон, заполните столбец «Значение» и загрузите файл (.xlsx или .csv, до 950 КБ). Файл только
-        проверяется и не сохраняется. Можно загрузить и исходный лист организатора (Датасеты_хакатон.xlsx) — строки
+        проверяется и не сохраняется. Можно загрузить и оригинальный лист с данными объекта — строки
         сопоставляются по названию параметра.
       </p>
       <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -250,7 +250,9 @@ export function ImportForm({ facility, onApply, compact = false }: ImportFormPro
             setFile(e.currentTarget.files?.[0] ?? null);
             setLocalError(null);
           }}
-          className="max-w-full text-sm file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-sm file:font-medium hover:file:bg-muted"
+          // ::file-selector-button не принимает классы компонента — повторяет outline/default
+          // из components/ui/button.tsx вручную (32px, рамка --input, наведение — рамкой).
+          className="max-w-full text-sm file:mr-2 file:h-8 file:cursor-pointer file:rounded-lg file:border file:border-input file:bg-transparent file:px-3.5 file:text-sm file:font-medium file:transition-colors hover:file:border-primary"
         />
         <Button type="button" variant="outline" onClick={check} disabled={pending}>
           {pending ? "Проверяем файл…" : "Проверить файл"}

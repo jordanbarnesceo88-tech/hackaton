@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CatalogCharacteristic, CatalogListItem, CatalogProductDetail } from "@/lib/catalog/queries";
 import { CHAR_GROUP_LABELS, REQUIRED_CHARACTERISTIC_KEYS } from "@/lib/tz/characteristics";
 import type { CharGroup } from "@/lib/tz/characteristics";
+import { FLAG_NOTES } from "@/lib/tz/selection/missing";
 import { Breadcrumb, buildTrails, HIERARCHY_LEVELS } from "./breadcrumb";
 import { CatalogTable, priceText, processesText, throughputText } from "./catalog-table";
 import { checkedOnText, quoteText } from "./characteristic-row";
@@ -382,7 +383,7 @@ describe("карточка продукта", () => {
     ).join("");
     for (const g of CHAR_GROUP_ORDER) expect(html).toContain(`>${CHAR_GROUP_LABELS[g]}</h2>`);
     expect((html.match(/<h2/g) ?? []).length).toBe(6);
-    expect(html).toContain("Организатор");
+    expect(html).toContain("Базовые данные");
     expect(html).toContain("Открытый источник");
     expect(html).toContain("«80–100 паллет/час»");
     expect(html).toContain("проверено 22.09.2026");
@@ -395,7 +396,7 @@ describe("карточка продукта", () => {
 
   it("причины «требует проверки» — по правилам синхронизации плюс расхождения источников", () => {
     const reasons = cardVerificationReasons(product());
-    expect(reasons).toContain("карточка собрана из нескольких строк каталога организатора");
+    expect(reasons).toContain(FLAG_NOTES["duplicate-merged"]);
     expect(reasons).toContain("цена не подтверждена первоисточником");
     expect(reasons).toContain("производительность не подтверждена первоисточником");
     expect(reasons).toContain("источники расходятся: Автономность");
@@ -490,8 +491,8 @@ describe("карточка продукта", () => {
   });
 
   it("подписи источника описания и ссылок в демо", () => {
-    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: "abc" })).toBe("каталог организатора › id abc");
-    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: null })).toBe("каталог организатора");
+    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: "abc" })).toBe("каталог › id abc");
+    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: null })).toBe("каталог");
     expect(descriptionSourceRef({ origin: "ADMIN", organizerCatalogId: null })).toBe("добавлено администратором");
     expect(demoLinkText("warehouse", "Склад")).toBe("Открыть в демо-расчёте склада");
     expect(demoLinkText("airport", "Аэропорт")).toBe("Открыть демо для объекта «Аэропорт»");

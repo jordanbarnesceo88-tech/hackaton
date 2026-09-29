@@ -46,8 +46,8 @@ export default async function AdminDataPage() {
       <div className="flex flex-col gap-2">
         <h1>Данные и журнал</h1>
         <p className="max-w-3xl text-muted-foreground">
-          Каталог и справочники загружаются из данных организатора (датасеты, каталог, «Примеры решений») и открытых
-          источников с датой проверки каждого значения. Обновление по запросу; плановое автообновление — в плане
+          Каталог и справочники загружаются из исходных данных (демо-набор данных, каталог, подборка «Примеры решений»)
+          и открытых источников с датой проверки каждого значения. Обновление по запросу; плановое автообновление — в плане
           развития.
         </p>
       </div>
@@ -57,7 +57,7 @@ export default async function AdminDataPage() {
           Обновить каталог
         </h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Сверяет базу с данными организатора: новые продукты создаются, изменённые обновляются, пропавшие уходят в
+          Сверяет базу с исходными данными: новые продукты создаются, изменённые обновляются, пропавшие уходят в
           архив (не удаляются — на них могут ссылаться проекты). Правки администратора сохраняются. В отчёте — сколько
           характеристик проверено больше {STALE_SOURCE_DAYS} дней назад.
         </p>
@@ -81,8 +81,8 @@ export default async function AdminDataPage() {
         ) : (
           <div className={TABLE_WRAP_CLASS}>
             <table className="w-full border-collapse text-sm">
-              <caption className="sr-only">Выпуски данных организатора</caption>
-              <thead className="bg-muted/40">
+              <caption className="sr-only">Выпуски исходных данных</caption>
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH_CLASS}>
                     Версия

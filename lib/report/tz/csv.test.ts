@@ -54,7 +54,7 @@ describe("CSV проекта для русского Excel", () => {
     expect(rowStarting("CAPEX, ₽").slice(1, 3)).toEqual(["0", "35420000"]);
     expect(rowStarting("NPV, ₽")[2]).toBe("640375");
     expect(rowStarting("Окупаемость (простая), лет")[2]).toBe("3,61");
-    expect(rowStarting("ROI по ТЗ, %")[2]).toBe("140,3");
+    expect(rowStarting("ROI валовый, %")[2]).toBe("140,3");
     expect(rowStarting("ROI чистый, %")[4]).toBe("-65,8");
     expect(rowStarting("CAPEX, ₽")[5]).toBe("—");
     expect(rowStarting("Ставка дисконтирования, %")[1]).toBe("12");

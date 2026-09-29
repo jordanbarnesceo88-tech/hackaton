@@ -40,11 +40,11 @@ export type ParamFieldProps = {
   formula?: string | null;
 };
 
-/** Примечание к бейджу базового значения из датасета организатора. */
-export const ORGANIZER_DEMO_NOTE = "демо-значение организатора";
+/** Примечание к базовому значению из демо-набора данных (бейджем в форме больше не выводится). */
+export const ORGANIZER_DEMO_NOTE = "демо-значение";
 
-/** Текст о зафиксированном параметре (min = max у организатора). */
-export const LOCKED_NOTICE = "значение зафиксировано организатором; изменение будет записано в журнал";
+/** Текст о зафиксированном параметре (min = max в демо-наборе). */
+export const LOCKED_NOTICE = "значение фиксировано в демо-наборе; изменение будет записано в журнал";
 
 /** Подпись поля с единицей: «Общая площадь склада, м²»; у безразмерных — только название. */
 export function paramLabelText(def: Pick<ParamSpec, "label" | "unit">): string {
@@ -68,7 +68,7 @@ export function rangeLine(def: ParamSpec): string | null {
   if (def.locked || (def.min === null && def.max === null)) return null;
   const text = rangeText(def);
   if (!text) return null;
-  return `${def.origin === "organizer" ? "диапазон организатора" : "допустимый диапазон"}: ${text}`;
+  return `${def.origin === "organizer" ? "типовой диапазон" : "допустимый диапазон"}: ${text}`;
 }
 
 /**
@@ -91,7 +91,7 @@ export function paramHelpLines(def: ParamSpec, formula?: string | null): string[
   const hint = def.hint.trim();
   if (hint) lines.push(hint);
   const note = (def.organizerNote ?? "").trim();
-  if (note && note !== hint) lines.push(`Примечание организатора: ${note}`);
+  if (note && note !== hint) lines.push(`Примечание: ${note}`);
   const exRange = [examplePhrase(def), rangeLine(def) ?? ""].filter((s) => s !== "").join(" · ");
   if (exRange) lines.push(exRange);
   const f = (formula ?? def.formula ?? "").trim();
@@ -170,15 +170,23 @@ export function liveParamDraft(draft: ParamDraft | null, value: ParamValue): Par
   return draft !== null && draft.against === value ? draft : null;
 }
 
-const INPUT_CLASS =
-  "w-full border-0 border-b-2 border-input bg-transparent px-1 py-1.5 text-sm tabular-nums transition-colors " +
-  "outline-none hover:border-muted-foreground focus-visible:border-primary focus-visible:ring-0 " +
-  "read-only:hover:border-input aria-invalid:border-destructive";
+// Поле и список параметра — один рецепт (.field): раньше в одной сетке стояли подчёркнутое
+// поле и обведённый список. Состояния (наведение, фокус, ошибка, только чтение) — в .field.
+const INPUT_CLASS = "field tabular-nums";
 
-const SELECT_CLASS =
-  "w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm outline-none transition-colors " +
-  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-70 " +
-  "aria-invalid:border-destructive";
+const SELECT_CLASS = "field";
+
+/**
+ * Ширина поля — по тому, что в него пишут, а не на всю колонку: число в 2–9 знаков в поле
+ * шириной 370px читалось пустой полосой, и сетка не могла стать плотнее. 8rem вмещает
+ * «150 000 000»; размеры «Д×Ш×В» — 11rem; списки и текст — на всю колонку. Список-селект
+ * (enum) — по ширине самого длинного варианта.
+ */
+function inputWidth(def: ParamFieldProps["def"]): string {
+  if (isNumericKind(def)) return "w-32";
+  if (def.kind === "dims") return "w-44";
+  return "w-full";
+}
 
 export function ParamField({
   def,
@@ -241,7 +249,7 @@ export function ParamField({
       {def.kind === "enum" && def.options.length > 0 ? (
         <select
           id={id}
-          className={cn(SELECT_CLASS, cautionBorder && "border-caution")}
+          className={cn(SELECT_CLASS, "w-auto max-w-full", cautionBorder && "border-caution")}
           value={selectValue}
           disabled={readOnly}
           aria-required={def.required || undefined}
@@ -270,7 +278,7 @@ export function ParamField({
           autoComplete="off"
           spellCheck={false}
           placeholder={def.kind === "dims" ? "Д×Ш×В" : undefined}
-          className={cn(INPUT_CLASS, cautionBorder && "border-caution")}
+          className={cn(INPUT_CLASS, inputWidth(def), cautionBorder && "border-caution")}
           value={shown}
           readOnly={readOnly}
           aria-required={def.required || undefined}
@@ -311,18 +319,18 @@ export function ParamField({
         </ul>
       )}
 
+      {/* Базовое значение из демо-набора данных бейджем не помечается (решение владельца,
+          2026-09-27): это обычное значение по умолчанию, и бейдж на каждом из полусотни полей
+          был шумом. Бейдж остаётся там, где он что-то сообщает: оценка или открытый источник
+          вместо демо-набора и значение, заданное человеком. */}
+      {(value === null || changed || def.origin !== "organizer" || !atOrganizerBase) && (
       <div className="flex flex-wrap items-start gap-2">
         {value === null ? (
           // Пустому полю источник не приписывается: бейдж «Оценка» рядом с пустотой читался бы
           // как «пусто — это оценка». Почему значения нет, говорит подсказка поля.
           <span className="text-xs text-muted-foreground">не задано</span>
         ) : atOrganizerBase && !changed ? (
-          <SourceBadge
-            origin={def.origin}
-            sourceRef={def.sourceRef}
-            sourceUrl={def.sourceUrl}
-            note={def.origin === "organizer" ? ORGANIZER_DEMO_NOTE : def.basis}
-          />
+          <SourceBadge origin={def.origin} sourceRef={def.sourceRef} sourceUrl={def.sourceUrl} note={def.basis} />
         ) : (
           <SourceBadge origin="user" />
         )}
@@ -346,6 +354,7 @@ export function ParamField({
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { CreateProductForm } from "@/components/admin/create-product-form";
 import { FACILITY_NAMES, LEVEL_LABELS, STATUS_LABELS } from "@/components/admin/format";
 import {
+  BADGE_CLASS,
   CHIP_CLASS,
   INPUT_CLASS,
   LABEL_CLASS,
@@ -146,7 +147,7 @@ export default async function AdminCatalogPage({
       <div className="flex flex-col gap-2">
         <h1>Каталог решений</h1>
         <p className="max-w-3xl text-muted-foreground">
-          Продукты из данных организатора и заведённые администратором. В карточке продукта правятся идентификация и
+          Продукты из исходных данных каталога и заведённые администратором. В карточке продукта правятся идентификация и
           каждая характеристика с источником, датой проверки и признаком подтверждения.
         </p>
       </div>
@@ -191,7 +192,7 @@ export default async function AdminCatalogPage({
           <div className={TABLE_WRAP_CLASS}>
             <table className="w-full border-collapse text-sm">
               <caption className="sr-only">Продукты каталога</caption>
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH_CLASS}>
                     Продукт
@@ -237,12 +238,12 @@ export default async function AdminCatalogPage({
                       <span className="flex flex-wrap gap-1">
                         {r.origin === "ADMIN" && <span className={cn(CHIP_CLASS, "bg-secondary")}>администратор</span>}
                         {r.origin === "ORGANIZER" && r.editedByAdmin && (
-                          <span className={cn(CHIP_CLASS, "border-caution/40 bg-caution/10")}>правка</span>
+                          <span data-tone="warn" className={BADGE_CLASS}>правка</span>
                         )}
                         {r.archived && <span className={cn(CHIP_CLASS, "bg-muted")}>архив</span>}
                         {r.excluded && <span className={cn(CHIP_CLASS, "bg-muted")}>исключён</span>}
                         {r.needsVerification && (
-                          <span className={cn(CHIP_CLASS, "border-caution/40")}>требует проверки</span>
+                          <span data-tone="warn" className={BADGE_CLASS}>требует проверки</span>
                         )}
                       </span>
                     </td>

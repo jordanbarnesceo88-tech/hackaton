@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * Общая рамка шага: вопрос как заголовок, содержимое, «Далее».
@@ -33,18 +35,13 @@ export function StepShell({
 
       <div className="flex items-center gap-3">
         {nextHref ? (
-          <Link
-            href={nextHref}
-            className="rounded-md bg-primary px-6 py-3 font-medium text-primary-foreground
-              transition-opacity hover:opacity-90
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
+          <Link href={nextHref} className={buttonVariants({ variant: "default", size: "xl" })}>
             {nextLabel}
           </Link>
         ) : (
           <span
             aria-disabled="true"
-            className="cursor-not-allowed rounded-md bg-muted px-6 py-3 font-medium text-muted-foreground"
+            className={cn(buttonVariants({ variant: "default", size: "xl" }), "cursor-not-allowed bg-muted text-muted-foreground")}
           >
             {nextLabel}
           </span>

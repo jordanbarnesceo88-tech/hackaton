@@ -103,7 +103,7 @@ describe("книга XLSX проекта", () => {
     const pb = formulaAt(ws, findRow(ws, "Простой срок окупаемости, лет", block));
     expect(pb.formula).toMatch(/^IF\(B\d+>0,B\d+\/B\d+,"не окупается"\)$/);
     expect(pb.result).toBeCloseTo(p.paybackYears ?? NaN, 9);
-    const roi = formulaAt(ws, findRow(ws, /^ROI по ТЗ/, block));
+    const roi = formulaAt(ws, findRow(ws, /^ROI валовый/, block));
     expect(roi.formula).toMatch(/^IF\(B\d+>0,SUM\(G\d+:G\d+\)\/B\d+\*100,"—"\)$/);
     expect(roi.result).toBeCloseTo(p.roiTzPct ?? NaN, 9);
     const tco = formulaAt(ws, findRow(ws, /^TCO за 5 лет/, block));
@@ -148,6 +148,23 @@ describe("книга XLSX проекта", () => {
       expect(view?.state, name).toBe("frozen");
       expect(view && "ySplit" in view ? view.ySplit : 0, name).toBe(1);
     }
+  });
+
+  it("источники формул и границ чувствительности — подписи для людей, а не внутренние значения", () => {
+    const about = sheet("О расчёте");
+    const head = findRow(about, "Показатель");
+    const sources = new Set<unknown>();
+    for (let r = head + 1; r <= about.rowCount && about.getCell(r, 1).value !== "Ограничения модели"; r++) {
+      if (about.getCell(r, 4).value) sources.add(about.getCell(r, 4).value);
+    }
+    const labels = new Set<unknown>(["базовая формула методики", "типовая расчётная зависимость", "базовые данные", "решение платформы"]);
+    expect([...sources].filter((s) => !labels.has(s))).toEqual([]);
+    expect(sources.has("типовая расчётная зависимость")).toBe(true);
+    const sens = sheet("Чувствительность");
+    const bounds = new Set<unknown>();
+    for (let r = 2; r <= sens.rowCount; r++) bounds.add(sens.getCell(r, 7).value);
+    expect(bounds.has("типовой диапазон")).toBe(true);
+    expect(bounds.has("организатор")).toBe(false);
   });
 
   it("имитация, журнал и параметры заполнены", () => {

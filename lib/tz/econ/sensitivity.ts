@@ -32,6 +32,17 @@ import { comparisonScope, computeScenariosCore } from "./core";
 /** Границы плеча и их источник. */
 export type LeverBounds = Bounds;
 
+/** Подпись источника границ для показа (значения `boundsSource` — ключи, не текст). */
+export const BOUNDS_SOURCE_LABELS: Readonly<Record<SensitivityRow["boundsSource"], string>> = {
+  организатор: "типовой диапазон",
+  норматив: "норматив",
+  "±20 %": "±20 %",
+};
+
+export function boundsSourceLabel(source: SensitivityRow["boundsSource"]): string {
+  return BOUNDS_SOURCE_LABELS[source];
+}
+
 type Bounds = {
   low: number;
   high: number;

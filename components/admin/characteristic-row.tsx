@@ -48,7 +48,7 @@ export function CharacteristicRow({
         <span className="text-sm font-medium">{label}</span>
         <span className="text-xs text-muted-foreground">
           <code>{charKey}</code>
-          {required ? " · обязательная (ТЗ §3.3.4)" : ""}
+          {required ? " · обязательная" : ""}
         </span>
       </div>
       <div className="flex min-w-0 flex-col gap-2">

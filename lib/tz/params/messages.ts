@@ -180,7 +180,7 @@ export function outOfRangeIssue(def: ParamSpec, v: number, row?: number): ParamI
     def,
     "out_of_range",
     "warning",
-    `${def.label}: ${formatNumberRu(v)} вне диапазона организатора ${rangeText(def)} — проверьте значение`,
+    `${def.label}: ${formatNumberRu(v)} вне типового диапазона ${rangeText(def)} — проверьте значение`,
     row,
   );
 }
@@ -191,7 +191,7 @@ export function lockedChangedIssue(def: ParamSpec, row?: number): ParamIssue {
     def,
     "locked_changed",
     "warning",
-    `${def.label}: значение зафиксировано организатором (${withUnit(def.base, def.unit)}); изменение будет записано в журнал`,
+    `${def.label}: значение фиксировано в демо-наборе (${withUnit(def.base, def.unit)}); изменение будет записано в журнал`,
     row,
   );
 }

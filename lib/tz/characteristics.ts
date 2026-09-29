@@ -162,12 +162,12 @@ export function confirmedSharePct(chars: readonly { confirmed: boolean }[]): num
 }
 
 const ORIGIN_LABELS: Readonly<Record<Origin, string>> = {
-  organizer: "Организатор",
+  organizer: "Базовые данные",
   research: "Открытый источник",
   estimate: "Оценка",
   derived: "Расчёт",
   choice: "Наш выбор",
-  tz: "ТЗ",
+  tz: "Методика",
   admin: "Администратор",
   user: "Задано вами",
 };
@@ -175,4 +175,21 @@ const ORIGIN_LABELS: Readonly<Record<Origin, string>> = {
 /** Подпись происхождения значения для бейджа «откуда число» (ТЗ §3.5.8). */
 export function originLabel(origin: Origin): string {
   return ORIGIN_LABELS[origin];
+}
+
+/**
+ * Имена файлов исходных выгрузок в начале sourceRef → название набора данных для показа.
+ * Сырой sourceRef характеристики входит в снимок продукта (ProductForCalc.sources) и в версию
+ * данных проекта, поэтому в данных он остаётся как есть, а меняется только подпись.
+ */
+const SOURCE_REF_PREFIX_LABELS: readonly (readonly [prefix: string, label: string])[] = [
+  ["catalog_export_v4.csv", "Каталог"],
+];
+
+/** Место в источнике для показа: «catalog_export_v4.csv › №12» → «Каталог › №12». */
+export function sourceRefLabel(ref: string): string {
+  for (const [prefix, label] of SOURCE_REF_PREFIX_LABELS) {
+    if (ref.startsWith(prefix)) return `${label}${ref.slice(prefix.length)}`;
+  }
+  return ref;
 }

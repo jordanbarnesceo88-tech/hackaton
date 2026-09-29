@@ -135,7 +135,7 @@ export function exampleImportSeed(): ProductSeed {
     facilityTypes: [...(src?.facilityTypes ?? [])],
     industries: [...(src?.industries ?? [])],
     description:
-      "Пример для POST /api/v1/catalog/import: характеристики скопированы из данных организатора вместе с источниками",
+      "Пример для POST /api/v1/catalog/import: характеристики скопированы из исходных данных каталога вместе с источниками",
     characteristics,
     flags: [],
     excludedReason: null,
@@ -402,34 +402,34 @@ const SCHEMAS: Record<string, Schema> = {
     {
       key: str("Ключ параметра — используется в params"),
       facility: FACILITY_SCHEMA,
-      section: str("Раздел датасета"),
+      section: str("Раздел параметров"),
       label: str("Подпись"),
       unit: orNull(str("Единица")),
       kind: str("Вид поля", { enum: ["number", "integer", "percent", "enum", "text", "dims"] }),
       options: arr(str("Вариант"), "Варианты для kind = enum"),
-      base: { type: ["number", "string", "null"], description: "Базовое значение организатора (демо-данные)" },
-      min: orNull(num("Нижняя граница диапазона организатора")),
-      max: orNull(num("Верхняя граница диапазона организатора")),
-      locked: bool("Зафиксировано организатором (min = max)"),
+      base: { type: ["number", "string", "null"], description: "Базовое значение (демо-данные)" },
+      min: orNull(num("Нижняя граница типового диапазона")),
+      max: orNull(num("Верхняя граница типового диапазона")),
+      locked: bool("Значение фиксировано в демо-наборе (min = max)"),
       required: bool("Обязательный параметр"),
-      tzMinimum: orNull(str("Какой пункт минимума ТЗ §3.2.1 покрывает")),
+      tzMinimum: orNull(str("Какой пункт обязательного минимума параметров покрывает")),
       usedBy: arr(str("Где используется"), "fleet, labour, constraints, visualization, economics"),
       hint: str("Подсказка"),
       example: str("Пример ввода"),
-      organizerNote: orNull(str("Примечание организатора дословно")),
+      organizerNote: orNull(str("Примечание из демо-набора дословно")),
       origin: str("Происхождение значения", { enum: ORIGIN_ENUM }),
-      sourceRef: orNull(str("Где именно у организатора")),
+      sourceRef: orNull(str("Где именно в источнике")),
       sourceUrl: orNull(str("Ссылка на источник")),
       basis: orNull(str("Обоснование оценки")),
       formula: orNull(str("Формула вывода")),
       order: int("Порядок показа"),
     },
     ["key", "facility", "label", "kind", "base", "min", "max", "required", "origin"],
-    "Описание параметра объекта (ТЗ §3.2)",
+    "Описание параметра объекта",
   ),
   ParamValues: {
     type: "object",
-    description: "Значения параметров объекта: ключ из ParamSpec → число, строка или null. Не заданные — базовые значения организатора",
+    description: "Значения параметров объекта: ключ из ParamSpec → число, строка или null. Не заданные — базовые значения",
     additionalProperties: { type: ["number", "string", "null"] },
   },
   ScenarioItem: obj(
@@ -458,7 +458,7 @@ const SCHEMAS: Record<string, Schema> = {
       normOverrides: { type: "object", description: "Нормативы, переопределённые в сценарии: ключ → число в [min, max]", additionalProperties: { type: "number" } },
     },
     ["key", "name", "kind", "items"],
-    "Сценарий (ТЗ §3.5.5). В проекте 3–10 сценариев, ровно один «Как есть»",
+    "Сценарий. В проекте 3–10 сценариев, ровно один «Как есть»",
     { additionalProperties: false },
   ),
   CalculateRequest: obj(
@@ -477,11 +477,11 @@ const SCHEMAS: Record<string, Schema> = {
       simModelVersion: str("Версия модели имитации"),
       dataVersion: str("Хэш снимков продуктов, нормативов и описаний параметров"),
       calculatedAt: str("Момент расчёта", { format: "date-time" }),
-      organizer: { type: "object", description: "Версии выгрузок организатора в этой сборке", additionalProperties: { type: "string" } },
+      organizer: { type: "object", description: "Версии исходных данных в этой сборке", additionalProperties: { type: "string" } },
       paramDefsFrom: str("Описания параметров из БД или из кода", { enum: ["db", "code"] }),
     },
     ["modelVersion", "simModelVersion", "dataVersion", "calculatedAt"],
-    "Версии расчёта (ТЗ §3.1.5 — воспроизводимость)",
+    "Версии расчёта (воспроизводимость)",
   ),
   ScenarioSummary: obj(
     {
@@ -495,7 +495,7 @@ const SCHEMAS: Record<string, Schema> = {
       effectYearRub: orNull(num("Годовой эффект относительно «Как есть», ₽")),
       paybackYears: orNull(num("Простая окупаемость, лет (CAPEX / эффект)")),
       band: orNull(str("Интервал окупаемости", { enum: ["fast", "moderate", "slow", "none"] })),
-      roiTzPct: orNull(num("ROI по ТЗ, %")),
+      roiTzPct: orNull(num("ROI валовый, %")),
       npvRub: orNull(num("NPV за горизонт, ₽")),
       discountedPaybackYears: orNull(num("Дисконтированная окупаемость, лет")),
       tcoRub: orNull(num("TCO, ₽")),
@@ -530,7 +530,7 @@ const SCHEMAS: Record<string, Schema> = {
       disclaimer: str("Оговорка о предварительной оценке"),
     },
     ["recommendedScenarioKey", "headline", "bullets", "disclaimer"],
-    "Вывод по проекту (ТЗ §3.5.7, §3.7)",
+    "Вывод по проекту",
   ),
   ProjectResults: obj(
     {
@@ -626,7 +626,7 @@ const SCHEMAS: Record<string, Schema> = {
       country: orNull(str("Страна")),
       level: str("Глубина описания", { enum: ["identification", "enriched", "examples"] }),
       status: str("Статус", { enum: ["operation", "piloting", "rnd"] }),
-      origin: str("ORGANIZER — данные организатора; ADMIN — заведён администратором (в админке или через API)", {
+      origin: str("ORGANIZER — исходные данные каталога; ADMIN — заведён администратором (в админке или через API)", {
         enum: ["ORGANIZER", "ADMIN"],
       }),
       solutionType: orNull(obj({ slug: str("Slug"), name: str("Название") }, ["slug", "name"], "Тип решения")),
@@ -639,7 +639,7 @@ const SCHEMAS: Record<string, Schema> = {
       throughputUnit: orNull(str("Единица производительности")),
       payloadKg: orNull(num("Грузоподъёмность, кг")),
       speedMps: orNull(num("Скорость, м/с")),
-      completenessPct: int("Полнота карточки по 31 обязательному ключу ТЗ, %"),
+      completenessPct: int("Полнота карточки по 31 обязательной характеристике, %"),
       confirmedSharePct: int("Доля характеристик, подтверждённых первоисточником, %"),
       needsVerification: bool("Требует проверки"),
       excluded: bool("Исключён из подбора"),
@@ -665,7 +665,7 @@ const SCHEMAS: Record<string, Schema> = {
     {
       key: str("Ключ характеристики", { enum: Object.keys(CHARACTERISTIC_KEYS) }),
       label: str("Подпись"),
-      group: str("Группа ТЗ §3.3.4", { enum: Object.keys(CHAR_GROUP_LABELS) }),
+      group: str("Группа характеристик", { enum: Object.keys(CHAR_GROUP_LABELS) }),
       display: str("Значение строкой для людей"),
       valueNum: orNull(num("Число или типичное значение диапазона")),
       valueMin: orNull(num("Нижняя граница")),
@@ -678,7 +678,7 @@ const SCHEMAS: Record<string, Schema> = {
       origin: str("Происхождение", { enum: ORIGIN_ENUM }),
       sourceType: str("Тип источника"),
       sourceUrl: orNull(str("Ссылка на источник")),
-      sourceRef: orNull(str("Где у организатора")),
+      sourceRef: orNull(str("Где в источнике")),
       verifiedAt: orNull(str("Дата проверки", { format: "date" })),
       confirmed: bool("Подтверждено первоисточником"),
       confidence: orNull(str("Уверенность")),
@@ -691,14 +691,14 @@ const SCHEMAS: Record<string, Schema> = {
       hasConflict: bool("Источники расходятся сильнее допуска"),
     },
     ["key", "group", "display", "origin", "confirmed"],
-    "Характеристика с провенансом (ТЗ §3.3.4)",
+    "Характеристика с провенансом",
   ),
   CatalogProductDetail: {
     allOf: [
       ref("CatalogListItem"),
       obj(
         {
-          organizerCatalogId: orNull(str("Id в каталоге организатора")),
+          organizerCatalogId: orNull(str("Id в исходном каталоге")),
           organizerRows: arr(int("Строка"), "Строки кураторского свода"),
           industries: arr(str("Отрасль"), "Отрасли"),
           archived: bool("В архиве"),
@@ -707,7 +707,7 @@ const SCHEMAS: Record<string, Schema> = {
           updatedAt: str("Изменён", { format: "date-time" }),
           characteristics: {
             type: "object",
-            description: "Характеристики по группам ТЗ §3.3.4 (все шесть групп, пустая — [])",
+            description: "Характеристики по группам (все шесть групп, пустая — [])",
             additionalProperties: arr(ref("CatalogCharacteristic"), "Характеристики группы"),
           },
         },
@@ -742,7 +742,7 @@ const SCHEMAS: Record<string, Schema> = {
             .join("; "),
       ),
       sourceUrl: orNull(str("Ссылка http(s); обязательна для research")),
-      sourceRef: str("Где у организатора; обязательно для organizer"),
+      sourceRef: str("Где в источнике; обязательно для organizer"),
       date: str("Дата проверки ГГГГ-ММ-ДД", { format: "date" }),
       confirmed: bool("Подтверждено первоисточником; у estimate — всегда false"),
       confidence: str("Уверенность", { enum: ["high", "medium", "low"] }),
@@ -754,13 +754,13 @@ const SCHEMAS: Record<string, Schema> = {
       alternatives: arr({ type: "object", description: "Sourced без alternatives" }, "Другие найденные значения, до 10"),
     },
     ["value", "origin", "sourceType", "sourceUrl", "date", "confirmed"],
-    "Значение характеристики с провенансом (ТЗ §3.3.4)",
+    "Значение характеристики с провенансом",
     { additionalProperties: false },
   ),
   ProductSeed: obj(
     {
-      slug: str("Slug: латиница, цифры, дефис, 1–80 символов; не из данных организатора", { pattern: "^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$" }),
-      organizerCatalogId: { type: "null", description: "Только null: id организатора задаёт синхронизация" },
+      slug: str("Slug: латиница, цифры, дефис, 1–80 символов; не из исходных данных каталога", { pattern: "^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$" }),
+      organizerCatalogId: { type: "null", description: "Только null: id исходного каталога задаёт синхронизация" },
       organizerRows: { type: "array", maxItems: 0, description: "Только []" },
       level: str("identification — в подбор не идёт; enriched, examples — идут в подбор и расчёт", {
         enum: ["identification", "enriched", "examples"],
@@ -776,7 +776,7 @@ const SCHEMAS: Record<string, Schema> = {
       description: str("Описание, до 200 символов"),
       characteristics: {
         type: "object",
-        description: "Ключ словаря характеристик ТЗ §3.3.4 → Sourced",
+        description: "Ключ словаря характеристик → Sourced",
         propertyNames: { enum: Object.keys(CHARACTERISTIC_KEYS) },
         additionalProperties: ref("Sourced"),
       },
@@ -784,7 +784,7 @@ const SCHEMAS: Record<string, Schema> = {
       excludedReason: orNull(str("Причина исключения из подбора")),
     },
     ["slug", "level", "name", "solutionType", "status", "characteristics"],
-    "Продукт для импорта (та же форма, что у данных организатора)",
+    "Продукт для импорта (та же форма, что у исходных данных каталога)",
     { additionalProperties: false },
   ),
   ImportReport: obj(
@@ -794,7 +794,7 @@ const SCHEMAS: Record<string, Schema> = {
       created: int("Создано"),
       updated: int("Обновлено"),
       unchanged: int("Без изменений"),
-      refused: int("Отказано (slug организатора, данные не засеяны)"),
+      refused: int("Отказано (slug из исходных данных каталога, данные не засеяны)"),
       failed: int("Не записано из-за ошибки базы"),
       valid: int("Прошли проверку (пробный прогон)"),
       items: arr(
@@ -831,7 +831,7 @@ const SCHEMAS: Record<string, Schema> = {
       max: orNull(num("Верхняя граница")),
       origin: str("Происхождение"),
       basis: str("Обоснование"),
-      sourceRef: orNull(str("Источник у организатора или в ТЗ")),
+      sourceRef: orNull(str("Где в источнике")),
       sourceUrl: orNull(str("Ссылка")),
       editedByAdmin: bool("Правлен администратором"),
       updatedAt: orNull(str("Изменён", { format: "date-time" })),
@@ -906,7 +906,7 @@ export const OPENAPI: OpenApiDocument = {
     title: "API платформы оценки роботизации",
     version: `v1 (модель ${TZ_MODEL_VERSION}, имитация ${SIM_MODEL_VERSION})`,
     description:
-      "API для интеграций (ТЗ §3.8): каталог решений, нормативы, параметры объектов, расчёт сценариев и проекты. " +
+      "API для интеграций: каталог решений, нормативы, параметры объектов, расчёт сценариев и проекты. " +
       "Все ответы — JSON; ошибка — { error, details? } с сообщением по-русски. Денежные величины — в рублях. " +
       "Доступ: гость — чтение и расчёт без сохранения; пользователь — cookie сессии после входа на сайте; " +
       `администратор — сессия с ролью ADMIN или заголовок Authorization: Bearer <ADMIN_API_TOKEN> (не короче ${ADMIN_TOKEN_MIN_LENGTH} символов). ` +
@@ -914,10 +914,10 @@ export const OPENAPI: OpenApiDocument = {
   },
   servers: [{ url: "/", description: "Тот же сервер, что и сайт (на стенде — через HTTPS)" }],
   tags: [
-    { name: "Каталог", description: "Каталог решений с провенансом характеристик (ТЗ §3.3)" },
-    { name: "Нормативы", description: "Нормативы экономической модели (ТЗ §3.5.1)" },
-    { name: "Параметры объектов", description: "Описания параметров склада, аэропорта и медучреждения (ТЗ §3.2)" },
-    { name: "Расчёт и проекты", description: "Расчёт сценариев и проекты пользователя (ТЗ §3.5, §3.1.3)" },
+    { name: "Каталог", description: "Каталог решений с провенансом характеристик" },
+    { name: "Нормативы", description: "Нормативы экономической модели" },
+    { name: "Параметры объектов", description: "Описания параметров склада, аэропорта и медучреждения" },
+    { name: "Расчёт и проекты", description: "Расчёт сценариев и проекты пользователя" },
     { name: "Служебные", description: "Описание API, состояние сервиса, шаблоны загрузки" },
   ],
   paths: {
@@ -926,8 +926,8 @@ export const OPENAPI: OpenApiDocument = {
         operationId: "listCatalog",
         summary: "Список каталога",
         description:
-          "Каталог решений с фильтрами, поиском по названию, производителю и описанию, сортировкой и страницами по 50 (ТЗ §3.3.7). " +
-          "Выгрузка для аналитики ФЦ БАС: пройдите страницы page=1…pageCount. Неизвестный параметр или значение — 422.",
+          "Каталог решений с фильтрами, поиском по названию, производителю и описанию, сортировкой и страницами по 50. " +
+          "Выгрузка для аналитики: пройдите страницы page=1…pageCount. Неизвестный параметр или значение — 422.",
         tags: ["Каталог"],
         "x-access": "public",
         security: PUBLIC,
@@ -966,7 +966,7 @@ export const OPENAPI: OpenApiDocument = {
         operationId: "getCatalogProduct",
         summary: "Карточка продукта",
         description:
-          "Все характеристики продукта по шести группам ТЗ §3.3.4, у каждой — значение как в источнике, ссылка, дата проверки, " +
+          "Все характеристики продукта по шести группам, у каждой — значение как в источнике, ссылка, дата проверки, " +
           "признак подтверждения и альтернативные значения. Архивный продукт тоже отдаётся (archived: true).",
         tags: ["Каталог"],
         "x-access": "public",
@@ -989,11 +989,11 @@ export const OPENAPI: OpenApiDocument = {
         operationId: "importCatalog",
         summary: "Импорт продуктов каталога",
         description:
-          `Создаёт или обновляет до ${IMPORT_MAX_PRODUCTS} продуктов по списку ProductSeed (ТЗ §3.3.2, §3.3.6, §3.8.2). ` +
+          `Создаёт или обновляет до ${IMPORT_MAX_PRODUCTS} продуктов по списку ProductSeed. ` +
           "Проверка всё-или-ничего: при ошибке в любой позиции ничего не пишется (422). У каждой характеристики — провенанс: " +
           "organizer → sourceRef; research → sourceUrl, asInSource и дата; estimate, derived, choice → basis; derived → formula. " +
-          "Продукты записываются с origin ADMIN: синхронизация данных организатора их не трогает, правки администратора в админке импорт не перезаписывает. " +
-          "Slug из данных организатора не принимается — такой продукт дополняют в админке. ?dryRun=1 — только проверить, без записи.",
+          "Продукты записываются с origin ADMIN: синхронизация исходных данных каталога их не трогает, правки администратора в админке импорт не перезаписывает. " +
+          "Slug из исходных данных каталога не принимается — такой продукт дополняют в админке. ?dryRun=1 — только проверить, без записи.",
         tags: ["Каталог"],
         "x-access": "admin",
         security: ADMIN,
@@ -1008,7 +1008,7 @@ export const OPENAPI: OpenApiDocument = {
               schema: arr(ref("ProductSeed"), "Продукты", { minItems: 1, maxItems: IMPORT_MAX_PRODUCTS }),
               examples: {
                 example: {
-                  summary: "Карточка уровня identification (в подбор не идёт), характеристики — копия данных организатора с источниками",
+                  summary: "Карточка уровня identification (в подбор не идёт), характеристики — копия исходных данных каталога с источниками",
                   value: [importSeedExample],
                 },
               },
@@ -1055,7 +1055,7 @@ export const OPENAPI: OpenApiDocument = {
         summary: "Нормативы модели",
         description:
           "Все нормативы расчёта с метаданными: значение, значение по умолчанию, итоговое значение расчёта, границы, происхождение, " +
-          "обоснование и источник (ТЗ §3.5.1: без недокументированных коэффициентов).",
+          "обоснование и источник (без недокументированных коэффициентов).",
         tags: ["Нормативы"],
         "x-access": "public",
         security: PUBLIC,
@@ -1071,7 +1071,7 @@ export const OPENAPI: OpenApiDocument = {
         summary: "Изменить нормативы",
         description:
           "Записывает новые значения нормативов одной транзакцией. Значение вне [min, max] прижимается к границе (clamped: true), " +
-          "зафиксированный организатором норматив не меняется. Строка помечается правкой администратора — синхронизация данных её не перезаписывает. " +
+          "фиксированный норматив (min = max) не меняется. Строка помечается правкой администратора — синхронизация данных её не перезаписывает. " +
           "Каждое изменение пишется в журнал ChangeLog (кто, когда, было, стало, причина). Расчёты новых и пересчитанных проектов используют новые значения.",
         tags: ["Нормативы"],
         "x-access": "admin",
@@ -1083,7 +1083,7 @@ export const OPENAPI: OpenApiDocument = {
               schema: ref("NormsUpdateRequest"),
               examples: {
                 example: {
-                  summary: "Загрузка робота — верхняя граница диапазона организатора",
+                  summary: "Загрузка робота — верхняя граница типового диапазона",
                   value: { values: { utilization: utilizationDef.max }, reason: "Загрузка по данным пилота" },
                 },
               },
@@ -1133,7 +1133,7 @@ export const OPENAPI: OpenApiDocument = {
         operationId: "listFacilityParams",
         summary: "Параметры типа объекта",
         description:
-          "Описания параметров объекта (ТЗ §3.2): ключ, раздел, подпись, единица, базовое значение и диапазон организатора, пример, подсказка, источник. " +
+          "Описания параметров объекта: ключ, раздел, подпись, единица, базовое значение и типовой диапазон, пример, подсказка, источник. " +
           "По этим ключам заполняется params в расчёте и проекте.",
         tags: ["Параметры объектов"],
         "x-access": "public",
@@ -1158,7 +1158,7 @@ export const OPENAPI: OpenApiDocument = {
         description:
           "Считает сценарии для объекта: подбор решений, состав оборудования, CAPEX, OPEX, эффект, окупаемость, ROI, NPV, TCO, чувствительность, " +
           "вывод и проверку парка имитацией — те же функции, что у «Нового проекта», поэтому числа совпадают с проектом на тех же параметрах. " +
-          "Без params — базовые значения организатора; без scenarios — сценарии по умолчанию из подбора. В БД ничего не пишется. " +
+          "Без params — базовые значения демо-набора; без scenarios — сценарии по умолчанию из подбора. В БД ничего не пишется. " +
           "Лимит: 60 запросов за 15 минут с одного IP.",
         tags: ["Расчёт и проекты"],
         "x-access": "public",
@@ -1169,11 +1169,11 @@ export const OPENAPI: OpenApiDocument = {
             [JSON_TYPE]: {
               schema: ref("CalculateRequest"),
               examples: {
-                demo: { summary: "Склад на демо-данных организатора", value: { facility: "warehouse" } },
+                demo: { summary: "Склад на демо-данных", value: { facility: "warehouse" } },
                 ...(exampleSalary !== null
                   ? {
                       salary: {
-                        summary: "Зарплата оператора погрузчика — верхняя граница диапазона организатора",
+                        summary: "Зарплата оператора погрузчика — верхняя граница типового диапазона",
                         value: { facility: "warehouse", params: { [EXAMPLE_PARAM_KEY]: exampleSalary } },
                       },
                     }
@@ -1207,7 +1207,7 @@ export const OPENAPI: OpenApiDocument = {
         operationId: "createProject",
         summary: "Создать проект",
         description:
-          "Создаёт проект пользователя с расчётом и сохраняет его с версиями модели и данных (ТЗ §3.1.3, §3.1.5). Путь для WMS, ERP и 1С: " +
+          "Создаёт проект пользователя с расчётом и сохраняет его с версиями модели и данных. Путь для WMS, ERP и 1С: " +
           "объёмы и режим работы объекта передаются в params. Проверка — как у формы «Новый проект»; сервер сам считает модель и имитацию. " +
           "Проект открывается на сайте по адресу из поля url. Лимит: 30 проектов за 15 минут на пользователя.",
         tags: ["Расчёт и проекты"],
@@ -1220,7 +1220,7 @@ export const OPENAPI: OpenApiDocument = {
               schema: ref("ProjectCreateRequest"),
               examples: {
                 example: {
-                  summary: "Склад из WMS: демо-данные организатора и своя зарплата",
+                  summary: "Склад из WMS: демо-данные и своя зарплата",
                   value: {
                     name: "РЦ Подольск",
                     facility: "warehouse",
@@ -1311,7 +1311,7 @@ export const OPENAPI: OpenApiDocument = {
         operationId: "getParamsTemplate",
         summary: "Шаблон загрузки параметров",
         description:
-          "Шаблон файла параметров объекта (ТЗ §3.2.3): CSV для русского Excel (BOM, «;», десятичная запятая) или книга XLSX с листом «Как заполнить». " +
+          "Шаблон файла параметров объекта: CSV для русского Excel (BOM, «;», десятичная запятая) или книга XLSX с листом «Как заполнить». " +
           "Заполненный шаблон загружается при создании проекта.",
         tags: ["Служебные"],
         "x-access": "public",

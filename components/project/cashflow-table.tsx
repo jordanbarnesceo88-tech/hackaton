@@ -47,10 +47,10 @@ export function CashflowTable({
   const hasTail = rows.some((r) => afterHorizon(r.year));
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-sm font-semibold">{title}</h4>
-      <div className="overflow-x-auto rounded-md border">
+      <h4 className="block-title">{title}</h4>
+      <div className="data-table-wrap">
         <table className="print-table w-full border-collapse text-sm">
-          <thead className="bg-muted/40">
+          <thead className="border-b border-border">
             <tr>
               <th scope="col" className={`${TH} text-left`}>
                 Год

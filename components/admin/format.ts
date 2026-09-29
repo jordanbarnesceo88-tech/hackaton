@@ -24,14 +24,14 @@ export const LEVEL_LABELS: Readonly<Record<string, string>> = {
 
 /** Пояснение к глубине описания — подсказка в списке и карточке. */
 export const LEVEL_HINTS: Readonly<Record<string, string>> = {
-  identification: "только поля каталога организатора; в расчёт не идёт",
+  identification: "только поля каталога; в расчёт не идёт",
   enriched: "характеристики с источником по каждому полю; участвует в подборе",
-  examples: "из «Примеров решений» организатора; участвует в подборе",
+  examples: "из подборки «Примеры решений»; участвует в подборе",
 };
 
 /** Происхождение продукта каталога. */
 export const PRODUCT_ORIGIN_LABELS: Readonly<Record<string, string>> = {
-  ORGANIZER: "Данные организатора",
+  ORGANIZER: "Исходные данные каталога",
   ADMIN: "Заведён администратором",
 };
 
@@ -71,7 +71,7 @@ export const PRODUCT_FIELD_LABELS: Readonly<Record<string, string>> = {
   archived: "В архиве",
   create: "Создание продукта",
   delete: "Удаление продукта",
-  revert: "Возврат данных организатора",
+  revert: "Возврат к исходным данным каталога",
 };
 
 /** Поля описания параметра объекта в журнале. */

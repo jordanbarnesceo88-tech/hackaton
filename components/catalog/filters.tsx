@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { SORT_OPTIONS, STATUS_LABELS } from "./labels";
 import type { CatalogOptions } from "./options";
 import { hasActiveFilters, type CatalogQuery } from "./search-params";
@@ -14,9 +13,8 @@ import { hasActiveFilters, type CatalogQuery } from "./search-params";
  * объектов («Уборка склада», «Уборка терминала») различаются группой.
  */
 
-const FIELD_CLASS =
-  "h-9 w-full rounded-md border border-input bg-background px-2 text-sm outline-none transition-colors " +
-  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30";
+// lg — в одном ряду с кнопками «Показать»/«Сбросить» (lg).
+const FIELD_CLASS = "field field--lg";
 
 const LABEL_CLASS = "text-xs font-medium text-muted-foreground";
 
@@ -25,7 +23,7 @@ const STATUS_ORDER = ["operation", "piloting", "rnd"] as const;
 const LEVEL_FILTER: readonly { value: CatalogQuery["level"]; label: string }[] = [
   { value: "", label: "любая" },
   { value: "enriched", label: "с характеристиками и источниками" },
-  { value: "examples", label: "из «Примеров решений» организатора" },
+  { value: "examples", label: "из подборки «Примеры решений»" },
   { value: "identification", label: "только идентификация" },
 ];
 
@@ -181,11 +179,11 @@ export function CatalogFiltersForm({ query, options }: { query: CatalogQuery; op
         </label>
         <div className="ml-auto flex items-center gap-2">
           {active && (
-            <Link href="/catalog" prefetch={false} className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}>
+            <Link href="/catalog" prefetch={false} className={buttonVariants({ variant: "ghost", size: "lg" })}>
               Сбросить
             </Link>
           )}
-          <button type="submit" className={cn(buttonVariants({ size: "lg" }), "px-4")}>
+          <button type="submit" className={buttonVariants({ size: "lg" })}>
             Показать
           </button>
         </div>

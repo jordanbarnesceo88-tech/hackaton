@@ -180,9 +180,9 @@ export default async function ComparePage({
             <h2>{category.name}</h2>
             <p className="text-sm text-muted-foreground">{category.description}</p>
           </div>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="data-table-wrap">
             <table className="w-full border-collapse text-sm">
-              <thead className="border-b bg-muted/50 text-muted-foreground">
+              <thead className="border-b text-muted-foreground">
                 <tr>
                   {/* Порядок колонок — это порядок вопросов, а не порядок происхождения
                       данных. Окупаемость и NPV стояли одиннадцатыми из двенадцати и уезжали

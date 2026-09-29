@@ -67,6 +67,11 @@ const PAIRS: [fg: string, bg: string, min: number][] = [
   ["primary", "background", 3.0],
   ["primary-foreground", "primary", 4.5],
   ["destructive", "background", 4.5],
+  // Модальное окно (тур) стоит на --popover, а не на --card: у него своя поверхность, выше
+  // страницы. Заголовок окна (.panel-label) набран цветом --primary — это текст, поэтому 4.5.
+  ["popover-foreground", "popover", 4.5],
+  ["muted-foreground", "popover", 4.5],
+  ["primary", "popover", 4.5],
   // Графики проверяются на --card, а не на --background: сегодня токены --chart-* не
   // использует ни один компонент (полосы чувствительности рисуются на --primary), а когда
   // графики появятся, они окажутся внутри карточки — там живёт каждая панель. Зазор у них

@@ -42,13 +42,13 @@ export function LineItems({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-sm font-semibold">{title}</h4>
+      <h4 className="block-title">{title}</h4>
       {lines.length === 0 ? (
         <p className="text-sm text-muted-foreground">Статей нет.</p>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <div className="data-table-wrap">
           <table className="print-table w-full border-collapse text-sm">
-            <thead className="bg-muted/40">
+            <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>
                   Статья
@@ -70,7 +70,7 @@ export function LineItems({
                   <th scope="row" className={`${TD} text-left font-normal`}>
                     {l.label}
                     {l.overridden && (
-                      <span className="ml-2 rounded bg-caution/15 px-1.5 py-0.5 text-xs font-medium text-caution">
+                      <span data-tone="info" className="badge ml-2">
                         задано вами
                       </span>
                     )}

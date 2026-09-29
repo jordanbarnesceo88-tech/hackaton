@@ -188,7 +188,7 @@ describe("ProjectReport — печатный отчёт", () => {
     if (!def || def.max === null) return;
     results.paramsUsed = { ...results.paramsUsed, [def.key]: def.max * 10 };
     const t = textOf(renderReport(results, defs));
-    expect(t).toMatch(/⚠ вне (диапазона организатора|допустимого диапазона)/);
+    expect(t).toMatch(/⚠ вне (типового диапазона|допустимого диапазона)/);
     expect(t).toContain("Задано вами");
   });
 
@@ -297,15 +297,15 @@ describe("ProjectReport — печатный отчёт", () => {
     expect(count(textOf(section), "https://морос.рф/amr-1500/")).toBe(2);
   });
 
-  it("шапка: демо-данные названы по датасету типа объекта", () => {
-    expect(text).toContain("демо-данные организатора (датасет «Склад»)");
+  it("шапка: демо-данные названы по листу демо-набора для типа объекта", () => {
+    expect(text).toContain("демо-набор данных, лист «Склад»");
     const airport = textOf(
       renderReport({ ...fixtureResults(), facility: "airport" }, fixtureDefs(), {
         project: { ...PROJECT, facility: "airport" },
       }),
     );
-    expect(airport).toContain("демо-данные организатора (датасет «Аэропорт»)");
-    expect(airport).not.toContain("датасет «Склад»");
+    expect(airport).toContain("демо-набор данных, лист «Аэропорт»");
+    expect(airport).not.toContain("лист «Склад»");
   });
 
   it("шапка: предупреждение, если данные изменились после расчёта", () => {
@@ -398,9 +398,9 @@ describe("report-model — помощники отчёта", () => {
   });
 
   it("paramsSourceText различает демо по типу объекта, файл, API и ручной ввод", () => {
-    expect(paramsSourceText({ kind: "demo" }, "warehouse")).toBe("демо-данные организатора (датасет «Склад»)");
-    expect(paramsSourceText({ kind: "demo" }, "airport")).toBe("демо-данные организатора (датасет «Аэропорт»)");
-    expect(paramsSourceText({ kind: "demo" }, "medical")).toBe("демо-данные организатора (датасет «Медучреждение»)");
+    expect(paramsSourceText({ kind: "demo" }, "warehouse")).toBe("демо-набор данных, лист «Склад»");
+    expect(paramsSourceText({ kind: "demo" }, "airport")).toBe("демо-набор данных, лист «Аэропорт»");
+    expect(paramsSourceText({ kind: "demo" }, "medical")).toBe("демо-набор данных, лист «Медучреждение»");
     expect(paramsSourceText({ kind: "upload", fileName: "a.xlsx" }, "warehouse")).toContain("«a.xlsx»");
     expect(paramsSourceText({ kind: "api" }, "warehouse")).toContain("API");
     expect(paramsSourceText({ kind: "manual" }, "warehouse")).toContain("вручную");
@@ -477,7 +477,11 @@ describe("layout-svg — схема склада", () => {
     }
     const html = renderToStaticMarkup(createElement(WarehouseLayoutSvg, { layout, label: "Схема" }));
     const points = layout.receiving.length + layout.shipping.length + layout.chargers.length;
-    expect(count(html, "<rect")).toBe(1 + layout.zones.length + racks.length + points);
+    // Изометрия: у каждой точки операции — площадка на полу, стеллажи — коробки (длинные ряды
+    // режутся на куски для порядка отрисовки, поэтому коробок не меньше, чем стеллажей).
+    expect(count(html, 'class="iso-pad"')).toBe(points);
+    expect(count(html, "iso-box iso-rack")).toBeGreaterThanOrEqual(racks.length);
+    for (const label of ["Приёмка", "Хранение", "Отгрузка", "Зарядка"]) expect(html).toContain(`>${label}<`);
     expect(count(html, "Зарядная станция C")).toBe(3);
     expect(html).not.toMatch(/NaN|Infinity/);
   });

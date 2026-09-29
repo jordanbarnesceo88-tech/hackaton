@@ -1,3 +1,5 @@
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -29,12 +31,6 @@ export const TZ_STEPS: readonly TzStep[] = [
 export const TZ_STEP_COUNT = TZ_STEPS.length;
 
 /**
- * Отступ сверху для раздела-якоря: липкая навигация иначе закрывает заголовок раздела, к
- * которому перешли по ссылке. Рабочая область добавляет этот класс к каждой секции шага.
- */
-export const STEP_SECTION_CLASS = "scroll-mt-16";
-
-/**
  * Заголовок раздела шага: «Шаг 2 из 8 · Параметры». Без `title` берётся название шага из
  * `TZ_STEPS`.
  */
@@ -52,29 +48,54 @@ export function stepLinkText(step: TzStep): string {
  * Липкая полоса ссылок на разделы. `active` — номер текущего шага: ссылка получает
  * aria-current="step" и выделение. На узком экране полоса прокручивается горизонтально, а не
  * переносится в несколько строк, чтобы не съедать высоту экрана 1366×768.
+ *
+ * `onStepClick` (бэклог #4b): когда задан, рабочая область показывает один шаг на экран, а не
+ * все восемь один под другим — ссылки не прыгают по якорю (скрытый `display:none`-раздел
+ * прокрутить некуда), а переключают `activeStep` в Workspace. `href` остаётся: не задан
+ * `onStepClick` — компонент работает как раньше, якорями по `id` секции.
  */
-export function StepNav({ active, className }: { active?: number; className?: string }) {
+export function StepNav({
+  active,
+  className,
+  onStepClick,
+}: {
+  active?: number;
+  className?: string;
+  onStepClick?: (n: number) => void;
+}) {
   return (
     <nav
-      aria-label="Шаги по ТЗ"
-      className={cn(
-        "no-print sticky top-0 z-20 border-b bg-background/95 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80",
-        className,
-      )}
+      aria-label="Шаги расчёта"
+      // xl:top-[60px]: under SiteHeader, which is sticky (and exactly 60px, one row) only from
+      // xl; below xl the header scrolls away and this bar takes the top — see site-header.tsx.
+      className={cn("glass no-print sticky top-0 z-20 py-2 xl:top-[60px]", className)}
     >
-      <ol className="flex gap-1 overflow-x-auto text-sm">
+      {/* subtabs (BCB): подчёркнутые, равноправные — не заливка-пилюля (§6 дифференциаторы
+          спеки прямо предупреждает: пилюля с фоном — облик shadcn Tabs по умолчанию, не
+          прототипа). Контейнер несёт общую нижнюю линию; активный пункт перекрывает её своей
+          2px-линией акцента (-mb-px). */}
+      {/* Вкладки шагов и стрелки листания — один ряд: стрелки справа, вне прокрутки вкладок,
+          поэтому на телефоне, где видна только часть вкладок, листать можно всегда. Отдельная
+          строка «← Назад · Шаг N из 8 · Далее →» съедала высоту липкой панели ради подписей,
+          которые дублировали подчёркнутую вкладку и заголовок шага. */}
+      <div className="flex items-end gap-3">
+      <ol className="subtabs min-w-0 flex-1">
         {TZ_STEPS.map((step) => {
           const current = active === step.n;
           return (
-            <li key={step.id} className="shrink-0">
+            <li key={step.id} className="flex shrink-0">
               <a
                 href={`#${step.id}`}
                 aria-current={current ? "step" : undefined}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 whitespace-nowrap transition-colors",
-                  "hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                  current ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground",
-                )}
+                onClick={
+                  onStepClick
+                    ? (e) => {
+                        e.preventDefault();
+                        onStepClick(step.n);
+                      }
+                    : undefined
+                }
+                className="subtab"
               >
                 {/* Пробел между номером и названием — текстовый узел, чтобы имя ссылки было
                     «1 Объект», а не «1Объект». */}
@@ -92,6 +113,54 @@ export function StepNav({ active, className }: { active?: number; className?: st
           );
         })}
       </ol>
+      {onStepClick && active !== undefined && (
+        <div className="flex shrink-0 items-center gap-1.5 pb-1">
+          <button
+            type="button"
+            aria-label={`Предыдущий шаг (${active - 1} из ${TZ_STEP_COUNT})`}
+            onClick={() => onStepClick(active - 1)}
+            disabled={active <= 1}
+            className={buttonVariants({ variant: "outline", size: "icon-round" })}
+          >
+            <ChevronLeft aria-hidden={true} />
+          </button>
+          <button
+            type="button"
+            aria-label={`Следующий шаг (${active + 1} из ${TZ_STEP_COUNT})`}
+            onClick={() => onStepClick(active + 1)}
+            disabled={active >= TZ_STEP_COUNT}
+            className={buttonVariants({ variant: "outline", size: "icon-round" })}
+          >
+            <ChevronRight aria-hidden={true} />
+          </button>
+        </div>
+      )}
+      </div>
+    </nav>
+  );
+}
+
+/**
+ * Нижняя пара кнопок шага: «Назад: N. Шаг» и «Далее: N. Шаг». Верхняя панель (StepNav) к
+ * концу длинного шага уже далеко — здесь следующий шаг открывается там, где его дочитали.
+ */
+export function StepPager({ active, onStep }: { active: number; onStep: (n: number) => void }) {
+  const prev = TZ_STEPS.find((s) => s.n === active - 1) ?? null;
+  const next = TZ_STEPS.find((s) => s.n === active + 1) ?? null;
+  return (
+    <nav aria-label="Соседние шаги" className="no-print flex flex-wrap items-center gap-3 border-t border-border pt-6">
+      {prev && (
+        <button type="button" onClick={() => onStep(prev.n)} className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <ArrowLeft aria-hidden={true} />
+          Назад: {prev.n}. {prev.title}
+        </button>
+      )}
+      {next && (
+        <button type="button" onClick={() => onStep(next.n)} className={cn(buttonVariants({ size: "lg" }), "ml-auto")}>
+          Далее: {next.n}. {next.title}
+          <ArrowRight aria-hidden={true} />
+        </button>
+      )}
     </nav>
   );
 }

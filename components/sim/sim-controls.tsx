@@ -1,5 +1,6 @@
 "use client";
 
+import { buttonVariants } from "@/components/ui/button";
 import { SPEEDS } from "./playback";
 import type { SimOption } from "./variants";
 
@@ -13,17 +14,14 @@ import type { SimOption } from "./variants";
  * Значки ▶ ❚❚ ↺ входят в видимую подпись и в имя кнопки — они совпадают (SC 2.5.3).
  */
 
-const BTN =
-  "inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-sm font-medium " +
-  "whitespace-nowrap transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
-const BTN_PRIMARY =
-  "inline-flex h-8 items-center gap-1 rounded-md border border-transparent bg-primary px-2.5 text-sm font-medium " +
-  "whitespace-nowrap text-primary-foreground transition-colors hover:bg-primary/85 disabled:pointer-events-none " +
-  "disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+// Обычные кнопки — из общей шкалы (outline/default, 32px), а не свой третий рецепт кнопки.
+const BTN = buttonVariants({ variant: "outline" });
+const BTN_PRIMARY = buttonVariants();
+// Переключатель скорости — сегментированный контрол, у него своя анатомия (общая рамка,
+// разделители), но высота, рамка и заливка нажатого — те же токены, что у кнопок рядом.
 const SPEED_BTN =
-  "h-8 min-w-10 border-r border-border bg-background px-2 text-sm font-medium tabular-nums last:border-r-0 " +
-  "transition-colors hover:bg-muted aria-pressed:bg-primary aria-pressed:text-primary-foreground " +
+  "h-8 min-w-10 cursor-pointer border-r border-input px-2 text-sm font-medium tabular-nums last:border-r-0 " +
+  "transition-colors hover:bg-accent aria-pressed:bg-primary aria-pressed:text-primary-foreground " +
   "disabled:opacity-50 focus-visible:relative focus-visible:outline-2 focus-visible:outline-offset-2 " +
   "focus-visible:outline-ring";
 
@@ -93,8 +91,7 @@ export function SimControls({
           value={value ?? ""}
           onChange={(e) => onSelect(e.target.value)}
           disabled={options.length === 0}
-          className="h-9 w-full max-w-xl rounded-md border border-input bg-background px-2 text-sm
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="field max-w-xl"
         >
           {value === null && <option value="">Нет сценария для имитации</option>}
           {options.map((o) => (
@@ -118,7 +115,7 @@ export function SimControls({
         <div
           role="group"
           aria-label="Скорость проигрывания"
-          className="inline-flex overflow-hidden rounded-md border border-border"
+          className="inline-flex overflow-hidden rounded-lg border border-input"
         >
           {SPEEDS.map((s) => (
             <button

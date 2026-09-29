@@ -81,9 +81,9 @@ export default async function DemoPage({
   return (
     <div className="surface-data flex flex-col gap-6 py-8">
       <div className="flex flex-col gap-3">
-        <h1>Демо-расчёт на данных организатора: {facilityLabel}</h1>
+        <h1>Демо-расчёт: {facilityLabel}</h1>
         <p className="max-w-4xl text-sm text-muted-foreground">
-          Гостевой режим: параметры — базовые значения датасета организатора, сценарии — те же, что получит новый
+          Гостевой режим: параметры — базовые значения демо-набора данных, сценарии — те же, что получит новый
           проект на демо-данных. Всё можно менять и пересчитывать в браузере; ничего не сохраняется.{" "}
           <Link href="/login" className="tap-target text-primary underline underline-offset-2">
             Войдите

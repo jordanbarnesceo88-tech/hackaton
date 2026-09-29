@@ -41,12 +41,12 @@ export function statusChipLabel(status: SelectionStatus): string {
   return STATUS_CHIP_LABELS[status];
 }
 
-/** Цвет чипа статуса подбора. */
-export const STATUS_CHIP_TONE: Readonly<Record<SelectionStatus, string>> = {
-  recommended: "border-positive/50 bg-positive/15 text-foreground",
-  candidate: "border-primary/30 bg-primary/5 text-foreground",
-  "insufficient-data": "border-caution/50 bg-caution/10 text-foreground",
-  excluded: "border-border bg-muted text-muted-foreground",
+/** Тон бейджа статуса подбора (.badge[data-tone]); исключённое — нейтральный, без тона. */
+export const STATUS_BADGE_TONE: Readonly<Record<SelectionStatus, "ok" | "info" | "warn" | undefined>> = {
+  recommended: "ok",
+  candidate: "info",
+  "insufficient-data": "warn",
+  excluded: undefined,
 };
 
 /** Подпись чипа «требует проверки» (ТЗ §3.4.3). */
@@ -326,10 +326,10 @@ function ProcessComparison({
   return (
     <div className="flex flex-col gap-2">
       {showCaption && <p className="text-sm font-medium">{processName}</p>}
-      <div className="overflow-x-auto rounded-md border">
+      <div className="data-table-wrap">
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">Сравнение решений: {processName}</caption>
-          <thead className="bg-muted/50 text-left text-xs">
+          <thead className="border-b border-border text-left text-xs">
             <tr>
               <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">
                 Характеристика

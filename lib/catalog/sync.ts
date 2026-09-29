@@ -555,7 +555,7 @@ async function releaseOrganizerId(tx: Db, seed: ProductSeed, warnings: string[])
   if (!holder || holder.slug === seed.slug) return;
   await tx.catalogProduct.update({ where: { id: holder.id }, data: { organizerCatalogId: null } });
   warnings.push(
-    `id каталога организатора ${seed.organizerCatalogId} перешёл от «${holder.slug}» к «${seed.slug}»`,
+    `id каталога ${seed.organizerCatalogId} перешёл от «${holder.slug}» к «${seed.slug}»`,
   );
 }
 
@@ -645,7 +645,7 @@ async function syncOneProduct(
   if (existing.origin === "ADMIN") {
     out.skippedAdmin = true;
     out.warnings.push(
-      `«${seed.slug}»: под этим slug уже есть продукт, заведённый администратором, — данные организатора не записаны`,
+      `«${seed.slug}»: под этим slug уже есть продукт, заведённый администратором, — исходные данные каталога не записаны`,
     );
     return out;
   }
@@ -811,7 +811,7 @@ async function archiveVanished(
   const res = await db.catalogProduct.updateMany({ where, data: { archived: true } });
   report.products.archived += res.count;
   report.warnings.push(
-    `в архив (нет в данных организатора): ${gone.map((g) => g.slug).join(", ")}`,
+    `в архив (нет в исходных данных каталога): ${gone.map((g) => g.slug).join(", ")}`,
   );
 }
 
@@ -827,7 +827,7 @@ async function upsertRelease(db: Db, report: SyncReport): Promise<void> {
         version: report.dataVersion,
         organizerVersion: releaseManifest(),
         note:
-          `Данные организатора: датасеты ${ORGANIZER_DATA_VERSION.datasets}, каталог ${ORGANIZER_DATA_VERSION.catalog}, ` +
+          `Исходные данные: демо-набор данных ${ORGANIZER_DATA_VERSION.datasets}, каталог ${ORGANIZER_DATA_VERSION.catalog}, ` +
           `«Примеры решений» ${ORGANIZER_DATA_VERSION.examples}; открытые источники: ${ORGANIZER_DATA_VERSION.research}`,
       },
     ],

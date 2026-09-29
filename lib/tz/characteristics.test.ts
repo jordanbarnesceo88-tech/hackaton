@@ -6,6 +6,7 @@ import {
   completenessPct,
   confirmedSharePct,
   originLabel,
+  sourceRefLabel,
   type CharGroup,
   type CharKey,
 } from "./characteristics";
@@ -117,17 +118,30 @@ describe("confirmedSharePct", () => {
 describe("originLabel", () => {
   it("подписывает каждое происхождение по-русски", () => {
     const expected: Record<Origin, string> = {
-      organizer: "Организатор",
+      organizer: "Базовые данные",
       research: "Открытый источник",
       estimate: "Оценка",
       derived: "Расчёт",
       choice: "Наш выбор",
-      tz: "ТЗ",
+      tz: "Методика",
       admin: "Администратор",
       user: "Задано вами",
     };
     for (const [origin, label] of Object.entries(expected) as [Origin, string][]) {
       expect(originLabel(origin)).toBe(label);
     }
+  });
+});
+
+describe("sourceRefLabel", () => {
+  it("имя файла выгрузки каталога в начале — название набора, остальное без изменений", () => {
+    expect(sourceRefLabel("catalog_export_v4.csv › №12, 13")).toBe("Каталог › №12, 13");
+  });
+
+  it("прочие ссылки не меняются", () => {
+    expect(sourceRefLabel("Примеры решений › Склад, Аэропорт › Ronavi H1500")).toBe(
+      "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+    );
+    expect(sourceRefLabel("Демо-набор данных › Склад › стр. 4")).toBe("Демо-набор данных › Склад › стр. 4");
   });
 });

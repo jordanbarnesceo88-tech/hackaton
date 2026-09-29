@@ -71,7 +71,7 @@ describe("таблица сценариев", () => {
       "Годовой эффект",
       "Окупаемость (простая)",
       "Интерпретация",
-      "ROI по ТЗ",
+      "ROI валовый",
       "ROI чистый",
       "NPV",
       "Дисконтированная окупаемость",
@@ -178,7 +178,7 @@ describe("параметры объекта", () => {
     expect(orders).toContain("forkliftSalaryRubMonth");
     const salary = rows.find((r) => r.key === "forkliftSalaryRubMonth");
     expect(salary?.changed).toBe(false);
-    expect(salary?.source).toMatch(/^Организатор/);
+    expect(salary?.source).toMatch(/^Базовые данные/);
   });
 
   it("изменённое значение — «Задано вами», вне диапазона — ⚠ в замечаниях", () => {
@@ -191,7 +191,7 @@ describe("параметры объекта", () => {
           label: "Средняя з/п оператора погрузчика (gross)",
           code: "out_of_range",
           severity: "warning",
-          message: "Значение вне диапазона организатора",
+          message: "Значение вне типового диапазона",
         },
       ],
     };
@@ -199,8 +199,8 @@ describe("параметры объекта", () => {
     expect(row?.changed).toBe(true);
     expect(row?.outOfRange).toBe(true);
     expect(sp(row?.source)).toBe("Задано вами (по умолчанию 120 000)");
-    expect(row?.notes[0]).toMatch(/^⚠ вне диапазона организатора/);
-    expect(row?.notes).toContain("Значение вне диапазона организатора");
+    expect(row?.notes[0]).toMatch(/^⚠ вне типового диапазона/);
+    expect(row?.notes).toContain("Значение вне типового диапазона");
   });
 });
 
@@ -210,6 +210,15 @@ describe("источники, журнал и прочие разделы", () =
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.some((r) => r.productName === `DMR Carrier P ${MANUAL_MARK}`)).toBe(true);
     expect(rows.every((r) => r.cells.length === 8)).toBe(true);
+  });
+
+  it("источники: имя файла выгрузки каталога в «Где в источнике» — название набора", () => {
+    const [slug, product] = Object.entries(results.productSnapshots)[0] ?? [];
+    if (!slug || !product) throw new Error("нет продукта в снимке фикстуры");
+    const source = { ...product.sources[0]!, sourceRef: "catalog_export_v4.csv › №12" };
+    const rows = sourcesRows({ ...results, productSnapshots: { [slug]: { ...product, sources: [source] } } });
+    expect(rows[0]?.ref).toBe("Каталог › №12");
+    expect(rows[0]?.cells[7]).toBe("Каталог › №12");
   });
 
   it("журнал: подписи полей по-русски и даты по Москве", () => {

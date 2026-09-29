@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { pluralRu } from "@/lib/format/plural";
 import { formatRub } from "@/lib/format/rub";
 import { fx, share } from "@/lib/tz/econ/text";
@@ -122,9 +124,7 @@ function itemViews(result: ScenarioResult, spec: ScenarioSpec | undefined, produ
   }));
 }
 
-const BUTTON_CLASS =
-  "rounded-md border border-input px-2.5 py-1.5 text-sm transition-colors hover:bg-accent " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50";
+const BUTTON_CLASS = buttonVariants({ variant: "outline" });
 
 function ItemCard({
   view,
@@ -234,7 +234,7 @@ function ItemCard({
         <p className="text-sm text-muted-foreground">Парк не рассчитан: расчёт остановился раньше (см. причину выше).</p>
       )}
       {it?.raasFromEstimate && (
-        <p className="rounded-md border border-caution/40 bg-caution/10 px-3 py-1.5 text-xs">
+        <p data-tone="warn" className="callout callout--sm">
           Ставка RaaS — оценка {share(pct)} цены робота в месяц, а не тариф производителя: запросите коммерческое
           предложение.
         </p>
@@ -315,9 +315,11 @@ export function ScenarioDetails({
   const trace = result.trace;
 
   return (
-    <article aria-label={result.name} className="flex flex-col gap-4">
+    // Блоки сценария на экране — через 32px (состав, CAPEX, OPEX, денежный поток, трассировка);
+    // в отчёте плотнее, он свёрстан под лист A4.
+    <article aria-label={result.name} className={cn("flex flex-col", print ? "gap-4" : "gap-8")}>
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className="text-base font-semibold">{result.name}</h3>
+        <h3 className="section-title">{result.name}</h3>
         <span className="text-xs text-muted-foreground">{KIND_LABELS[result.kind]}</span>
       </header>
 
@@ -327,7 +329,7 @@ export function ScenarioDetails({
 
       {views.length > 0 && (
         <div className="flex flex-col gap-3">
-          <h4 className="text-sm font-semibold">Состав оборудования и как он получен</h4>
+          <h4 className="block-title">Состав оборудования и как он получен</h4>
           {views.map((v) => (
             <ItemCard
               key={v.process}

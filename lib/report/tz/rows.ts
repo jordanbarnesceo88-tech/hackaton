@@ -2,7 +2,7 @@ import { formatYearsRu, pluralRu } from "../../format/plural";
 import { formatMRub, formatNum, formatPct, formatRub } from "../../format/rub";
 import { BOTTLENECK_LABELS } from "../../sim/export-rows";
 import type { SimSummaryStored } from "../../sim/types";
-import { originLabel } from "../../tz/characteristics";
+import { originLabel, sourceRefLabel } from "../../tz/characteristics";
 import {
   DEFAULT_PARAM_LABELS,
   DISCLAIMER,
@@ -220,7 +220,7 @@ export const SCENARIO_TABLE_ROWS = [
   { key: "effect", label: "Годовой эффект", kind: "rub" },
   { key: "payback", label: "Окупаемость (простая)", kind: "years" },
   { key: "band", label: "Интерпретация", kind: "text" },
-  { key: "roiTz", label: "ROI по ТЗ", kind: "pct" },
+  { key: "roiTz", label: "ROI валовый", kind: "pct" },
   { key: "roiNet", label: "ROI чистый", kind: "pct" },
   { key: "npv", label: "NPV", kind: "rub" },
   { key: "dpb", label: "Дисконтированная окупаемость", kind: "years" },
@@ -392,7 +392,7 @@ export const PARAMS_HEADER = [
   "Значение",
   "Ед.",
   "По умолчанию",
-  "Диапазон организатора",
+  "Типовой диапазон",
   "Источник",
   "Замечания",
 ] as const;
@@ -448,7 +448,7 @@ export function paramsRows(results: ReportResults, defs: readonly ParamSpec[]): 
     const missing = value === null || value === "";
     const changed = !missing && !sameValue(value, def.base);
     const notes = [...(issuesByKey.get(def.key) ?? [])];
-    if (outOfRange) notes.unshift(`⚠ вне диапазона организатора (${rangeText(def)})`);
+    if (outOfRange) notes.unshift(`⚠ вне типового диапазона (${rangeText(def)})`);
     const source = missing
       ? "не задано — в расчёт не входит"
       : changed
@@ -550,7 +550,7 @@ export const SOURCES_HEADER = [
   "Подтверждено",
   "Дата",
   "Ссылка",
-  "Где у организатора",
+  "Где в источнике",
 ] as const;
 
 /** Характеристика продукта с источником (ТЗ §3.3.4: источник, дата, признак подтверждения). */
@@ -581,6 +581,7 @@ export function sourcesRows(results: ReportResults): SourceReportRow[] {
     const name = manual.has(p.slug) ? `${p.name} ${MANUAL_MARK}` : p.name;
     for (const s of p.sources) {
       const origin = originLabel(s.origin);
+      const ref = s.sourceRef === null ? null : sourceRefLabel(s.sourceRef);
       rows.push({
         productSlug: p.slug,
         productName: name,
@@ -591,8 +592,8 @@ export function sourcesRows(results: ReportResults): SourceReportRow[] {
         confirmed: s.confirmed,
         date: s.date,
         url: s.sourceUrl,
-        ref: s.sourceRef,
-        cells: [name, s.label, s.value, origin, s.confirmed ? "да" : "нет", s.date ?? "—", s.sourceUrl ?? "—", s.sourceRef ?? "—"],
+        ref,
+        cells: [name, s.label, s.value, origin, s.confirmed ? "да" : "нет", s.date ?? "—", s.sourceUrl ?? "—", ref ?? "—"],
       });
     }
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMRub, formatRub } from "@/lib/format/rub";
+import { boundsSourceLabel } from "@/lib/tz/econ/sensitivity";
 import { fx, rangeText } from "@/lib/tz/econ/text";
 import type { SensitivityRow } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
@@ -199,9 +200,9 @@ export function SensitivityPanel({
             Каждая строка — полный пересчёт с одним параметром на границе диапазона; остальные входы — как в базовом
             расчёте. Размах — разница {metricLabel} между границами; строки отсортированы по размаху.
           </p>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="data-table-wrap">
             <table className="print-table w-full border-collapse text-sm">
-              <thead className="bg-muted/40">
+              <thead className="border-b">
                 <tr>
                   <th scope="col" className={TH}>
                     Параметр
@@ -245,7 +246,7 @@ export function SensitivityPanel({
                         {clamped ? " *" : ""}
                         <div className="text-xs text-muted-foreground">база {leverValueText(r.base, r.unit)}</div>
                       </td>
-                      <td className={TD}>{r.boundsSource}</td>
+                      <td className={TD}>{boundsSourceLabel(r.boundsSource)}</td>
                       <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>
                         {vLow === null ? "отказ расчёта" : formatRub(vLow)}
                       </td>

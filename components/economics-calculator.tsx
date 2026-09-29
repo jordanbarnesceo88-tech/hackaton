@@ -187,7 +187,7 @@ export function EconomicsCalculator({
         )}
       </div>
       {defaultedParams.length > 0 && (
-        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+        <div data-tone="warn" className="callout">
           Не задано:{" "}
           {defaultedParams.map((f) => DEFAULTED_PARAM_LABELS[f]).join(", ")} — здесь стоят
           значения по умолчанию, а не ваши. Пока это так, числа ниже — пример, а не оценка
@@ -195,7 +195,7 @@ export function EconomicsCalculator({
         </div>
       )}
       {mismatch && (
-        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+        <div data-tone="warn" className="callout">
           {mismatch.kind === "fleet" ? (
             <>
               Расчёт требует <b>{mismatch.quantity}</b> единиц этого решения на один объект. Это
@@ -217,13 +217,13 @@ export function EconomicsCalculator({
         </div>
       )}
       {savedParamsBroken && (
-        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+        <div data-tone="warn" className="callout">
           Параметры объекта из сохранённого расчёта восстановить не удалось — показаны обычные
           значения по умолчанию, а не ваши. Проверьте их перед тем, как опираться на цифры.
         </div>
       )}
       {dataChanged && (
-        <div className="rounded-md border border-caution/40 bg-caution/10 px-4 py-3 text-sm text-caution">
+        <div data-tone="warn" className="callout">
           Данные решения или модель расчёта изменились с момента сохранения — показан пересчёт по
           актуальным данным, он может отличаться от сохранённого.
         </div>

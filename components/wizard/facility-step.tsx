@@ -77,9 +77,7 @@ export function FacilityStep({
             maxLength={80}
             placeholder="Например: распределительный центр «Восток»"
             onChange={(e) => setObjectName(e.target.value)}
-            className="w-full border-0 border-b-2 border-input bg-transparent px-1 py-2 text-base
-              outline-none transition-colors hover:border-muted-foreground
-              focus-visible:border-primary"
+            className="field field--lg"
           />
           <span className="text-sm text-muted-foreground">
             Название вернётся в расчёте и в отчёте.
