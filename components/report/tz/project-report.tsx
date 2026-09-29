@@ -276,7 +276,7 @@ function SummarySection({ results }: { results: ProjectResults }) {
       </div>
       {bullets.length > 0 && (
         <>
-          <h3 className="text-base font-semibold">На чём основан вывод</h3>
+          <h3 className="text-base font-semibold">Основания вывода и риски</h3>
           <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
             {bullets.map((b, i) => (
               <li key={i}>{b}</li>
@@ -294,7 +294,7 @@ function Contents() {
   return (
     <nav aria-label="Содержание отчёта" className="report-block mt-6 text-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Содержание</div>
-      <ol className="mt-1 grid gap-x-8 gap-y-0.5 sm:grid-cols-2">
+      <ol className="mt-1 gap-x-8 sm:columns-2">
         {Object.entries(SECTION_TITLES).map(([id, title]) => (
           <li key={id}>
             <a href={`#${id}-title`} className="hover:underline">

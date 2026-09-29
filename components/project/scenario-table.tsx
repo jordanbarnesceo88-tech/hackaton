@@ -189,23 +189,21 @@ function RisksCell({ risks, print }: { risks: readonly Risk[]; print: boolean })
         <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
           {top.map((r) => (
             <li key={`${r.code}-${r.text}`}>
-              <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {r.text}{" "}
-              <span className="font-mono">[{r.code}]</span>
+              <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {r.text}
             </li>
           ))}
         </ul>
       )}
       {rest.length > 0 &&
         (print ? (
-          <span className="text-xs text-muted-foreground">и ещё {rest.length} — в разделе рисков</span>
+          <span className="text-xs text-muted-foreground">и ещё {rest.length} — в разделе «Риски»</span>
         ) : (
           <details className="text-xs text-muted-foreground">
             <summary className="cursor-pointer">ещё {rest.length}</summary>
             <ul className="mt-1 flex flex-col gap-1">
               {rest.map((r) => (
                 <li key={`${r.code}-${r.text}`}>
-                  <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {r.text}{" "}
-                  <span className="font-mono">[{r.code}]</span>
+                  <span className="font-medium text-foreground">{SEVERITY_LABELS[r.severity]}</span> · {r.text}
                 </li>
               ))}
             </ul>

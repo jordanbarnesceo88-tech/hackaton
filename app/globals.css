@@ -1059,12 +1059,19 @@
   .report-print {
     page: report;
   }
-  /* Заголовки колонок переносятся по словам и ровно, а не выпирают в соседнюю колонку. */
+  /* Заголовки колонок переносятся по словам и ровно: колонка не уже самого длинного слова
+     заголовка, слово не рвётся по слогам. В таблицах с заданной шириной колонок (table-fixed)
+     длинное слово переносится с дефисом, чтобы не залезать в соседнюю колонку. */
   .report-print .print-table th {
     white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: manual;
+    text-wrap: balance;
+  }
+  .report-print .print-table.table-fixed th {
     overflow-wrap: break-word;
     hyphens: auto;
-    text-wrap: balance;
   }
   /* Чередование строк — чтобы глаз не терял строку в широких таблицах. */
   .report-print .print-table tbody tr:nth-child(even) {
