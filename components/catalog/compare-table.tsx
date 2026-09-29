@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { SourceBadge } from "@/components/project/source-badge";
 import { compareCharKeys, isCharPresent } from "@/lib/catalog/product-for-calc";
 import type { CatalogCharacteristic, CatalogProductDetail } from "@/lib/catalog/queries";
-import { CHAR_GROUP_LABELS, CHARACTERISTIC_KEYS } from "@/lib/tz/characteristics";
+import { CHAR_GROUP_LABELS, CHARACTERISTIC_KEYS, displayDataText } from "@/lib/tz/characteristics";
 import type { CharGroup } from "@/lib/tz/characteristics";
 import { formatPct, formatRub } from "@/lib/format/rub";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,7 @@ function Cell({ c }: { c: CatalogCharacteristic | undefined }) {
   if (!c || !isCharPresent(c)) return <span className="text-muted-foreground">{NO_DATA}</span>;
   return (
     <div className="flex flex-col items-start gap-1">
-      <span className="break-words font-medium">{c.display}</span>
+      <span className="break-words font-medium">{displayDataText(c.display)}</span>
       {c.hasConflict && (
         <span className="text-xs font-medium text-caution">
           <span aria-hidden="true">⚠ </span>есть расхождения — см. карточку

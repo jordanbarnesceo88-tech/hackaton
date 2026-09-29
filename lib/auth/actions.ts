@@ -58,10 +58,10 @@ export async function signUpAction(
     throw e;
   }
   // signIn throws a redirect on success.
-  // На "/" теперь первый экран, объясняющий продукт. Человек, только что заведший
-  // аккаунт, уже решил — вести его обратно к «а вот что это такое» значит возвращать
-  // на шаг назад. Регистрация продолжает поток, а не прерывает его.
-  await signIn("credentials", { email, password, redirectTo: "/onboarding" });
+  // Туда же, куда ведёт вход: «Мои проекты» — начало пути по ТЗ §5.4 («создать проект»).
+  // Прежде регистрация вела в /onboarding — мастер модели v1, которая в путь жюри не входит,
+  // и только что зарегистрированный человек оказывался не в той модели, что после входа.
+  await signIn("credentials", { email, password, redirectTo: "/projects" });
   return { error: null };
 }
 

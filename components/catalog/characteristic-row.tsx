@@ -1,5 +1,6 @@
 import { SourceBadge, formatSourceDate } from "@/components/project/source-badge";
 import type { CatalogAlternative, CatalogCharacteristic } from "@/lib/catalog/queries";
+import { displayDataText } from "@/lib/tz/characteristics";
 import { cn } from "@/lib/utils";
 import { confidenceLabel, NO_DATA } from "./labels";
 
@@ -113,9 +114,9 @@ export function CharacteristicRow({ c }: { c: CatalogCharacteristic }) {
         {c.label}
       </th>
       <td className="min-w-48 px-3 py-2">
-        <span className={cn("break-words", empty ? "text-muted-foreground" : "font-medium")}>{empty ? NO_DATA : c.display}</span>
-        {c.formula && <div className="mt-0.5 text-xs text-muted-foreground">Формула: {c.formula}</div>}
-        {c.note && <div className="mt-0.5 text-xs text-muted-foreground">Примечание: {c.note}</div>}
+        <span className={cn("break-words", empty ? "text-muted-foreground" : "font-medium")}>{empty ? NO_DATA : displayDataText(c.display)}</span>
+        {c.formula && <div className="mt-0.5 text-xs text-muted-foreground">Формула: {displayDataText(c.formula)}</div>}
+        {c.note && <div className="mt-0.5 text-xs text-muted-foreground">Примечание: {displayDataText(c.note)}</div>}
         {c.granularity === "row" && (
           <div className="mt-0.5 text-xs text-muted-foreground">источник указан для всей записи о продукте, без привязки к этому полю</div>
         )}

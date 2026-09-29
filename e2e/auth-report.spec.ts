@@ -9,9 +9,9 @@ test("signup → save analysis → open the report", async ({ page }) => {
   const nameField = page.locator('input[name="name"]');
   if (await nameField.count()) await nameField.fill("E2E Tester");
   await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  // signUpAction signs in + redirects to "/", which itself redirects to /onboarding — so a
-  // successful signup lands on the onboarding page (proves we're authenticated + off /signup).
-  await expect(page).toHaveURL(/\/onboarding/);
+  // signUpAction signs in and redirects to «Мои проекты», like the login page does — landing
+  // there proves we're authenticated and off /signup.
+  await expect(page).toHaveURL(/\/projects/);
 
   // Reach a calculate page via the flow.
   await page.goto("/compare/warehouse");
@@ -41,7 +41,7 @@ test("report figures match the calculator panel exactly", async ({ page }) => {
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill("password123");
   await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  await expect(page).toHaveURL(/\/onboarding/);
+  await expect(page).toHaveURL(/\/projects/);
 
   // Полное состояние подбора, включая занятость по задачам: без неё движок отказывается
   // считать решения, у которых нет норматива (Р-1), и паритету нечего было бы сверять —
