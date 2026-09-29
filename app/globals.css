@@ -984,6 +984,23 @@
   margin: 14mm;
 }
 
+/* Отчёт по проекту печатается на своих листах: номер страницы и колонтитул в нижнем поле
+   (поля-«ящики» @page — Chromium 131+; где их нет, печать просто без номеров). */
+@page report {
+  size: A4;
+  margin: 14mm 14mm 16mm;
+  @bottom-left {
+    content: "Платформа оценки роботизации · предварительная оценка";
+    font-size: 7.5pt;
+    color: #6b7280;
+  }
+  @bottom-right {
+    content: "Стр. " counter(page) " из " counter(pages);
+    font-size: 7.5pt;
+    color: #6b7280;
+  }
+}
+
 .report-block {
   break-inside: avoid;
   /* Force background fills (tornado bars, provenance badges) to print — browsers omit
@@ -1038,5 +1055,30 @@
   .report-print .print-table th,
   .report-print .print-table td {
     padding: 2px 3px;
+  }
+  .report-print {
+    page: report;
+  }
+  /* Заголовки колонок переносятся по словам и ровно, а не выпирают в соседнюю колонку. */
+  .report-print .print-table th {
+    white-space: normal;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    text-wrap: balance;
+  }
+  /* Чередование строк — чтобы глаз не терял строку в широких таблицах. */
+  .report-print .print-table tbody tr:nth-child(even) {
+    background: color-mix(in oklch, var(--muted) 70%, transparent);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  /* Приложения — таблицы для проверки расчёта — начинаются с нового листа. */
+  .report-print .report-appendix {
+    break-before: page;
+  }
+  /* Содержание и итоги — одним блоком на первой странице. */
+  .report-print nav a {
+    color: inherit;
+    text-decoration: none;
   }
 }
