@@ -491,8 +491,9 @@ describe("карточка продукта", () => {
   });
 
   it("подписи источника описания и ссылок в демо", () => {
-    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: "abc" })).toBe("каталог › id abc");
-    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: null })).toBe("каталог");
+    // Внутренний id записи каталога не показывается — только название набора.
+    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: "abc" })).toBe("Каталог");
+    expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: null })).toBe("Каталог");
     expect(descriptionSourceRef({ origin: "ADMIN", organizerCatalogId: null })).toBe("добавлено администратором");
     expect(demoLinkText("warehouse", "Склад")).toBe("Открыть в демо-расчёте склада");
     expect(demoLinkText("airport", "Аэропорт")).toBe("Открыть демо для объекта «Аэропорт»");

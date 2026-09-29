@@ -16,6 +16,7 @@ import {
 } from "@/components/catalog/product-card";
 import { compareHref } from "@/components/catalog/search-params";
 import { getCatalogProduct } from "@/lib/catalog/queries";
+import { displayDataText } from "@/lib/tz/characteristics";
 import { prisma } from "@/lib/db/client";
 import { CHAR_GROUP_LABELS } from "@/lib/tz/characteristics";
 import { getProcessFacilities } from "../_lib/data";
@@ -91,7 +92,7 @@ export default async function CatalogProductPage({ params }: { params: Params })
       {product.excluded && (
         <div data-tone="crit" className="callout">
           <p className="font-medium text-destructive">Не участвует в подборе</p>
-          <p className="mt-1">{product.excludedReason ?? "Причина исключения не указана."}</p>
+          <p className="mt-1">{product.excludedReason ? displayDataText(product.excludedReason) : "Причина исключения не указана."}</p>
         </div>
       )}
       <VerificationNotice product={product} />

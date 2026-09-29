@@ -106,7 +106,7 @@ test("переопределения доезжают до сохранённо�
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill("password123");
   await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  await expect(page).toHaveURL(/\/onboarding/);
+  await expect(page).toHaveURL(/\/projects/);
 
   await page.goto("/compare/warehouse?industry=retail&facility=warehouse&area=10000&ops=5000&staff=40");
   await page.getByRole("link", { name: "Разобрать расчёт" }).click();

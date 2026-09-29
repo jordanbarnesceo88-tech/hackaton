@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { displayDataText } from "@/lib/tz/characteristics";
 import { examplePhrase, formatNumberRu, outOfRangeIssue, rangeText, unitText, withUnit } from "@/lib/tz/params/messages";
 import { coerce, isNumericKind, isOutOfRange, sameParamValue } from "@/lib/tz/params/schema";
 import type { ParamIssue, ParamSpec } from "@/lib/tz/types";
@@ -88,9 +89,9 @@ export function formulaLine(formula: string): string {
  */
 export function paramHelpLines(def: ParamSpec, formula?: string | null): string[] {
   const lines: string[] = [];
-  const hint = def.hint.trim();
+  const hint = displayDataText(def.hint.trim());
   if (hint) lines.push(hint);
-  const note = (def.organizerNote ?? "").trim();
+  const note = displayDataText((def.organizerNote ?? "").trim());
   if (note && note !== hint) lines.push(`Примечание: ${note}`);
   const exRange = [examplePhrase(def), rangeLine(def) ?? ""].filter((s) => s !== "").join(" · ");
   if (exRange) lines.push(exRange);

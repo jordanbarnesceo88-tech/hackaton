@@ -1,4 +1,4 @@
-import { originLabel, sourceRefLabel } from "@/lib/tz/characteristics";
+import { displayDataText, originLabel, sourceRefLabel } from "@/lib/tz/characteristics";
 import type { Origin } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +91,9 @@ const ORIGIN_TONE: Readonly<Record<Origin, "info" | "ok" | "warn" | undefined>> 
 
 const CHIP_CLASS = "badge max-w-full leading-tight";
 
-export function SourceBadge({ origin, sourceUrl, sourceRef, date, confirmed, note, className }: SourceBadgeProps) {
+export function SourceBadge({ origin, sourceUrl, sourceRef, date, confirmed, note: rawNote, className }: SourceBadgeProps) {
+  // Основание — словами, без служебных имён генератора каталога (см. displayDataText).
+  const note = rawNote ? displayDataText(rawNote) : rawNote;
   const text = sourceBadgeText(origin, note);
   const url = safeHttpUrl(sourceUrl);
   // Место в источнике — подписью для показа («Каталог › №12»), а не именем служебной выгрузки.

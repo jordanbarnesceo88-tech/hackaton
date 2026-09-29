@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { asQualifier, asScope, compareCharKeys, type CharRow } from "@/lib/catalog/product-for-calc";
 import { verificationReasons } from "@/lib/catalog/promote";
 import type { CatalogCharacteristic, CatalogProductDetail } from "@/lib/catalog/queries";
-import { REQUIRED_CHARACTERISTIC_KEYS } from "@/lib/tz/characteristics";
+import { displayDataText, REQUIRED_CHARACTERISTIC_KEYS } from "@/lib/tz/characteristics";
 import { normThroughput } from "@/lib/tz/econ/fleet";
 import { processDef, type ProcessDef } from "@/lib/tz/processes";
 import type { ProductForCalc } from "@/lib/tz/types";
@@ -79,7 +79,7 @@ export function selectionParticipation(p: ParticipationInput): Participation {
   let reason: string | null = null;
   if (p.archived) reason = "в архиве";
   else if (p.level === "identification") reason = "только идентификация — технических характеристик с источниками нет";
-  else if (p.excluded) reason = (p.excludedReason ?? "").trim().replace(/[.\s]+$/u, "") || "исключён, причина не указана";
+  else if (p.excluded) reason = displayDataText((p.excludedReason ?? "").trim()).replace(/[.\s]+$/u, "") || "исключён, причина не указана";
   else if (p.processes.length === 0) reason = "не привязан ни к одному процессу модели";
   return reason === null ? { ok: true, reason: null, text: "да" } : { ok: false, reason, text: `нет: ${reason}` };
 }
@@ -204,12 +204,13 @@ export function VerificationNotice({ product }: { product: Detail }) {
 /** Источник описания продукта: каталог организатора или правка администратора. */
 export function descriptionSourceRef(product: Pick<Detail, "origin" | "organizerCatalogId">): string {
   if (product.origin === "ADMIN") return "добавлено администратором";
-  return product.organizerCatalogId ? `каталог › id ${product.organizerCatalogId}` : "каталог";
+  // Внутренний id записи каталога пользователю ничего не говорит — только название набора.
+  return "Каталог";
 }
 
 /** Описание продукта (не длиннее 200 знаков) с бейджем источника. */
 export function ProductDescription({ product }: { product: Detail }) {
-  const text = product.description.trim();
+  const text = displayDataText(product.description.trim());
   if (text === "") return null;
   return (
     <div className="flex max-w-4xl flex-col items-start gap-1">

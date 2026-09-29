@@ -29,7 +29,7 @@ export const STATUS_TONE: Readonly<Record<ProductStatus, "ok" | "warn" | undefin
 export const LEVEL_LABELS: Readonly<Record<ProductLevel, string>> = {
   identification: "только идентификация",
   enriched: "характеристики с источниками",
-  examples: "из подборки «Примеры решений»",
+  examples: "из подборки примеров решений",
 };
 
 /**
@@ -44,7 +44,7 @@ export const LEVEL_HINTS: Readonly<Record<ProductLevel, string>> = {
   enriched:
     "Характеристики найдены у производителя и в открытых источниках; у каждой указаны источник, " +
     "дата проверки и признак подтверждения.",
-  examples: "Характеристики взяты из подборки «Примеры решений».",
+  examples: "Характеристики взяты из подборки примеров решений.",
 };
 
 /** Варианты сортировки списка в порядке показа в фильтре. */

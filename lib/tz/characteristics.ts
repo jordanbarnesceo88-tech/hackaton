@@ -184,12 +184,44 @@ export function originLabel(origin: Origin): string {
  */
 const SOURCE_REF_PREFIX_LABELS: readonly (readonly [prefix: string, label: string])[] = [
   ["catalog_export_v4.csv", "Каталог"],
+  ["Примеры решений", "Подборка примеров"],
 ];
 
 /** Место в источнике для показа: «catalog_export_v4.csv › №12» → «Каталог › №12». */
 export function sourceRefLabel(ref: string): string {
   for (const [prefix, label] of SOURCE_REF_PREFIX_LABELS) {
-    if (ref.startsWith(prefix)) return `${label}${ref.slice(prefix.length)}`;
+    if (ref.startsWith(prefix)) return displayDataText(`${label}${ref.slice(prefix.length)}`);
   }
-  return ref;
+  return displayDataText(ref);
+}
+
+/**
+ * Служебные обозначения генератора каталога и огрехи исходных текстов → слова для показа:
+ * «(PRODUCT_DECISIONS, строка свода 12)», «max(date)», «Подтип → SUBTYPE_TO_SOLUTION_TYPE»,
+ * ссылка на ячейку таблицы, «отвечает 404», дата в виде 2026-09-23. Как и у sourceRefLabel,
+ * данные и версия данных проекта не меняются — только подпись.
+ */
+const DATA_TEXT_REPLACEMENTS: readonly (readonly [pattern: RegExp, replacement: string])[] = [
+  [/\s*\(PRODUCT_DECISIONS, строка свода ([\d/]+)\)/g, " (сводная таблица исследования, строка $1)"],
+  [/\s*\(EXAMPLE_ONLY_PRODUCTS\)/g, ""],
+  [/^Подтип → SUBTYPE_TO_SOLUTION_TYPE$/, "по подтипу из каталога"],
+  [/^Сценарий → SCENARIO_TO_PROCESS$/, "по сценарию из каталога"],
+  [/^max\(date\)$/, "самая поздняя дата проверки"],
+  [/^confirmed \/ всего$/, "подтверждено / всего"],
+  [/(\d+)-я ссылка строки свода/g, "$1-я ссылка сводной таблицы исследования"],
+  [/строк(а|и|е|у|ой) свода/g, "строк$1 сводной таблицы исследования"],
+  [/подборк(а|и|е|у|ой) «Примеры решений»/g, "подборк$1 примеров решений"],
+  [/значение задано формулой «=[^»]*» — /g, "значение задано как "],
+  [/ отвечает 404/g, " недоступна"],
+  [/проверено (\d{4})-(\d{2})-(\d{2})/g, "проверено $3.$2.$1"],
+  [/Fвтономн/g, "Автономн"],
+  [/еврооддон/g, "европоддон"],
+  [/дез\. Средствами/g, "дез. средствами"],
+];
+
+/** Текст из данных каталога и параметров для показа, см. DATA_TEXT_REPLACEMENTS. */
+export function displayDataText(text: string): string {
+  let out = text;
+  for (const [pattern, replacement] of DATA_TEXT_REPLACEMENTS) out = out.replace(pattern, replacement);
+  return out;
 }
