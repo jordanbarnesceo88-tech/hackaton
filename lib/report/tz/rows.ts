@@ -2,7 +2,7 @@ import { formatYearsRu, pluralRu } from "../../format/plural";
 import { formatMRub, formatNum, formatPct, formatRub } from "../../format/rub";
 import { BOTTLENECK_LABELS } from "../../sim/export-rows";
 import type { SimSummaryStored } from "../../sim/types";
-import { originLabel, sourceRefLabel } from "../../tz/characteristics";
+import { displayDataText, originLabel, sourceRefLabel } from "../../tz/characteristics";
 import {
   DEFAULT_PARAM_LABELS,
   DISCLAIMER,
@@ -582,18 +582,19 @@ export function sourcesRows(results: ReportResults): SourceReportRow[] {
     for (const s of p.sources) {
       const origin = originLabel(s.origin);
       const ref = s.sourceRef === null ? null : sourceRefLabel(s.sourceRef);
+      const value = displayDataText(s.value);
       rows.push({
         productSlug: p.slug,
         productName: name,
         key: s.key,
         label: s.label,
-        value: s.value,
+        value,
         origin,
         confirmed: s.confirmed,
         date: s.date,
         url: s.sourceUrl,
         ref,
-        cells: [name, s.label, s.value, origin, s.confirmed ? "да" : "нет", s.date ?? "—", s.sourceUrl ?? "—", ref ?? "—"],
+        cells: [name, s.label, value, origin, s.confirmed ? "да" : "нет", s.date ?? "—", s.sourceUrl ?? "—", ref ?? "—"],
       });
     }
   }

@@ -1,6 +1,7 @@
 // только сервер: exceljs не попадает в клиентский бандл
 import ExcelJS from "exceljs";
 import { ORGANIZER_DATA_VERSION } from "../../data/organizer/version.generated";
+import { displayDataText } from "../../tz/characteristics";
 import { boundsSourceLabel } from "../../tz/econ";
 import type { ParamSpec, ScenarioResult } from "../../tz/types";
 import {
@@ -738,8 +739,8 @@ function aboutSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
     ["Версия данных проекта (по снимкам продуктов и нормативов)", results.dataVersion],
     ["Текущий демо-набор данных", ORGANIZER_DATA_VERSION.datasets],
     ["Текущий каталог", ORGANIZER_DATA_VERSION.catalog],
-    ["Текущая подборка «Примеры решений»", ORGANIZER_DATA_VERSION.examples],
-    ["Исследование открытых источников", ORGANIZER_DATA_VERSION.research],
+    ["Текущая подборка примеров решений", ORGANIZER_DATA_VERSION.examples],
+    ["Исследование открытых источников", displayDataText(ORGANIZER_DATA_VERSION.research)],
   ];
   for (const [k, v] of versions) putRow(ws, r++, [k, v]);
   r++;

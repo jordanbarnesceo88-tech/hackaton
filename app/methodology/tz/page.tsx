@@ -11,7 +11,7 @@ import { prisma } from "@/lib/db/client";
 import { pluralRu } from "@/lib/format/plural";
 import { LAYOUT_ASSUMPTIONS } from "@/lib/sim/layout";
 import { BOTTLENECK_RULES, endQueueLimit } from "@/lib/sim/metrics";
-import { originLabel } from "@/lib/tz/characteristics";
+import { displayDataText, originLabel } from "@/lib/tz/characteristics";
 import { FORMULAS, type FormulaKey, type FormulaSource, FORMULA_SOURCE_LABELS } from "@/lib/tz/econ/formulas";
 import { MODEL_LIMITATIONS } from "@/lib/tz/econ/limitations";
 import { fx } from "@/lib/tz/econ/text";
@@ -564,10 +564,10 @@ export default async function TzMethodologyPage() {
               <dd className="font-mono">{ORGANIZER_DATA_VERSION.datasets}</dd>
               <dt className="font-medium">Каталог</dt>
               <dd className="font-mono">{ORGANIZER_DATA_VERSION.catalog}</dd>
-              <dt className="font-medium">Подборка «Примеры решений»</dt>
+              <dt className="font-medium">Подборка примеров решений</dt>
               <dd className="font-mono">{ORGANIZER_DATA_VERSION.examples}</dd>
               <dt className="font-medium">Исследование открытых источников</dt>
-              <dd className="font-mono break-words">{ORGANIZER_DATA_VERSION.research}</dd>
+              <dd className="break-words">{displayDataText(ORGANIZER_DATA_VERSION.research)}</dd>
               <dt className="font-medium">Выпуск данных</dt>
               <dd>
                 {release ? (
