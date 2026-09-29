@@ -23,7 +23,7 @@ const STATUS_ORDER = ["operation", "piloting", "rnd"] as const;
 const LEVEL_FILTER: readonly { value: CatalogQuery["level"]; label: string }[] = [
   { value: "", label: "любая" },
   { value: "enriched", label: "с характеристиками и источниками" },
-  { value: "examples", label: "из подборки «Примеры решений»" },
+  { value: "examples", label: "из подборки примеров решений" },
   { value: "identification", label: "только идентификация" },
 ];
 

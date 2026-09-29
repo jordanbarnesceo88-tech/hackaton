@@ -19,14 +19,14 @@ export const STATUS_LABELS: Readonly<Record<string, string>> = {
 export const LEVEL_LABELS: Readonly<Record<string, string>> = {
   identification: "Идентификация",
   enriched: "Обогащённый",
-  examples: "Примеры решений",
+  examples: "Подборка примеров",
 };
 
 /** Пояснение к глубине описания — подсказка в списке и карточке. */
 export const LEVEL_HINTS: Readonly<Record<string, string>> = {
   identification: "только поля каталога; в расчёт не идёт",
   enriched: "характеристики с источником по каждому полю; участвует в подборе",
-  examples: "из подборки «Примеры решений»; участвует в подборе",
+  examples: "из подборки примеров решений; участвует в подборе",
 };
 
 /** Происхождение продукта каталога. */
