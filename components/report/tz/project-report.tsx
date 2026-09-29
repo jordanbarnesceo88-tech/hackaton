@@ -8,7 +8,7 @@ import { SensitivityPanel } from "@/components/project/sensitivity-panel";
 import { safeHttpUrl } from "@/components/project/source-badge";
 import { PrintButton } from "@/components/report/print-button";
 import { pluralRu } from "@/lib/format/plural";
-import { formatNum, formatRub } from "@/lib/format/rub";
+import { formatMlnRub, formatNum, formatRub, mlnInText } from "@/lib/format/rub";
 import type { ParamsSource } from "@/lib/projects/queries";
 import { displayDataText } from "@/lib/tz/characteristics";
 import {
@@ -19,7 +19,9 @@ import {
   formatCalcDate,
   paramsRows,
   processLabel,
+  scenarioColumns,
   scenarioFinance,
+  scenarioTableRows,
   scenarioTitle,
   simCellText,
   sourcesRows,
@@ -98,14 +100,41 @@ export type ProjectReportProps = {
   liveDataVersion?: string | null;
 };
 
+/**
+ * Заголовки разделов в порядке отчёта: основная часть — записка для решения (итоги, сравнение,
+ * оборудование, имитация, чувствительность, риски, ограничения), таблицы для проверки расчёта —
+ * в приложениях. Этот же список — содержание отчёта.
+ */
+const SECTION_TITLES = {
+  summary: "1. Итоги",
+  economics: "2. Сравнение сценариев",
+  equipment: "3. Состав оборудования",
+  simulation: "4. Имитация",
+  sensitivity: "5. Чувствительность",
+  conclusion: "6. Риски",
+  limitations: "7. Ограничения модели",
+  params: "Приложение А. Параметры объекта",
+  selection: "Приложение Б. Подбор решений",
+  lines: "Приложение В. CAPEX и OPEX по статьям",
+  cashflow: "Приложение Г. Денежный поток",
+  norms: "Приложение Д. Нормативы и допущения",
+  formulas: "Приложение Е. Формулы",
+  sources: "Приложение Ж. Источники данных",
+  changes: "Приложение З. Журнал корректировок",
+} as const;
+
 const TH = "px-2 py-1.5 text-left align-bottom font-medium text-muted-foreground";
 const TD = "border-t px-2 py-1 align-top";
 const TABLE = "print-table w-full border-collapse text-sm";
 const TABLE_WRAP = "data-table-wrap";
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function Section({ id, title, appendix = false, children }: { id: string; title: string; appendix?: boolean; children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="report-section mt-8 flex flex-col gap-3">
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className={cn("report-section mt-8 flex flex-col gap-3", appendix && "report-appendix")}
+    >
       <h2 id={`${id}-title`} className="border-b pb-1 text-lg font-semibold">
         {title}
       </h2>
@@ -171,11 +200,117 @@ function ReportHeader({ project, results, liveDataVersion }: Pick<ProjectReportP
           и могут с ним расходиться. Чтобы отчёт целиком соответствовал текущим данным, откройте проект и пересчитайте его.
         </p>
       )}
-      <div className="report-block mt-4 rounded-md border px-3 py-2">
-        <div className="text-xs font-medium text-muted-foreground">Краткий вывод</div>
-        <p className="mt-0.5 text-sm font-semibold">{results.conclusion.headline}</p>
-      </div>
     </>
+  );
+}
+
+// ——————————————————————————— Итоги ———————————————————————————
+
+/** Строки таблицы сценариев, которые нужны для решения; полная таблица — в разделе 2. */
+const SUMMARY_ROW_KEYS = ["capex", "opex", "effect", "payback", "npv", "tco", "sim"] as const;
+
+/** Главные цифры рекомендуемого сценария — карточками над таблицей. */
+const KEY_FIGURES: readonly (readonly [key: (typeof SUMMARY_ROW_KEYS)[number], label: string])[] = [
+  ["capex", "Вложения (CAPEX)"],
+  ["effect", "Годовой эффект"],
+  ["payback", "Простая окупаемость"],
+  ["npv", "NPV за горизонт расчёта"],
+];
+
+/**
+ * Итоги на первой странице (ТЗ §3.7.1 — краткое резюме): рекомендация, главные цифры
+ * рекомендуемого сценария, сравнение сценариев по ключевым показателям и основания вывода.
+ * Всё — из сохранённого расчёта, те же ячейки, что в таблице сценариев и выгрузке.
+ */
+function SummarySection({ results }: { results: ProjectResults }) {
+  const columns = scenarioColumns(results);
+  const rows = new Map(scenarioTableRows(results).map((r) => [r.rowKey, r]));
+  const rec = columns.findIndex((c) => c.recommended);
+  const { headline, bullets } = results.conclusion;
+  // Суммы — в миллионах из чисел строки, прочие показатели (окупаемость, имитация) — текстом ячейки.
+  const cellText = (key: (typeof SUMMARY_ROW_KEYS)[number], i: number): string => {
+    const row = rows.get(key);
+    if (!row) return "—";
+    const v = row.values[i];
+    return row.kind === "rub" && typeof v === "number" ? formatMlnRub(v) : (row.cells[i] ?? "—");
+  };
+  return (
+    <Section id="summary" title={SECTION_TITLES.summary}>
+      <p className="text-base font-semibold">{mlnInText(headline)}</p>
+      {rec >= 0 && (
+        <dl className="report-block grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {KEY_FIGURES.map(([key, label]) => (
+            <div key={key} className="rounded-md border px-3 py-2">
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="text-lg font-semibold tabular-nums">{cellText(key, rec)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <div className={TABLE_WRAP}>
+        <table className={TABLE}>
+          <thead className="border-b">
+            <tr>
+              <th scope="col" className={TH}>
+                Показатель
+              </th>
+              {columns.map((c) => (
+                <th key={c.key} scope="col" className={cn(TH, "text-right", c.recommended && "text-foreground")}>
+                  {c.recommended ? `★ ${c.title}` : c.title}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {SUMMARY_ROW_KEYS.map((key) => {
+              const row = rows.get(key);
+              if (!row) return null;
+              return (
+                <tr key={key}>
+                  <th scope="row" className={`${TD} text-left font-normal`}>
+                    {row.label}
+                  </th>
+                  {row.cells.map((_, i) => (
+                    <td key={columns[i]?.key ?? i} className={cn(TD, "text-right tabular-nums", i === rec && "font-semibold")}>
+                      {cellText(key, i)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {bullets.length > 0 && (
+        <>
+          <h3 className="text-base font-semibold">Основания вывода и риски</h3>
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
+            {bullets.map((b, i) => (
+              <li key={i}>{mlnInText(b)}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <Note>★ — рекомендуемый сценарий. Суммы в разделах 1–7 — в млн ₽; в приложениях — в рублях, для точной проверки расчёта. Полное сравнение — в разделе 2.</Note>
+    </Section>
+  );
+}
+
+/** Содержание: разделы и приложения в порядке отчёта; на экране — ссылки на разделы. */
+function Contents() {
+  return (
+    <nav aria-label="Содержание отчёта" className="report-block mt-6 text-sm">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Содержание</div>
+      <ol className="mt-1 gap-x-8 sm:columns-2">
+        {Object.entries(SECTION_TITLES).map(([id, title]) => (
+          <li key={id}>
+            <a href={`#${id}-title`} className="hover:underline">
+              {title}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }
 
@@ -202,6 +337,12 @@ function Toolbar({ projectId }: { projectId: string }) {
 
 // ——————————————————————————— Параметры объекта ———————————————————————————
 
+/** Источник базового значения кратко: «Базовые данные, Демо-набор данных › Склад › стр. 4» → «Базовые данные». */
+function shortSource(source: string): string {
+  const i = source.indexOf(",");
+  return i < 0 ? source : source.slice(0, i);
+}
+
 function ParamsSection({ results, defs }: { results: ProjectResults; defs: readonly ParamSpec[] }) {
   const rows = paramsRows(results, defs);
   const defByKey = new Map(defs.map((d) => [d.key, d]));
@@ -215,49 +356,68 @@ function ParamsSection({ results, defs }: { results: ProjectResults; defs: reado
   const changed = rows.filter((r) => r.changed).length;
   const outOfRange = rows.filter((r) => r.outOfRange).length;
   return (
-    <Section id="params" title="Параметры объекта">
+    <Section id="params" title={SECTION_TITLES.params} appendix>
       <Note>
         Значения, с которыми выполнен расчёт. Параметров: {rows.length} · задано вами: {changed} · вне допустимого диапазона:{" "}
-        {outOfRange}. Источник — откуда взято базовое значение; значение, заданное вами, так и подписано.
+        {outOfRange}. Источник — откуда взято базовое значение; место в источнике по каждому параметру — в выгрузке Excel, лист
+        «Параметры объекта».
       </Note>
+      {/* Одна страница A4: значение вместе с единицей, базовое — только у заданных вами, источник — кратко. */}
       <div className={TABLE_WRAP}>
-        <table className={TABLE}>
+        <table className={cn(TABLE, "params-table")}>
           <thead className="border-b">
             <tr>
-              <th scope="col" className={TH}>Параметр</th>
-              <th scope="col" className={`${TH} text-right`}>Значение</th>
-              <th scope="col" className={TH}>Ед.</th>
-              <th scope="col" className={`${TH} text-right`}>Базовое</th>
-              <th scope="col" className={TH}>Диапазон</th>
-              <th scope="col" className={TH}>Источник</th>
-              <th scope="col" className={TH}>Замечания</th>
+              <th scope="col" className={cn(TH, "w-[46%]")}>
+                Параметр
+              </th>
+              <th scope="col" className={`${TH} text-right`}>
+                Значение
+              </th>
+              <th scope="col" className={TH}>
+                Допустимый диапазон
+              </th>
+              <th scope="col" className={TH}>
+                Источник
+              </th>
             </tr>
           </thead>
           {sections.map((s) => (
             <tbody key={s.name}>
               <tr>
-                <th scope="colgroup" colSpan={7} className="border-t bg-muted/20 px-2 py-1 text-left text-xs font-semibold">
+                <th scope="colgroup" colSpan={4} className="border-t bg-muted/20 px-2 py-0.5 text-left text-xs font-semibold">
                   {s.name}
                 </th>
               </tr>
-              {s.items.map(({ row, notes }) => (
+              {s.items.map(({ row }) => (
                 <tr key={row.key} className={cn(row.outOfRange && "bg-caution/10")}>
-                  <th scope="row" className={`${TD} text-left font-normal`}>{row.label}</th>
-                  <td className={cn(TD, "text-right tabular-nums", row.changed && "font-semibold")}>
+                  <th scope="row" className={`${TD} text-left font-normal`}>
+                    {row.label}
+                  </th>
+                  <td className={cn(TD, "text-right tabular-nums whitespace-nowrap", row.changed && "font-semibold")}>
                     {row.outOfRange && <span className="mr-1 text-caution">⚠</span>}
                     {row.cells[2]}
+                    {row.unit ? `\u00A0${row.unit}` : ""}
+                    {row.changed && <span className="ml-1 font-normal text-muted-foreground">(базовое {row.cells[4]})</span>}
                   </td>
-                  <td className={TD}>{row.unit}</td>
-                  <td className={`${TD} text-right tabular-nums text-muted-foreground`}>{row.cells[4]}</td>
                   <td className={`${TD} tabular-nums`}>{row.cells[5]}</td>
-                  <td className={`${TD} text-xs break-words`}>{row.source}</td>
-                  <td className={`${TD} text-xs`}>{notes.join("; ")}</td>
+                  <td className={TD}>{shortSource(row.source)}</td>
                 </tr>
               ))}
             </tbody>
           ))}
         </table>
       </div>
+      {view.some((v) => v.notes.length > 0) && (
+        <ul className="flex list-disc flex-col gap-0.5 pl-5 text-xs">
+          {view
+            .filter((v) => v.notes.length > 0)
+            .map((v) => (
+              <li key={v.row.key}>
+                {v.row.label}: {v.notes.join("; ")}
+              </li>
+            ))}
+        </ul>
+      )}
     </Section>
   );
 }
@@ -298,7 +458,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
   }
   const chosen = results.selection.filter((s) => inScenarios.has(scenarioItemKey(s.process, s.productSlug)));
   return (
-    <Section id="selection" title="Подобранные решения">
+    <Section id="selection" title={SECTION_TITLES.selection}>
       <Note>
         Подбор по процессам объекта: статус, причины включения или исключения, ограничения и недостающие данные;
         балл 0–100 раскладывается на вклады факторов (очки / вес).
@@ -402,7 +562,7 @@ function SelectionSection({ results }: { results: ProjectResults }) {
 
 function EquipmentSection({ results }: { results: ProjectResults }) {
   return (
-    <Section id="equipment" title="Состав оборудования">
+    <Section id="equipment" title={SECTION_TITLES.equipment}>
       <Note>
         Роботы и вспомогательное оборудование по сценариям. Число роботов = пиковый поток / (производительность × загрузка ×
         доступность) × (1 + резерв), с округлением вверх; производительность — меньшая из паспортной нормы и расчёта по циклу
@@ -462,7 +622,7 @@ function EquipmentSection({ results }: { results: ProjectResults }) {
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>{formatNum(it.chargers)}</td>
                   <td className={`${TD} text-right tabular-nums`}>{formatNum(it.operatorPosts)}</td>
-                  <td className={`${TD} text-xs`}>{i === 0 ? software : ""}</td>
+                  <td className={`${TD} text-xs`}>{i === 0 ? mlnInText(software) : ""}</td>
                   <td className={`${TD} text-xs`}>
                     <ul className="flex flex-col gap-0.5">
                       {fleetLines(it).map((l, li) => (
@@ -489,7 +649,7 @@ function EconomicsSection({ results, defs }: { results: ProjectResults; defs: re
   const paramLabels = Object.fromEntries(defs.map((d) => [d.key, d.label]));
   const manual = results.results.some((r) => r.items.some((it) => it.manuallyAdded));
   return (
-    <Section id="economics" title="Экономика сценариев">
+    <Section id="economics" title={SECTION_TITLES.economics}>
       <Note>
         Текущий процесс и варианты роботизации в одной таблице. ★ — рекомендуемый сценарий: наибольший NPV среди окупаемых
         (NPV ≥ 0 и дисконтированная окупаемость в пределах горизонта). Строка «Интерпретация» на этот выбор не влияет.
@@ -503,6 +663,7 @@ function EconomicsSection({ results, defs }: { results: ProjectResults; defs: re
         paramLabels={paramLabels}
         print
         readOnly
+        mln
       />
       {manual && <Note>{MANUAL_NOTE}</Note>}
     </Section>
@@ -513,7 +674,7 @@ function EconomicsSection({ results, defs }: { results: ProjectResults; defs: re
 
 function LinesSection({ results }: { results: ProjectResults }) {
   return (
-    <Section id="lines" title="CAPEX и OPEX по статьям">
+    <Section id="lines" title={SECTION_TITLES.lines}>
       <Note>
         Каждая статья — с формулой, подстановкой чисел и происхождением значения (базовые данные, открытый источник, оценка
         с обоснованием, норматив). Статья услуги (RaaS), принятая входящей в подписку, показана с нулём и пометкой: это
@@ -555,7 +716,7 @@ function CashflowSection({ results }: { results: ProjectResults }) {
   const robots = results.results.filter((r): r is ScenarioOk => r.status === "ok" && r.kind !== "asis");
   const asis = results.results.find((r): r is ScenarioOk => r.status === "ok" && r.kind === "asis");
   return (
-    <Section id="cashflow" title="Денежный поток">
+    <Section id="cashflow" title={SECTION_TITLES.cashflow}>
       <Note>
         Год 0 — вложения (CAPEX). Эффект года = OPEX «Как есть» − OPEX сценария с фактической заменой АКБ в этом году;
         докупка оборудования — по сроку службы. NPV, ROI и дисконтированная окупаемость считаются за горизонт расчёта, TCO — за
@@ -579,7 +740,10 @@ function CashflowSection({ results }: { results: ProjectResults }) {
               TCO {yearsCount(f.T)} · NPV {formatRub(r.npvRub)} · TCO {formatRub(r.tcoRub)}
             </p>
             <div className={TABLE_WRAP}>
-              <table className={TABLE}>
+              <table className={cn(TABLE, "table-fixed")}>
+                <colgroup>
+                  <col className="w-[6%]" />
+                </colgroup>
                 <thead className="border-b">
                   <tr>
                     <th scope="col" className={TH}>Год</th>
@@ -625,7 +789,7 @@ function CashflowSection({ results }: { results: ProjectResults }) {
 function SensitivitySection({ results }: { results: ProjectResults }) {
   const groups = results.results.filter((r): r is ScenarioOk => r.status === "ok" && r.sensitivity.length > 0);
   return (
-    <Section id="sensitivity" title="Чувствительность">
+    <Section id="sensitivity" title={SECTION_TITLES.sensitivity}>
       <Note>
         По каждому сценарию — {REPORT_TOP_LEVERS} сильнейших рычагов из рассчитанных; полный перечень — в выгрузке Excel, лист
         «Чувствительность». Для вариантов роботизации результат — NPV, для «Как есть» — TCO. Границы — из типового
@@ -643,6 +807,7 @@ function SensitivitySection({ results }: { results: ProjectResults }) {
               metric={r.kind === "asis" ? "tco" : "npv"}
               baseValue={r.kind === "asis" ? r.tcoRub : r.npvRub}
               print
+              mln
             />
             {all > rows.length && (
               <Note>
@@ -667,7 +832,7 @@ function SimSection({ results }: { results: ProjectResults }) {
   const norms = { ...DEFAULT_NORMS, ...results.normsUsed };
   const groups = layoutGroups(results);
   return (
-    <Section id="simulation" title="Имитация">
+    <Section id="simulation" title={SECTION_TITLES.simulation}>
       <Note>
         Имитация проверяет, выдерживает ли парк по расчёту пиковый поток на той же планировке, по которой посчитано плечо
         перевозки: {fx(norms.simWarmupMin)} мин прогрева и {fx(norms.simPeakMin)} мин пика. Расчёт подтверждён, если за пик
@@ -763,16 +928,8 @@ function SimSection({ results }: { results: ProjectResults }) {
 function ConclusionSection({ results }: { results: ProjectResults }) {
   const risks = riskRows(results);
   return (
-    <Section id="conclusion" title="Вывод и риски">
-      <p className="text-sm font-semibold">{results.conclusion.headline}</p>
-      {results.conclusion.bullets.length > 0 && (
-        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
-          {results.conclusion.bullets.map((b, i) => (
-            <li key={i}>{b}</li>
-          ))}
-        </ul>
-      )}
-      <h3 className="mt-2 text-base font-semibold">Риски по сценариям</h3>
+    <Section id="conclusion" title={SECTION_TITLES.conclusion}>
+      <Note>Что может изменить вывод: риски каждого сценария по важности. Главный вывод и его основания — в разделе «Итоги».</Note>
       {risks.length === 0 ? (
         <p className="text-sm text-muted-foreground">Рисков не выявлено.</p>
       ) : (
@@ -790,9 +947,7 @@ function ConclusionSection({ results }: { results: ProjectResults }) {
                 <tr key={i}>
                   <td className={`${TD} text-xs`}>{r.scenarioTitle}</td>
                   <td className={`${TD} text-xs whitespace-nowrap`}>{r.severity}</td>
-                  <td className={`${TD} text-xs`}>
-                    {r.text} <span className="font-mono text-muted-foreground">[{r.code}]</span>
-                  </td>
+                  <td className={`${TD} text-xs`}>{mlnInText(r.text)}</td>
                 </tr>
               ))}
             </tbody>
@@ -808,7 +963,7 @@ function ConclusionSection({ results }: { results: ProjectResults }) {
 function FormulasSection() {
   const rows = formulaRows();
   return (
-    <Section id="formulas" title="Формулы">
+    <Section id="formulas" title={SECTION_TITLES.formulas}>
       <Note>
         Формулы модели {TZ_MODEL_VERSION}. Источник: «типовая расчётная зависимость» — общепринятая зависимость для
         расчёта парка, затрат и окупаемости; «базовые данные» — из описания демо-набора данных; «наш выбор» —
@@ -847,7 +1002,7 @@ function NormsSection({ results }: { results: ProjectResults }) {
   const overrides = normOverrideRows(results);
   const groups = groupInOrder<NormReportRow>(rows, (r) => r.group);
   return (
-    <Section id="norms" title="Нормативы и допущения">
+    <Section id="norms" title={SECTION_TITLES.norms}>
       <Note>
         Нормативы, с которыми выполнен расчёт (снимок проекта): значение, происхождение и обоснование. Если администратор
         изменил норматив, рядом указано значение по умолчанию.
@@ -912,7 +1067,7 @@ function NormsSection({ results }: { results: ProjectResults }) {
 function LimitationsSection({ results }: { results: ProjectResults }) {
   const selection = scenarioSelectionLimitations(results);
   return (
-    <Section id="limitations" title="Ограничения модели">
+    <Section id="limitations" title={SECTION_TITLES.limitations}>
       <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
         {modelLimitations().map((l, i) => (
           <li key={i}>{l}</li>
@@ -945,7 +1100,7 @@ function SourcesSection({ results }: { results: ProjectResults }) {
     else products.push({ name: r.productName, rows: [r] });
   }
   return (
-    <Section id="sources" title="Источники данных">
+    <Section id="sources" title={SECTION_TITLES.sources}>
       <Note>
         Характеристики решений, с которыми выполнен расчёт (снимок проекта): значение, происхождение, дата проверки, признак
         подтверждения первоисточником и ссылка. Источники параметров объекта — в разделе «Параметры объекта», нормативов — в
@@ -1015,7 +1170,7 @@ function ChangesSection({ results, defs, changes }: { results: ProjectResults; d
     scenarioTitles: scenarioTitleMap(results),
   });
   return (
-    <Section id="changes" title="Журнал корректировок">
+    <Section id="changes" title={SECTION_TITLES.changes}>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Корректировок нет: все значения расчётные или взяты из исходных данных и каталога.
@@ -1065,18 +1220,20 @@ export function ProjectReport({ project, results, defs, changes, liveDataVersion
     <div className="report-print mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
       <Toolbar projectId={project.id} />
       <ReportHeader project={project} results={results} liveDataVersion={liveDataVersion} />
+      <SummarySection results={results} />
+      <Contents />
+      <EconomicsSection results={results} defs={defs} />
+      <EquipmentSection results={results} />
+      <SimSection results={results} />
+      <SensitivitySection results={results} />
+      <ConclusionSection results={results} />
+      <LimitationsSection results={results} />
       <ParamsSection results={results} defs={defs} />
       <SelectionSection results={results} />
-      <EquipmentSection results={results} />
-      <EconomicsSection results={results} defs={defs} />
       <LinesSection results={results} />
       <CashflowSection results={results} />
-      <SensitivitySection results={results} />
-      <SimSection results={results} />
-      <ConclusionSection results={results} />
-      <FormulasSection />
       <NormsSection results={results} />
-      <LimitationsSection results={results} />
+      <FormulasSection />
       <SourcesSection results={results} />
       <ChangesSection results={results} defs={defs} changes={changes} />
       <p className="mt-8 border-t pt-2 text-xs text-muted-foreground">

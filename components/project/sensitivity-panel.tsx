@@ -1,6 +1,6 @@
 "use client";
 
-import { formatMRub, formatRub } from "@/lib/format/rub";
+import { formatMlnRub, formatMRub, formatRub } from "@/lib/format/rub";
 import { boundsSourceLabel } from "@/lib/tz/econ/sensitivity";
 import { fx, rangeText } from "@/lib/tz/econ/text";
 import type { SensitivityRow } from "@/lib/tz/types";
@@ -63,10 +63,12 @@ function Tornado({
   rows,
   metric,
   base,
+  mln = false,
 }: {
   rows: readonly SensitivityRow[];
   metric: SensitivityMetric;
   base: number | null;
+  mln?: boolean;
 }) {
   const values: number[] = [];
   for (const r of rows) {
@@ -114,7 +116,7 @@ function Tornado({
             <g>
               <line x1={x(base)} y1={PAD_TOP - 8} x2={x(base)} y2={height - PAD_BOTTOM} stroke="var(--foreground)" strokeWidth={1.5} />
               <text x={x(base)} y={PAD_TOP - 12} textAnchor="middle" fontSize={11} fill="var(--muted-foreground)">
-                база {formatMRub(base)}
+                база {mln ? formatMlnRub(base) : formatMRub(base)}
               </text>
             </g>
           )}
@@ -142,7 +144,7 @@ function Tornado({
               const w = Math.max(2, Math.abs(x(v) - x(from)));
               return (
                 <rect x={a} y={y} width={w} height={BAR_H} rx={2} fill={color}>
-                  <title>{`${r.label}, ${which} ${leverValueText(which === "нижняя граница" ? r.low : r.high, r.unit)}: ${metricLabel} ${formatRub(v)}`}</title>
+                  <title>{`${r.label}, ${which} ${leverValueText(which === "нижняя граница" ? r.low : r.high, r.unit)}: ${metricLabel} ${mln ? formatMlnRub(v) : formatRub(v)}`}</title>
                 </rect>
               );
             };
@@ -174,6 +176,7 @@ export function SensitivityPanel({
   rows,
   metric,
   baseValue,
+  mln = false,
 }: {
   scenarioName: string;
   rows: readonly SensitivityRow[];
@@ -182,7 +185,10 @@ export function SensitivityPanel({
   baseValue?: number | null;
   /** Для единообразия с отчётом: элементов управления здесь нет, вид не меняется. */
   print?: boolean;
+  /** Суммы — в миллионах (отчёт: все суммы основной части в одних единицах). */
+  mln?: boolean;
 }) {
+  const money = mln ? formatMlnRub : formatRub;
   const metricLabel = metric === "npv" ? "NPV" : "TCO";
   const base = baseValue ?? (metric === "npv" ? (rows[0]?.npvBase ?? null) : null);
   const anyClamped = rows.some((r) => r.clampedLow || r.clampedHigh);
@@ -248,13 +254,13 @@ export function SensitivityPanel({
                       </td>
                       <td className={TD}>{boundsSourceLabel(r.boundsSource)}</td>
                       <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>
-                        {vLow === null ? "отказ расчёта" : formatRub(vLow)}
+                        {vLow === null ? "отказ расчёта" : money(vLow)}
                       </td>
                       <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>
-                        {vHigh === null ? "отказ расчёта" : formatRub(vHigh)}
+                        {vHigh === null ? "отказ расчёта" : money(vHigh)}
                       </td>
                       <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>
-                        {refused ? "—" : formatRub(r.swing)}
+                        {refused ? "—" : money(r.swing)}
                       </td>
                       {metric === "npv" && (
                         <td className={`${TD} font-medium text-caution`}>{r.signFlip ? "⚠ да" : ""}</td>
@@ -280,7 +286,7 @@ export function SensitivityPanel({
               )}
             </ul>
           )}
-          <Tornado rows={rows} metric={metric} base={base} />
+          <Tornado rows={rows} metric={metric} base={base} mln={mln} />
         </>
       )}
     </section>
