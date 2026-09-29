@@ -22,10 +22,10 @@ export default function GlossaryPage() {
       <div className="flex flex-col gap-3">
         <h1>Словарь терминов</h1>
         <p className="text-muted-foreground">
-          Продукт разговаривает двумя чужими языками сразу — складской автоматизации и
+          Платформа говорит сразу на двух чужих языках — складской автоматизации и
           инвестиционного анализа. Здесь они переведены на обычный. Показатели, которые считает
-          сама модель, описаны так, как она их считает: если определение отсюда разойдётся с
-          расчётом, право будет объяснение, а не расчёт.
+          сама модель, описаны так, как она их считает: если определение и расчёт разойдутся,
+          ошибочным считается расчёт.
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export default function GlossaryPage() {
 
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm">
         <Link href="/methodology" className="tap-target font-medium underline underline-offset-4">
-          Откуда цифры и как считается модель
+          Откуда цифры
         </Link>
         <Link href="/onboarding" className="tap-target font-medium underline underline-offset-4">
           Проверить свой объект →

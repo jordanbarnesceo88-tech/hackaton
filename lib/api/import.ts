@@ -364,7 +364,7 @@ function checkSourced(
       if (!asInSource) errors.push(`${where}: у значения из открытого источника нужна цитата asInSource — как в источнике`);
     }
     if ((o === "estimate" || o === "derived" || o === "choice") && !basis) {
-      errors.push(`${where}: у оценки, вычисления или решения нужно обоснование basis`);
+      errors.push(`${where}: у оценки, вычисления или выбора нужно обоснование basis`);
     }
     if (o === "derived" && !formula) errors.push(`${where}: у вычисленного значения нужна формула formula`);
     if (o === "estimate" && raw.confirmed === true) {
@@ -785,9 +785,9 @@ export async function importProducts(
       ORGANIZER_SLUGS.has(seed.slug) || originBySlug.get(seed.slug) === "ORGANIZER"
         ? organizerSlugMessage(seed.slug)
         : !refs.solutionTypes.has(seed.solutionType)
-          ? `тип решения «${seed.solutionType}» не найден в базе — данные не засеяны: выполните npm run db:seed`
+          ? `тип решения «${seed.solutionType}» не найден в базе — базовые данные не загружены: выполните npm run db:seed`
           : seed.processes.find((p) => !refs.processes.has(p)) !== undefined
-            ? `процесс «${seed.processes.find((p) => !refs.processes.has(p))}» не найден в базе — данные не засеяны: выполните npm run db:seed`
+            ? `процесс «${seed.processes.find((p) => !refs.processes.has(p))}» не найден в базе — базовые данные не загружены: выполните npm run db:seed`
             : null;
     if (refusal !== null) {
       item.status = "refused";

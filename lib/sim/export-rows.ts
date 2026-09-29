@@ -67,8 +67,8 @@ export function simSummaryRows(summary: SimSummaryStored): SimRow[] {
     ["Роботов в прогоне", s.fleet],
     ["Загрузка в расчёте, %", round1(s.assumedUtilPct)],
     ["Обслужено заданий пика, %", measured(s.servedShare * 100)],
-    ["Минимальный парк по имитации", s.minStableFleet ?? "не определён"],
-    ["Парк по типовой норме", s.fleetByNorm ?? "нет нормы"],
+    ["Минимальный устойчивый парк", s.minStableFleet ?? "не определён"],
+    ["Парк по паспортной норме", s.fleetByNorm ?? "нет нормы"],
     [
       "Вердикт при парке по норме",
       s.verdictByNorm === null ? "не проверялся" : VERDICT_LABELS[s.verdictByNorm],

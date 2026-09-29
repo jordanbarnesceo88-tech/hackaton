@@ -15,17 +15,17 @@ import { cn } from "@/lib/utils";
 
 /** Короткие подписи причин отказа — заголовок блока. */
 export const REFUSAL_TITLES: Readonly<Record<RefusalReason, string>> = {
-  throughput_required: "Не хватает производительности",
-  price_required: "Не хватает цены",
-  raas_rate_required: "Не хватает ставки RaaS",
-  staffing_required: "Не хватает данных о персонале",
-  calc_not_supported: "Экономика не рассчитывается",
-  invalid_inputs: "Исправьте входные данные",
+  throughput_required: "не хватает производительности",
+  price_required: "не хватает цены",
+  raas_rate_required: "не хватает ставки RaaS",
+  staffing_required: "не хватает данных о персонале",
+  calc_not_supported: "экономика не рассчитывается",
+  invalid_inputs: "исправьте данные",
 };
 
 /** Подписи корректировок позиции сценария по виду поля `item:<процесс>:<вид>`. */
 const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
-  quantity: "Количество роботов",
+  quantity: "Число роботов",
   price: "Цена робота, ₽",
   service: "Сервис, ₽/год за робота",
   raasRate: "Ставка RaaS, ₽/мес за робота",
@@ -35,7 +35,7 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
 /** Подписи полей уровня сценария: 'scenario:<вид>'. */
 const SCENARIO_FIELD_LABELS: Readonly<Record<string, string>> = {
   add: "Сценарий покупки или услуги",
-  items: "Решение (продукт) для сценария",
+  items: "Решение для сценария",
 };
 
 /**

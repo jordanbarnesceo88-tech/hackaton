@@ -119,7 +119,7 @@ describe("validateParamValues", () => {
       const i = only(issues, "workDaysPerYear");
       expect(i).toMatchObject({ code: "locked_changed", severity: "warning" });
       expect(i.message).toBe(
-        "Рабочих дней в году: значение фиксировано в демо-наборе (365 дн.); изменение будет записано в журнал",
+        "Рабочих дней в году: значение фиксировано в демо-наборе (365 дн.); изменение попадёт в журнал корректировок",
       );
       expect(values.workDaysPerYear).toBe(300);
       expect(validateParamValues(defs, { hasWms: "да" }, { origin: "manual" }).issues).toEqual([]);

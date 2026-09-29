@@ -240,7 +240,7 @@ export type ChargersResult = { count: number; method: "charge" | "ratio" | "none
  * стационарных систем зарядных станций нет.
  */
 export function chargersNeeded(n: number, product: ProductForCalc, norms: NormValues): ChargersResult {
-  if (!product.mobile) return { count: 0, method: "none", substituted: "стационарная система — зарядные станции не нужны" };
+  if (!product.mobile) return { count: 0, method: "none", substituted: "стационарное решение — зарядные станции не нужны" };
   const a = product.autonomyH;
   const c = product.chargeMin;
   if (a !== null && c !== null && Number.isFinite(a) && Number.isFinite(c) && a > 0 && c > 0) {

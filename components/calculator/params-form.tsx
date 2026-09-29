@@ -244,8 +244,8 @@ export function ParamsForm({
             computedQuantity !== null &&
             params.quantityOverride < computedQuantity && (
               <p data-tone="warn" className="callout callout--sm">
-                Парк меньше расчётного закрывает не всю работу объекта, поэтому и экономия ниже
-                — модель уменьшает её пропорционально покрытию, а не оставляет прежней.
+                Парк меньше расчётного закрывает не всю работу объекта, поэтому модель
+                уменьшает экономию пропорционально покрытию.
               </p>
             )}
         </div>

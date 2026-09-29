@@ -100,7 +100,7 @@ export default async function AdminPage() {
           <p className="text-3xl font-semibold tabular-nums">{formatNum(paramsEdited)}</p>
           <p className="text-xs text-muted-foreground">изменено администратором</p>
           <p className="text-sm">
-            Значения по умолчанию, диапазоны проверки, подсказки и примеры полей для склада, аэропорта и
+            Базовые значения, диапазоны проверки, подсказки и примеры полей для склада, аэропорта и
             медучреждения.
           </p>
           <Link href="/admin/params" className="mt-auto text-sm text-primary underline underline-offset-2">

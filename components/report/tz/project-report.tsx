@@ -165,10 +165,9 @@ function ReportHeader({ project, results, liveDataVersion }: Pick<ProjectReportP
       {dataStale && (
         <p role="note" className="report-block mt-3 rounded-md border border-destructive/40 px-3 py-2 text-sm">
           Данные каталога, нормативов или описаний параметров изменились после расчёта (версия данных в расчёте —{" "}
-          {results.dataVersion}, сейчас — {liveDataVersion}). Числа отчёта — из сохранённого снимка расчёта, а значения по
-          умолчанию, диапазоны, отметки ⚠ и «Задано вами» в разделе «Параметры объекта» — по текущим описаниям параметров
-          и могут с ним расходиться. Чтобы отчёт целиком соответствовал текущим данным, откройте проект и пересчитайте его на
-          актуальных данных.
+          {results.dataVersion}, сейчас — {liveDataVersion}). Числа отчёта — из сохранённого снимка расчёта, а базовые
+          значения, диапазоны, отметки ⚠ и «Задано вами» в разделе «Параметры объекта» — по текущим описаниям параметров
+          и могут с ним расходиться. Чтобы отчёт целиком соответствовал текущим данным, откройте проект и пересчитайте его.
         </p>
       )}
       <div className="report-block mt-4 rounded-md border px-3 py-2">
@@ -218,7 +217,7 @@ function ParamsSection({ results, defs }: { results: ProjectResults; defs: reado
     <Section id="params" title="Параметры объекта">
       <Note>
         Значения, с которыми выполнен расчёт. Параметров: {rows.length} · задано вами: {changed} · вне допустимого диапазона:{" "}
-        {outOfRange}. Источник — откуда взято значение по умолчанию; значение, заданное вами, так и подписано.
+        {outOfRange}. Источник — откуда взято базовое значение; значение, заданное вами, так и подписано.
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
@@ -227,7 +226,7 @@ function ParamsSection({ results, defs }: { results: ProjectResults; defs: reado
               <th scope="col" className={TH}>Параметр</th>
               <th scope="col" className={`${TH} text-right`}>Значение</th>
               <th scope="col" className={TH}>Ед.</th>
-              <th scope="col" className={`${TH} text-right`}>По умолчанию</th>
+              <th scope="col" className={`${TH} text-right`}>Базовое</th>
               <th scope="col" className={TH}>Диапазон</th>
               <th scope="col" className={TH}>Источник</th>
               <th scope="col" className={TH}>Замечания</th>
@@ -458,7 +457,7 @@ function EquipmentSection({ results }: { results: ProjectResults }) {
                   </th>
                   <td className={`${TD} text-right tabular-nums`}>
                     {it.n === null ? "—" : formatNum(it.n)}
-                    {it.nOverridden && <div className="text-xs text-caution">задано вручную</div>}
+                    {it.nOverridden && <div className="text-xs text-caution">задано вами</div>}
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>{formatNum(it.chargers)}</td>
                   <td className={`${TD} text-right tabular-nums`}>{formatNum(it.operatorPosts)}</td>
@@ -492,7 +491,7 @@ function EconomicsSection({ results, defs }: { results: ProjectResults; defs: re
     <Section id="economics" title="Экономика сценариев">
       <Note>
         Текущий процесс и варианты роботизации в одной таблице. ★ — рекомендуемый сценарий: наибольший NPV среди окупаемых
-        (NPV ≥ 0 и дисконтированная окупаемость в пределах горизонта); интерпретация окупаемости — описание, а не критерий.
+        (NPV ≥ 0 и дисконтированная окупаемость в пределах горизонта). Строка «Интерпретация» на этот выбор не влияет.
       </Note>
       <ScenarioTable
         results={tableResults(results.results)}
@@ -516,8 +515,8 @@ function LinesSection({ results }: { results: ProjectResults }) {
     <Section id="lines" title="CAPEX и OPEX по статьям">
       <Note>
         Каждая статья — с формулой, подстановкой чисел и происхождением значения (базовые данные, открытый источник, оценка
-        с обоснованием, норматив). Статья услуги (RaaS), принятая входящей в подписку, показана с нулём и пометкой — это
-        допущение, которое проверяется по договору.
+        с обоснованием, норматив). Статья услуги (RaaS), принятая входящей в подписку, показана с нулём и пометкой: это
+        допущение, которое нужно проверить в договоре.
       </Note>
       {results.results.map((r) => (
         <div key={r.key} className="flex flex-col gap-3">
@@ -669,11 +668,11 @@ function SimSection({ results }: { results: ProjectResults }) {
   return (
     <Section id="simulation" title="Имитация">
       <Note>
-        Имитация проверяет, выдерживает ли парк из расчёта пиковый поток на той же планировке, по которой посчитано плечо
+        Имитация проверяет, выдерживает ли парк по расчёту пиковый поток на той же планировке, по которой посчитано плечо
         перевозки: {fx(norms.simWarmupMin)} мин прогрева и {fx(norms.simPeakMin)} мин пика. Расчёт подтверждён, если за пик
         обслужено не меньше {fx(norms.simServedShareMin * 100, 1)} % заданий, а 95 % заданий ждут не дольше{" "}
-        {fx(norms.simP95WaitMaxMin)} мин; простой от {fx(norms.simOversizedIdleShare * 100, 1)} % — парк избыточен. Прогон
-        детерминирован (зерно генератора в таблице): повторный прогон даёт те же числа.
+        {fx(norms.simP95WaitMaxMin)} мин; простой от {fx(norms.simOversizedIdleShare * 100, 1)} % — парк избыточен. Повторный
+        прогон с тем же зерном генератора (оно указано в таблице) даёт те же числа.
       </Note>
       {table.columns.length === 0 ? (
         <p className="text-sm text-muted-foreground">Имитация не выполнялась: нет сценариев роботизации с перевозкой паллет.</p>
@@ -811,8 +810,8 @@ function FormulasSection() {
     <Section id="formulas" title="Формулы">
       <Note>
         Формулы модели {TZ_MODEL_VERSION}. Источник: «типовая расчётная зависимость» — общепринятая зависимость для
-        расчёта парка, затрат и окупаемости, «базовые данные» — легенда демо-набора, «решение платформы» — решение
-        модели, обоснованное в методике.
+        расчёта парка, затрат и окупаемости; «базовые данные» — из описания демо-набора данных; «наш выбор» —
+        принято в модели и обосновано в методике.
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
@@ -849,8 +848,8 @@ function NormsSection({ results }: { results: ProjectResults }) {
   return (
     <Section id="norms" title="Нормативы и допущения">
       <Note>
-        Нормативы, с которыми выполнен расчёт (снимок проекта): значение, происхождение и обоснование. Значение, отличное от
-        значения по умолчанию, изменено администратором и отмечено.
+        Нормативы, с которыми выполнен расчёт (снимок проекта): значение, происхождение и обоснование. Если администратор
+        изменил норматив, рядом указано значение по умолчанию.
       </Note>
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
@@ -893,7 +892,7 @@ function NormsSection({ results }: { results: ProjectResults }) {
       </div>
       {overrides.length > 0 && (
         <>
-          <h3 className="text-base font-semibold">Нормативы, переопределённые в сценариях</h3>
+          <h3 className="text-base font-semibold">Нормативы, изменённые в сценариях</h3>
           <ul className="flex list-disc flex-col gap-0.5 pl-5 text-sm">
             {overrides.map((o, i) => (
               <li key={i}>
@@ -1080,9 +1079,9 @@ export function ProjectReport({ project, results, defs, changes, liveDataVersion
       <SourcesSection results={results} />
       <ChangesSection results={results} defs={defs} changes={changes} />
       <p className="mt-8 border-t pt-2 text-xs text-muted-foreground">
-        Отчёт построен по сохранённому расчёту проекта «{project.name}» ({formatCalcDate(results.calculatedAt)}): повторное
-        открытие проекта с теми же версиями модели ({results.modelVersion}, {results.simModelVersion}) и данных (
-        {results.dataVersion}) воспроизводит эти числа.
+        Отчёт построен по сохранённому расчёту проекта «{project.name}» ({formatCalcDate(results.calculatedAt)}). Если открыть
+        проект снова с теми же версиями модели ({results.modelVersion}, {results.simModelVersion}) и данных (
+        {results.dataVersion}), он покажет те же числа.
       </p>
     </div>
   );
@@ -1095,8 +1094,8 @@ export function ReportNeedsSave({ projectId, projectName }: { projectId: string;
       <h1 className="text-2xl font-semibold">Отчёт по проекту: {projectName}</h1>
       <p className="text-muted-foreground">Сохраните проект, чтобы построить отчёт.</p>
       <p className="text-sm text-muted-foreground">
-        Отчёт, файлы Excel и CSV строятся из сохранённого расчёта — так числа в них совпадают и воспроизводятся при повторном
-        открытии проекта.
+        Отчёт и выгрузки Excel и CSV строятся из сохранённого расчёта, поэтому числа в них совпадают и не меняются при
+        повторном открытии проекта.
       </p>
       <Link href={`/projects/${projectId}`} className="self-start rounded-md border px-3 py-2 text-sm font-medium">
         Вернуться к проекту

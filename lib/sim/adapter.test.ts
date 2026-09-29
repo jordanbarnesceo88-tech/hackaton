@@ -273,9 +273,9 @@ describe("toSimInput", () => {
       if (!r.ok) throw new Error(r.message);
       return r.provenance.find((p) => p.field === "calc:fleet")!.note;
     };
-    expect(noteFor()).toContain("Парк из расчёта");
-    expect(noteFor("derived")).toContain("Парк из расчёта");
-    expect(noteFor("user")).toBe("Число роботов задано вручную (журнал изменений)");
+    expect(noteFor()).toContain("Парк по расчёту");
+    expect(noteFor("derived")).toContain("Парк по расчёту");
+    expect(noteFor("user")).toBe("Число роботов задано вручную (журнал корректировок)");
     expect(noteFor("organizer")).toBeUndefined();
   });
 

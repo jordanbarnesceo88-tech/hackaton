@@ -93,7 +93,7 @@ function baseOf(ctx: ScenarioContext, specs: readonly ScenarioSpec[]): Base {
       ? {
           reason: "calc_not_supported",
           fields: [],
-          message: `Экономика для процесса «${unsupported.name}» в прототипе не рассчитывается (§5.7)`,
+          message: `Экономика для процесса «${unsupported.name}» в прототипе не рассчитывается`,
         }
       : {
           reason: "invalid_inputs",
@@ -170,7 +170,7 @@ function validateOverrides(item: ScenarioItem, productName: string): void {
     refuse("invalid_inputs", `Число роботов ${q(productName)} должно быть целым числом не меньше 1`, [f("quantity")]);
   }
   if (item.priceRubOverride !== undefined && !(finite(item.priceRubOverride) && item.priceRubOverride > 0)) {
-    refuse("invalid_inputs", `Цена ${q(productName)} должна быть больше нуля, ₽ за единицу`, [f("price")]);
+    refuse("invalid_inputs", `Цена ${q(productName)} должна быть больше нуля, ₽ за робота`, [f("price")]);
   }
   if (item.throughputPerHOverride !== undefined && !(finite(item.throughputPerHOverride) && item.throughputPerHOverride > 0)) {
     refuse("invalid_inputs", `Производительность ${q(productName)} должна быть больше нуля`, [f("throughput")]);
@@ -201,13 +201,13 @@ function physicalOf(ctx: ScenarioContext, item: ScenarioItem, norms: NormValues,
   const process = ctx.processes[item.process];
   const product = ctx.products[item.productSlug];
   // Наличие проверено до вызова; повтор — для сужения типов.
-  if (!process || !product) refuse("invalid_inputs", "Позиция сценария ссылается на неизвестный процесс или продукт");
+  if (!process || !product) refuse("invalid_inputs", "Сценарий ссылается на неизвестный процесс или продукт");
   const demand = processDemand(ctx, process, hours);
   const thr = throughputFor(ctx, item);
   if (thr.thrEff === null) {
     refuse(
       "throughput_required",
-      `Нет производительности для ${q(product.name)}: укажите её вручную в поле «Производительность, ${process.throughputUnit}» или выберите другой продукт`,
+      `Нет производительности для ${q(product.name)}: укажите её вручную в поле «Производительность, ${process.throughputUnit}» или выберите другое решение`,
       [`item:${process.slug}:throughput`],
     );
   }
@@ -281,7 +281,7 @@ function withLabour(
 ): { calc: ItemCalc; trace: TraceStep[] } {
   const product = ctx.products[ph.item.productSlug];
   const pb = base.byProcess.get(ph.process.slug);
-  if (!product || !pb) refuse("invalid_inputs", "Позиция сценария вне охвата сравнения");
+  if (!product || !pb) refuse("invalid_inputs", "Процесс сценария вне охвата сравнения");
   const F = releasedFte(pb.headcount, norms.laborShareAutomatable, ph.demand.excludeSharePct, ph.kappa);
   const remainingRub = remaining(pb.headcount, F, pb.roleCost);
   const posts = operatorPosts(ph.n, norms);
@@ -369,7 +369,7 @@ function withMoney(calc: ItemCalc, kind: ScenarioSpec["kind"]): void {
     const override = item.priceRubOverride;
     const price = override ?? p.priceRub;
     if (price === null || !finite(price) || price <= 0) {
-      refuse("price_required", `Нет цены ${q(p.name)}: укажите цену за единицу, ₽`, [`item:${item.process}:price`]);
+      refuse("price_required", `Нет цены ${q(p.name)}: укажите цену робота, ₽`, [`item:${item.process}:price`]);
     }
     calc.priceRub = price;
     calc.priceOverridden = override !== undefined;
@@ -412,7 +412,7 @@ function asisResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scena
     const tco = tcoAsis(opex, T);
     trace.push({
       key: "tco",
-      label: `${FORMULAS.tco.title} (как есть)`,
+      label: `${FORMULAS.tco.title} («Как есть»)`,
       formula: FORMULAS.tco.expression,
       substituted: `${T} × ${rub(opex)} = ${rub(tco)}`,
       value: tco,
@@ -463,7 +463,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     }
     const specItems = spec.items ?? [];
     if (specItems.length === 0) {
-      refuse("invalid_inputs", `В сценарии ${q(spec.name)} не выбрано ни одного решения: добавьте продукт`, [
+      refuse("invalid_inputs", `В сценарии ${q(spec.name)} не выбрано ни одного решения: добавьте решение`, [
         "scenario:items",
       ]);
     }
@@ -480,7 +480,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
       const process = ctx.processes[item.process];
       if (!process) refuse("invalid_inputs", `Неизвестный процесс ${q(item.process)}`, [`item:${item.process}:manual`]);
       if (!process.calcSupported) {
-        refuse("calc_not_supported", `Экономика для процесса ${q(process.name)} в прототипе не рассчитывается (§5.7)`);
+        refuse("calc_not_supported", `Экономика для процесса ${q(process.name)} в прототипе не рассчитывается`);
       }
       const product = ctx.products[item.productSlug];
       if (!product) {

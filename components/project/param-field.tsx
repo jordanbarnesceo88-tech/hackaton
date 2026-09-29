@@ -44,7 +44,7 @@ export type ParamFieldProps = {
 export const ORGANIZER_DEMO_NOTE = "демо-значение";
 
 /** Текст о зафиксированном параметре (min = max в демо-наборе). */
-export const LOCKED_NOTICE = "значение фиксировано в демо-наборе; изменение будет записано в журнал";
+export const LOCKED_NOTICE = "значение фиксировано в демо-наборе; изменение попадёт в журнал корректировок";
 
 /** Подпись поля с единицей: «Общая площадь склада, м²»; у безразмерных — только название. */
 export function paramLabelText(def: Pick<ParamSpec, "label" | "unit">): string {

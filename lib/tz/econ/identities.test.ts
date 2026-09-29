@@ -139,7 +139,7 @@ describe("тождества ROI, окупаемости и TCO", () => {
     expect(interpretBand(3, n)).toEqual({ band: "moderate", text: "средняя окупаемость (3–5 лет)" });
     expect(interpretBand(5, n)).toEqual({ band: "moderate", text: "средняя окупаемость (3–5 лет)" });
     expect(interpretBand(5.01, n)).toEqual({ band: "slow", text: "долгая окупаемость (более 5 лет)" });
-    expect(interpretBand(null, n)).toEqual({ band: "none", text: "не окупается в пределах горизонта" });
+    expect(interpretBand(null, n)).toEqual({ band: "none", text: "не окупается за горизонт расчёта" });
   });
 
   it("охват сравнения: одинаковый OPEX «Как есть» у всех сценариев, «Как есть» без NPV", () => {

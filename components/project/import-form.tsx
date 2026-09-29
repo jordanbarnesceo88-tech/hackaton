@@ -37,7 +37,7 @@ const INITIAL: ImportState = { status: "idle" };
 
 const STATUS_LABEL: Readonly<Record<ImportRowStatus, string>> = {
   ok: "ок",
-  defaulted: "по умолчанию",
+  defaulted: "базовое",
   warning: "предупреждение",
   error: "ошибка",
 };
@@ -68,7 +68,7 @@ function Summary({ state }: { state: ImportState }) {
   if (!s) return null;
   const source =
     state.layout === "organizer"
-      ? `Распознан оригинальный лист данных${state.sheetName ? ` «${state.sheetName}»` : ""}`
+      ? `Распознан лист${state.sheetName ? ` «${state.sheetName}»` : ""} в формате демо-набора данных`
       : `Распознан шаблон платформы${state.sheetName ? ` (лист «${state.sheetName}»)` : ""}`;
   return (
     <>
@@ -190,7 +190,7 @@ export function ImportForm({ facility, onApply, compact = false }: ImportFormPro
   const note = otherFacility
     ? "Тип объекта изменён после проверки — проверьте файл заново"
     : selectionChanged && state.status !== "idle"
-      ? "Выбран другой файл — нажмите «Проверить файл», чтобы проверить его"
+      ? "Выбран другой файл — нажмите «Проверить файл»"
       : null;
 
   function check() {
@@ -224,7 +224,7 @@ export function ImportForm({ facility, onApply, compact = false }: ImportFormPro
       </p>
       <p id={hintId} className={cn("text-xs text-muted-foreground", !compact && "mt-1")}>
         Скачайте шаблон, заполните столбец «Значение» и загрузите файл (.xlsx или .csv, до 950 КБ). Файл только
-        проверяется и не сохраняется. Можно загрузить и оригинальный лист с данными объекта — строки
+        проверяется и не сохраняется. Можно загрузить и лист в формате демо-набора данных — строки
         сопоставляются по названию параметра.
       </p>
       <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">

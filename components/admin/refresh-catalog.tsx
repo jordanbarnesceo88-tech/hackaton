@@ -21,13 +21,13 @@ export function RefreshCatalog() {
         <FormStatus
           state={form.state}
           pending={form.pending}
-          pendingText="Сверяю каталог с исходными данными…"
+          pendingText="Сверяем каталог с исходными данными…"
           className="text-sm"
         />
       </div>
       {report.length > 0 && (
         <div className="rounded-lg border bg-muted/20 p-3">
-          <h3 className="text-sm font-semibold">Отчёт синхронизации</h3>
+          <h3 className="text-sm font-semibold">Отчёт об обновлении</h3>
           <ul className="mt-1 list-disc pl-5 text-sm">
             {report.map((line, i) => (
               <li key={i}>{line}</li>

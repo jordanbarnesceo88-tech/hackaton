@@ -480,7 +480,7 @@ function cashflowBlock(ws: ExcelJS.Worksheet, results: ReportResults, res: Scena
   labelValue(ws, r++, "Годовой эффект в среднем, ₽/год", formula(`B${asisRow}-B${opexRow}`, res.effectYearRub), FMT.rub);
 
   if (asis) {
-    labelValue(ws, r++, "Окупаемость, ROI, NPV", "не применимо: базовый сценарий без вложений");
+    labelValue(ws, r++, "Окупаемость, ROI, NPV", "не применимо: сценарий «Как есть» без вложений");
   } else {
     labelValue(
       ws,
@@ -522,7 +522,7 @@ function cashflowBlock(ws: ExcelJS.Worksheet, results: ReportResults, res: Scena
       ws,
       r++,
       "Дисконтированная окупаемость, лет",
-      numOr(res.discountedPaybackYears, "не окупается в горизонте"),
+      numOr(res.discountedPaybackYears, "не окупается за горизонт"),
       FMT.years,
     );
     if (res.kind === "raas") labelValue(ws, r++, "Примечание", RAAS_ROI_NOTE);
@@ -678,7 +678,7 @@ function normsSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
   const overrides = normOverrideRows(input.results);
   if (overrides.length > 0) {
     r++;
-    titleCell(ws, r++, "Нормативы, переопределённые в сценариях");
+    titleCell(ws, r++, "Нормативы, изменённые в сценариях");
     headerRow(ws, r++, ["Сценарий", "Норматив", "Ключ", "Значение", "Ед."]);
     for (const o of overrides) putRow(ws, r++, [o.scenarioTitle, o.label, o.key, o.value, o.unit]);
   }
@@ -735,10 +735,10 @@ function aboutSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
     ["Дата расчёта", formatCalcDate(results.calculatedAt)],
     ["Модель расчёта", results.modelVersion],
     ["Модель имитации", results.simModelVersion],
-    ["Версия данных проекта (хэш снимков продуктов и нормативов)", results.dataVersion],
-    ["Демо-набор данных в этой сборке", ORGANIZER_DATA_VERSION.datasets],
-    ["Каталог в этой сборке", ORGANIZER_DATA_VERSION.catalog],
-    ["Подборка «Примеры решений» в этой сборке", ORGANIZER_DATA_VERSION.examples],
+    ["Версия данных проекта (по снимкам продуктов и нормативов)", results.dataVersion],
+    ["Текущий демо-набор данных", ORGANIZER_DATA_VERSION.datasets],
+    ["Текущий каталог", ORGANIZER_DATA_VERSION.catalog],
+    ["Текущая подборка «Примеры решений»", ORGANIZER_DATA_VERSION.examples],
     ["Исследование открытых источников", ORGANIZER_DATA_VERSION.research],
   ];
   for (const [k, v] of versions) putRow(ws, r++, [k, v]);

@@ -87,7 +87,7 @@ export function SaveControl({
         className="field min-w-56 flex-1"
       />
       <Button type="button" variant="outline" onClick={handleSave} disabled={saving}>
-        {saving ? "Сохранение…" : "Сохранить расчёт"}
+        {saving ? "Сохраняем…" : "Сохранить расчёт"}
       </Button>
       {/* SC 4.1.3 Status Messages: the outcome appears without a navigation or focus change,
           so without a live region a screen-reader user gets no indication the save happened.

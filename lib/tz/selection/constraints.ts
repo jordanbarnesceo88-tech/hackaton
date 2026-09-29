@@ -275,7 +275,7 @@ export function checkConstraints(product: ProductForCalc, ctx: SelectionContext)
     const tooWarmMin = tempMinC !== null && tempMinC > regime.minC + EPS;
     const tooCoolMax = regime.maxC !== null && tempMaxC !== null && tempMaxC < regime.maxC - EPS;
     if (tooWarmMin || tooCoolMax) {
-      hard.push(`${name}: рабочая температура ${fmtTempRange(tempMinC, tempMaxC)} — не подходит для режима «${regime.label}»`);
+      hard.push(`${name}: рабочая температура ${fmtTempRange(tempMinC, tempMaxC)} не подходит для режима «${regime.label}»`);
     } else if (tempMinC !== null || tempMaxC !== null) {
       // «Подходит» — только когда опубликованы все границы, которые режим проверяет; иначе
       // честнее «не противоречит» с указанием, какой границы нет.

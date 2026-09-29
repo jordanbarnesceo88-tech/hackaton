@@ -141,7 +141,7 @@ export function serverAutoFrom(model: ProjectModel, paramDefs: readonly ParamSpe
 
 /** Подписи полей позиции сценария для журнала. */
 const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
-  quantity: "Количество роботов",
+  quantity: "Число роботов",
   price: "Цена робота",
   throughput: "Производительность",
   service: "Сервис в год за робота",

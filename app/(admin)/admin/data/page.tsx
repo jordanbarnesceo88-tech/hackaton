@@ -62,7 +62,7 @@ export default async function AdminDataPage() {
           характеристик проверено больше {STALE_SOURCE_DAYS} дней назад.
         </p>
         <p className="text-sm">
-          Версия данных в приложении: <code>{codeVersion}</code>{" "}
+          Версия данных платформы: <code>{codeVersion}</code>{" "}
           {current ? (
             <span className="text-positive">— загружена в базу</span>
           ) : (
@@ -104,7 +104,7 @@ export default async function AdminDataPage() {
                     <td className={TD_CLASS}>
                       <code>{r.version}</code>
                       {r.version === codeVersion && (
-                        <span className="block text-xs text-positive">текущая версия приложения</span>
+                        <span className="block text-xs text-positive">текущая версия</span>
                       )}
                     </td>
                     <td className={`${TD_CLASS} whitespace-nowrap tabular-nums`}>{formatAdminTime(r.seededAt)}</td>

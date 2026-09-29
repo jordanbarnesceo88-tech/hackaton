@@ -19,7 +19,7 @@ export const FORMULA_SOURCE_LABELS: Readonly<Record<FormulaSource, string>> = {
   "ТЗ §3.5.1": "базовая формула методики",
   "ТЗ §3.5.2": "типовая расчётная зависимость",
   организатор: "базовые данные",
-  "наш выбор": "решение платформы",
+  "наш выбор": "наш выбор",
 };
 
 export function formulaSourceLabel(source: FormulaSource): string {
@@ -162,7 +162,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     title: "Число зарядных станций",
     expression:
       "C = max(1; ⌈N × tзар / (автономность × 60 + tзар) × kзапас⌉); без данных о зарядке " +
-      "C = max(1; ⌈N / роботов на станцию⌉); для стационарных систем C = 0",
+      "C = max(1; ⌈N / роботов на станцию⌉); для стационарных решений C = 0",
     units: "шт.",
     source: "наш выбор",
   },
@@ -175,7 +175,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     source: "организатор",
   },
   baselineLabour: {
-    title: "ФОТ персонала процесса (как есть)",
+    title: "ФОТ персонала процесса («Как есть»)",
     expression: "ФОТбаз = численность × c",
     units: "₽/год",
     source: "ТЗ §3.5.2",
@@ -205,7 +205,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
   // ——— CAPEX ———
   "capex:equipment": {
     title: "Оборудование (роботы)",
-    expression: "N × цена за единицу",
+    expression: "N × цена робота",
     units: "₽",
     source: "ТЗ §3.5.2",
   },
@@ -328,7 +328,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     source: "наш выбор",
   },
   "opex:baselineLabour": {
-    title: "ФОТ персонала процессов (как есть)",
+    title: "ФОТ персонала процессов («Как есть»)",
     expression: "Σ численность × c по процессам охвата сравнения",
     units: "₽/год",
     source: "ТЗ §3.5.2",
@@ -360,7 +360,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     source: "ТЗ §3.5.2",
   },
   roiNet: {
-    title: "Чистый ROI",
+    title: "ROI чистый",
     expression: "ROIчист = ROI валовый − 100 % (доход сверх возврата вложений)",
     units: "%",
     source: "наш выбор",

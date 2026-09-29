@@ -358,7 +358,7 @@ async function syncFacilityProcessLinks(db: Db, report: SyncReport): Promise<voi
   }
   for (const facility of missing) {
     report.warnings.push(
-      `тип объекта «${facility}» не найден в БД — его процессы к нему не привязаны (сначала нужен сев таксономии v1)`,
+      `тип объекта «${facility}» не найден в базе данных — его процессы не привязаны; сначала нужно загрузить типы объектов`,
     );
   }
 }
@@ -423,7 +423,7 @@ async function syncParamDefinitions(db: Db, report: SyncReport, respect: boolean
     report.paramDefs.updated++;
   }
   for (const facility of missing) {
-    report.warnings.push(`тип объекта «${facility}» не найден в БД — его параметры не записаны`);
+    report.warnings.push(`тип объекта «${facility}» не найден в базе данных — его параметры не записаны`);
   }
 }
 

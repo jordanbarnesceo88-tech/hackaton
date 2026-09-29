@@ -198,7 +198,7 @@ describe("параметры объекта", () => {
     const row = paramsRows(changed, defs).find((r) => r.key === "forkliftSalaryRubMonth");
     expect(row?.changed).toBe(true);
     expect(row?.outOfRange).toBe(true);
-    expect(sp(row?.source)).toBe("Задано вами (по умолчанию 120 000)");
+    expect(sp(row?.source)).toBe("Задано вами (базовое: 120 000)");
     expect(row?.notes[0]).toMatch(/^⚠ вне типового диапазона/);
     expect(row?.notes).toContain("Значение вне типового диапазона");
   });
@@ -223,7 +223,7 @@ describe("источники, журнал и прочие разделы", () =
 
   it("журнал: подписи полей по-русски и даты по Москве", () => {
     const rows = changeRows(fixtureChanges());
-    expect(rows[0]?.fieldLabel).toBe("Перемещение паллет: приёмка → хранение → отгрузка: количество роботов");
+    expect(rows[0]?.fieldLabel).toBe("Перемещение паллет: приёмка → хранение → отгрузка: число роботов");
     expect(rows[0]?.at).toBe("25.09.2026 12:30 МСК");
     expect(rows[1]?.fieldLabel).toBe("Параметр «Средняя з/п оператора погрузчика (gross)»");
     expect(sp(rows[1]?.new)).toBe("130 000");

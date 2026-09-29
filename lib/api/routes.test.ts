@@ -88,7 +88,7 @@ describe("POST /api/v1/calculate", () => {
     }
     expect(json.summary.some((s) => s.kind === "purchase")).toBe(true);
     expect(json.summary.filter((s) => s.recommended).length).toBeLessThanOrEqual(1);
-    expect(json.conclusion.disclaimer).toMatch(/предварительной оценкой/);
+    expect(json.conclusion.disclaimer).toMatch(/предварительная оценка/);
   });
 
   it("лимит частоты — 429 с Retry-After до разбора тела", async () => {

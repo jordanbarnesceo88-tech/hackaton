@@ -276,8 +276,8 @@ export function WarehouseSimulation({
           disabled: calcFleet === m,
           hint:
             calcFleet === m
-              ? `Парк сценария уже равен минимальному по имитации (${m}).`
-              : `Парк сценария «${scenario.name}» станет ${m} вместо ${calcFleet ?? "—"}; изменение попадёт в журнал.`,
+              ? `Парк сценария уже равен минимальному устойчивому парку (${m}).`
+              : `Парк сценария «${scenario.name}» станет ${m} вместо ${calcFleet ?? "—"}; изменение попадёт в журнал корректировок.`,
         }
       : null;
 
@@ -346,7 +346,7 @@ export function WarehouseSimulation({
         />
         {done && !canPlay && (
           <p className="text-xs text-muted-foreground">
-            Проигрывать нечего: вход отклонён до прогона (причина — в вердикте), роботы не двигались.
+            Проигрывать нечего: прогон не выполнялся (причина — в вердикте).
           </p>
         )}
         {reducedMotion && canPlay && (

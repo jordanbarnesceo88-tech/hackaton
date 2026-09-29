@@ -140,9 +140,9 @@ function readNumber(v: number | string | null | undefined): number | null {
  */
 function fleetNote(origin: Origin): string | undefined {
   if (origin === "derived") {
-    return "Парк из расчёта: пиковый поток / (производительность × загрузка × доступность) × (1 + резерв)";
+    return "Парк по расчёту: пиковый поток / (производительность × загрузка × доступность) × (1 + резерв)";
   }
-  if (origin === "user") return "Число роботов задано вручную (журнал изменений)";
+  if (origin === "user") return "Число роботов задано вручную (журнал корректировок)";
   return undefined;
 }
 
@@ -157,7 +157,7 @@ function productOrigin(product: ProductForCalc, key: ProductField): { origin: Or
   // источников, «Примеры решений» и карточки каталога — из данных организатора.
   return {
     origin: product.level === "enriched" ? "research" : "organizer",
-    note: "Строка источника в снимке продукта не найдена; происхождение — по уровню карточки",
+    note: "Источник характеристики не указан; происхождение — по карточке продукта",
   };
 }
 
@@ -179,8 +179,8 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
       missing: [],
       reason: "not_supported",
       message:
-        `Имитация для «${product.name}» не поддерживается: в модели ${SIM_MODEL_VERSION} моделируется только ` +
-        "перевозка паллет мобильными роботами (подъёмные AMR, вилочные роботы, тягачи).",
+        `Имитация для «${product.name}» не поддерживается: модель ${SIM_MODEL_VERSION} описывает только ` +
+        "перевозку паллет мобильными роботами (подъёмные AMR, вилочные роботы, тягачи).",
     };
   }
 
@@ -387,7 +387,7 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
       value: args.peakPerH,
       unit: "ед./ч",
       origin: "derived",
-      note: "Суточный объём / часы работы × пиковый коэффициент",
+      note: "Суточный спрос / часы работы × пиковый коэффициент",
     },
     {
       field: "calc:avgPerH",
@@ -395,7 +395,7 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
       value: args.avgPerH,
       unit: "ед./ч",
       origin: "derived",
-      note: "Суточный объём / часы работы",
+      note: "Суточный спрос / часы работы",
     },
     {
       field: "layout:dockStripM",
@@ -435,7 +435,7 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
       value: LAYOUT_ASSUMPTIONS.slotPitchM,
       unit: "м",
       origin: "choice",
-      note: "Выбор модели: представительные точки хранения, на среднее плечо почти не влияет",
+      note: "Выбор модели: места хранения условные, на среднее плечо шаг почти не влияет",
     },
     {
       field: "sim:seed",

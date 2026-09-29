@@ -94,7 +94,7 @@ export function ParamRow({ param, version }: { param: ParamRowValues; version: s
       </div>
       <div className="flex min-w-0 flex-col gap-2">
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">
-          <dt className="text-muted-foreground">По умолчанию</dt>
+          <dt className="text-muted-foreground">Базовое</dt>
           <dd className="tabular-nums">{valueText(param.base, param.unit)}</dd>
           {numeric && (
             <>
@@ -122,7 +122,7 @@ export function ParamRow({ param, version }: { param: ParamRowValues; version: s
             <div key={`${form.state.seq}:${version}`} className="grid gap-3 sm:grid-cols-3">
               <label className={LABEL_CLASS}>
                 <span className={LABEL_TEXT_CLASS}>
-                  По умолчанию{param.unit ? `, ${param.unit}` : ""}
+                  Базовое{param.unit ? `, ${param.unit}` : ""}
                 </span>
                 {hasOptions ? (
                   <select name="base" defaultValue={typeof param.base === "string" ? param.base : ""} className={SELECT_CLASS}>

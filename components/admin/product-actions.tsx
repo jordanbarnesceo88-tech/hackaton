@@ -67,7 +67,7 @@ export function ProductActions({
             >
               Вернуть исходные данные
             </Button>
-            <FormStatus state={revert.state} pending={revert.pending} pendingText="Возвращаю данные…" />
+            <FormStatus state={revert.state} pending={revert.pending} pendingText="Возвращаем данные…" />
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
@@ -93,7 +93,7 @@ export function ProductActions({
             <Button type="submit" variant="destructive" size="sm" disabled={remove.pending} className="w-fit">
               Удалить продукт
             </Button>
-            <FormStatus state={remove.state} pending={remove.pending} pendingText="Удаляю…" />
+            <FormStatus state={remove.state} pending={remove.pending} pendingText="Удаляем…" />
           </>
         ) : (
           <p className="text-xs text-muted-foreground">

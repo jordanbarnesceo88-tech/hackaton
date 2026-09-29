@@ -1,3 +1,4 @@
+import { pluralRu } from "@/lib/format/plural";
 import type { Layout as SceneLayout, Zone as SceneZone } from "@/lib/scene/types";
 import type { SimEngineState } from "@/lib/sim/state";
 import type { SimLayout } from "@/lib/sim/types";
@@ -434,7 +435,7 @@ function chargerBoxes(layout: SimLayout, g: IsoGeometry): Box[] {
     z0: 0,
     h: CHARGER.h,
     mat: "charger" as const,
-    title: `Зарядная станция ${p.id}`,
+    title: `Зарядная станция ${pointLabel(p.id)}`,
   }));
 }
 
@@ -614,7 +615,8 @@ export function isoFrame(layout: SimLayout, state: SimEngineState, g: IsoGeometr
   }
   const busy = state.points.filter((p) => p.holder !== null).map((p) => p.id);
   const clock = state.precheck === "ok" ? `${formatSimClock(state.tS)} · ${simPhaseLabel(state.tS, state.warmupS, state.endS)}` : null;
-  const caption = state.robots.length > n ? `показано ${n} из ${state.robots.length} роботов` : null;
+  const total = state.robots.length;
+  const caption = total > n ? `показано ${n} из ${total} ${pluralRu(total, ["робота", "роботов", "роботов"])}` : null;
   return { bots, routes, busy, clock, caption };
 }
 

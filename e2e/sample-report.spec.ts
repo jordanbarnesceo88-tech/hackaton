@@ -46,7 +46,7 @@ test("образец отчёта демо-проекта: PDF, Excel, CSV и PN
 
   // Отчёт для печати — тот же, что пользователь сохраняет в PDF кнопкой печати браузера.
   await page.goto(`/projects/${DEMO_PROJECT}/report`);
-  await expect(page.getByText(/предварительной оценкой/).first()).toBeVisible();
+  await expect(page.getByText(/предварительная оценка/).first()).toBeVisible();
   await expect(page.locator("#changes")).toBeAttached();
   await page.pdf({ path: path.join(OUT_DIR, "sample-report.pdf"), format: "A4", printBackground: true });
 

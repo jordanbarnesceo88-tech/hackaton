@@ -101,7 +101,7 @@ export const CHARACTERISTIC_KEYS = {
   serviceRubYear: { group: "ECONOMICS", label: "Сервисное обслуживание", unit: "₽/год", kind: "range", required: true },
   acquisitionModels: { group: "ECONOMICS", label: "Модели приобретения", unit: null, kind: "list", required: true },
   serviceLifeYears: { group: "ECONOMICS", label: "Срок службы", unit: "лет", kind: "num", required: true },
-  raasRubMonth: { group: "ECONOMICS", label: "Ставка RaaS (аренда)", unit: "₽/мес", kind: "range", required: false },
+  raasRubMonth: { group: "ECONOMICS", label: "Ставка RaaS", unit: "₽/мес", kind: "range", required: false },
   trainingRub: { group: "ECONOMICS", label: "Обучение персонала", unit: "₽", kind: "num", required: false },
   batteryCostRub: { group: "ECONOMICS", label: "Стоимость комплекта АКБ", unit: "₽", kind: "num", required: false },
   batteryReplacementYears: {

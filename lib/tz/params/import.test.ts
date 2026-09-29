@@ -154,7 +154,7 @@ describe("шаблон параметров", () => {
     const def = r.report.find((i) => i.key === "activeAreaM2");
     expect(def).toMatchObject({ code: "defaulted", severity: "info" });
     expect(def?.message.replace(/\s/g, " ")).toBe(
-      "Нет в файле — взято значение по умолчанию: 10 000 м² (Базовые данные, Датасеты_хакатон.xlsx › Склад)",
+      "Нет в файле — взято базовое значение: 10 000 м² (Базовые данные, Датасеты_хакатон.xlsx › Склад)",
     );
     expect(r.report.find((i) => i.key === "robotsCount")).toMatchObject({
       code: "unknown_key",

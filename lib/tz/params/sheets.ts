@@ -208,7 +208,7 @@ function infoItem(def: ParamSpec, entry: RawParamEntry | undefined, value: numbe
   const message =
     def.base === null
       ? `${where} — значение не задано (необязательный параметр)`
-      : `${where} — взято значение по умолчанию: ${withUnit(def.base, def.unit)} (${defaultSourceText(def)})`;
+      : `${where} — взято базовое значение: ${withUnit(def.base, def.unit)} (${defaultSourceText(def)})`;
   const item: ParamInfoItem = { key: def.key, label: def.label, code: "defaulted", severity: "info", message };
   if (entry?.row !== undefined) item.row = entry.row;
   return item;

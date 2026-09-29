@@ -60,7 +60,7 @@ export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) 
   if (items.length === 0) {
     return (
       <p className="empty-state">
-        Проектов пока нет. Нажмите «Новый проект», выберите тип объекта и источник параметров — демо-данные,
+        Проектов пока нет. Нажмите «Новый проект», выберите тип объекта и источник параметров: демо-данные,
         файл Excel/CSV или ручной ввод.
       </p>
     );

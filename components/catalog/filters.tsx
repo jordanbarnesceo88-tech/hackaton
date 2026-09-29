@@ -173,8 +173,8 @@ export function CatalogFiltersForm({ query, options }: { query: CatalogQuery; op
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" name="raas" value="1" defaultChecked={query.raas} className="mt-1" />
           <span>
-            Есть модель RaaS
-            <span className="block text-[11px] text-muted-foreground">опубликована ставка аренды робота-как-услуги</span>
+            Есть ставка RaaS
+            <span className="block text-[11px] text-muted-foreground">опубликована месячная ставка услуги (RaaS)</span>
           </span>
         </label>
         <div className="ml-auto flex items-center gap-2">

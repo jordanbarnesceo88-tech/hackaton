@@ -33,7 +33,7 @@ export function processDemand(
   if (!d) {
     refuse(
       "calc_not_supported",
-      `Экономика для процесса «${process.name}» в прототипе не рассчитывается (§5.7)`,
+      `Экономика для процесса «${process.name}» в прототипе не рассчитывается`,
     );
   }
   const p = ctx.params;

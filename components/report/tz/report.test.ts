@@ -138,7 +138,7 @@ describe("ProjectReport — печатный отчёт", () => {
   });
 
   it("оговорка о предварительной оценке — дословно и один раз", () => {
-    expect(DISCLAIMER).toBe("Результат является предварительной оценкой и требует верификации при обследовании объекта.");
+    expect(DISCLAIMER).toBe("Результат расчёта — предварительная оценка, его нужно проверить при обследовании объекта.");
     expect(count(text, DISCLAIMER)).toBe(1);
   });
 
@@ -482,7 +482,7 @@ describe("layout-svg — схема склада", () => {
     expect(count(html, 'class="iso-pad"')).toBe(points);
     expect(count(html, "iso-box iso-rack")).toBeGreaterThanOrEqual(racks.length);
     for (const label of ["Приёмка", "Хранение", "Отгрузка", "Зарядка"]) expect(html).toContain(`>${label}<`);
-    expect(count(html, "Зарядная станция C")).toBe(3);
+    expect(count(html, "Зарядная станция З")).toBe(3);
     expect(html).not.toMatch(/NaN|Infinity/);
   });
 });

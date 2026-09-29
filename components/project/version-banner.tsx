@@ -31,11 +31,11 @@ export function versionChanges(
   return out;
 }
 
-/** Текст баннера: «Показан расчёт от … (модель …, данные …). С тех пор изменились …». */
+/** Текст баннера: «Показан расчёт от … (модель …, данные …). Что изменилось с тех пор: …». */
 export function versionBannerText(stored: StoredVersions, changed: readonly string[]): string {
   return (
     `Показан расчёт от ${formatCalcDate(stored.calculatedAt)} (модель ${stored.modelVersion}, данные ${stored.dataVersion}). ` +
-    `С тех пор изменились ${changed.join(" и ")}.`
+    `Что изменилось с тех пор: ${changed.join(" и ")}.`
   );
 }
 
@@ -90,8 +90,8 @@ export function VersionBanner({
       <div className="flex flex-col gap-1">
         <p>{versionBannerText(stored, changed)}</p>
         <p className="text-xs text-muted-foreground">
-          Числа ниже воспроизведены из сохранённого снимка и совпадают с отчётом. Пересчёт возьмёт текущие данные
-          каталога, нормативы и модель; несохранённые правки на странице при этом не учитываются.
+          Числа ниже взяты из сохранённого расчёта и совпадают с отчётом. Пересчёт возьмёт текущие данные каталога,
+          нормативы и модель, но не учтёт несохранённые правки на странице.
         </p>
         {disabledReason && <p className="text-xs text-muted-foreground">{disabledReason}</p>}
         <p role="alert" className="text-destructive [&:empty]:hidden">

@@ -46,7 +46,7 @@ const SOURCE_OPTIONS: readonly { value: Source; label: string; note: string }[] 
   {
     value: "manual",
     label: "Заполнить вручную (от базовых значений)",
-    note: "Проект создаётся на базовых демо-значениях — поправьте их в шаге 2 рабочей области.",
+    note: "Проект создаётся на базовых значениях — поправьте их в шаге 2 рабочей области.",
   },
 ];
 
@@ -122,7 +122,7 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
             autoComplete="off"
             className={INPUT}
           />
-          <p className="text-xs text-muted-foreground">Адрес или название площадки — для отчёта.</p>
+          <p className="text-xs text-muted-foreground">Адрес или название объекта — для отчёта.</p>
         </div>
       </div>
 
@@ -191,7 +191,7 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
             <p className={cn("mt-2 text-sm", upload ? "text-positive" : "text-muted-foreground")}>
               {upload
                 ? `Параметры из файла «${upload.fileName}» будут использованы в проекте`
-                : "Проверьте файл и нажмите «Применить значения» — затем создайте проект."}
+                : "Проверьте файл, нажмите «Применить значения» и создайте проект."}
             </p>
           </div>
         )}

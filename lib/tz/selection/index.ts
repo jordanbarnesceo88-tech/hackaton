@@ -58,7 +58,7 @@ export const SELECTION_STATUS_ORDER: Readonly<Record<SelectionStatus, number>> =
 /** Подписи статусов подбора для интерфейса и отчёта. */
 export const SELECTION_STATUS_LABELS: Readonly<Record<SelectionStatus, string>> = {
   recommended: "Рекомендуется",
-  candidate: "Кандидат",
+  candidate: "Подходит",
   "insufficient-data": "Недостаточно данных",
   excluded: "Исключён",
 };

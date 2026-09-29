@@ -58,7 +58,7 @@ export default async function CatalogComparePage({ searchParams }: { searchParam
       <header className="flex max-w-4xl flex-col gap-2">
         <h1>Сравнение решений</h1>
         <p className="text-muted-foreground">
-          До {MAX_COMPARE} решений бок о бок по шести группам характеристик. У каждого значения — источник, дата
+          Можно сравнить до {MAX_COMPARE} решений по шести группам характеристик. У каждого значения — источник, дата
           проверки и признак подтверждения; ⚠ — источники расходятся, подробности в карточке продукта.
         </p>
       </header>

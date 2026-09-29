@@ -49,7 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const defs = await getParamDefinitions(prisma, facility);
     if (defs.length === 0) {
       return textError(
-        `Параметры объекта «${label}» ещё не загружены в базу. Администратору: выполните npm run db:seed и повторите`,
+        `Параметры объекта «${label}» ещё не загружены — обратитесь к администратору`,
         503,
       );
     }

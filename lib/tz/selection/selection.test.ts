@@ -136,7 +136,7 @@ describe("selectProducts — температурный режим (R5)", () => 
     const results = run({ params });
     const h = bySlug(results, F.h1500.slug);
     expect(h.status).toBe("excluded");
-    expect(h.reasons.join(" ")).toContain("Ronavi H1500: рабочая температура +5…+25 °C — не подходит для режима «Охлаждаемый (0…+5 °C)»");
+    expect(h.reasons.join(" ")).toContain("Ronavi H1500: рабочая температура +5…+25 °C не подходит для режима «Охлаждаемый (0…+5 °C)»");
     expect(bySlug(results, F.palletShuttle.slug).status).not.toBe("excluded");
   });
 
@@ -270,7 +270,7 @@ describe("selectProducts — статусы и рекомендация", () => 
     expect(r.missing).toContainEqual({
       key: "throughput",
       label: "Производительность",
-      howToFix: "Укажите производительность вручную или выберите продукт с данными",
+      howToFix: "Укажите производительность вручную или выберите решение с данными",
     });
     expect(r.reasons[0]).toContain("Недостаточно данных для расчёта парка");
     expect(r.score.total).not.toBeNull();
@@ -546,7 +546,7 @@ describe("selectProducts — одно правило производитель�
     { ...F.palletShuttle, slug: "no-thr", throughputPerH: null, speedMps: 1 },
   ];
 
-  it("«Кандидат» ⇔ движок получает производительность (нет отказа throughput_required)", () => {
+  it("«Подходит» ⇔ движок получает производительность (нет отказа throughput_required)", () => {
     const res = run({ products: variants, econ: {} });
     for (const p of variants) {
       const r = bySlug(res, p.slug);

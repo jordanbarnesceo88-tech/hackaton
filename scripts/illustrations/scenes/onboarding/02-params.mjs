@@ -34,7 +34,7 @@ export default function draw() {
   });
 
   // бирка размера на правом свесе крыши, как на одежде
-  const lines = ["площадь, м²", "заказы в день", "люди по задачам"];
+  const lines = ["площадь, м²", "спрос в сутки", "численность"];
   const tw = Math.max(...lines.map((l) => measure(l, 44))) + 60;
   const tx = 1100, ty = 500, th = 206;
   s.curve([[1040, 420], [1080, 454], [tx + 22, ty + 30]], { strokeWidth: 2.2 });

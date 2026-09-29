@@ -128,7 +128,7 @@ export default async function CatalogProductPage({ params }: { params: Params })
       ))}
 
       <p className="border-t pt-4 text-xs text-muted-foreground">
-        Характеристики — справочные данные каталога. Перед закупкой значения нужно подтвердить у производителя и
+        Характеристики — справочные данные каталога. Перед покупкой значения нужно подтвердить у производителя и
         проверить на объекте.
       </p>
     </div>

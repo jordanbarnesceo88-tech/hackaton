@@ -73,6 +73,6 @@ export default function draw() {
   s.curve([[940, 754], [970, 750], [1000, 756], [1030, 750]], { strokeWidth: 2.2, roughness: 0.8 });
   s.raw(`</g>`);
 
-  s.text("подходит!", 1068, 286, { size: 66, color: RED, rotate: -4 });
+  s.text("подходит", 1068, 286, { size: 66, color: RED, rotate: -4 });
   return s;
 }

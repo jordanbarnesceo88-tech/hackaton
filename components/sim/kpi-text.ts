@@ -85,11 +85,11 @@ export function verdictBadge(s: SimSummaryStored): { tone: VerdictTone; text: st
         text: `${VERDICT_LABELS.NOT_CONFIRMED}: ${BOTTLENECK_LABELS.payload} — робот не поднимает груз объекта`,
       };
     }
-    const tail = m !== null ? ` — минимальный парк по имитации ${m}` : "";
+    const tail = m !== null ? ` — минимальный устойчивый парк ${m}` : "";
     return { tone: "not-confirmed", text: `${VERDICT_LABELS.NOT_CONFIRMED}: ${BOTTLENECK_LABELS[s.bottleneck]}${tail}` };
   }
   if (s.oversized) {
-    const tail = m !== null && m < s.fleet ? `: минимальный по имитации ${m}` : "";
+    const tail = m !== null && m < s.fleet ? `: минимальный устойчивый парк ${m}` : "";
     return { tone: "oversized", text: `${VERDICT_LABELS.CONFIRMED} · парк избыточен${tail}` };
   }
   return { tone: "confirmed", text: VERDICT_LABELS.CONFIRMED };
@@ -140,7 +140,7 @@ export function statusText(st: RunStatus): string {
     case "running":
       return `Имитация: выполняется… ${formatNum(Math.min(100, Math.max(0, st.pct)), 0)} %`;
     case "done":
-      return `Имитация завершена за ${formatNum(st.durationMs, 0)} мс · seed ${st.seed} · модель ${st.modelVersion}`;
+      return `Имитация завершена за ${formatNum(st.durationMs, 0)} мс · зерно ${st.seed} · модель ${st.modelVersion}`;
     case "error":
       return `Имитация остановлена: ${st.message}`;
     case "unavailable":

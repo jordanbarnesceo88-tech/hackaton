@@ -108,7 +108,7 @@ export function throughputCalcNote(product: ThroughputNoteInput, c: CatalogChara
   if (product.throughputPerH === null) {
     if (!c || c.display === "—") return null;
     if (c.valueNum === null) return "в расчёт парка не идёт: числа для расчёта нет";
-    if (c.qualifier === "до" && c.valueMin === null) return "в расчёт парка не идёт: указан только предел «до», а не типичное значение";
+    if (c.qualifier === "до" && c.valueMin === null) return "в расчёт парка не идёт: указан только предел «до», типичного значения нет";
     if (c.scope === "per-fleet") return "в расчёт парка не идёт: значение на весь парк, а не на одного робота";
     return null;
   }
@@ -171,7 +171,7 @@ export function KeyFacts({ product }: { product: Detail }) {
   return (
     <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
       <Fact label="Цена оборудования" c={findChar(product, "priceRub")} />
-      <Fact label="Ставка RaaS (аренда)" c={findChar(product, "raasRubMonth")} />
+      <Fact label="Ставка RaaS" c={findChar(product, "raasRubMonth")} />
       <Fact label="Производительность" c={throughput} extra={throughputCalcNote(product, throughput)} />
       <Fact label="Грузоподъёмность" c={findChar(product, "payloadKg")} />
       <Fact label="Скорость" c={findChar(product, "speedMps")} />
@@ -195,7 +195,7 @@ export function VerificationNotice({ product }: { product: Detail }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-1 text-muted-foreground">Пометка поставлена при синхронизации каталога.</p>
+        <p className="mt-1 text-muted-foreground">Пометка поставлена при обновлении каталога.</p>
       )}
     </div>
   );
@@ -277,7 +277,7 @@ export function DataQualitySummary({ product }: { product: Detail }) {
         <dt className="text-xs text-muted-foreground">Происхождение карточки</dt>
         <dd>
           {product.origin === "ADMIN" ? "добавлена администратором" : "исходные данные каталога"}
-          {product.organizerRows.length > 0 && ` · строки кураторского свода ${product.organizerRows.join(", ")}`}
+          {product.organizerRows.length > 0 && ` · ${product.organizerRows.length === 1 ? "строка" : "строки"} ${product.organizerRows.join(", ")}`}
           {product.editedByAdmin && " · правилась администратором"}
           {` · версия данных ${product.dataVersion || "—"} · обновлена ${UPDATED_AT.format(product.updatedAt)}`}
         </dd>

@@ -55,7 +55,7 @@ export default async function ProjectsPage() {
 
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
         <Link href="/demo" className="tap-target underline underline-offset-2 hover:text-foreground">
-          Демо-расчёт на демо-данных без сохранения
+          Демо-расчёт без сохранения
         </Link>
         <Link href="/analyses" className="tap-target underline underline-offset-2 hover:text-foreground">
           Расчёты в упрощённой модели v1
