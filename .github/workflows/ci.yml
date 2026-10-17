@@ -84,11 +84,15 @@ jobs:
         run: |
           curl -fsS --max-time 30 http://localhost:3000/ -o /dev/null
           curl -fsS --max-time 30 http://localhost:3000/demo -o /dev/null
+      - name: Worker выполняет durable расчёт через настоящий HTTP API
+        timeout-minutes: 3
+        # Override CMD: use the existing tool/dependency image, without rerunning migrations or seed.
+        run: docker compose run --rm --no-deps -e APP_URL=http://app:3000 migrate npm run check:worker
       - name: Диагностика при падении
         if: failure()
         run: |
           docker compose ps -a
-          docker compose logs migrate app
+          docker compose logs migrate app worker
       - name: Остановка и удаление данных
         if: always()
         run: docker compose down -v

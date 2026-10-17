@@ -55,6 +55,9 @@ export default async function ProjectsPage() {
       <ProjectsList items={items} />
 
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
+        <Link href="/calculation-jobs" className="tap-target underline underline-offset-2 hover:text-foreground">
+          Операции и результаты расчётов
+        </Link>
         <Link href="/demo" className="tap-target underline underline-offset-2 hover:text-foreground">
           Демо-расчёт без сохранения
         </Link>

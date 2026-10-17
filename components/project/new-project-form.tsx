@@ -1,9 +1,12 @@
 "use client";
 
-import { unstable_rethrow } from "next/navigation";
-import { useActionState, useId, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { createProjectAction, type CreateProjectState } from "@/lib/projects/actions";
+import type { CreateProjectState } from "@/lib/projects/actions";
+import { submitCalculation } from "@/lib/calculation-jobs/client";
+import type { CalculationRequest } from "@/lib/calculation-jobs/service";
+import { stableJson } from "@/lib/tz/version";
 import type { ParamValues } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
 import { ImportForm } from "./import-form";
@@ -12,10 +15,8 @@ import { ImportForm } from "./import-form";
  * Форма «Новый проект» (ТЗ §2.2 шаг 1 — выбор объекта, шаг 2 — параметры вручную или из
  * Excel/CSV; §3.1.3 — создание проекта; §5.4 — путь жюри «создать проект»).
  *
- * Поля уходят в серверное действие createProjectAction: name, objectName, facility
- * (warehouse | airport | medical), source (demo | upload | manual), а для файла — paramsJson с
- * проверенными значениями и fileName. Сервер проверяет всё заново (файл — тем же
- * validateParamValues), считает модель и имитацию и переводит в рабочую область проекта.
+ * Сервер проверяет ввод и принимает долговременный расчёт. Отдельная страница показывает
+ * выполнение и открывает проект после атомарного сохранения результата.
  *
  * Поля управляемые: после ответа с ошибкой React сбрасывает неуправляемые поля формы, и
  * введённое название пропало бы вместе с выбранным файлом.
@@ -51,27 +52,50 @@ const SOURCE_OPTIONS: readonly { value: Source; label: string; note: string }[] 
 ];
 
 const INITIAL: CreateProjectState = { error: null };
-const NETWORK_ERROR = "Не удалось связаться с сервером — обновите страницу и повторите";
 
 /** Применённый файл параметров: значения, имя файла и тип объекта, для которого он проверен. */
 type Applied = { values: ParamValues; fileName: string; facility: string };
 
 const INPUT = "field field--lg";
 
+/** A receipt belongs to this exact form submission, never a later edited CREATE. */
+export function acceptedCreateJobId(request: CalculationRequest, previous: { inputKey: string; id: string } | null): string | null {
+  return previous?.inputKey === stableJson(request) ? previous.id : null;
+}
+
 export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacility?: string }) {
+  const router = useRouter();
+  const mounted = useRef(true);
+  const accepted = useRef<{ inputKey: string; id: string } | null>(null);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const nameId = useId();
   const objectId = useId();
   const facilityLabelId = useId();
   const sourceLabelId = useId();
   const [state, formAction, pending] = useActionState(
-    async (prev: CreateProjectState, formData: FormData): Promise<CreateProjectState> => {
+    async (_prev: CreateProjectState, formData: FormData): Promise<CreateProjectState> => {
       try {
-        return await createProjectAction(prev, formData);
+        const selectedSource = String(formData.get("source") ?? "demo");
+        const paramsJson = String(formData.get("paramsJson") ?? "");
+        if (selectedSource === "upload" && !paramsJson) return { error: "Сначала проверьте файл и примените значения" };
+        const request: CalculationRequest = { operation: "CREATE", name: String(formData.get("name") ?? ""),
+          objectName: String(formData.get("objectName") ?? ""), facility: String(formData.get("facility") ?? "warehouse"),
+          ...(selectedSource === "upload" ? { params: JSON.parse(paramsJson) } : {}),
+          paramsSource: { kind: selectedSource === "upload" ? "upload" : selectedSource === "manual" ? "manual" : "demo",
+            ...(selectedSource === "upload" ? { fileName: String(formData.get("fileName") ?? "") } : {}) },
+        };
+        const previousId = acceptedCreateJobId(request, accepted.current);
+        if (previousId) {
+          if (mounted.current) router.push(`/calculation-jobs/${encodeURIComponent(previousId)}?open=1`);
+          return { error: null };
+        }
+        const job = await submitCalculation(request, "create-project");
+        accepted.current = { inputKey: stableJson(request), id: job.id };
+        // Keep the retry key until the acknowledged job page is actually opened.
+        if (mounted.current) router.push(`/calculation-jobs/${encodeURIComponent(job.id)}?open=1`);
+        return { error: null };
       } catch (e) {
-        // Успех — это перенаправление в рабочую область: его обрабатывает роутер.
-        unstable_rethrow(e);
-        console.error("NewProjectForm", e);
-        return { error: NETWORK_ERROR };
+        return { error: e instanceof Error ? e.message : "Не удалось отправить расчёт. Повторите с теми же данными" };
       }
     },
     INITIAL,
@@ -217,12 +241,12 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
         )}
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" size="lg" disabled={pending || uploadMissing}>
-            {pending ? "Создаём проект…" : "Создать проект"}
+            {pending ? "Отправляем расчёт…" : "Создать проект"}
           </Button>
           <p className="text-xs text-muted-foreground">
             {pending
-              ? "Считаем модель и проверяем расчёт имитацией — обычно несколько секунд."
-              : "После создания откроется рабочая область проекта: подбор, сравнение, экономика, сценарии и имитация."}
+              ? "Проверяем параметры и сохраняем задание на сервере."
+              : "После отправки откроется ход расчёта. Затем — рабочая область проекта с подбором, экономикой, сценариями и имитацией."}
           </p>
         </div>
       </div>

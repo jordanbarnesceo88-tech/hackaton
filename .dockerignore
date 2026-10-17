@@ -1,5 +1,6 @@
 node_modules
-.next
+.next*
+dist-worker
 .git
 # Паттерн `.env` НЕ покрывает `.env.local` и `.env.deploy` — в последнем лежат боевые
 # AUTH_SECRET, DATABASE_URL и NEON_*. `COPY . .` в Dockerfile запекал их в слой build-стадии:
@@ -8,6 +9,7 @@ node_modules
 .env
 .env.*
 !.env.example
+*credentials*
 npm-debug.log
 Dockerfile
 .dockerignore
@@ -27,3 +29,5 @@ docs
 # отношения не имеют.
 *.tsbuildinfo
 .claude
+.agents
+.impeccable

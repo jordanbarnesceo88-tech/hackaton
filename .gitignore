@@ -15,10 +15,14 @@
 
 # next.js
 /.next/
+/.next-jobs/
+/.next-backend/
+/.next-e2e/
 /out/
 
 # production
 /build
+/dist-worker/
 
 # misc
 .DS_Store

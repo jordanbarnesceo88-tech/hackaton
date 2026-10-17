@@ -2,7 +2,8 @@
 # directories .gitignore was handling — the first deploy uploaded .env despite being
 # gitignored, and the build logged "Detected .env file".
 node_modules
-.next
+.next*
+dist-worker
 .git
 
 # Never ship local secrets. Production values come from Vercel's own env store; an uploaded
@@ -16,6 +17,7 @@ node_modules
 # Not part of the running app.
 .agents
 .claude
+.impeccable
 e2e
 test-results
 playwright-report

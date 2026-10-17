@@ -26,6 +26,7 @@ const DB_TESTS = [
   "lib/catalog/sync.test.ts",
   "lib/projects/actions.test.ts",
   "lib/admin/actions.test.ts",
+  "lib/calculation-jobs/adversarial.test.ts",
 ];
 
 export default defineConfig({
@@ -45,7 +46,7 @@ export default defineConfig({
           // Playwright specs live in e2e/ and import @playwright/test (not vitest) — keep them
           // out of the unit run, which would otherwise pick up *.spec.ts and hard-fail on the
           // import.
-          exclude: [...configDefaults.exclude, "e2e/**", ...DB_TESTS],
+          exclude: [...configDefaults.exclude, "**/.next*/**", "e2e/**", ...DB_TESTS],
         },
       },
       {

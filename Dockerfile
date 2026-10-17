@@ -1,10 +1,11 @@
 # syntax=docker/dockerfile:1
-# Четыре стадии. Запуск одной командой (ТЗ §4.2.3): `docker compose up --build`,
+# Пять стадий. Запуск одной командой (ТЗ §4.2.3): `docker compose up --build`,
 # см. docker-compose.yml. Без --target собирается последняя стадия (runner), так что
 # `docker build -t rrp .` по-прежнему даёт образ приложения.
 #   deps    — зависимости (npm ci) и сгенерированный клиент Prisma;
 #   migrate — разовый прогон миграций и сева; в compose это сервис migrate;
 #   build   — next build в standalone-вывод;
+#   worker  — отдельный исполнитель расчётов, пока с полным набором зависимостей deps;
 #   runner  — минимальный образ приложения, без Prisma CLI, tsx и исходников.
 FROM node:20-alpine AS deps
 WORKDIR /app
@@ -35,6 +36,16 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
+FROM node:20-alpine AS worker
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup -S app && adduser -S app -G app
+# The standalone Next dependency trace does not include this separate process.
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist-worker ./dist-worker
+USER app
+CMD ["node", "dist-worker/calculation-worker.cjs"]
+
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -45,6 +56,7 @@ RUN addgroup -S app && adduser -S app -G app
 COPY --from=build /app/public ./public
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/dist-worker/engine-release.json ./dist-worker/engine-release.json
 USER app
 EXPOSE 3000
 CMD ["node", "server.js"]

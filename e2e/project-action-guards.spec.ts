@@ -42,15 +42,14 @@ test("dirty exports and live refresh preserve local input, including edits durin
     await salary.fill(original);
     await expect(refresh).toBeEnabled();
 
-    // Откладываем ответ серверного действия, чтобы ввод успел измениться до reload.
+    // Откладываем только доставку настоящего результата worker, не подменяя расчёт.
     let releaseResponse!: () => void;
     const responseGate = new Promise<void>((resolve) => { releaseResponse = resolve; });
     let actionSeen!: () => void;
     const actionStarted = new Promise<void>((resolve) => { actionSeen = resolve; });
-    await page.route(url => url.pathname === `/projects/${projectId}`, async (route) => {
-      if (!route.request().headers()["next-action"]) return route.continue();
-      actionSeen();
+    await page.route(url => /^\/api\/v1\/calculation-jobs\/[^/]+\/result$/.test(url.pathname), async (route) => {
       const response = await route.fetch();
+      actionSeen();
       await responseGate;
       await route.fulfill({ response });
     });

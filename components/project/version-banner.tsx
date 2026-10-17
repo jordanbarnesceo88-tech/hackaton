@@ -1,11 +1,11 @@
 "use client";
 
-import { unstable_rethrow } from "next/navigation";
-import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { recalcProjectAction } from "@/lib/projects/actions";
 import { formatCalcDate } from "@/lib/report/tz/rows";
 import { TZ_MODEL_VERSION } from "@/lib/tz/version";
+import { useDurableCalculation } from "./use-durable-calculation";
+import { CalculationJobStatus } from "./calculation-job-status";
 
 /**
  * Баннер «расчёт устарел» (ТЗ §3.1.5: повторное открытие воспроизводит расчёт с версией данных
@@ -13,7 +13,7 @@ import { TZ_MODEL_VERSION } from "@/lib/tz/version";
  * параметры те же, что при сохранении, — поэтому числа на экране совпадают с отчётом. Если с
  * тех пор сменилась модель расчёта (TZ_MODEL_VERSION) или живые данные каталога, нормативы и
  * описания параметров (версия данных на живых данных ≠ сохранённой), баннер говорит об этом и
- * предлагает «Пересчитать на актуальных данных» — серверное действие recalcProjectAction.
+ * предлагает явно запустить серверный пересчёт на актуальных данных.
  */
 
 /** Версии сохранённого расчёта, с которыми сравниваются текущие. */
@@ -62,7 +62,8 @@ export function VersionBanner({
   archive?: boolean;
 }) {
   const hintId = useId();
-  const [pending, startTransition] = useTransition();
+  const calculation = useDurableCalculation();
+  const pending = calculation.busy;
   const [error, setError] = useState<string | null>(null);
   const editedDuringRecalc = useRef(false);
   useLayoutEffect(() => {
@@ -72,23 +73,28 @@ export function VersionBanner({
     ? "Есть несохранённые изменения. Сначала сохраните проект, затем пересчитайте на актуальных данных."
     : disabledReason;
   const changed = versionChanges(stored, liveDataVersion);
-  if (!archive && changed.length === 0 && !pending && error === null) return null;
+  if (!archive && changed.length === 0 && !pending && !calculation.job && error === null) return null;
 
-  function recalc() {
+  async function recalc() {
     if (pending || blockedReason) return;
+    if (typeof revision !== "number") {
+      setError("Неизвестна ревизия проекта. Откройте актуальную версию отдельно, сохранив этот черновик");
+      return;
+    }
     editedDuringRecalc.current = false;
     setError(null);
-    startTransition(async () => {
-      try {
-        const r = await recalcProjectAction(projectId, revision);
-        if (!r.ok) {
-          startTransition(() => setError(r.message));
+    try {
+        const r = await calculation.run({ operation: "RECALCULATE", projectId, expectedRevision: revision }, `recalculate:${projectId}`);
+        if (!r) return;
+        if (r.job.publicationState !== "PUBLISHED") {
+          setError("Расчёт готов и сохранён отдельно: проект успел измениться. Откройте результат по ссылке и сравните версии");
           return;
         }
+        if (!r.results || r.job.publishedRevision === null) throw new Error("Сервер не вернул сохранённый снимок. Откройте результат расчёта по ссылке");
         if (editedDuringRecalc.current) {
-          startTransition(() => setError(
-            "После начала пересчёта ввод на странице изменился. Страница не перезагружена, чтобы сохранить ваши правки. Проверьте и сохраните проект.",
-          ));
+          setError(
+            "После начала пересчёта ввод на странице изменился. Локальные правки остаются в этой вкладке. Откройте результат по ссылке и сравните его с ними перед дальнейшим сохранением.",
+          );
           return;
         }
         // Рабочая область держит расчёт в своём состоянии и новые пропсы после revalidatePath
@@ -98,12 +104,9 @@ export function VersionBanner({
         const url = new URL(window.location.href);
         url.searchParams.set("edit", "1");
         window.location.assign(url.href);
-      } catch (e) {
-        unstable_rethrow(e);
-        console.error("VersionBanner", e);
-        startTransition(() => setError(NETWORK_ERROR));
-      }
-    });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : NETWORK_ERROR);
+    }
   }
 
   return (
@@ -121,6 +124,9 @@ export function VersionBanner({
         <p role="alert" className="text-destructive [&:empty]:hidden">
           {error ?? ""}
         </p>
+        <CalculationJobStatus job={calculation.job} cancelling={calculation.cancelling} onCancel={() => {
+          void calculation.cancel().catch(e => setError(e instanceof Error ? e.message : "Не удалось подтвердить отмену"));
+        }} />
       </div>
       <Button
         type="button"

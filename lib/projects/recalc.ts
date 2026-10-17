@@ -192,7 +192,7 @@ export function runProjectSims(model: ProjectModel, opts: ProjectSimOptions = {}
 }
 
 /** HTTP/server-action path: canonical 2D runs and optional prefix searches yield to I/O. */
-export async function runProjectSimsAsync(model: ProjectModel, options: CooperativeOptions): Promise<Record<string, SimSummaryStored | null>> {
+export async function runProjectSimsAsync(model: ProjectModel, options: CooperativeOptions & { onStage?: (stage: string) => void }): Promise<Record<string, SimSummaryStored | null>> {
   const now = options.now ?? defaultNow;
   const started = now(), deadline = options.deadline ?? started + 60_000;
   const runs = new Map<string, SimRunSummary>();
@@ -220,6 +220,7 @@ export async function runProjectSimsAsync(model: ProjectModel, options: Cooperat
       minStableFleet: null, fleetByNorm: si.byNorm?.robots.count ?? null, verdictByNorm: verdictOf(byNorm) });
   }
   const mins = new Map<string, number | null>();
+  options.onStage?.("fleet-search");
   for (const spec of model.scenarios) {
     checkExecution({ ...options, now, deadline });
     const input = model.simInputs[spec.key]?.calculated, summary = out[spec.key];
@@ -276,11 +277,12 @@ export function resultsFromInputs(live: LiveInputs, input: ComputeProjectInput):
 
 /** One admitted job, one absolute budget including preparation, proof replay and final projection. */
 export async function resultsFromInputsAsync(live: LiveInputs, input: ComputeProjectInput,
-  options: CooperativeOptions & { budgetMs?: number; spatialBudgetMs?: number } = {}): Promise<ComputedProject> {
+  options: CooperativeOptions & { budgetMs?: number; spatialBudgetMs?: number; onStage?: (stage: string) => void } = {}): Promise<ComputedProject> {
   const now = options.now ?? input.now ?? defaultNow;
   const execution = { ...options, now, signal: input.signal ?? options.signal,
     deadline: Math.min(options.deadline ?? Infinity, now() + (options.budgetMs ?? 60_000)), yieldFn: options.yieldFn ?? yieldServer };
   return withServerCalculation(async () => {
+    options.onStage?.("preparing");
     checkExecution(execution);
     await execution.yieldFn();
     checkExecution(execution);
@@ -291,9 +293,12 @@ export async function resultsFromInputsAsync(live: LiveInputs, input: ComputePro
     const base: BuildProjectModelInput = { ...common, scenarios: input.scenarios ?? initialScenarios(common) };
     const first = buildProjectModel(base);
     checkExecution(execution);
+    options.onStage?.("spatial-check");
     base.scenarios = await recheckProjectSpatialEvidenceAsync(first, { ...execution,
       budgetMs: Math.min(options.spatialBudgetMs ?? PROJECT_SPATIAL_BUDGET_MS, Math.max(0, execution.deadline - now())) });
+    options.onStage?.("simulation");
     const sims = await runProjectSimsAsync(first, execution);
+    options.onStage?.("finalizing");
     const model = buildProjectModel({ ...base, sims });
     const results: ProjectResults = { ...storedPartOf(model), calculatedAt: new Date().toISOString(), sim: sims,
       runtime: { layout: structuredClone(model.layout), simInputs: structuredClone(model.simInputs), paramDefs: structuredClone(live.paramDefs),

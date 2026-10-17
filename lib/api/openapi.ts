@@ -16,6 +16,7 @@ import { CATALOG_QUERY_PARAMS } from "./catalog";
 import { ADMIN_TOKEN_MIN_LENGTH } from "./auth-constants";
 import { API_IMPORT_ORIGINS, IMPORT_MAX_PRODUCTS, SOURCE_TYPES_BY_ORIGIN, validateProductSeeds } from "./import";
 import { normApiRows } from "./norms";
+import { JOB_PATHS, JOB_SCHEMAS } from "./openapi-jobs";
 
 /**
  * Описание API платформы в формате OpenAPI 3.1 (ТЗ §4.2.5 «документировать все API, OpenAPI
@@ -967,6 +968,7 @@ export const OPENAPI: OpenApiDocument = {
     { name: "Служебные", description: "Описание API, состояние платформы, шаблоны загрузки" },
   ],
   paths: {
+    ...JOB_PATHS,
     "/api/v1/catalog": {
       get: {
         operationId: "listCatalog",
@@ -1381,7 +1383,7 @@ export const OPENAPI: OpenApiDocument = {
     },
   },
   components: {
-    schemas: SCHEMAS,
+    schemas: { ...SCHEMAS, ...JOB_SCHEMAS },
     securitySchemes: {
       sessionCookie: {
         type: "apiKey",

@@ -5,7 +5,7 @@ import { paramSpecsFor } from "../data/organizer/params";
 import { processesForFacility } from "../tz/processes";
 import type { ParamValues, PendingChange, ProjectResults, ScenarioKind, ScenarioSpec } from "../tz/types";
 import { changeFieldLabel, serverAutoFrom, toChangeLogRows } from "./changes";
-import { resultsFromInputsAsync, type LiveInputs } from "./recalc";
+import { resultsFromInputsAsync, type ComputedProject, type LiveInputs } from "./recalc";
 import { checkExecution } from "../sim/cooperative";
 import { checkScenarioSiteLayout, validProjectRevision } from "./validate";
 import { parsePilotPlanInput } from "../tz/pilot-budget";
@@ -365,6 +365,15 @@ export async function insertProject(
     scenarios: input.scenarios,
   });
   checkExecution({ signal: input.signal });
+  return persistNewProject(db, input, results);
+}
+
+/** Persist a server-computed snapshot inside the caller's publication transaction. */
+export async function persistNewProject(
+  db: Db,
+  input: NewProject,
+  results: ProjectResults,
+): Promise<{ id: string; results: ProjectResults }> {
   const created = await db.project.create({
     data: {
       ...(input.id !== undefined ? { id: input.id } : {}),
@@ -421,9 +430,8 @@ export async function storeProjectCalculation(
   db: PrismaClient,
   input: ProjectCalculation,
 ): Promise<{ calculatedAt: string; dataVersion: string; results: ProjectResults; revision: number }> {
-  const { projectId, userId } = input;
   if (!validProjectRevision(input.expectedRevision)) throw new Error("Для записи требуется expectedRevision сохранённого проекта");
-  const { results: calculatedResults, model } = await resultsFromInputsAsync(input.live, {
+  const computed = await resultsFromInputsAsync(input.live, {
     signal: input.signal,
     facility: input.facility,
     params: input.params,
@@ -432,52 +440,59 @@ export async function storeProjectCalculation(
       ? { productSnapshots: input.snapshot.productSnapshots, normsUsed: input.snapshot.normsUsed }
       : null,
   });
-  // Return the exact JSON snapshot persisted by Prisma, including JSON's normalization of -0.
-  const results: ProjectResults = JSON.parse(JSON.stringify(calculatedResults));
-  const serverAuto = serverAutoFrom(model, input.live.paramDefs);
   checkExecution({ signal: input.signal });
-  await db.$transaction(async (tx) => {
-    checkExecution({ signal: input.signal });
-    const claimed = await tx.project.updateMany({
-      where: { id: projectId, userId, revision: input.expectedRevision, isDemo: false },
-      data: {
-        revision: { increment: 1 },
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        params: json(results.paramsUsed),
-        ...resultColumns(results),
-      },
-    });
-    if (claimed.count !== 1) throw new ProjectRevisionConflict();
-    const existing = await tx.scenario.findMany({ where: { projectId }, select: { id: true, key: true, name: true } });
-    const byKey = new Map(results.scenarios.map((s) => [s.key, s]));
-    const gone = existing.filter((s) => !byKey.has(s.key)).map((s) => s.id);
-    if (gone.length > 0) await tx.scenario.deleteMany({ where: { id: { in: gone } } });
-    // Названия уникальны в проекте: если сценарии обменялись названиями, прямое обновление
-    // столкнулось бы с ещё не обновлённой строкой, поэтому сначала временные имена.
-    for (const row of existing) {
-      const next = byKey.get(row.key);
-      if (next && next.name !== row.name) {
-        await tx.scenario.update({ where: { id: row.id }, data: { name: `~переименование~${row.id}` } });
-      }
-    }
-    const idByKey = new Map<string, string>();
-    for (const [order, s] of results.scenarios.entries()) {
-      const row = await tx.scenario.upsert({
-        where: { projectId_key: { projectId, key: s.key } },
-        create: { projectId, key: s.key, name: s.name, kind: DB_SCENARIO_KIND[s.kind], order, spec: scenarioSpecJson(s) },
-        update: { name: s.name, kind: DB_SCENARIO_KIND[s.kind], order, spec: scenarioSpecJson(s) },
-        select: { id: true },
-      });
-      idByKey.set(s.key, row.id);
-    }
-    if (input.changes.length > 0) {
-      await tx.changeLog.createMany({
-        data: toChangeLogRows(input.changes, { projectId, userId, scenarioIdByKey: idByKey, serverAuto }),
-      });
-    }
-    // An abort observed before commit must roll back the claim, scenario changes and log together.
-    checkExecution({ signal: input.signal });
+  return db.$transaction((tx) => persistProjectCalculation(tx, input, computed));
+}
+
+/** CAS and all project writes share the job's final transaction; no calculation or nested transaction. */
+export async function persistProjectCalculation(
+  tx: Prisma.TransactionClient,
+  input: ProjectCalculation,
+  computed: ComputedProject,
+): Promise<{ calculatedAt: string; dataVersion: string; results: ProjectResults; revision: number }> {
+  const { projectId, userId } = input;
+  if (!validProjectRevision(input.expectedRevision)) throw new Error("Для записи требуется expectedRevision сохранённого проекта");
+  const results: ProjectResults = JSON.parse(JSON.stringify(computed.results));
+  const serverAuto = serverAutoFrom(computed.model, input.live.paramDefs);
+  checkExecution({ signal: input.signal });
+  const claimed = await tx.project.updateMany({
+    where: { id: projectId, userId, revision: input.expectedRevision, isDemo: false },
+    data: {
+      revision: { increment: 1 },
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      params: json(results.paramsUsed),
+      ...resultColumns(results),
+    },
   });
+  if (claimed.count !== 1) throw new ProjectRevisionConflict();
+  const existing = await tx.scenario.findMany({ where: { projectId }, select: { id: true, key: true, name: true } });
+  const byKey = new Map(results.scenarios.map((s) => [s.key, s]));
+  const gone = existing.filter((s) => !byKey.has(s.key)).map((s) => s.id);
+  if (gone.length > 0) await tx.scenario.deleteMany({ where: { id: { in: gone } } });
+  // Названия уникальны в проекте: сначала освободить имена сценариев, которые обменялись ими.
+  for (const row of existing) {
+    const next = byKey.get(row.key);
+    if (next && next.name !== row.name) {
+      await tx.scenario.update({ where: { id: row.id }, data: { name: `~переименование~${row.id}` } });
+    }
+  }
+  const idByKey = new Map<string, string>();
+  for (const [order, s] of results.scenarios.entries()) {
+    const row = await tx.scenario.upsert({
+      where: { projectId_key: { projectId, key: s.key } },
+      create: { projectId, key: s.key, name: s.name, kind: DB_SCENARIO_KIND[s.kind], order, spec: scenarioSpecJson(s) },
+      update: { name: s.name, kind: DB_SCENARIO_KIND[s.kind], order, spec: scenarioSpecJson(s) },
+      select: { id: true },
+    });
+    idByKey.set(s.key, row.id);
+  }
+  if (input.changes.length > 0) {
+    await tx.changeLog.createMany({
+      data: toChangeLogRows(input.changes, { projectId, userId, scenarioIdByKey: idByKey, serverAuto }),
+    });
+  }
+  // An abort observed before commit must roll back the claim, scenario changes and log together.
+  checkExecution({ signal: input.signal });
   return { calculatedAt: results.calculatedAt, dataVersion: results.dataVersion, results, revision: input.expectedRevision + 1 };
 }
 

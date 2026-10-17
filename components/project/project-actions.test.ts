@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectToolbar } from "./project-toolbar";
 import { VersionBanner } from "./version-banner";
+import { CalculationJobStatus, calculationStageText } from "./calculation-job-status";
+import type { JobReceipt } from "@/lib/calculation-jobs/types";
 
 vi.mock("@/lib/projects/actions", () => ({
   copyProjectAction: vi.fn(),
@@ -14,6 +16,25 @@ vi.mock("@/lib/projects/actions", () => ({
 const stored = { modelVersion: "older-model", dataVersion: "older-data", calculatedAt: "2026-10-16T08:00:00Z" };
 
 describe("saved project actions", () => {
+  it("shows real computation phases and an explicit cancellation without inventing a percent", () => {
+    const job = { id: "job-1", status: "RUNNING", stage: "spatial-check", progress: null, cancelRequestedAt: null } as JobReceipt;
+    const html = renderToStaticMarkup(createElement(CalculationJobStatus, { job, onCancel: vi.fn() }));
+    expect(html).toContain("Проверяем движение роботов на планировке");
+    expect(html).toContain('href="/calculation-jobs/job-1"');
+    expect(html).toContain("Отменить расчёт");
+    expect(html).toContain("Отправленный расчёт продолжится после закрытия страницы");
+    expect(html).toContain("Более поздние несохранённые правки остаются в этой вкладке");
+    expect(html).not.toContain("%");
+    expect(calculationStageText({ ...job, cancelRequestedAt: "2026-10-18T00:00:00Z" })).toContain("результат не будет опубликован");
+  });
+
+  it("never offers cancellation for a completed result, including a stale publication", () => {
+    const job = { id: "job-2", status: "SUCCEEDED", stage: "succeeded", publicationState: "STALE", cancelRequestedAt: null } as JobReceipt;
+    const html = renderToStaticMarkup(createElement(CalculationJobStatus, { job, onCancel: vi.fn() }));
+    expect(html).toContain("Открыть расчёт и его результат");
+    expect(html).not.toContain("Отменить расчёт");
+  });
+
   it("does not expose any server export URL while the project is dirty", () => {
     const html = renderToStaticMarkup(createElement(ProjectToolbar, {
       mode: "owner", projectId: "p1", projectName: "Склад", dirty: true,

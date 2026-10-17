@@ -26,10 +26,17 @@ export default defineConfig({
     },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
+  webServer: [{
     command: "npm run build && npm run start",
+    env: { ALFA_BUILD_DIR: ".next-e2e" },
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    // Own both processes: a pre-existing dev server may use a different engine build/DB.
+    reuseExistingServer: false,
     timeout: 180_000,
-  },
+  }, {
+    command: "npm run worker",
+    wait: { stdout: /calculation_worker_started/ },
+    gracefulShutdown: { signal: "SIGTERM", timeout: 5000 },
+    timeout: 30_000,
+  }],
 });

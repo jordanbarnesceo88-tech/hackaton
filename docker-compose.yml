@@ -8,6 +8,7 @@
 #   2. migrate — `prisma migrate deploy` и сев (справочники, каталог, демо-аккаунты), затем
 #                сервис завершается с кодом 0; при ошибке приложение не стартует;
 #   3. app     — приложение Next.js (standalone); здоровье — GET /api/health.
+#      worker  — отдельный процесс очереди; стартует после db и migrate, web health его не проверяет.
 # Демо-аккаунты: demo@demo.local / demo-user-2026 и admin@demo.local / demo-admin-2026
 # (пароли меняются переменными DEMO_USER_PASSWORD и DEMO_ADMIN_PASSWORD).
 # Остановить: `docker compose down`; удалить и данные базы: `docker compose down -v`.
@@ -23,7 +24,7 @@ services:
     ports:
       # Наружу база нужна только для отладки и локальной разработки (`npm run dev` с .env из
       # .env.example смотрит на localhost:5433). Приложение ходит в неё по сети compose.
-      - "${DB_PORT:-5433}:5432"
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
     volumes:
       - rrp_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -58,6 +59,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://rrp:rrp_dev_password@db:5432/robotization_roi
+      CALCULATION_ENGINE_RELEASE: ${CALCULATION_ENGINE_RELEASE:-alfa-durable-calculation-1}
       # Без AUTH_SECRET Auth.js бросает ошибку в production, а шапка вызывает auth() на каждой
       # странице — все страницы отдали бы 500. Значение по умолчанию годится только для
       # локальной демонстрации; на любом доступном извне стенде задайте свой секрет:
@@ -81,6 +83,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+
+  worker:
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://rrp:rrp_dev_password@db:5432/robotization_roi
+      # Pin this to the immutable release identifier in real deployments, equally in app/worker.
+      CALCULATION_ENGINE_RELEASE: ${CALCULATION_ENGINE_RELEASE:-alfa-durable-calculation-1}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   rrp_pgdata:

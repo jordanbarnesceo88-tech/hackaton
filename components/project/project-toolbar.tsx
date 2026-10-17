@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
-import { useActionState, useId, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useId, useState, type ReactNode } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   copyProjectAction,
   deleteProjectAction,
-  saveProjectAction,
   type ProjectActionFailure,
   type SaveProjectInput,
   type SaveProjectResult,
 } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 import { projectInputSizeIssue } from "@/lib/projects/payload-limit";
+import { useDurableCalculation } from "./use-durable-calculation";
+import { CalculationJobStatus } from "./calculation-job-status";
+import { formatCalcDate } from "@/lib/report/tz/rows";
 
 /**
  * Панель действий рабочей области (ТЗ §2.2 шаг 8 — сохранение и отчёт; §3.1.3 — копирование и
@@ -24,8 +26,8 @@ import { projectInputSizeIssue } from "@/lib/projects/payload-limit";
  *   состояния «Расчёт выполнен за … мс · модель … · данные …», статус имитации и баннер
  *   «Параметры изменены — нажмите «Пересчитать»». Кнопка одна на странице и видна из любого
  *   шага, поэтому в панели шага 8 её нет;
- * - `ProjectToolbar` — действия шага 8. Владелец: «Сохранить проект» (серверное действие
- *   пересчитывает модель и имитацию само, результаты браузера не принимаются), «Отчёт (PDF)»,
+ * - `ProjectToolbar` — действия шага 8. Владелец: «Сохранить проект» (долговременный серверный
+ *   расчёт модели и имитации; результаты браузера не принимаются), «Отчёт (PDF)»,
  *   «Excel», «CSV», «Копировать проект», «Удалить проект». PDF, Excel и CSV строятся сервером по
  *   сохранённому расчёту, поэтому до сохранения правок они недоступны («сначала сохраните
  *   проект»). Гость: «CSV» собирается прямо в браузере (lib/report/tz/csv) и ссылка «Войти,
@@ -213,36 +215,40 @@ export function ProjectToolbar({
   savedAtText,
 }: ProjectToolbarProps) {
   const hintId = useId();
-  const [saving, startSave] = useTransition();
+  const calculation = useDurableCalculation();
+  const saving = calculation.busy;
   const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
   const [csvNote, setCsvNote] = useState<string | null>(null);
+  const [latestSavedAt, setLatestSavedAt] = useState<string | null>(null);
 
-  function save() {
-    if (!projectId || !getSaveInput) return;
+  async function save() {
+    if (saving || !projectId || !getSaveInput) return;
     const input = getSaveInput();
     const sizeIssue = projectInputSizeIssue(input);
     if (sizeIssue) {
       setStatus({ kind: "error", text: `Не удалось сохранить: ${sizeIssue}. Несохранённые правки остаются в этой вкладке` });
       return;
     }
+    if (typeof input.expectedRevision !== "number") {
+      setStatus({ kind: "conflict", text: "Неизвестна ревизия проекта. Откройте актуальную версию отдельно, сохранив этот черновик" });
+      return;
+    }
     setStatus({ kind: "idle" });
-    startSave(async () => {
-      let next: SaveStatus;
-      try {
-        const r = await saveProjectAction(projectId, input);
-        if (r.ok) {
-          next = { kind: "ok", text: savedText(r.calculatedAt) };
-          onSaved?.(r, input);
-        } else {
-          next = { kind: r.reason === "conflict" ? "conflict" : "error", text: r.reason === "conflict" ? r.message : saveFailureText(r.message) };
-        }
-      } catch (e) {
-        unstable_rethrow(e);
-        console.error("ProjectToolbar.save", e);
-        next = { kind: "error", text: saveFailureText(NETWORK_ERROR) };
+    try {
+      const r = await calculation.run({ operation: "SAVE", projectId, ...input, expectedRevision: input.expectedRevision }, `save:${projectId}`);
+      if (!r) return;
+      if (r.job.publicationState !== "PUBLISHED") {
+        setStatus({ kind: "conflict", text: "Расчёт готов и сохранён отдельно: проект изменился во время выполнения. Ваш черновик остаётся в этой вкладке" });
+        return;
       }
-      startSave(() => setStatus(next));
-    });
+      if (!r.results || r.job.publishedRevision === null) throw new Error("Сервер не вернул сохранённый снимок. Откройте результат расчёта по ссылке");
+      onSaved?.({ ok: true, results: r.results, revision: r.job.publishedRevision,
+        calculatedAt: r.results.calculatedAt, dataVersion: r.results.dataVersion }, input);
+      setLatestSavedAt(formatCalcDate(r.results.calculatedAt));
+      setStatus({ kind: "ok", text: savedText(r.results.calculatedAt) });
+    } catch (error) {
+      setStatus({ kind: "error", text: error instanceof Error ? error.message : saveFailureText(NETWORK_ERROR) });
+    }
   }
 
   function downloadCsv() {
@@ -289,7 +295,7 @@ export function ProjectToolbar({
 
   const id = projectId ?? "";
   const readOnly = mode === "readonly";
-  const exportsDisabled = dirty;
+  const exportsDisabled = dirty || saving;
   const saveBlocked = readOnly || isDemo || !getSaveInput;
   let saveHint: ReactNode = null;
   if (isDemo) saveHint = "Демо-проект общий для всех, кто входит демо-аккаунтом: скопируйте его, чтобы сохранять изменения.";
@@ -344,12 +350,15 @@ export function ProjectToolbar({
           {status.kind === "idle" ? "" : status.text}
         </p>
         {status.kind === "conflict" && <a href={`/projects/${encodeURIComponent(id)}`} target="_blank" rel="noreferrer" className="text-primary underline">Открыть актуальную версию в новой вкладке; оставить этот черновик</a>}
+        <CalculationJobStatus job={calculation.job} cancelling={calculation.cancelling} onCancel={() => {
+          void calculation.cancel().catch(error => setStatus({ kind: "error", text: error instanceof Error ? error.message : "Не удалось подтвердить отмену" }));
+        }} />
         {saveHint && <p>{saveHint}</p>}
         <p id={hintId}>
           {exportsDisabled
             ? "Отчёт (PDF), Excel и CSV строятся по сохранённому расчёту: сначала сохраните проект."
             : "Отчёт (PDF), Excel и CSV строятся по сохранённому расчёту."}
-          {savedAtText ? ` Сохранённая версия: ${savedAtText}.` : ""}
+          {latestSavedAt || savedAtText ? ` Сохранённая версия: ${latestSavedAt ?? savedAtText}.` : ""}
         </p>
       </div>
     </div>

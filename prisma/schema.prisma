@@ -193,6 +193,8 @@ model User {
   role          Role            @default(USER)
   projects      Project[]
   changes       ChangeLog[]
+  calculationRuns CalculationRun[]
+  calculationSubmissions CalculationSubmission[]
 }
 
 model SavedAnalysis {
@@ -529,8 +531,80 @@ model Project {
   updatedAt        DateTime    @updatedAt
   scenarios        Scenario[]
   changes          ChangeLog[]
+  calculationRuns  CalculationRun[]
 
   @@index([userId])
+}
+
+/// Immutable accepted calculation input and completed result. Project remains unchanged
+/// while the job runs; a stale revision still leaves an inspectable completed run.
+model CalculationRun {
+  id                 String   @id @default(cuid())
+  ownerId            String
+  owner              User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  projectId          String?
+  project            Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reservedProjectId  String?
+  operation          String
+  baseRevision       Int?
+  input              Json
+  inputHash          String
+  engineRelease      String
+  results            Json?
+  publicationState   String   @default("NONE")
+  publishedRevision  Int?
+  createdAt          DateTime @default(now())
+  completedAt        DateTime?
+  purgedAt           DateTime?
+  job                CalculationJob?
+
+  @@index([ownerId, createdAt])
+  @@index([projectId, createdAt])
+}
+
+/// PostgreSQL queue; a lease token fences every update and the final publication.
+model CalculationJob {
+  id                 String   @id @default(cuid())
+  runId              String   @unique
+  run                CalculationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  ownerId            String
+  operation          String
+  idempotencyKey     String
+  requestHash        String
+  status             String   @default("QUEUED")
+  attempts           Int      @default(0)
+  maxAttempts        Int      @default(3)
+  nextAttemptAt      DateTime @default(now())
+  leaseToken         String?
+  leaseUntil         DateTime?
+  heartbeatAt        DateTime?
+  cancelRequestedAt  DateTime?
+  stage              String   @default("queued")
+  progress           Float?
+  diagnosticCode     String?
+  safeMessage        String   @default("Расчёт принят и ожидает выполнения")
+  createdAt          DateTime @default(now())
+  startedAt          DateTime?
+  finishedAt         DateTime?
+
+  @@unique([ownerId, idempotencyKey])
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([status, leaseUntil])
+  @@index([ownerId, createdAt])
+}
+
+/// Small submission tombstone deliberately outlives a deleted project/run/job.
+model CalculationSubmission {
+  id              String   @id @default(cuid())
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  idempotencyKey  String
+  requestHash     String
+  jobId           String
+  createdAt       DateTime @default(now())
+
+  @@unique([ownerId, idempotencyKey])
+  @@index([jobId])
 }
 
 /// Сценарий проекта: «как есть», покупка или услуга (ТЗ §3.5.5, не меньше трёх на проект).

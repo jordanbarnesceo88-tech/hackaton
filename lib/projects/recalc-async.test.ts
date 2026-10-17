@@ -31,9 +31,11 @@ describe("cooperative server calculation", () => {
     const { input, snapshot } = fixture();
     expect(await calculateProjectPreviewAsync(snapshot, { yieldFn: setImmediate })).toEqual(calculateProjectPreview(snapshot));
     const expected = resultsFromInputs(live, input);
-    const actual = await resultsFromInputsAsync(live, input);
+    const stages: string[] = [];
+    const actual = await resultsFromInputsAsync(live, input, { onStage: stage => stages.push(stage) });
     expect(noClock(actual.results)).toEqual(noClock(expected.results));
     expect(actual.results.scenarios[1]!.spatialEvidence!.summary.achievedPerH).not.toBe(999999);
+    expect(stages).toEqual(["preparing", "spatial-check", "simulation", "fleet-search", "finalizing"]);
   }, 30_000);
 
   it("allows repeated event-loop heartbeats DURING canonical replay", async () => {

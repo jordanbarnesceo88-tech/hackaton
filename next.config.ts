@@ -1,4 +1,16 @@
 import type { NextConfig } from "next";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+// Embed the same immutable engine fingerprint in both compiled deployment artifacts.
+let engineFingerprint: string | undefined;
+try {
+  const manifest = JSON.parse(readFileSync(join(process.cwd(), "dist-worker", "engine-release.json"), "utf8"));
+  if (!/^alfa-robot\/sha256:[a-f0-9]{64}$/.test(manifest.engineRelease)) throw new Error("Invalid engine manifest");
+  engineFingerprint = manifest.engineRelease;
+} catch (error) {
+  if (process.env.NODE_ENV === "production") throw new Error("Сначала выполните npm run build:worker для этого выпуска", { cause: error });
+}
 
 // Dev/HMR needs 'unsafe-eval'; production does not. Next's hydration bootstrap is inline, so
 // 'unsafe-inline' for scripts/styles is required until nonce-based CSP is wired up (tracked in
@@ -29,6 +41,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  env: engineFingerprint ? { CALCULATION_ENGINE_FINGERPRINT: engineFingerprint } : {},
+  // Keep a separately running review build intact while validating a new backend locally.
+  distDir: process.env.ALFA_BUILD_DIR ?? ".next",
   // JSON admission is capped at 4 MiB in client/server guards. Leave a bounded extra
   // MiB for React Server Action framing; source field/geometry limits remain in force.
   experimental: { serverActions: { bodySizeLimit: "5mb" } },

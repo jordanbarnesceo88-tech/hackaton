@@ -1,31 +1,19 @@
 # Deployment Runbook
 
-> **Стенд для жюри по ТЗ (модель `tz-1.0.0`)** — [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md):
-> Docker одной командой (§4b ниже), локальный запуск, проверка на чистом экземпляре (§4e) и
-> Vercel с **новой, пустой** базой Neon. Базу прежней боевой версии для этого не мигрируют, а
-> `prisma migrate reset` и `prisma db push` не выполняют никогда.
+> Актуальный быстрый запуск — [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md). Полная платформа требует web, PostgreSQL и отдельного worker. Docker Compose поднимает все компоненты; при раздельном размещении worker устанавливают отдельно.
 >
-> **Выкатываете поверх боевой прежней модели, где уже есть пользователи?** Шаг 3 этого файла и
-> только он. Quickstart писался под чистую базу и про чистку сева, слияние категорий и окно
-> недоступности не знает. Приложение A — что сев делает с чужими данными, приложение B — М-2.
+> Для фоновой очереди, версий, отмены и восстановления используйте [CALCULATION_JOBS.md](./CALCULATION_JOBS.md). Vercel с БД без отдельного исполнителя обслуживает web, но не завершает queued-операции.
 >
-> Состояние на 2026-09-25 (коммит `b112b35`, прогон CI 36136864124): 12 миграций, последняя —
-> `20260924120000_tz_v2` (только добавляет таблицы и колонку `User.role`); 43 маршрута, все
-> серверные; Vitest — 102 файла, 1473 теста; e2e — 10 тестов; задача CI `docker` зелёная.
+> Раздел 3 и приложения содержат регламент перехода прежней модели с пользовательскими данными. Их описание исторического состояния не заменяет проверку текущей схемы и резервной копии перед миграцией.
 
-The app is deploy-ready. Steps marked **[needs your account]** require your own
-Postgres/hosting credentials and are not automatable.
+Требования установленного Prisma к Node.js: 20.19+ в ветке 20, 22.12+ в ветке 22 либо 24+. Минимальная версия только для Next.js не определяет совместимость всей платформы.
 
 ## 1. Provision a managed Postgres  **[needs your account]**
-Use Neon or Vercel Postgres. Copy **both** connection strings — they are not interchangeable:
-the **pooled** one (host contains `-pooler`) is what the app runs on, and the **direct** one is
-what migrations run over. `@prisma/adapter-pg` opens a pool per serverless instance, so the
-runtime needs the pooler; `prisma migrate deploy` takes advisory locks that a transaction-mode
-pooler can drop, so migrations must not go through it.
+Настройте PostgreSQL для выбранного контура. Для serverless web используйте подходящее runtime-соединение с пулом провайдера; для отдельного Node worker допустимо соединение, соответствующее его лимиту подключений. Оба процесса должны видеть одну логическую базу. `prisma migrate deploy` запускайте по прямому соединению: транзакционный пул не обязан сохранять необходимые сессионные блокировки миграций.
 
 ## 2. Environment variables
 Set on the host (Vercel project settings, or the Docker runtime):
-- `DATABASE_URL` — the pooled Postgres URL from step 1.
+- `DATABASE_URL` — runtime-соединение с одной логической БД для web и worker; режим пула зависит от хостинга. Для миграций используйте прямое соединение.
 - `AUTH_SECRET` — generate once: `openssl rand -base64 32`.
 - `AUTH_URL` — your production URL (e.g. `https://example.com`) if not auto-detected.
 - `DEMO_USER_PASSWORD`, `DEMO_ADMIN_PASSWORD` — пароли демо-аккаунтов `demo@demo.local` и
@@ -211,12 +199,11 @@ DATABASE_URL="$PGDIRECT" npm run preflight:deploy
    а не отдать 404.
 5. `/methodology` считается на запросе — открыть и убедиться, что цитаты живы.
 
-## 4a. Deploy on Vercel  **[needs your account]**
-Connect the GitHub repo, set the env vars from step 2, deploy. The build runs
-`prisma generate` (via the build) automatically.
+## 4a. Раздельное размещение: Vercel web и отдельный worker
 
-Для стенда по ТЗ — новая пустая база Neon, миграции и сев вручную по прямой строке:
-пошагово в [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md), раздел 6.
+Vercel размещает Next.js web-контур. Подключение PostgreSQL не запускает постоянный процесс `npm run worker`; его необходимо установить отдельно с доступом к той же логической БД. Без исполнителя новые задания остаются QUEUED, даже если health, каталог и архивы открываются.
+
+Соберите оба артефакта из одного выпуска, сравните встроенный `engineRelease` и задайте одинаковую дополнительную метку CALCULATION_ENGINE_RELEASE. Применяйте миграции и сев отдельно по прямому соединению; не в preview build. После установки проверьте контрольный job до SUCCEEDED/PUBLISHED, а не только web health. Пошаговый порядок — [DEPLOY-QUICKSTART.md](./DEPLOY-QUICKSTART.md), раздел 6.
 
 ## 4b. Docker одной командой (ТЗ §4.2.3)
 
@@ -224,13 +211,14 @@ Connect the GitHub repo, set the env vars from step 2, deploy. The build runs
 docker compose up --build        # → http://localhost:3000
 ```
 
-`docker-compose.yml` описывает три сервиса:
+`docker-compose.yml` описывает четыре сервиса:
 
 | Сервис | Что делает | Когда готов |
 |---|---|---|
 | `db` | Postgres 16, данные в томе `rrp_pgdata`; проверка здоровья `pg_isready -h 127.0.0.1` (по TCP: проверка через сокет отвечает «готово» ещё на временном сервере первого старта) | `pg_isready` отвечает |
 | `migrate` | стадия `migrate` `Dockerfile`: `prisma migrate deploy`, затем `scripts/seed.ts`; разовый, `restart: "no"` | завершился с кодом 0 |
 | `app` | стадия `runner`: standalone-сервер Next.js с `HOSTNAME=0.0.0.0 PORT=3000`; проверка здоровья — `GET /api/health` | 200 |
+| `worker` | стадия `worker`: отдельный Node-процесс расчётов, очередь в PostgreSQL | процесс запущен; лог `calculation_worker_started`; `/api/health` его не проверяет |
 
 `app` стартует, только когда база здорова и `migrate` завершился успешно: ошибка миграции или
 сева намеренно не даёт показать пустой каталог. Первая сборка — ориентировочно 5–10 минут и
@@ -243,15 +231,27 @@ production отдаёт 500 на каждой странице. На стенд�
 намеренно не передаётся (`trustHost`), HTTPS compose не настраивает — на публичном стенде
 нужен обратный прокси с TLS.
 
-Только образ приложения, без compose (база и сев — ваши):
+При запуске отдельных Docker-образов база, миграции, сев и оба процесса остаются вашей ответственностью:
 
 ```bash
 docker build -t rrp .
-docker run -p 3000:3000 -e DATABASE_URL="<pooled url>" -e AUTH_SECRET="<secret>" rrp
+docker run -p 3000:3000 -e DATABASE_URL="<runtime url>" -e AUTH_SECRET="<secret>" rrp
+# Второй терминал/менеджер процессов: отдельный исполнитель того же выпуска
+docker build --target worker -t rrp-worker .
+docker run -e DATABASE_URL="<runtime url>" rrp-worker
 ```
 
-Задача CI `docker` на каждый push выполняет `docker compose up -d --build`, ждёт `/api/health`
-до 240 с и проверяет, что `/` и `/demo` отдают 200.
+Web smoke-checks проверяют `/api/health`, `/` и `/demo`. Они не подтверждают исполнение очереди: дополнительно нужен контрольный job и проверка восстановления worker. Результаты проверки текущей сборки фиксируйте отдельно.
+
+### Фоновые расчёты: обязательный второй процесс
+
+Сборка `npm run build` выпускает 3D-страницы, `dist-worker/calculation-worker.cjs` и Next.js. Вне Compose запустите `npm run worker` отдельно от `npm start`, с той же базой и меткой CALCULATION_ENGINE_RELEASE. При разработке используйте `npm run worker:dev`. Один только standalone web-сервер не исполняет сохранённую очередь.
+
+Fingerprint движка встраивается при сборке в web и worker из одного `dist-worker/engine-release.json`. Метка выпуска не заменяет хэш кода. Несовместимый queued job завершается ENGINE_VERSION_UNAVAILABLE, а не молча исполняется новым движком. Перед rollout завершите очередь либо сохраните совместимый worker; автоматического маршрутизатора разных версий движка сейчас нет.
+
+После миграций проверяйте не только `GET /api/health`, но и реальный цикл: enqueue → RUNNING → SUCCEEDED/PUBLISHED. Проверьте остановку worker после claim и восстановление того же задания новым процессом. Запуск worker без применённой схемы должен завершаться ошибкой. Отдельного readiness-регистра idle-worker пока нет; QUEUED не подтверждает наличие исполнителя.
+
+История технических запусков ограничена 200 на владельца / 2000 всего и удаляется явно владельцем. Архив Project при этом сохраняется; маленькие ключи идемпотентности остаются. Резервные копии и восстановление должны включать все таблицы очереди вместе с проектами. Старые процессы worker после restore надо остановить, затем проверить совместимость движка и lease. Подробные API, квоты, fencing, отмена и эксплуатационные границы: [CALCULATION_JOBS.md](./CALCULATION_JOBS.md).
 
 ## 4c. Check the cited figures are still current  **[before any live demo]**
 ```bash
@@ -277,49 +277,17 @@ npm run report:snapshots   # отчёт: возраст рыночных сни�
 считает его на запросе, а не на сборке, иначе она застыла бы на дне деплоя и утверждала
 «13 дней» полгода — соврав ровно там, где доказывает обратное.
 
-## 4d. Путь «чистый инстанс» проверен целиком  **[справочно]**
+## 4d. Проверка новой схемы и чистого экземпляра
 
-> **Обновление 2026-09-25.** Миграций теперь 12: добавилась `20260924120000_tz_v2`, которая
-> только создаёт таблицы модели по ТЗ, перечисления и колонку `User.role` с `DEFAULT 'USER'`.
-> Сев после справочников v1 вызывает `seedV2`: синхронизация данных организатора (14 типов
-> решений, 13 процессов, 152 описания параметров, 48 нормативов, 188 продуктов), демо-аккаунты
-> и демо-проект. Путь чистого инстанса для новой версии проверяют `npm run check:fresh` (§4e)
-> и задача CI `docker` на каждый push. Таблица ниже — проверка прежнего дерева из 11 миграций.
+После изменения схемы проверяйте полный bootstrap на отдельной пустой базе: применение миграций, сев и повторный запуск без потери пользовательских данных. `npx prisma migrate status` должен соответствовать миграциям текущего дерева; фиксированное число миграций и результаты старой сборки не являются актуальным гейтом.
 
-Путь чистого инстанса проверен 2026-09-14: 11 миграций применяются, сев доходит до конца,
-в каталоге 11 решений и ни одной строки с префиксом `legacy-`.
-
-Последнее здесь ничего не доказывает про боевую и доказывать не может: на пустой базе бэкфилл
-миграции не имеет строк, которым мог бы выдать `legacy-<id>`, — их отсутствие тут верно по
-построению. Единственная среда, где они возможны, — населённая боевая, и проверяются они там:
-пункт preflight «N строк со `slug`'ом `legacy-…`», шаги 3.5a и 3.7.
-
-Проверка от 2026-09-13 относилась к дереву из 10 миграций и была верна для него.
-Одиннадцатая (`20260913120000_solution_slug`) кладёт на `Solution.slug` NOT NULL, и до
-завершения М-2 сев на чистой базе падал с `P2011`, записав часть каталога — сев не в
-транзакции. Отсюда правило: **этот путь перепроверяется после каждой миграции, меняющей
-обязательность колонки**, а не один раз.
-
-| шаг | результат |
-|---|---|
-| `preflight:deploy` против пустой базы | не падает, сообщает «база ещё не развёрнута», пропускает проверки, которым нужны данные |
-| `prisma migrate deploy` | все 11 миграций применились |
-| `npx tsx scripts/seed.ts` | 12 отраслей, 47 типов, 15 категорий, 11 решений, 16 допущений |
-| повторный сев | те же числа, дубликатов ноль (проверено запросом по `(категория, имя)` и `(тип, имя)`) |
-| `preflight:deploy` после сева | все проверки `[OK]` |
-
-Предохранитель чистки проверен отдельно на настоящей устаревшей строке: `SEED_PRUNE_LIMIT=0` —
-ошибка и строка жива; `SEED_PRUNE=off` — предупреждение и строка жива; обычный прогон — удалена,
-список напечатан до удаления.
-
-Это НЕ проверка боевого пути: боевая база населена и отстаёт, а здесь база была пуста. Боевой
-путь проверяется только п. 3.2 — `preflight` против настоящей строки подключения.
+Пустая база не воспроизводит конфликты старых пользовательских данных. Обновление существующей базы дополнительно проверяется preflight и восстановлением резервной копии в изолированном контуре. Не переносите результат чистого bootstrap на населённую пользовательскую БД без проверки.
 
 ## 4e. Проверка на чистом экземпляре без Docker — `npm run check:fresh`
 
 ```bash
 npm run build
-npm run check:fresh               # полный прогон
+npm run check:fresh               # bootstrap web/БД, без lifecycle worker
 npm run check:fresh -- --dry-run  # только предпосылки, ничего не создаёт
 ```
 
@@ -330,6 +298,8 @@ npm run check:fresh -- --dry-run  # только предпосылки, нич�
 - ждёт `ok:true` от `/api/health` (до 60 с) и 200 от `/` и `/demo`;
 - сверяет версии модели в ответе с кодом: несовпадение значит, что сборка устарела;
 - печатает отчёт по-русски, останавливает сервер и удаляет временную базу.
+
+Скрипт не запускает отдельный worker. Поэтому это проверка bootstrap web/БД; фоновые enqueue, отмену и restart/reclaim проверяйте отдельно по [CALCULATION_JOBS.md](./CALCULATION_JOBS.md).
 
 Рабочую базу из `.env` скрипт не меняет, с нелокальным `DATABASE_URL` работать отказывается,
 перед удалением сверяет имя базы с шаблоном. Код выхода 0 или 1. Для файла-доказательства
@@ -365,24 +335,18 @@ deferred to deploy time because they need production infrastructure or config:
 - **(Optional) Email verification** on signup, if any future feature (password reset,
   notifications) will trust email ownership. Not needed for the current feature set.
 
-## 6. Known `npm audit` findings — assessed, not actionable
+## 6. Зависимости и ранее зафиксированные результаты `npm audit`
 
-`npm audit` reports **4 high-severity findings**, which are **two distinct advisories** counted
-across the packages they affect. Both are reachable only through the Prisma CLI and neither is
-exploitable here; check this list before spending time on them again:
+В прежнем срезе `npm audit` отмечал приведённые ниже зависимости Prisma CLI. Этот список не является текущим отчётом безопасности нового выпуска; перед размещением проверяйте lockfile и состав обоих runtime-образов.
 
-| Advisory | Package | Why it does not apply |
+| Advisory | Package | Наблюдение о пути исполнения |
 |---|---|---|
 | [GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr) | `mysql2` | Auth-plugin downgrade leaking plaintext credentials — to a **MySQL** server. `datasource db` is `postgresql`, the runtime driver is `@prisma/adapter-pg`, and no source file references mysql. The driver is never loaded. |
 | [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx) | `deepmerge-ts` | Stack exhaustion on recursive object graphs, in Prisma's own tooling. Not reachable from application code. |
 
-Both arrive via `prisma`, which is a **devDependency** — it is not installed in the runtime
-image (the Dockerfile's runner stage copies only `.next/standalone`).
+`prisma` объявлен как devDependency. Минимальный веб-образ `runner` получает зависимости через трассировку Next standalone, без отдельной установки Prisma CLI. Образ `worker` сейчас копирует полный `node_modules` стадии `deps`, включая devDependencies и Prisma CLI. Поэтому отсутствие этих пакетов в веб-образе нельзя переносить на worker; установленный пакет и фактически вызываемый путь нужно оценивать отдельно. Сокращение зависимостей worker — отдельное улучшение упаковки.
 
-**Do not run `npm audit fix --force`.** It resolves these by downgrading `prisma` to 6.19.3,
-which is a major version behind `@prisma/client@7` and would break the driver-adapter setup
-this app depends on — `new PrismaClient()` without an adapter throws under Prisma 7. The fix is
-worse than the finding. Re-check when Prisma ships a release that drops these transitives.
+Не применяйте `npm audit fix --force` без проверки предлагаемого изменения: несогласованная смена major-версии Prisma относительно `@prisma/client` и driver adapter может сломать приложение. Обновление зависимостей проверяйте сборкой и тестами на отдельной БД.
 
 ## Notes
 - The Prisma pg driver adapter (`lib/db/client.ts`) uses a connection pool — use a **pooled**
