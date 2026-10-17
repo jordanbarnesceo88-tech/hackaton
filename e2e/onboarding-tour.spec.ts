@@ -4,9 +4,12 @@ import { test, expect } from "@playwright/test";
 // playwright.config.ts).
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test("тур открывается сам при первом визите, «Пропустить» закрывает его насовсем", async ({ page }) => {
+test("первый визит не перекрывает расчёт; тур открывается по кнопке и закрывается", async ({ page }) => {
   await page.goto("/");
   const tour = page.getByRole("dialog");
+  await expect(tour).toBeHidden();
+  await expect(page.getByRole("link", { name: "Открыть демо-расчёт склада" })).toBeVisible();
+  await page.getByRole("button", { name: "Как это работает" }).click();
   await expect(tour).toBeVisible();
   await expect(tour.getByText("Шаг 1 из 8")).toBeVisible();
   // Фокус — на главном действии тура, а не на первой кнопке по порядку.
@@ -24,6 +27,9 @@ test("тур открывается сам при первом визите, «�
 test("«Назад»/«Далее» листают шаги; «Как это работает» открывает тур с первого шага", async ({ page }) => {
   await page.goto("/");
   const tour = page.getByRole("dialog");
+  await expect(tour).toBeHidden();
+  await expect(page.getByRole("link", { name: "Открыть демо-расчёт склада" })).toBeVisible();
+  await page.getByRole("button", { name: "Как это работает" }).click();
   await expect(tour).toBeVisible();
   // На первом шаге «Назад» нет.
   await expect(tour.getByRole("button", { name: "Назад" })).toHaveCount(0);

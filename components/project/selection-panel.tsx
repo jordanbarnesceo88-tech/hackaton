@@ -135,7 +135,7 @@ const BADGE_CLASS = "badge";
 // своей колонки на ~190px, и «Использовать в сценариях» — главное действие строки — уезжало
 // за правый край, к нему надо было сначала прокрутить вбок. Фон — тон страницы, на которой
 // стоит таблица; линия слева отделяет прижатую колонку от уходящих под неё.
-const STICKY_ACTIONS_CLASS = "sticky right-0 bg-background shadow-[inset_1px_0_0_var(--border)]";
+const STICKY_ACTIONS_CLASS = "sm:sticky sm:right-0 bg-background sm:shadow-[inset_1px_0_0_var(--border)]";
 
 function TextList({ items, empty = "—" }: { items: readonly string[]; empty?: string }) {
   if (items.length === 0) return <span className="text-muted-foreground">{empty}</span>;
@@ -187,12 +187,12 @@ function ResultsTable({
   onSubmitManual,
   caption,
 }: TableProps) {
-  const colCount = actions ? 7 : 6;
+  const colCount = actions ? 4 : 3;
   return (
     <div className="data-table-wrap">
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full border-collapse text-sm max-sm:block">
         <caption className="sr-only">{caption}</caption>
-        <thead className="border-b text-left text-xs text-muted-foreground">
+        <thead className="sr-only border-b text-left text-xs text-muted-foreground sm:not-sr-only sm:table-header-group">
           <tr>
             <th scope="col" className="px-3 py-2 font-medium">
               Продукт
@@ -201,16 +201,7 @@ function ResultsTable({
               Статус
             </th>
             <th scope="col" className="px-3 py-2 font-medium">
-              Балл
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Причины
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Ограничения
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              Недостающие данные
+              Основание выбора
             </th>
             {actions && (
               <th scope="col" className={cn(STICKY_ACTIONS_CLASS, "px-3 py-2 font-medium")}>
@@ -219,7 +210,7 @@ function ResultsTable({
             )}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="max-sm:grid max-sm:gap-3">
           {rows.map((r) => {
             const manufacturer = manufacturers.get(r.productSlug) ?? null;
             const used = isInScenarios(inScenarios, r);
@@ -227,7 +218,7 @@ function ResultsTable({
             const reasonId = `${formId}-${r.productSlug}-reason`;
             return (
               <Fragment key={r.productSlug}>
-                <tr className={cn("border-t align-top", r.status === "recommended" && "bg-positive/5")}>
+                <tr className={cn("border-t align-top max-sm:grid max-sm:min-w-0 max-sm:rounded max-sm:border", r.status === "recommended" && "bg-positive/5")}>
                   <th scope="row" className="min-w-36 px-3 py-2 text-left font-normal">
                     <Link
                       href={`/catalog/${encodeURIComponent(r.productSlug)}`}
@@ -246,16 +237,13 @@ function ResultsTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="max-w-xl min-w-56 px-3 py-2 text-xs max-sm:min-w-0">
+                    <TextList items={r.reasons.slice(0,2)} />
+                    <details className="mt-2"><summary className="cursor-pointer py-1 font-medium text-primary">Балл, ограничения и качество данных</summary><div className="grid gap-3 py-2">
                     <ScoreBar score={r.score} />
-                  </td>
-                  <td className="max-w-72 min-w-52 px-3 py-2 text-xs">
-                    <TextList items={r.reasons} />
-                  </td>
-                  <td className="max-w-72 min-w-52 px-3 py-2 text-xs">
-                    <TextList items={r.limitations} empty="нет" />
-                  </td>
-                  <td className="max-w-64 min-w-44 px-3 py-2 text-xs">
+                    {r.reasons.length > 2 && <div><p className="mb-1 font-medium">Остальные основания</p><TextList items={r.reasons.slice(2)} /></div>}
+                    <div><p className="mb-1 font-medium">Ограничения</p><TextList items={r.limitations} empty="нет" /></div>
+                    <div><p className="mb-1 font-medium">Недостающие данные</p>
                     {r.missing.length === 0 ? (
                       <span className="text-muted-foreground">нет</span>
                     ) : (
@@ -267,7 +255,8 @@ function ResultsTable({
                           </li>
                         ))}
                       </ul>
-                    )}
+                    )}</div>
+                    </div></details>
                   </td>
                   {actions && (
                     <td
@@ -404,7 +393,10 @@ export function SelectionPanel({
       ) : (
         <>
           {active.length > 0 ? (
-            <ResultsTable rows={active} caption={`Подбор решений: ${process.name}`} {...tableProps} />
+            <>
+              <ResultsTable rows={active.slice(0,3)} caption={`Подбор решений: ${process.name}`} {...tableProps} />
+              {active.length > 3 && <details><summary className="cursor-pointer py-2 text-sm font-medium text-primary">Все остальные решения ({active.length - 3})</summary><ResultsTable rows={active.slice(3)} caption={`Другие решения: ${process.name}`} {...tableProps} /></details>}
+            </>
           ) : (
             <p data-tone="warn" className="callout">
               Ни одно решение не прошло проверку ограничений объекта — причины ниже, в исключённых решениях.

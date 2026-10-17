@@ -231,7 +231,7 @@ export function coverage(n: number, thrEff: number, utilization: number, availab
   return Math.min(1, (n * thrEff * utilization * availability) / peakPerH);
 }
 
-export type ChargersResult = { count: number; method: "charge" | "ratio" | "none"; substituted: string };
+export type ChargersResult = { count: number; method: "charge" | "ratio" | "none" | "override"; substituted: string };
 
 /**
  * Число зарядных станций. Для мобильного робота с опубликованными автономностью и временем

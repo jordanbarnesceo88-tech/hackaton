@@ -1,0 +1,3004 @@
+{
+  "at": "2026-10-17T19:40:52.231Z",
+  "versions": {
+    "finance": "tz-1.0.4",
+    "baseSim": "sim-1.1.0",
+    "spatial": "warehouse-demo-incidents-1.4.0"
+  },
+  "source": "Current source + immutable saved organizer params/norms/product snapshot; no DB writes",
+  "conditions": {
+    "fleet": 14,
+    "chargers": 1,
+    "annualCoverageShare": 1,
+    "cashRealizationShare": 1,
+    "seed": 1,
+    "sourceUnchanged": true,
+    "physicalUnchangedAcrossMoneyCases": true,
+    "physicalInputKeySha256": "1eb5ba7b7d9e771848b24a09e27aa421fef2f9b803a568c251cb9f580e96f068"
+  },
+  "staffingBudget": {
+    "legacyAnnualRub": 7630657.07045109,
+    "breakEvenAnnualRub": 2538597.7559886957,
+    "actualMoneyEngineNpvAtThreshold": -9.313225746154785e-10
+  },
+  "moneyCases": [
+    {
+      "name": "legacy",
+      "ms": 11.4572,
+      "staffing": "legacy-default",
+      "package": null,
+      "fleet": 14,
+      "chargers": 1,
+      "staffRubYear": 7630657.07045109,
+      "capexRub": 47740000,
+      "opexYearRub": 38999108.87045109,
+      "effectYearRub": 7872891.129548907,
+      "npvRub": -18355734.237703256,
+      "paybackYears": 6.063846078198639,
+      "discountedPaybackYears": null,
+      "releasedFte": 11.875,
+      "remainingLabourRub": 24607800
+    },
+    {
+      "name": "dedicated",
+      "ms": 9.591099999999983,
+      "staffing": {
+        "mode": "dedicated",
+        "grossSalaryRubMonth": 120000,
+        "payrollMultiplier": 1.302,
+        "annualHoursPerFte": 1973,
+        "reason": "Оценка: отдельный пост на всё время работы; параметры повторяют прежнюю модель"
+      },
+      "package": null,
+      "fleet": 14,
+      "chargers": 1,
+      "staffRubYear": 7630657.07045109,
+      "capexRub": 47740000,
+      "opexYearRub": 38999108.87045109,
+      "effectYearRub": 7872891.129548907,
+      "npvRub": -18355734.237703256,
+      "paybackYears": 6.063846078198639,
+      "discountedPaybackYears": null,
+      "releasedFte": 11.875,
+      "remainingLabourRub": 24607800
+    },
+    {
+      "name": "shared",
+      "ms": 9.432999999999993,
+      "staffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      },
+      "package": null,
+      "fleet": 14,
+      "chargers": 1,
+      "staffRubYear": 285138,
+      "capexRub": 47740000,
+      "opexYearRub": 31653589.8,
+      "effectYearRub": 15218410.2,
+      "npvRub": 8123218.101330245,
+      "paybackYears": 3.1369899597002586,
+      "discountedPaybackYears": 4.114302880112573,
+      "releasedFte": 11.875,
+      "remainingLabourRub": 24607800
+    },
+    {
+      "name": "integrator",
+      "ms": 7.59499999999997,
+      "staffing": {
+        "mode": "integrator",
+        "billing": "separate",
+        "annualFeeRub": 900000,
+        "reason": "Учебная оценка 900000 ₽/год за площадку, не коммерческое предложение"
+      },
+      "package": null,
+      "fleet": 14,
+      "chargers": 1,
+      "staffRubYear": 900000,
+      "capexRub": 47740000,
+      "opexYearRub": 32268451.8,
+      "effectYearRub": 14603548.2,
+      "npvRub": 5906778.196003986,
+      "paybackYears": 3.269068540479772,
+      "discountedPaybackYears": 4.33049945922059,
+      "releasedFte": 11.875,
+      "remainingLabourRub": 24607800
+    },
+    {
+      "name": "included",
+      "ms": 8.700099999999964,
+      "staffing": {
+        "mode": "integrator",
+        "billing": "included-in-service",
+        "reason": "Условное включение эксплуатации в уже оплаченный положительный сервис; требуется подтверждение договора"
+      },
+      "package": null,
+      "fleet": 14,
+      "chargers": 1,
+      "staffRubYear": 0,
+      "capexRub": 47740000,
+      "opexYearRub": 31368451.8,
+      "effectYearRub": 15503548.2,
+      "npvRub": 9151076.778114496,
+      "paybackYears": 3.0792950996856323,
+      "discountedPaybackYears": 4.019529027356059,
+      "releasedFte": 11.875,
+      "remainingLabourRub": 24607800
+    },
+    {
+      "name": "conditional-package-only",
+      "ms": 9.26849999999996,
+      "staffing": "legacy-default",
+      "package": {
+        "softwareIncludedInIntegration": true,
+        "repairsIncludedInService": true,
+        "includedChargers": 0,
+        "reason": "Отдельное условное сравнение: ПО включено в интеграцию, весь моделируемый ремонт включён в оплаченный сервис; зарядка приобретается отдельно. Договор не подтверждён"
+      },
+      "fleet": 14,
+      "chargers": 1,
+      "staffRubYear": 7630657.07045109,
+      "capexRub": 46640000,
+      "opexYearRub": 38243108.87045109,
+      "effectYearRub": 8628891.129548907,
+      "npvRub": -14530523.428730436,
+      "paybackYears": 5.405097746602141,
+      "discountedPaybackYears": null,
+      "releasedFte": 11.875,
+      "remainingLabourRub": 24607800
+    },
+    {
+      "name": "shared-plus-conditional-package",
+      "ms": 9.236100000000022,
+      "staffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      },
+      "package": {
+        "softwareIncludedInIntegration": true,
+        "repairsIncludedInService": true,
+        "includedChargers": 0,
+        "reason": "Отдельное условное сравнение: ПО включено в интеграцию, весь моделируемый ремонт включён в оплаченный сервис; зарядка приобретается отдельно. Договор не подтверждён"
+      },
+      "fleet": 14,
+      "chargers": 1,
+      "staffRubYear": 285138,
+      "capexRub": 46640000,
+      "opexYearRub": 30897589.8,
+      "effectYearRub": 15974410.2,
+      "npvRub": 11948428.91030307,
+      "paybackYears": 2.9196696100867627,
+      "discountedPaybackYears": 3.7188254338885325,
+      "releasedFte": 11.875,
+      "remainingLabourRub": 24607800
+    }
+  ],
+  "matchedRows": [
+    {
+      "product": "ronavi-h1500",
+      "kind": "purchase",
+      "canAdopt": true,
+      "fleetBasis": "source-fixed",
+      "chargersBasis": "source-fixed",
+      "financial": {
+        "fleet": 14,
+        "chargers": 1,
+        "capexRub": 47740000,
+        "opexYearRub": 31653589.8,
+        "npvRub": 8123218.101330245,
+        "paybackYears": 3.1369899597002586
+      },
+      "priorPhysicalState": "confirmed"
+    },
+    {
+      "product": "ronavi-h1500",
+      "kind": "raas",
+      "canAdopt": true,
+      "fleetBasis": "source-fixed",
+      "chargersBasis": "source-fixed",
+      "financial": {
+        "fleet": 14,
+        "chargers": 1,
+        "capexRub": 1540000,
+        "opexYearRub": 42174589.8,
+        "npvRub": 15393112.501612699,
+        "paybackYears": 0.32784022140540314
+      },
+      "priorPhysicalState": "confirmed"
+    },
+    {
+      "product": "moros-amr-1500",
+      "kind": "purchase",
+      "canAdopt": true,
+      "fleetBasis": "auto",
+      "chargersBasis": "auto",
+      "financial": {
+        "fleet": 11,
+        "chargers": 2,
+        "capexRub": 32780000,
+        "opexYearRub": 29506378.7,
+        "npvRub": 30462114.25385455,
+        "paybackYears": 1.8876376165130353
+      },
+      "priorPhysicalState": "not-checked"
+    },
+    {
+      "product": "moros-amr-1500",
+      "kind": "raas",
+      "canAdopt": false,
+      "fleetBasis": "auto",
+      "chargersBasis": "auto",
+      "financial": {
+        "reason": "raas_rate_required",
+        "fields": [
+          "item:pallet-transport:raasRate"
+        ],
+        "message": "Нет ставки RaaS для «AMR 1500 (грузоподъемность до 1 500 кг)»: укажите ставку, ₽/мес за робота, или нажмите «Подставить оценку (5,2 % цены в месяц)»"
+      },
+      "priorPhysicalState": "unavailable"
+    },
+    {
+      "product": "moros-amr-800",
+      "kind": "purchase",
+      "canAdopt": true,
+      "fleetBasis": "auto",
+      "chargersBasis": "auto",
+      "financial": {
+        "fleet": 9,
+        "chargers": 2,
+        "capexRub": 23760000,
+        "opexYearRub": 28037571.3,
+        "npvRub": 44564295.43745765,
+        "paybackYears": 1.2615195490373436
+      },
+      "priorPhysicalState": "not-checked"
+    },
+    {
+      "product": "moros-amr-800",
+      "kind": "raas",
+      "canAdopt": false,
+      "fleetBasis": "auto",
+      "chargersBasis": "auto",
+      "financial": {
+        "reason": "raas_rate_required",
+        "fields": [
+          "item:pallet-transport:raasRate"
+        ],
+        "message": "Нет ставки RaaS для «AMR 800 (грузоподъемность до 800 кг)»: укажите ставку, ₽/мес за робота, или нажмите «Подставить оценку (5,2 % цены в месяц)»"
+      },
+      "priorPhysicalState": "unavailable"
+    }
+  ],
+  "physicalRuns": [
+    {
+      "product": "ronavi-h1500",
+      "kind": "purchase",
+      "ms": 758.1786999999999,
+      "modelVersion": "warehouse-demo-incidents-1.4.0",
+      "assessment": {
+        "schemaVersion": "demo-assessment-1",
+        "kind": "warehouse",
+        "status": "OK",
+        "observedAtS": 8100,
+        "endS": 8100,
+        "terminal": true,
+        "scope": "modeled-flow",
+        "headline": "Заданные критерии модели выполнены; фактический результат пилота не проверен.",
+        "checks": [
+          {
+            "id": "validity",
+            "label": "Корректность состояния",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "precheck": "ok",
+              "arrivedTotal": 290,
+              "completedTotal": 286,
+              "pending": 0,
+              "active": 4
+            },
+            "limit": {
+              "precheck": "ok",
+              "taskConservation": true,
+              "uniqueAssignment": true
+            },
+            "unit": "заданий",
+            "measuredText": "290 поступило = 286 завершено + 0 в очереди + 4 в работе",
+            "limitText": "Сохранение заданий и единственное назначение",
+            "why": "Задания должны сохраняться между поступлением, очередью, работой и завершением; вход должен поддерживаться движком.",
+            "action": "При нарушении инварианта исправить модель до интерпретации производительности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "exposure",
+            "label": "Нагрузка прогона",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "peakWindowMin": 120,
+              "arrived": 263,
+              "arrivedPerH": 131.5
+            },
+            "limit": {
+              "nominalPerH": 129.54545454545453,
+              "horizonMin": 120
+            },
+            "unit": "пал./ч",
+            "measuredText": "263 поступлений за 120 мин; 131.5 пал./ч",
+            "limitText": "Номинал 129.55 пал./ч; окно 120 мин",
+            "why": "Поток случайный: фактически поступившая нагрузка может отличаться от номинальной.",
+            "action": "Показывать реальный поток рядом с номинальным; при недостаточной нагрузке выполнить отдельный нагруженный прогон.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "intake_sla",
+            "label": "Начало заданий и очередь",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "startedShare": 1,
+              "pendingEnd": 0,
+              "waitToStartP95Min": 1.05,
+              "socFloorHit": false
+            },
+            "limit": {
+              "startedShareMin": 0.97,
+              "pendingEndMax": 6.477272727272727,
+              "waitToStartP95MaxMin": 10,
+              "socFloorHit": false
+            },
+            "unit": "мин",
+            "measuredText": "100% назначено; очередь 0; p95 до назначения 1.05 мин",
+            "limitText": "Назначено ≥97%; очередь ≤6.48; p95 ≤10 мин; без SOC=0",
+            "why": "Это исходные критерии приёма: назначение роботу и ожидание до старта. Они не доказывают доставку паллет и не являются временем полного цикла.",
+            "action": "Отдельно оценить выходной поток и незавершённые перевозки.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 13
+              },
+              {
+                "tS": 8100,
+                "taskId": 286,
+                "robotId": 12
+              },
+              {
+                "tS": 8100,
+                "taskId": 288,
+                "robotId": 0
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "throughput",
+            "label": "Выходной поток",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "requiredPerH": 129.54545454545453,
+              "arrivedPerH": 131.5,
+              "achievedPerH": 133.5,
+              "completedDuringPeak": 267,
+              "arrivedPeak": 263,
+              "completedPeakCohort": 259
+            },
+            "limit": {
+              "achievedPerHMin": 129.54545454545453
+            },
+            "unit": "пал./ч",
+            "measuredText": "Доставлено 133.5; поступило 131.5; номинал 129.55 пал./ч",
+            "limitText": "Доставлено ≥129.55 пал./ч при достаточной нагрузке",
+            "why": "Завершённые за пиковое окно перевозки достигли номинального потока. Среди них могут быть задания прогрева; когорта поступлений окна показана отдельно.",
+            "action": "Подтвердить производительность измерениями ограниченного пилота.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 13
+              },
+              {
+                "tS": 8100,
+                "taskId": 286,
+                "robotId": 12
+              },
+              {
+                "tS": 8100,
+                "taskId": 288,
+                "robotId": 0
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "unfinished",
+            "label": "Остаток и цензурирование",
+            "category": "operation",
+            "status": "WARN",
+            "measured": {
+              "pending": 0,
+              "active": 4,
+              "completedTotal": 286,
+              "completedPeakCohort": 259,
+              "arrivedPeakCohort": 263,
+              "oldestUnfinishedAgeS": 237
+            },
+            "limit": null,
+            "unit": "заданий",
+            "measuredText": "0 в очереди, 4 в работе; завершено 259/263 поступлений окна",
+            "limitText": "Остаток показывается отдельно; конец окна не означает завершение всех заданий",
+            "why": "Ожидание ещё не назначенных заданий измерено лишь до текущего времени, а полный цикл незавершённых заданий пока неизвестен.",
+            "action": "Перейти к старейшим заданиям и проверить их фактические причины ожидания.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 13
+              },
+              {
+                "tS": 8100,
+                "taskId": 286,
+                "robotId": 12
+              },
+              {
+                "tS": 8100,
+                "taskId": 288,
+                "robotId": 0
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "traffic_wait",
+            "label": "Защитное ожидание и выпуск на маршруты",
+            "category": "operation",
+            "status": "WARN",
+            "measured": {
+              "totalWaitS": 3409,
+              "maxCurrentWaitS": 3,
+              "detours": 504,
+              "routeAdmissionLimit": 10,
+              "waiting": [
+                {
+                  "robotId": 10,
+                  "blockedBy": 0,
+                  "reason": "Защитная остановка: уступает роботу 1",
+                  "waitS": 3,
+                  "totalWaitS": 271
+                },
+                {
+                  "robotId": 0,
+                  "blockedBy": 10,
+                  "reason": "Защитная остановка: уступает роботу 11",
+                  "waitS": 2,
+                  "totalWaitS": 262
+                }
+              ],
+              "largestAccumulatedWait": {
+                "robotId": 10,
+                "blockedBy": 0,
+                "reason": "Защитная остановка: уступает роботу 1",
+                "waitS": 3,
+                "totalWaitS": 271
+              }
+            },
+            "limit": {
+              "maxActiveRoutes": 10
+            },
+            "unit": "робото·с",
+            "measuredText": "3409 робото·с ожидания; максимум сейчас 3 с; 504 объездов; лимит выпуска 10",
+            "limitText": "Выполняемых заданий и поездок к зарядке ≤10; возврат без задания и стоянка на зарядке не занимают лимит (настройка диспетчера)",
+            "why": "Наблюдаем защитное ожидание и ограничение выпуска. Эти числа сами по себе не доказывают нехватку роботов, конкретную причину затора или взаимную блокировку.",
+            "action": "Перейти к роботу и проверить его маршрут, текущую причину ожидания и указанную уступающую пару.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "robotId": 10,
+                "x": 39.18932188134522,
+                "y": 36
+              },
+              {
+                "tS": 8100,
+                "robotId": 0,
+                "x": 36.52893218813452,
+                "y": 35.35533905932738
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "safety",
+            "label": "Габариты и защитный зазор",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "collisionPoseSamples": 0,
+              "minimumObservedSurfaceGapM": 0.1572875253809798
+            },
+            "limit": {
+              "collisions": 0,
+              "minimumSurfaceGapM": 0.15
+            },
+            "unit": "м",
+            "measuredText": "0 пересечений на шагах; минимальный зазор 0.16 м",
+            "limitText": "Без пересечений; зазор ≥ 0.15 м",
+            "why": "Проверка относится к модельным корпусам и каноническим позам. Весь ход отдельно защищён резервированием траекторий; люди и тормозной путь не моделируются.",
+            "action": "На реальном объекте подтвердить габариты, зазоры и требования безопасности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "energy",
+            "label": "Работа без запаса энергии",
+            "category": "safety",
+            "status": "PASS",
+            "measured": 0,
+            "limit": {
+              "zeroSocOperationRobotSeconds": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 робото·с операций при SOC = 0",
+            "limitText": "0 робото·с операций при SOC = 0",
+            "why": "Нулевой SOC на стоянке отличается от движения, работы инструмента или погрузки без энергии. Учитываются операции, начатые при SOC = 0. Переход через ноль внутри шага отдельно не измерен.",
+            "action": "Проверить автономность и зарядку измерениями пилота.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "incidents",
+            "label": "Инциденты и простой",
+            "category": "operation",
+            "status": "PASS",
+            "measured": {
+              "enabled": false,
+              "simulation": true,
+              "workflow": "automatic-demo",
+              "detected": 0,
+              "active": 0,
+              "resolved": 0,
+              "stoppedRobotSeconds": 0,
+              "warningRobotSeconds": 0,
+              "downtimeByRobotS": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "limit": {
+              "unresolvedCritical": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 активных, 0 закрытых; 0 робото·с остановки",
+            "limitText": "Активных критических инцидентов к завершению: 0",
+            "why": "Инциденты и все этапы восстановления заданы автоматическим учебным расписанием. Закрытие в модели не доказывает реальный ремонт и не объясняет причину неисправности.",
+            "action": "На пилоте фиксировать реальные сигналы, вмешательства и время восстановления.",
+            "evidence": [],
+            "affectsOverall": true
+          },
+          {
+            "id": "readiness",
+            "label": "Готовность реального пилота",
+            "category": "readiness",
+            "status": "NOT_EVALUATED",
+            "measured": null,
+            "limit": null,
+            "unit": "",
+            "measuredText": "Модель; реальные измерения не получены",
+            "limitText": "Согласованный участок, KPI, цены, процессы и измерения",
+            "why": "Модельный результат не является фактом эксплуатации, качеством уборки или подтверждением окупаемости.",
+            "action": "Подготовить инфраструктуру, карту, доступы, цены и план измерений ограниченного пилота.",
+            "evidence": [],
+            "affectsOverall": false
+          }
+        ]
+      },
+      "summary": {
+        "fleet": 14,
+        "requiredPerH": 129.54545454545453,
+        "achievedPerH": 133.5,
+        "queueEnd": 0,
+        "waitP95Min": 1.05
+      },
+      "scope": "canonical source without scripted faults; conditional fixed reference body, not calibrated product geometry",
+      "sourceInputKeySha256": "1eb5ba7b7d9e771848b24a09e27aa421fef2f9b803a568c251cb9f580e96f068",
+      "executionInputKeySha256": "5de1852278f0aaf2c851ffd8cd1f0ec9b268b66e34018826d5aaf16e173d9329"
+    },
+    {
+      "product": "ronavi-h1500",
+      "kind": "raas",
+      "ms": 758.1786999999999,
+      "modelVersion": "warehouse-demo-incidents-1.4.0",
+      "assessment": {
+        "schemaVersion": "demo-assessment-1",
+        "kind": "warehouse",
+        "status": "OK",
+        "observedAtS": 8100,
+        "endS": 8100,
+        "terminal": true,
+        "scope": "modeled-flow",
+        "headline": "Заданные критерии модели выполнены; фактический результат пилота не проверен.",
+        "checks": [
+          {
+            "id": "validity",
+            "label": "Корректность состояния",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "precheck": "ok",
+              "arrivedTotal": 290,
+              "completedTotal": 286,
+              "pending": 0,
+              "active": 4
+            },
+            "limit": {
+              "precheck": "ok",
+              "taskConservation": true,
+              "uniqueAssignment": true
+            },
+            "unit": "заданий",
+            "measuredText": "290 поступило = 286 завершено + 0 в очереди + 4 в работе",
+            "limitText": "Сохранение заданий и единственное назначение",
+            "why": "Задания должны сохраняться между поступлением, очередью, работой и завершением; вход должен поддерживаться движком.",
+            "action": "При нарушении инварианта исправить модель до интерпретации производительности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "exposure",
+            "label": "Нагрузка прогона",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "peakWindowMin": 120,
+              "arrived": 263,
+              "arrivedPerH": 131.5
+            },
+            "limit": {
+              "nominalPerH": 129.54545454545453,
+              "horizonMin": 120
+            },
+            "unit": "пал./ч",
+            "measuredText": "263 поступлений за 120 мин; 131.5 пал./ч",
+            "limitText": "Номинал 129.55 пал./ч; окно 120 мин",
+            "why": "Поток случайный: фактически поступившая нагрузка может отличаться от номинальной.",
+            "action": "Показывать реальный поток рядом с номинальным; при недостаточной нагрузке выполнить отдельный нагруженный прогон.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "intake_sla",
+            "label": "Начало заданий и очередь",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "startedShare": 1,
+              "pendingEnd": 0,
+              "waitToStartP95Min": 1.05,
+              "socFloorHit": false
+            },
+            "limit": {
+              "startedShareMin": 0.97,
+              "pendingEndMax": 6.477272727272727,
+              "waitToStartP95MaxMin": 10,
+              "socFloorHit": false
+            },
+            "unit": "мин",
+            "measuredText": "100% назначено; очередь 0; p95 до назначения 1.05 мин",
+            "limitText": "Назначено ≥97%; очередь ≤6.48; p95 ≤10 мин; без SOC=0",
+            "why": "Это исходные критерии приёма: назначение роботу и ожидание до старта. Они не доказывают доставку паллет и не являются временем полного цикла.",
+            "action": "Отдельно оценить выходной поток и незавершённые перевозки.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 13
+              },
+              {
+                "tS": 8100,
+                "taskId": 286,
+                "robotId": 12
+              },
+              {
+                "tS": 8100,
+                "taskId": 288,
+                "robotId": 0
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "throughput",
+            "label": "Выходной поток",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "requiredPerH": 129.54545454545453,
+              "arrivedPerH": 131.5,
+              "achievedPerH": 133.5,
+              "completedDuringPeak": 267,
+              "arrivedPeak": 263,
+              "completedPeakCohort": 259
+            },
+            "limit": {
+              "achievedPerHMin": 129.54545454545453
+            },
+            "unit": "пал./ч",
+            "measuredText": "Доставлено 133.5; поступило 131.5; номинал 129.55 пал./ч",
+            "limitText": "Доставлено ≥129.55 пал./ч при достаточной нагрузке",
+            "why": "Завершённые за пиковое окно перевозки достигли номинального потока. Среди них могут быть задания прогрева; когорта поступлений окна показана отдельно.",
+            "action": "Подтвердить производительность измерениями ограниченного пилота.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 13
+              },
+              {
+                "tS": 8100,
+                "taskId": 286,
+                "robotId": 12
+              },
+              {
+                "tS": 8100,
+                "taskId": 288,
+                "robotId": 0
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "unfinished",
+            "label": "Остаток и цензурирование",
+            "category": "operation",
+            "status": "WARN",
+            "measured": {
+              "pending": 0,
+              "active": 4,
+              "completedTotal": 286,
+              "completedPeakCohort": 259,
+              "arrivedPeakCohort": 263,
+              "oldestUnfinishedAgeS": 237
+            },
+            "limit": null,
+            "unit": "заданий",
+            "measuredText": "0 в очереди, 4 в работе; завершено 259/263 поступлений окна",
+            "limitText": "Остаток показывается отдельно; конец окна не означает завершение всех заданий",
+            "why": "Ожидание ещё не назначенных заданий измерено лишь до текущего времени, а полный цикл незавершённых заданий пока неизвестен.",
+            "action": "Перейти к старейшим заданиям и проверить их фактические причины ожидания.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 13
+              },
+              {
+                "tS": 8100,
+                "taskId": 286,
+                "robotId": 12
+              },
+              {
+                "tS": 8100,
+                "taskId": 288,
+                "robotId": 0
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "traffic_wait",
+            "label": "Защитное ожидание и выпуск на маршруты",
+            "category": "operation",
+            "status": "WARN",
+            "measured": {
+              "totalWaitS": 3409,
+              "maxCurrentWaitS": 3,
+              "detours": 504,
+              "routeAdmissionLimit": 10,
+              "waiting": [
+                {
+                  "robotId": 10,
+                  "blockedBy": 0,
+                  "reason": "Защитная остановка: уступает роботу 1",
+                  "waitS": 3,
+                  "totalWaitS": 271
+                },
+                {
+                  "robotId": 0,
+                  "blockedBy": 10,
+                  "reason": "Защитная остановка: уступает роботу 11",
+                  "waitS": 2,
+                  "totalWaitS": 262
+                }
+              ],
+              "largestAccumulatedWait": {
+                "robotId": 10,
+                "blockedBy": 0,
+                "reason": "Защитная остановка: уступает роботу 1",
+                "waitS": 3,
+                "totalWaitS": 271
+              }
+            },
+            "limit": {
+              "maxActiveRoutes": 10
+            },
+            "unit": "робото·с",
+            "measuredText": "3409 робото·с ожидания; максимум сейчас 3 с; 504 объездов; лимит выпуска 10",
+            "limitText": "Выполняемых заданий и поездок к зарядке ≤10; возврат без задания и стоянка на зарядке не занимают лимит (настройка диспетчера)",
+            "why": "Наблюдаем защитное ожидание и ограничение выпуска. Эти числа сами по себе не доказывают нехватку роботов, конкретную причину затора или взаимную блокировку.",
+            "action": "Перейти к роботу и проверить его маршрут, текущую причину ожидания и указанную уступающую пару.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "robotId": 10,
+                "x": 39.18932188134522,
+                "y": 36
+              },
+              {
+                "tS": 8100,
+                "robotId": 0,
+                "x": 36.52893218813452,
+                "y": 35.35533905932738
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "safety",
+            "label": "Габариты и защитный зазор",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "collisionPoseSamples": 0,
+              "minimumObservedSurfaceGapM": 0.1572875253809798
+            },
+            "limit": {
+              "collisions": 0,
+              "minimumSurfaceGapM": 0.15
+            },
+            "unit": "м",
+            "measuredText": "0 пересечений на шагах; минимальный зазор 0.16 м",
+            "limitText": "Без пересечений; зазор ≥ 0.15 м",
+            "why": "Проверка относится к модельным корпусам и каноническим позам. Весь ход отдельно защищён резервированием траекторий; люди и тормозной путь не моделируются.",
+            "action": "На реальном объекте подтвердить габариты, зазоры и требования безопасности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "energy",
+            "label": "Работа без запаса энергии",
+            "category": "safety",
+            "status": "PASS",
+            "measured": 0,
+            "limit": {
+              "zeroSocOperationRobotSeconds": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 робото·с операций при SOC = 0",
+            "limitText": "0 робото·с операций при SOC = 0",
+            "why": "Нулевой SOC на стоянке отличается от движения, работы инструмента или погрузки без энергии. Учитываются операции, начатые при SOC = 0. Переход через ноль внутри шага отдельно не измерен.",
+            "action": "Проверить автономность и зарядку измерениями пилота.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "incidents",
+            "label": "Инциденты и простой",
+            "category": "operation",
+            "status": "PASS",
+            "measured": {
+              "enabled": false,
+              "simulation": true,
+              "workflow": "automatic-demo",
+              "detected": 0,
+              "active": 0,
+              "resolved": 0,
+              "stoppedRobotSeconds": 0,
+              "warningRobotSeconds": 0,
+              "downtimeByRobotS": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "limit": {
+              "unresolvedCritical": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 активных, 0 закрытых; 0 робото·с остановки",
+            "limitText": "Активных критических инцидентов к завершению: 0",
+            "why": "Инциденты и все этапы восстановления заданы автоматическим учебным расписанием. Закрытие в модели не доказывает реальный ремонт и не объясняет причину неисправности.",
+            "action": "На пилоте фиксировать реальные сигналы, вмешательства и время восстановления.",
+            "evidence": [],
+            "affectsOverall": true
+          },
+          {
+            "id": "readiness",
+            "label": "Готовность реального пилота",
+            "category": "readiness",
+            "status": "NOT_EVALUATED",
+            "measured": null,
+            "limit": null,
+            "unit": "",
+            "measuredText": "Модель; реальные измерения не получены",
+            "limitText": "Согласованный участок, KPI, цены, процессы и измерения",
+            "why": "Модельный результат не является фактом эксплуатации, качеством уборки или подтверждением окупаемости.",
+            "action": "Подготовить инфраструктуру, карту, доступы, цены и план измерений ограниченного пилота.",
+            "evidence": [],
+            "affectsOverall": false
+          }
+        ]
+      },
+      "summary": {
+        "fleet": 14,
+        "requiredPerH": 129.54545454545453,
+        "achievedPerH": 133.5,
+        "queueEnd": 0,
+        "waitP95Min": 1.05
+      },
+      "scope": "canonical source without scripted faults; conditional fixed reference body, not calibrated product geometry",
+      "sourceInputKeySha256": "1eb5ba7b7d9e771848b24a09e27aa421fef2f9b803a568c251cb9f580e96f068",
+      "executionInputKeySha256": "5de1852278f0aaf2c851ffd8cd1f0ec9b268b66e34018826d5aaf16e173d9329"
+    },
+    {
+      "product": "moros-amr-1500",
+      "kind": "purchase",
+      "ms": 533.8112000000001,
+      "modelVersion": "warehouse-demo-incidents-1.4.0",
+      "assessment": {
+        "schemaVersion": "demo-assessment-1",
+        "kind": "warehouse",
+        "status": "PARTIAL",
+        "observedAtS": 8100,
+        "endS": 8100,
+        "terminal": true,
+        "scope": "modeled-flow",
+        "headline": "Прогон завершён с ограничением: начало заданий и очередь.",
+        "checks": [
+          {
+            "id": "validity",
+            "label": "Корректность состояния",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "precheck": "ok",
+              "arrivedTotal": 290,
+              "completedTotal": 271,
+              "pending": 9,
+              "active": 10
+            },
+            "limit": {
+              "precheck": "ok",
+              "taskConservation": true,
+              "uniqueAssignment": true
+            },
+            "unit": "заданий",
+            "measuredText": "290 поступило = 271 завершено + 9 в очереди + 10 в работе",
+            "limitText": "Сохранение заданий и единственное назначение",
+            "why": "Задания должны сохраняться между поступлением, очередью, работой и завершением; вход должен поддерживаться движком.",
+            "action": "При нарушении инварианта исправить модель до интерпретации производительности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "exposure",
+            "label": "Нагрузка прогона",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "peakWindowMin": 120,
+              "arrived": 263,
+              "arrivedPerH": 131.5
+            },
+            "limit": {
+              "nominalPerH": 129.54545454545453,
+              "horizonMin": 120
+            },
+            "unit": "пал./ч",
+            "measuredText": "263 поступлений за 120 мин; 131.5 пал./ч",
+            "limitText": "Номинал 129.55 пал./ч; окно 120 мин",
+            "why": "Поток случайный: фактически поступившая нагрузка может отличаться от номинальной.",
+            "action": "Показывать реальный поток рядом с номинальным; при недостаточной нагрузке выполнить отдельный нагруженный прогон.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "intake_sla",
+            "label": "Начало заданий и очередь",
+            "category": "goal",
+            "status": "FAIL",
+            "measured": {
+              "startedShare": 0.9657794676806084,
+              "pendingEnd": 9,
+              "waitToStartP95Min": 7.116666666666666,
+              "socFloorHit": false
+            },
+            "limit": {
+              "startedShareMin": 0.97,
+              "pendingEndMax": 6.477272727272727,
+              "waitToStartP95MaxMin": 10,
+              "socFloorHit": false
+            },
+            "unit": "мин",
+            "measuredText": "96.58% назначено; очередь 9; p95 до назначения 7.12 мин",
+            "limitText": "Назначено ≥97%; очередь ≤6.48; p95 ≤10 мин; без SOC=0",
+            "why": "Это исходные критерии приёма: назначение роботу и ожидание до старта. Они не доказывают доставку паллет и не являются временем полного цикла.",
+            "action": "Отдельно оценить выходной поток и незавершённые перевозки.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 259,
+                "robotId": 1
+              },
+              {
+                "tS": 8100,
+                "taskId": 264,
+                "robotId": 8
+              },
+              {
+                "tS": 8100,
+                "taskId": 265,
+                "robotId": 2
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "throughput",
+            "label": "Выходной поток",
+            "category": "goal",
+            "status": "FAIL",
+            "measured": {
+              "requiredPerH": 129.54545454545453,
+              "arrivedPerH": 131.5,
+              "achievedPerH": 126,
+              "completedDuringPeak": 252,
+              "arrivedPeak": 263,
+              "completedPeakCohort": 244
+            },
+            "limit": {
+              "achievedPerHMin": 129.54545454545453
+            },
+            "unit": "пал./ч",
+            "measuredText": "Доставлено 126; поступило 131.5; номинал 129.55 пал./ч",
+            "limitText": "Доставлено ≥129.55 пал./ч при достаточной нагрузке",
+            "why": "Фактические поступления достигли номинала, но завершённых перевозок в час недостаточно.",
+            "action": "Проверить незавершённые задания, ограничения маршрутов, зарядки и диспетчеризации; не приписывать причину автоматически числу роботов.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 259,
+                "robotId": 1
+              },
+              {
+                "tS": 8100,
+                "taskId": 264,
+                "robotId": 8
+              },
+              {
+                "tS": 8100,
+                "taskId": 265,
+                "robotId": 2
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "unfinished",
+            "label": "Остаток и цензурирование",
+            "category": "operation",
+            "status": "WARN",
+            "measured": {
+              "pending": 9,
+              "active": 10,
+              "completedTotal": 271,
+              "completedPeakCohort": 244,
+              "arrivedPeakCohort": 263,
+              "oldestUnfinishedAgeS": 793
+            },
+            "limit": null,
+            "unit": "заданий",
+            "measuredText": "9 в очереди, 10 в работе; завершено 244/263 поступлений окна",
+            "limitText": "Остаток показывается отдельно; конец окна не означает завершение всех заданий",
+            "why": "Ожидание ещё не назначенных заданий измерено лишь до текущего времени, а полный цикл незавершённых заданий пока неизвестен.",
+            "action": "Перейти к старейшим заданиям и проверить их фактические причины ожидания.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 259,
+                "robotId": 1
+              },
+              {
+                "tS": 8100,
+                "taskId": 264,
+                "robotId": 8
+              },
+              {
+                "tS": 8100,
+                "taskId": 265,
+                "robotId": 2
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "traffic_wait",
+            "label": "Защитное ожидание и выпуск на маршруты",
+            "category": "operation",
+            "status": "WARN",
+            "measured": {
+              "totalWaitS": 2934,
+              "maxCurrentWaitS": 1,
+              "detours": 404,
+              "routeAdmissionLimit": 10,
+              "waiting": [
+                {
+                  "robotId": 5,
+                  "blockedBy": 6,
+                  "reason": "Защитная остановка: уступает роботу 7",
+                  "waitS": 1,
+                  "totalWaitS": 328
+                }
+              ],
+              "largestAccumulatedWait": {
+                "robotId": 5,
+                "blockedBy": 6,
+                "reason": "Защитная остановка: уступает роботу 7",
+                "waitS": 1,
+                "totalWaitS": 328
+              }
+            },
+            "limit": {
+              "maxActiveRoutes": 10
+            },
+            "unit": "робото·с",
+            "measuredText": "2934 робото·с ожидания; максимум сейчас 1 с; 404 объездов; лимит выпуска 10",
+            "limitText": "Выполняемых заданий и поездок к зарядке ≤10; возврат без задания и стоянка на зарядке не занимают лимит (настройка диспетчера)",
+            "why": "Наблюдаем защитное ожидание и ограничение выпуска. Эти числа сами по себе не доказывают нехватку роботов, конкретную причину затора или взаимную блокировку.",
+            "action": "Перейти к роботу и проверить его маршрут, текущую причину ожидания и указанную уступающую пару.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "robotId": 5,
+                "x": 128.63455967290594,
+                "y": 35.35533905932738
+              },
+              {
+                "tS": 8100,
+                "robotId": 6,
+                "x": 126.39999999999998,
+                "y": 37.59999999999999
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "safety",
+            "label": "Габариты и защитный зазор",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "collisionPoseSamples": 0,
+              "minimumObservedSurfaceGapM": 0.15281374238565348
+            },
+            "limit": {
+              "collisions": 0,
+              "minimumSurfaceGapM": 0.15
+            },
+            "unit": "м",
+            "measuredText": "0 пересечений на шагах; минимальный зазор 0.15 м",
+            "limitText": "Без пересечений; зазор ≥ 0.15 м",
+            "why": "Проверка относится к модельным корпусам и каноническим позам. Весь ход отдельно защищён резервированием траекторий; люди и тормозной путь не моделируются.",
+            "action": "На реальном объекте подтвердить габариты, зазоры и требования безопасности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "energy",
+            "label": "Работа без запаса энергии",
+            "category": "safety",
+            "status": "PASS",
+            "measured": 0,
+            "limit": {
+              "zeroSocOperationRobotSeconds": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 робото·с операций при SOC = 0",
+            "limitText": "0 робото·с операций при SOC = 0",
+            "why": "Нулевой SOC на стоянке отличается от движения, работы инструмента или погрузки без энергии. Учитываются операции, начатые при SOC = 0. Переход через ноль внутри шага отдельно не измерен.",
+            "action": "Проверить автономность и зарядку измерениями пилота.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "incidents",
+            "label": "Инциденты и простой",
+            "category": "operation",
+            "status": "PASS",
+            "measured": {
+              "enabled": false,
+              "simulation": true,
+              "workflow": "automatic-demo",
+              "detected": 0,
+              "active": 0,
+              "resolved": 0,
+              "stoppedRobotSeconds": 0,
+              "warningRobotSeconds": 0,
+              "downtimeByRobotS": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "limit": {
+              "unresolvedCritical": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 активных, 0 закрытых; 0 робото·с остановки",
+            "limitText": "Активных критических инцидентов к завершению: 0",
+            "why": "Инциденты и все этапы восстановления заданы автоматическим учебным расписанием. Закрытие в модели не доказывает реальный ремонт и не объясняет причину неисправности.",
+            "action": "На пилоте фиксировать реальные сигналы, вмешательства и время восстановления.",
+            "evidence": [],
+            "affectsOverall": true
+          },
+          {
+            "id": "readiness",
+            "label": "Готовность реального пилота",
+            "category": "readiness",
+            "status": "NOT_EVALUATED",
+            "measured": null,
+            "limit": null,
+            "unit": "",
+            "measuredText": "Модель; реальные измерения не получены",
+            "limitText": "Согласованный участок, KPI, цены, процессы и измерения",
+            "why": "Модельный результат не является фактом эксплуатации, качеством уборки или подтверждением окупаемости.",
+            "action": "Подготовить инфраструктуру, карту, доступы, цены и план измерений ограниченного пилота.",
+            "evidence": [],
+            "affectsOverall": false
+          }
+        ]
+      },
+      "summary": {
+        "fleet": 11,
+        "requiredPerH": 129.54545454545453,
+        "achievedPerH": 126,
+        "queueEnd": 9,
+        "waitP95Min": 7.116666666666666
+      },
+      "scope": "canonical source without scripted faults; conditional fixed reference body, not calibrated product geometry",
+      "sourceInputKeySha256": "414b89f39c8f15824acdd784fa4b2e16281fa416d18bd4acff9ad4384e1b638d",
+      "executionInputKeySha256": "e8f3014dc37fd517214f5d05e38171c2a69f33e198a9f1e39d9eef66098b08ee"
+    },
+    {
+      "product": "moros-amr-1500",
+      "kind": "raas",
+      "status": "NOT_EVALUATED",
+      "reason": "Нет ставки RaaS для «AMR 1500 (грузоподъемность до 1 500 кг)»: укажите ставку, ₽/мес за робота, или нажмите «Подставить оценку (5,2 % цены в месяц)»"
+    },
+    {
+      "product": "moros-amr-800",
+      "kind": "purchase",
+      "ms": 440.0917999999999,
+      "modelVersion": "warehouse-demo-incidents-1.4.0",
+      "assessment": {
+        "schemaVersion": "demo-assessment-1",
+        "kind": "warehouse",
+        "status": "OK",
+        "observedAtS": 8100,
+        "endS": 8100,
+        "terminal": true,
+        "scope": "modeled-flow",
+        "headline": "Заданные критерии модели выполнены; фактический результат пилота не проверен.",
+        "checks": [
+          {
+            "id": "validity",
+            "label": "Корректность состояния",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "precheck": "ok",
+              "arrivedTotal": 290,
+              "completedTotal": 281,
+              "pending": 2,
+              "active": 7
+            },
+            "limit": {
+              "precheck": "ok",
+              "taskConservation": true,
+              "uniqueAssignment": true
+            },
+            "unit": "заданий",
+            "measuredText": "290 поступило = 281 завершено + 2 в очереди + 7 в работе",
+            "limitText": "Сохранение заданий и единственное назначение",
+            "why": "Задания должны сохраняться между поступлением, очередью, работой и завершением; вход должен поддерживаться движком.",
+            "action": "При нарушении инварианта исправить модель до интерпретации производительности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "exposure",
+            "label": "Нагрузка прогона",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "peakWindowMin": 120,
+              "arrived": 263,
+              "arrivedPerH": 131.5
+            },
+            "limit": {
+              "nominalPerH": 129.54545454545453,
+              "horizonMin": 120
+            },
+            "unit": "пал./ч",
+            "measuredText": "263 поступлений за 120 мин; 131.5 пал./ч",
+            "limitText": "Номинал 129.55 пал./ч; окно 120 мин",
+            "why": "Поток случайный: фактически поступившая нагрузка может отличаться от номинальной.",
+            "action": "Показывать реальный поток рядом с номинальным; при недостаточной нагрузке выполнить отдельный нагруженный прогон.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "intake_sla",
+            "label": "Начало заданий и очередь",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "startedShare": 0.9923954372623575,
+              "pendingEnd": 2,
+              "waitToStartP95Min": 2.2,
+              "socFloorHit": false
+            },
+            "limit": {
+              "startedShareMin": 0.97,
+              "pendingEndMax": 6.477272727272727,
+              "waitToStartP95MaxMin": 10,
+              "socFloorHit": false
+            },
+            "unit": "мин",
+            "measuredText": "99.24% назначено; очередь 2; p95 до назначения 2.2 мин",
+            "limitText": "Назначено ≥97%; очередь ≤6.48; p95 ≤10 мин; без SOC=0",
+            "why": "Это исходные критерии приёма: назначение роботу и ожидание до старта. Они не доказывают доставку паллет и не являются временем полного цикла.",
+            "action": "Отдельно оценить выходной поток и незавершённые перевозки.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 280,
+                "robotId": 5
+              },
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 4
+              },
+              {
+                "tS": 8100,
+                "taskId": 282,
+                "robotId": 8
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "throughput",
+            "label": "Выходной поток",
+            "category": "goal",
+            "status": "PASS",
+            "measured": {
+              "requiredPerH": 129.54545454545453,
+              "arrivedPerH": 131.5,
+              "achievedPerH": 130.5,
+              "completedDuringPeak": 261,
+              "arrivedPeak": 263,
+              "completedPeakCohort": 254
+            },
+            "limit": {
+              "achievedPerHMin": 129.54545454545453
+            },
+            "unit": "пал./ч",
+            "measuredText": "Доставлено 130.5; поступило 131.5; номинал 129.55 пал./ч",
+            "limitText": "Доставлено ≥129.55 пал./ч при достаточной нагрузке",
+            "why": "Завершённые за пиковое окно перевозки достигли номинального потока. Среди них могут быть задания прогрева; когорта поступлений окна показана отдельно.",
+            "action": "Подтвердить производительность измерениями ограниченного пилота.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 280,
+                "robotId": 5
+              },
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 4
+              },
+              {
+                "tS": 8100,
+                "taskId": 282,
+                "robotId": 8
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "unfinished",
+            "label": "Остаток и цензурирование",
+            "category": "operation",
+            "status": "WARN",
+            "measured": {
+              "pending": 2,
+              "active": 7,
+              "completedTotal": 281,
+              "completedPeakCohort": 254,
+              "arrivedPeakCohort": 263,
+              "oldestUnfinishedAgeS": 244
+            },
+            "limit": null,
+            "unit": "заданий",
+            "measuredText": "2 в очереди, 7 в работе; завершено 254/263 поступлений окна",
+            "limitText": "Остаток показывается отдельно; конец окна не означает завершение всех заданий",
+            "why": "Ожидание ещё не назначенных заданий измерено лишь до текущего времени, а полный цикл незавершённых заданий пока неизвестен.",
+            "action": "Перейти к старейшим заданиям и проверить их фактические причины ожидания.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "taskId": 280,
+                "robotId": 5
+              },
+              {
+                "tS": 8100,
+                "taskId": 281,
+                "robotId": 4
+              },
+              {
+                "tS": 8100,
+                "taskId": 282,
+                "robotId": 8
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "traffic_wait",
+            "label": "Защитное ожидание и выпуск на маршруты",
+            "category": "operation",
+            "status": "PASS",
+            "measured": {
+              "totalWaitS": 2527,
+              "maxCurrentWaitS": 0,
+              "detours": 344,
+              "routeAdmissionLimit": 10,
+              "waiting": [],
+              "largestAccumulatedWait": {
+                "robotId": 2,
+                "blockedBy": null,
+                "reason": null,
+                "waitS": 0,
+                "totalWaitS": 382
+              }
+            },
+            "limit": {
+              "maxActiveRoutes": 10
+            },
+            "unit": "робото·с",
+            "measuredText": "2527 робото·с ожидания; максимум сейчас 0 с; 344 объездов; лимит выпуска 10",
+            "limitText": "Выполняемых заданий и поездок к зарядке ≤10; возврат без задания и стоянка на зарядке не занимают лимит (настройка диспетчера)",
+            "why": "Наблюдаем защитное ожидание и ограничение выпуска. Эти числа сами по себе не доказывают нехватку роботов, конкретную причину затора или взаимную блокировку.",
+            "action": "Перейти к роботу и проверить его маршрут, текущую причину ожидания и указанную уступающую пару.",
+            "evidence": [
+              {
+                "tS": 8100,
+                "robotId": 2,
+                "x": 17.72893218813452,
+                "y": 35.35533905932738
+              }
+            ],
+            "affectsOverall": false
+          },
+          {
+            "id": "safety",
+            "label": "Габариты и защитный зазор",
+            "category": "safety",
+            "status": "PASS",
+            "measured": {
+              "collisionPoseSamples": 0,
+              "minimumObservedSurfaceGapM": 0.15339059327384774
+            },
+            "limit": {
+              "collisions": 0,
+              "minimumSurfaceGapM": 0.15
+            },
+            "unit": "м",
+            "measuredText": "0 пересечений на шагах; минимальный зазор 0.15 м",
+            "limitText": "Без пересечений; зазор ≥ 0.15 м",
+            "why": "Проверка относится к модельным корпусам и каноническим позам. Весь ход отдельно защищён резервированием траекторий; люди и тормозной путь не моделируются.",
+            "action": "На реальном объекте подтвердить габариты, зазоры и требования безопасности.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "energy",
+            "label": "Работа без запаса энергии",
+            "category": "safety",
+            "status": "PASS",
+            "measured": 0,
+            "limit": {
+              "zeroSocOperationRobotSeconds": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 робото·с операций при SOC = 0",
+            "limitText": "0 робото·с операций при SOC = 0",
+            "why": "Нулевой SOC на стоянке отличается от движения, работы инструмента или погрузки без энергии. Учитываются операции, начатые при SOC = 0. Переход через ноль внутри шага отдельно не измерен.",
+            "action": "Проверить автономность и зарядку измерениями пилота.",
+            "evidence": [
+              {
+                "tS": 8100
+              }
+            ],
+            "affectsOverall": true
+          },
+          {
+            "id": "incidents",
+            "label": "Инциденты и простой",
+            "category": "operation",
+            "status": "PASS",
+            "measured": {
+              "enabled": false,
+              "simulation": true,
+              "workflow": "automatic-demo",
+              "detected": 0,
+              "active": 0,
+              "resolved": 0,
+              "stoppedRobotSeconds": 0,
+              "warningRobotSeconds": 0,
+              "downtimeByRobotS": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "limit": {
+              "unresolvedCritical": 0
+            },
+            "unit": "робото·с",
+            "measuredText": "0 активных, 0 закрытых; 0 робото·с остановки",
+            "limitText": "Активных критических инцидентов к завершению: 0",
+            "why": "Инциденты и все этапы восстановления заданы автоматическим учебным расписанием. Закрытие в модели не доказывает реальный ремонт и не объясняет причину неисправности.",
+            "action": "На пилоте фиксировать реальные сигналы, вмешательства и время восстановления.",
+            "evidence": [],
+            "affectsOverall": true
+          },
+          {
+            "id": "readiness",
+            "label": "Готовность реального пилота",
+            "category": "readiness",
+            "status": "NOT_EVALUATED",
+            "measured": null,
+            "limit": null,
+            "unit": "",
+            "measuredText": "Модель; реальные измерения не получены",
+            "limitText": "Согласованный участок, KPI, цены, процессы и измерения",
+            "why": "Модельный результат не является фактом эксплуатации, качеством уборки или подтверждением окупаемости.",
+            "action": "Подготовить инфраструктуру, карту, доступы, цены и план измерений ограниченного пилота.",
+            "evidence": [],
+            "affectsOverall": false
+          }
+        ]
+      },
+      "summary": {
+        "fleet": 9,
+        "requiredPerH": 129.54545454545453,
+        "achievedPerH": 130.5,
+        "queueEnd": 2,
+        "waitP95Min": 2.2
+      },
+      "scope": "canonical source without scripted faults; conditional fixed reference body, not calibrated product geometry",
+      "sourceInputKeySha256": "b6c76a97e2a8835ea2e51ae7c27ddd8783f22d15995e266e97c4c564005dc92a",
+      "executionInputKeySha256": "561b26d047b7f830fb9443c338c3c7e8d57861e2d7507bf6ada58030f1a77733"
+    },
+    {
+      "product": "moros-amr-800",
+      "kind": "raas",
+      "status": "NOT_EVALUATED",
+      "reason": "Нет ставки RaaS для «AMR 800 (грузоподъемность до 800 кг)»: укажите ставку, ₽/мес за робота, или нажмите «Подставить оценку (5,2 % цены в месяц)»"
+    }
+  ],
+  "limits": [
+    "Staffing amounts and inclusions are declared examples, not confirmed commercial terms.",
+    "No changes to yearly load, salary baseline, annual coverage or cash realization between cases.",
+    "Published charging intervals and load-carrier compatibility require clarification. Canonical replay uses a fixed reference body; model OK is not industrial product certification.",
+    "Matched shortlist has at most three models, not all products or a global optimum."
+  ],
+  "schemaVersion": "economics-comparison-2026-10-18-1",
+  "commonParams": {
+    "totalAreaM2": 20000,
+    "activeAreaM2": 10000,
+    "storageCeilingHeightM": 10,
+    "floorsCount": 1,
+    "mainAisleWidthM": 3.5,
+    "rackAisleWidthM": 2.8,
+    "floorType": "Промышленный бетон",
+    "floorFlatnessMmPer2m": 3,
+    "shiftsPerDay": 2,
+    "workDaysPerYear": 365,
+    "shiftDurationH": 11,
+    "peakFactor": 1.5,
+    "inboundPalletsPerDay": 1000,
+    "outboundPalletsPerDay": 1000,
+    "pickLinesPerDay": 100000,
+    "pickUnitsPerDay": 150000,
+    "piecePickSharePct": 30,
+    "activeSkuCount": 2000,
+    "fastMoverSkuSharePct": 20,
+    "totalStaff": 180,
+    "pickersCount": 100,
+    "forkliftOperatorsCount": 25,
+    "packingOperatorsCount": 20,
+    "pickerSalaryRubMonth": 100000,
+    "forkliftSalaryRubMonth": 120000,
+    "payrollTaxMultiplier": 1.302,
+    "pickerLinesPerHour": 150,
+    "workTimeLossPct": 25,
+    "pickRouteLengthPerLineM": 25,
+    "conveyorLengthM": 350,
+    "rackType": "Фронтальные паллетные",
+    "palletPositions": 20000,
+    "avgPalletMassKg": 800,
+    "avgUnitMassKg": 1.8,
+    "palletDimsMm": "1200×800×1600",
+    "unitDimsMm": "300×200×150",
+    "nonStandardCargoPct": 5,
+    "availablePowerKw": 500,
+    "hasWms": "Да",
+    "erpSystem": "1С:ERP",
+    "capexBudgetMRub": 80,
+    "horizonYears": 5,
+    "internalPalletMovesPerDay": 0,
+    "receivingDocksCount": 4,
+    "shippingDocksCount": 4,
+    "storageTempRegime": "Нормальный (+5…+25 °C)",
+    "maxStorageLevelM": 9,
+    "inventoryCountsPerYear": 12,
+    "cleaningAreaM2": 10000,
+    "cleaningsPerDay": 2,
+    "cleanersCount": null,
+    "cleanerSalaryRubMonth": 65000
+  },
+  "commonNorms": {
+    "utilization": 0.775,
+    "availability": 1,
+    "reservePct": 0.175,
+    "loadedSpeedFactor": 0.8,
+    "handlingSecJacking": 20,
+    "handlingSecFork": 45,
+    "handlingSecTug": 30,
+    "chargerSafetyFactor": 1.5,
+    "robotsPerChargerDefault": 5,
+    "chargerPowerKw": 3,
+    "payrollMultiplier": 1.302,
+    "laborShareAutomatable": 0.5,
+    "robotsPerOperatorPost": 20,
+    "annualHoursPerFte": 1973,
+    "capexReservePct": 0.1,
+    "softwareRubPerSite": 1000000,
+    "integrationRubPerSite": 1250000,
+    "commissioningRubPerUnit": 100000,
+    "trainingRubPerSite": 150000,
+    "chargerRub": 300000,
+    "siteInfraRubPerM2": 150,
+    "servicePctOfPriceYear": 0.12,
+    "repairPctOfPriceYear": 0.02,
+    "consumablesPctOfPriceYear": 0.01,
+    "batteryReplacementYears": 4,
+    "batteryCostPctOfPrice": 0.1,
+    "robotAvgPowerKw": 0.4,
+    "electricityRubPerKwh": 9,
+    "connectivityRubPerUnitYear": 12000,
+    "raasMonthlyPctOfPrice": 0.052,
+    "discountRate": 0.12,
+    "serviceLifeYearsDefault": 7,
+    "tcoMinYears": 5,
+    "paybackBandFastYears": 3,
+    "paybackBandSlowYears": 5,
+    "sensitivityDeltaPct": 0.2,
+    "simServedShareMin": 0.97,
+    "simP95WaitMaxMin": 10,
+    "simOversizedIdleShare": 0.4,
+    "simWarmupMin": 15,
+    "simPeakMin": 120,
+    "chargeStartSoc": 0.2,
+    "chargeStopSoc": 0.9,
+    "scoreWeightEcon": 0.4,
+    "scoreWeightData": 0.2,
+    "scoreWeightMaturity": 0.15,
+    "scoreWeightMargin": 0.15,
+    "scoreWeightCases": 0.1
+  },
+  "assumptions": {
+    "annualCoverageShare": 1,
+    "cashRealizationShare": 1,
+    "cashRealizationExplicit": true,
+    "staffing": {
+      "mode": "shared-existing",
+      "incrementalHoursYear": 365,
+      "grossHourlyRub": 600,
+      "payrollMultiplier": 1.302,
+      "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+    },
+    "layout": "typical",
+    "seed": 1,
+    "terminalResidualRub": 0,
+    "horizonYears": 5,
+    "discountRate": 0.12,
+    "sourceProductOverrides": []
+  },
+  "products": [
+    {
+      "slug": "ronavi-h1500",
+      "name": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+      "manufacturer": "ООО \"Ронави Роботикс\"",
+      "solutionType": "pallet-amr",
+      "handlingClass": "jacking",
+      "mobile": true,
+      "status": "operation",
+      "level": "enriched",
+      "flags": [
+        "duplicate-merged"
+      ],
+      "excluded": false,
+      "excludedReason": null,
+      "processes": [
+        "pallet-transport"
+      ],
+      "facilityTypes": [
+        "warehouse"
+      ],
+      "priceRub": 2700000,
+      "priceConfirmed": true,
+      "priceOrigin": "organizer",
+      "throughputPerH": 90,
+      "throughputUnit": "паллет/ч",
+      "throughputScope": "per-robot",
+      "throughputQualifier": null,
+      "throughputConfirmed": false,
+      "payloadKg": 1500,
+      "speedMps": 1.5,
+      "autonomyH": 6,
+      "chargeMin": 18,
+      "minAisleM": 0.75,
+      "turnAisleM": null,
+      "liftHeightMm": null,
+      "tempMinC": 5,
+      "tempMaxC": 25,
+      "serviceRubYear": 300000,
+      "softwareRubOneTime": 1000000,
+      "softwareRubYear": null,
+      "implementationRub": 1250000,
+      "trainingRub": null,
+      "consumablesRubYear": null,
+      "batteryCostRub": null,
+      "batteryReplacementYears": null,
+      "serviceLifeYears": null,
+      "raasRubMonth": 100000,
+      "raasQualifier": "от",
+      "raasOrigin": "research",
+      "hasCases": true,
+      "completenessPct": 94,
+      "confirmedSharePct": 26,
+      "sources": [
+        {
+          "key": "manufacturer",
+          "label": "Производитель",
+          "value": "ООО \"Ронави Роботикс\"",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №1, 66",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "modelName",
+          "label": "Наименование (модель)",
+          "value": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №1, 66",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "solutionType",
+          "label": "Тип решения",
+          "value": "AMR паллетный (подъёмный)",
+          "origin": "choice",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "purpose",
+          "label": "Назначение",
+          "value": "Внутрискладская логистика; Внутрипроизводственная логистика",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №1, 66",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "countryOfOrigin",
+          "label": "Страна происхождения",
+          "value": "Россия",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/catalogue/h1500",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "availabilityStatus",
+          "label": "Статус доступности",
+          "value": "в эксплуатации",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №1, 66",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "payloadKg",
+          "label": "Грузоподъёмность",
+          "value": "до 1 500 кг",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "dimensionsMm",
+          "label": "Габариты (Д × Ш × В)",
+          "value": "1044 × 654 × 380",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "speedMps",
+          "label": "Скорость",
+          "value": "до 1,5 м/с",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": true
+        },
+        {
+          "key": "throughput",
+          "label": "Производительность",
+          "value": "80–100 паллет/ч (на робота)",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "autonomyH",
+          "label": "Автономность",
+          "value": "до 6 ч",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "positioningMm",
+          "label": "Точность позиционирования",
+          "value": "≈ 3 мм",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "navigation",
+          "label": "Навигация",
+          "value": "QR-метки, SLAM",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "operatingConditions",
+          "label": "Условия эксплуатации",
+          "value": "+5…+25 °C, ровный промышленный пол",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "massKg",
+          "label": "Собственная масса",
+          "value": "250 кг",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "tempMinC",
+          "label": "Минимальная температура эксплуатации",
+          "value": "5 °C",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "tempMaxC",
+          "label": "Максимальная температура эксплуатации",
+          "value": "25 °C",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "floorRequirements",
+          "label": "Требования к полу",
+          "value": "перепады/препятствия на полу не более 5 мм (высота преодолеваемого препятствия)",
+          "origin": "research",
+          "sourceUrl": "https://robob2b.ru/upload/iblock/2f5/ik7heolyu7ny1sqhromm4vxemfwe3632.pdf",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "minAisleM",
+          "label": "Минимальная ширина прохода",
+          "value": "0,75 м",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/catalogue/h1500",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "chargeMin",
+          "label": "Время зарядки",
+          "value": "≈ 18 мин",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "Примеры решений › Склад, Аэропорт › Ronavi H1500",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "connectivity",
+          "label": "Связь",
+          "value": "Wi-Fi 5 ГГц 802.11 a/c/n; открытое API, полная совместимость с логистическими платформами (WMS)",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/catalogue/h1500",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "integration",
+          "label": "Интеграция (WMS/ERP, API)",
+          "value": "Wi-Fi 5 ГГц 802.11 a/c/n; открытое API, полная совместимость с логистическими платформами (WMS)",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/catalogue/h1500",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "priceRub",
+          "label": "Цена оборудования",
+          "value": "2 700 000 ₽",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №1, 66",
+          "date": "2026-09-22",
+          "confirmed": true
+        },
+        {
+          "key": "softwareRubOneTime",
+          "label": "ПО (разово)",
+          "value": "1 000 000 ₽",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/software-information",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "implementationRub",
+          "label": "Внедрение и интеграция",
+          "value": "500 000–2 000 000 ₽",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/media/tpost/l8s0fty3m1-kak-schitat-stoimost-vladeniya-tco-logis",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "serviceRubYear",
+          "label": "Сервисное обслуживание",
+          "value": "≈ 300 000 ₽/год",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/media/tpost/l8s0fty3m1-kak-schitat-stoimost-vladeniya-tco-logis",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "acquisitionModels",
+          "label": "Модели приобретения",
+          "value": "покупка, лизинг, аренда / RaaS",
+          "origin": "research",
+          "sourceUrl": "https://ronavi-robotics.ru/catalogue/h1500",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "raasRubMonth",
+          "label": "Ставка RaaS",
+          "value": "от 100 000 ₽/мес",
+          "origin": "research",
+          "sourceUrl": "https://robotrends.ru/robopedia/ronavi-robotics",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "batteryReplacementYears",
+          "label": "Замена АКБ, раз в",
+          "value": "5 лет, но только для Ronavi H2000 (этот PDF и есть паспорт H2000). Данных по H1500 на странице нет, в том числе про ≥2000 циклов.",
+          "origin": "research",
+          "sourceUrl": "https://robob2b.ru/upload/iblock/a34/rbxhakrl7mzsarwb0sxjscpd2iwea2h1.pdf",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "applicability",
+          "label": "Процессы и типы объектов",
+          "value": "Перемещение паллет: приёмка → хранение → отгрузка (склад)",
+          "origin": "choice",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "cases",
+          "label": "Кейсы внедрения",
+          "value": "Внедрено 48 роботов на складах ГК «Восток-Сервис» для транспортировки грузов между зонами хранения. В результате производительность выросла вдвое - с 4 до 8 тысяч отгрузок за смену, количество ошибок…",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №1, 66",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "primarySourceUrl",
+          "label": "Основной источник",
+          "value": "https://ronavi-robotics.ru/catalogue/h1500",
+          "origin": "derived",
+          "sourceUrl": "https://ronavi-robotics.ru/catalogue/h1500",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "verifiedAt",
+          "label": "Дата проверки",
+          "value": "2026-09-23",
+          "origin": "derived",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "confirmation",
+          "label": "Подтверждение",
+          "value": "9 из 31 подтверждены; строка свода: да",
+          "origin": "derived",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        }
+      ]
+    },
+    {
+      "slug": "moros-amr-1500",
+      "name": "AMR 1500 (грузоподъемность до 1 500 кг)",
+      "manufacturer": "ООО \"Морос\"",
+      "solutionType": "pallet-amr",
+      "handlingClass": "jacking",
+      "mobile": true,
+      "status": "piloting",
+      "level": "enriched",
+      "flags": [],
+      "excluded": false,
+      "excludedReason": null,
+      "processes": [
+        "pallet-transport"
+      ],
+      "facilityTypes": [
+        "warehouse"
+      ],
+      "priceRub": 2200000,
+      "priceConfirmed": false,
+      "priceOrigin": "organizer",
+      "throughputPerH": null,
+      "throughputUnit": null,
+      "throughputScope": null,
+      "throughputQualifier": null,
+      "throughputConfirmed": false,
+      "payloadKg": 1500,
+      "speedMps": 1.5,
+      "autonomyH": 15,
+      "chargeMin": 120,
+      "minAisleM": 0.7,
+      "turnAisleM": null,
+      "liftHeightMm": null,
+      "tempMinC": 5,
+      "tempMaxC": 40,
+      "serviceRubYear": null,
+      "softwareRubOneTime": null,
+      "softwareRubYear": null,
+      "implementationRub": null,
+      "trainingRub": null,
+      "consumablesRubYear": null,
+      "batteryCostRub": null,
+      "batteryReplacementYears": null,
+      "serviceLifeYears": null,
+      "raasRubMonth": null,
+      "raasQualifier": null,
+      "raasOrigin": null,
+      "hasCases": true,
+      "completenessPct": 74,
+      "confirmedSharePct": 12,
+      "sources": [
+        {
+          "key": "manufacturer",
+          "label": "Производитель",
+          "value": "ООО \"Морос\"",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №9",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "modelName",
+          "label": "Наименование (модель)",
+          "value": "AMR 1500 (грузоподъемность до 1 500 кг)",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №9",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "solutionType",
+          "label": "Тип решения",
+          "value": "AMR паллетный (подъёмный)",
+          "origin": "choice",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "purpose",
+          "label": "Назначение",
+          "value": "Внутрискладская логистика",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №9",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "countryOfOrigin",
+          "label": "Страна происхождения",
+          "value": "Россия",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "availabilityStatus",
+          "label": "Статус доступности",
+          "value": "пилотирование",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №9",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "payloadKg",
+          "label": "Грузоподъёмность",
+          "value": "до 1 500 кг",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №9",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "dimensionsMm",
+          "label": "Габариты (Д × Ш × В)",
+          "value": "1080 × 640 × 230",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "speedMps",
+          "label": "Скорость",
+          "value": "1,5 м/с",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "autonomyH",
+          "label": "Автономность",
+          "value": "10–20 ч",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "positioningMm",
+          "label": "Точность позиционирования",
+          "value": "10 мм",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "navigation",
+          "label": "Навигация",
+          "value": "QR-метки, SLAM",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "operatingConditions",
+          "label": "Условия эксплуатации",
+          "value": "Рабочая температура: от +5°C до +40°C; пылевлагозащита IP54 и выше по запросу",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "massKg",
+          "label": "Собственная масса",
+          "value": "185 кг",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "tempMinC",
+          "label": "Минимальная температура эксплуатации",
+          "value": "5 °C",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "tempMaxC",
+          "label": "Максимальная температура эксплуатации",
+          "value": "40 °C",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "minAisleM",
+          "label": "Минимальная ширина прохода",
+          "value": "0,7 м",
+          "origin": "research",
+          "sourceUrl": "https://xn--80ab3cjk.xn--p1ai/assets/prez/pdf/%D0%A4%D0%A6_%D0%91%D0%A0%D0%A1_%D0%A1%D0%BA%D0%BB%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B5_%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5_%D1%80%D0%BE%D0%B1%D0%BE%D1%82%D1%8B.pdf",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "chargeMin",
+          "label": "Время зарядки",
+          "value": "120 мин",
+          "origin": "research",
+          "sourceUrl": "https://xn--80ab3cjk.xn--p1ai/assets/prez/pdf/%D0%A4%D0%A6_%D0%91%D0%A0%D0%A1_%D0%A1%D0%BA%D0%BB%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B5_%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5_%D1%80%D0%BE%D0%B1%D0%BE%D1%82%D1%8B.pdf",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "connectivity",
+          "label": "Связь",
+          "value": "управление через приложение; API для интеграции с промышленными системами; интеграция с MES и WMS; удалённый мониторинг",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "integration",
+          "label": "Интеграция (WMS/ERP, API)",
+          "value": "управление через приложение; API для интеграции с промышленными системами; интеграция с MES и WMS; удалённый мониторинг",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "priceRub",
+          "label": "Цена оборудования",
+          "value": "2 200 000 ₽",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №9",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "applicability",
+          "label": "Процессы и типы объектов",
+          "value": "Перемещение паллет: приёмка → хранение → отгрузка (склад)",
+          "origin": "choice",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "cases",
+          "label": "Кейсы внедрения",
+          "value": "В Центре испытаний робототехники в Сколково подтверждены заявленные ТТХ, в т.ч.: • точность навигации и маневрирования в ограниченном пространстве • способность распознавать препятствия и безопасно и…",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №9",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "primarySourceUrl",
+          "label": "Основной источник",
+          "value": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "origin": "derived",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-1500/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "verifiedAt",
+          "label": "Дата проверки",
+          "value": "2026-09-23",
+          "origin": "derived",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "confirmation",
+          "label": "Подтверждение",
+          "value": "3 из 23 подтверждены; строка свода: нет",
+          "origin": "derived",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        }
+      ]
+    },
+    {
+      "slug": "moros-amr-800",
+      "name": "AMR 800 (грузоподъемность до 800 кг)",
+      "manufacturer": "ООО \"Морос\"",
+      "solutionType": "pallet-amr",
+      "handlingClass": "jacking",
+      "mobile": true,
+      "status": "operation",
+      "level": "enriched",
+      "flags": [],
+      "excluded": false,
+      "excludedReason": null,
+      "processes": [
+        "pallet-transport"
+      ],
+      "facilityTypes": [
+        "warehouse"
+      ],
+      "priceRub": 1800000,
+      "priceConfirmed": false,
+      "priceOrigin": "organizer",
+      "throughputPerH": null,
+      "throughputUnit": null,
+      "throughputScope": null,
+      "throughputQualifier": null,
+      "throughputConfirmed": false,
+      "payloadKg": 800,
+      "speedMps": 2,
+      "autonomyH": 19,
+      "chargeMin": 120,
+      "minAisleM": 0.7,
+      "turnAisleM": null,
+      "liftHeightMm": null,
+      "tempMinC": 5,
+      "tempMaxC": 40,
+      "serviceRubYear": null,
+      "softwareRubOneTime": null,
+      "softwareRubYear": null,
+      "implementationRub": null,
+      "trainingRub": null,
+      "consumablesRubYear": null,
+      "batteryCostRub": null,
+      "batteryReplacementYears": null,
+      "serviceLifeYears": null,
+      "raasRubMonth": null,
+      "raasQualifier": null,
+      "raasOrigin": null,
+      "hasCases": true,
+      "completenessPct": 74,
+      "confirmedSharePct": 8,
+      "sources": [
+        {
+          "key": "manufacturer",
+          "label": "Производитель",
+          "value": "ООО \"Морос\"",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №8",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "modelName",
+          "label": "Наименование (модель)",
+          "value": "AMR 800 (грузоподъемность до 800 кг)",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №8",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "solutionType",
+          "label": "Тип решения",
+          "value": "AMR паллетный (подъёмный)",
+          "origin": "choice",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "purpose",
+          "label": "Назначение",
+          "value": "Внутрискладская логистика",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №8",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "countryOfOrigin",
+          "label": "Страна происхождения",
+          "value": "собственная разработка МОРОС, 80% локализация (страна прямо не названа)",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/mobilnye-roboty/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "availabilityStatus",
+          "label": "Статус доступности",
+          "value": "в эксплуатации",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №8",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "payloadKg",
+          "label": "Грузоподъёмность",
+          "value": "до 800 кг",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №8",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "dimensionsMm",
+          "label": "Габариты (Д × Ш × В)",
+          "value": "940 × 640 × 230",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "speedMps",
+          "label": "Скорость",
+          "value": "2 м/с",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "autonomyH",
+          "label": "Автономность",
+          "value": "14–24 ч",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "positioningMm",
+          "label": "Точность позиционирования",
+          "value": "10 мм",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "navigation",
+          "label": "Навигация",
+          "value": "QR-метки, SLAM",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "operatingConditions",
+          "label": "Условия эксплуатации",
+          "value": "Рабочая температура: от +5°C до +40°C",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "massKg",
+          "label": "Собственная масса",
+          "value": "150 кг",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "tempMinC",
+          "label": "Минимальная температура эксплуатации",
+          "value": "5 °C",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "tempMaxC",
+          "label": "Максимальная температура эксплуатации",
+          "value": "40 °C",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "minAisleM",
+          "label": "Минимальная ширина прохода",
+          "value": "0,7 м",
+          "origin": "research",
+          "sourceUrl": "https://xn--80ab3cjk.xn--p1ai/assets/prez/pdf/%D0%A4%D0%A6_%D0%91%D0%A0%D0%A1_%D0%A1%D0%BA%D0%BB%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B5_%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5_%D1%80%D0%BE%D0%B1%D0%BE%D1%82%D1%8B.pdf",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "chargeMin",
+          "label": "Время зарядки",
+          "value": "120 мин",
+          "origin": "research",
+          "sourceUrl": "https://xn--80ab3cjk.xn--p1ai/assets/prez/pdf/%D0%A4%D0%A6_%D0%91%D0%A0%D0%A1_%D0%A1%D0%BA%D0%BB%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B5_%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5_%D1%80%D0%BE%D0%B1%D0%BE%D1%82%D1%8B.pdf",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "connectivity",
+          "label": "Связь",
+          "value": "управление через приложение; API для интеграции с промышленными системами; интеграция с MES и WMS; удалённый мониторинг",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "integration",
+          "label": "Интеграция (WMS/ERP, API)",
+          "value": "управление через приложение; API для интеграции с промышленными системами; интеграция с MES и WMS; удалённый мониторинг",
+          "origin": "research",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": true
+        },
+        {
+          "key": "priceRub",
+          "label": "Цена оборудования",
+          "value": "1 800 000 ₽",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №8",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "applicability",
+          "label": "Процессы и типы объектов",
+          "value": "Перемещение паллет: приёмка → хранение → отгрузка (склад)",
+          "origin": "choice",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "cases",
+          "label": "Кейсы внедрения",
+          "value": "27 роботов AMR800 с различными типами оснастки протестированы на складах крупных e-commerce компаний. Подтверждено соответствие роботов заявленным характеристикам, а также продемонстрирована стабильн…",
+          "origin": "organizer",
+          "sourceUrl": null,
+          "sourceRef": "catalog_export_v4.csv › №8",
+          "date": "2026-09-22",
+          "confirmed": false
+        },
+        {
+          "key": "primarySourceUrl",
+          "label": "Основной источник",
+          "value": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "origin": "derived",
+          "sourceUrl": "https://xn--l1aeahg.xn--p1ai/amr-800/",
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "verifiedAt",
+          "label": "Дата проверки",
+          "value": "2026-09-23",
+          "origin": "derived",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        },
+        {
+          "key": "confirmation",
+          "label": "Подтверждение",
+          "value": "2 из 23 подтверждены; строка свода: нет",
+          "origin": "derived",
+          "sourceUrl": null,
+          "sourceRef": null,
+          "date": "2026-09-23",
+          "confirmed": false
+        }
+      ]
+    }
+  ],
+  "scenarioSpecs": [
+    {
+      "key": "match-purchase-1-purchase",
+      "name": "Покупка · Ronavi H1500 (грузоподъемность до 1 500 кг) [1]",
+      "kind": "purchase",
+      "items": [
+        {
+          "process": "pallet-transport",
+          "productSlug": "ronavi-h1500",
+          "quantityOverride": 14,
+          "chargersOverride": 1,
+          "automationCoverageOverride": 1
+        }
+      ],
+      "cashRealizationShare": 1,
+      "simSeed": 1,
+      "terminalResidualRub": 0,
+      "operationsStaffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      }
+    },
+    {
+      "key": "match-purchase-1-raas",
+      "name": "RaaS · Ronavi H1500 (грузоподъемность до 1 500 кг) [1]",
+      "kind": "raas",
+      "items": [
+        {
+          "process": "pallet-transport",
+          "productSlug": "ronavi-h1500",
+          "quantityOverride": 14,
+          "chargersOverride": 1,
+          "automationCoverageOverride": 1
+        }
+      ],
+      "cashRealizationShare": 1,
+      "simSeed": 1,
+      "terminalResidualRub": 0,
+      "operationsStaffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      }
+    },
+    {
+      "key": "match-purchase-2-purchase",
+      "name": "Покупка · AMR 1500 (грузоподъемность до 1 500 кг) [2]",
+      "kind": "purchase",
+      "items": [
+        {
+          "process": "pallet-transport",
+          "productSlug": "moros-amr-1500",
+          "automationCoverageOverride": 1
+        }
+      ],
+      "cashRealizationShare": 1,
+      "simSeed": 1,
+      "terminalResidualRub": 0,
+      "operationsStaffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      }
+    },
+    {
+      "key": "match-purchase-2-raas",
+      "name": "RaaS · AMR 1500 (грузоподъемность до 1 500 кг) [2]",
+      "kind": "raas",
+      "items": [
+        {
+          "process": "pallet-transport",
+          "productSlug": "moros-amr-1500",
+          "automationCoverageOverride": 1
+        }
+      ],
+      "cashRealizationShare": 1,
+      "simSeed": 1,
+      "terminalResidualRub": 0,
+      "operationsStaffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      }
+    },
+    {
+      "key": "match-purchase-3-purchase",
+      "name": "Покупка · AMR 800 (грузоподъемность до 800 кг) [3]",
+      "kind": "purchase",
+      "items": [
+        {
+          "process": "pallet-transport",
+          "productSlug": "moros-amr-800",
+          "automationCoverageOverride": 1
+        }
+      ],
+      "cashRealizationShare": 1,
+      "simSeed": 1,
+      "terminalResidualRub": 0,
+      "operationsStaffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      }
+    },
+    {
+      "key": "match-purchase-3-raas",
+      "name": "RaaS · AMR 800 (грузоподъемность до 800 кг) [3]",
+      "kind": "raas",
+      "items": [
+        {
+          "process": "pallet-transport",
+          "productSlug": "moros-amr-800",
+          "automationCoverageOverride": 1
+        }
+      ],
+      "cashRealizationShare": 1,
+      "simSeed": 1,
+      "terminalResidualRub": 0,
+      "operationsStaffing": {
+        "mode": "shared-existing",
+        "incrementalHoursYear": 365,
+        "grossHourlyRub": 600,
+        "payrollMultiplier": 1.302,
+        "reason": "Учебная оценка доплаты 365 часов в год; доступность штатного сотрудника и реальные трудозатраты не подтверждены"
+      }
+    }
+  ],
+  "provenance": {
+    "code": "lib/tz/matched-comparison.ts; lib/tz/econ/labour.ts; lib/tz/econ/cost-package.ts; lib/tz/econ/staffing-budget.ts",
+    "sourceReport": "Historical tz-1.0.3 sample snapshot; same organizer inputs reproduced by tz-1.0.4",
+    "researchEvidence": "research/alfa-audit/economics-stage20261018/analyze.ts and analysis.json; no DB writes",
+    "physicalInputKeys": "SHA256 of exact UTF-8 identity strings; full keys retained in external raw evidence, not repeated here"
+  }
+}

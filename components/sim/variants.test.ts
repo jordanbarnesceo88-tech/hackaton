@@ -198,8 +198,7 @@ describe("storedMatches", () => {
 
   it("accepts the summary saved for the same seed, fleet, peak flow and model version", () => {
     expect(storedMatches(stored, calc)).toBe(true);
-    // Пиковый поток после сохранения в JSON и обратно — в пределах допуска.
-    expect(storedMatches({ ...stored, requiredPerH: stored.requiredPerH * (1 + 1e-9) }, calc)).toBe(true);
+    expect(storedMatches(JSON.parse(JSON.stringify(stored)), calc)).toBe(true);
   });
 
   it("rejects a stale summary: another fleet, peak flow, seed or model version", () => {
@@ -207,6 +206,9 @@ describe("storedMatches", () => {
     expect(storedMatches({ ...stored, requiredPerH: stored.requiredPerH + 1 }, calc)).toBe(false);
     expect(storedMatches({ ...stored, seed: 2 }, calc)).toBe(false);
     expect(storedMatches({ ...stored, simModelVersion: "sim-0.9.0" }, calc)).toBe(false);
+    expect(storedMatches({ ...stored, inputKey: undefined }, calc)).toBe(false);
+    expect(storedMatches(stored, { ...calc, robots: { ...calc.robots, autonomyH: 0.2 } })).toBe(false);
+    expect(storedMatches(stored, { ...calc, layout: { ...calc.layout, receivingDocksCount: 1 } })).toBe(false);
   });
 
   it("has nothing to match without a summary or a calculated input", () => {

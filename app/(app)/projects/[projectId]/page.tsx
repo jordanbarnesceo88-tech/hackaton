@@ -11,11 +11,12 @@ import { prisma } from "@/lib/db/client";
 import { getProject, getProjectChanges, type ProjectChangeEntry, type ProjectRecord } from "@/lib/projects/queries";
 import { liveDataVersionFrom, loadLiveInputs, reproduceModel, type LiveInputs } from "@/lib/projects/recalc";
 import { formatCalcDate } from "@/lib/report/tz/rows";
-import { buildProjectModel, withSnapshotProducts, type ProjectModel } from "@/lib/tz/model";
+import { withSnapshotProducts, type ProjectModel } from "@/lib/tz/model";
+import { TZ_MODEL_VERSION } from "@/lib/tz/version";
+import { SIM_MODEL_VERSION } from "@/lib/sim/types";
 import { NORM_DEFS, type NormDef } from "@/lib/tz/norms";
 import { FACILITY_LABELS } from "@/lib/tz/params/template";
 import { processesForFacility } from "@/lib/tz/processes";
-import { timed } from "@/lib/tz/timing";
 import type { ParamValues, ProductForCalc } from "@/lib/tz/types";
 
 export const metadata: Metadata = { title: "Проект — Платформа оценки роботизации" };
@@ -60,28 +61,20 @@ function initialModelOf(
 ): { model: ProjectModel; ms: number; products: ProductForCalc[]; params: ParamValues } {
   const stored = project.results;
   if (stored) {
-    const { value, ms } = timed(() => reproduceModel(live, stored), () => performance.now());
     return {
-      model: value,
-      ms,
+      model: reproduceModel(live, stored),
+      ms: 0,
       products: withSnapshotProducts(live.products, stored.productSnapshots),
       params: stored.paramsUsed,
     };
   }
-  // Результатов нет (записаны старой версией или не сохранились) — модель на живых данных.
-  const { value, ms } = timed(
-    () =>
-      buildProjectModel({
-        facility: project.facility,
-        params: project.params,
-        paramDefs: live.paramDefs,
-        scenarios: project.scenarios,
-        products: live.products,
-        norms: live.norms,
-      }),
-    () => performance.now(),
-  );
-  return { model: value, ms, products: live.products, params: project.params };
+  // Missing/unsupported archives never silently become a calculation by today's algorithm.
+  const model: ProjectModel = { modelVersion: project.modelVersion ?? "unavailable", simModelVersion: "unavailable",
+    dataVersion: project.dataVersion ?? "unavailable", facility: project.facility, paramsUsed: project.params,
+    normsUsed: live.norms, scenarios: project.scenarios, productSnapshots: {}, results: [], selection: [], comparison: [],
+    conclusion: { recommendedScenarioKey: null, headline: "Сохранённый расчёт недоступен", bullets: ["Явно пересчитайте проект или его копию, чтобы получить новый результат."], disclaimer: "Архив не пересчитан текущей моделью." },
+    paramIssues: [], layout: null, simInputs: {} };
+  return { model, ms: 0, products: live.products, params: project.params };
 }
 
 /** Запись журнала из БД → строка таблицы «Журнал корректировок». */
@@ -99,7 +92,7 @@ function toChangeLogEntry(e: ProjectChangeEntry): ChangeLogEntry {
   };
 }
 
-export default async function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
+export default async function ProjectPage({ params, searchParams }: { params: Promise<{ projectId: string }>; searchParams: Promise<{ edit?: string }> }) {
   await connection();
   const user = await requireUser();
   const { projectId } = await params;
@@ -113,22 +106,22 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     getProjectChanges(prisma, project.id, user.userId),
   ]);
   const facilityLabel = FACILITY_LABELS[project.facility] ?? project.facility;
-  const defs = live.paramDefs.filter((d) => d.facility === project.facility);
+  const defs = (project.results?.runtime?.paramDefs ?? live.paramDefs).filter((d) => d.facility === project.facility);
   const baseValues: ParamValues = Object.fromEntries(defs.map((d) => [d.key, d.base]));
   const processes = dbProcesses.length > 0 ? dbProcesses : processesForFacility(project.facility);
   const first = initialModelOf(live, project);
   const saved = project.results;
-  const stored = saved
-    ? {
+  const stored = {
         results: {
-          modelVersion: saved.modelVersion,
-          dataVersion: saved.dataVersion,
-          calculatedAt: saved.calculatedAt,
-          sim: saved.sim,
+          modelVersion: saved?.modelVersion ?? "unavailable",
+          dataVersion: saved?.dataVersion ?? "unavailable",
+          calculatedAt: saved?.calculatedAt ?? project.updatedAt.toISOString(),
+          sim: saved?.sim ?? {},
         },
-        liveDataVersion: liveDataVersionFrom(live, saved),
-      }
-    : undefined;
+        liveDataVersion: saved ? liveDataVersionFrom(live, saved) : "unavailable",
+      };
+  const editing = (await searchParams).edit === "1" && saved?.modelVersion === TZ_MODEL_VERSION &&
+    saved.simModelVersion === SIM_MODEL_VERSION && Boolean(saved.runtime) && !project.isDemo;
   // Ключ — только id проекта: после «Сохранить проект» сервер обновляет страницу, и версия
   // данных может смениться (в снимок попал новый продукт). Пересоздание рабочей области сбросило
   // бы её состояние вместе с сообщением «Проект сохранён». Расчёт на экране и так совпадает с
@@ -151,14 +144,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           {project.objectName ? `${project.objectName} · ` : ""}
           {project.results
             ? `расчёт сохранён ${formatCalcDate(project.results.calculatedAt)}`
-            : "сохранённого расчёта нет — показан расчёт на текущих данных"}
+            : "сохранённого расчёта нет; текущая модель не запускалась"}
         </p>
       </div>
       <Workspace
         key={workspaceKey}
         mode="owner"
+        archive={!editing}
         project={{
           id: project.id,
+          revision: project.revision,
           name: project.name,
           facility: project.facility,
           facilityLabel,

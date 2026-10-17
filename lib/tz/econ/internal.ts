@@ -16,6 +16,7 @@ export type ItemCalc = {
   n: number;
   chargers: number;
   roleCost: number;
+  cashRealizationShare?: number;
   /** Цена за единицу для покупки (ручная или из карточки); null — для RaaS не нужна. */
   priceRub: number | null;
   priceOverridden: boolean;
@@ -38,27 +39,31 @@ export function charOrigin(product: ProductForCalc, key: string, fallback: Origi
 export function mergeLines(parts: LineItem[][]): LineItem[] {
   if (parts.length === 1) return parts[0] ?? [];
   const out: LineItem[] = [];
-  const byKey = new Map<string, { line: LineItem; subs: string[]; notes: Set<string> }>();
+  const byKey = new Map<string, { line: LineItem; subs: string[]; notes: Set<string>; formulas: string[] }>();
   for (const lines of parts) {
     for (const l of lines) {
       const cur = byKey.get(l.key);
       if (!cur) {
         const copy: LineItem = { ...l };
-        byKey.set(l.key, { line: copy, subs: [l.substituted], notes: new Set(l.originNote ? [l.originNote] : []) });
+        byKey.set(l.key, { line: copy, subs: [l.substituted], notes: new Set(l.originNote ? [l.originNote] : []), formulas: [l.formula] });
         out.push(copy);
         continue;
       }
       cur.line.valueRub += l.valueRub;
       cur.subs.push(l.substituted);
+      cur.formulas.push(l.formula);
       if (l.originNote) cur.notes.add(l.originNote);
       if (cur.line.origin !== l.origin) cur.line.origin = "derived";
       if (l.overridden) cur.line.overridden = true;
       cur.line.includedInSubscription = Boolean(cur.line.includedInSubscription && l.includedInSubscription);
       if (!cur.line.includedInSubscription) delete cur.line.includedInSubscription;
+      cur.line.includedInService = Boolean(cur.line.includedInService && l.includedInService);
+      if (!cur.line.includedInService) delete cur.line.includedInService;
     }
   }
-  for (const { line, subs, notes } of byKey.values()) {
+  for (const { line, subs, notes, formulas } of byKey.values()) {
     if (subs.length > 1) line.substituted = subs.map((s) => `[${s}]`).join(" + ");
+    if (new Set(formulas).size > 1) line.formula = `Сумма по позициям: ${formulas.map(value => `[${value}]`).join(" + ")}`;
     if (notes.size > 0) line.originNote = [...notes].join("; ");
   }
   return out;

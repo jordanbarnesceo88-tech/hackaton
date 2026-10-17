@@ -27,7 +27,7 @@ describe("вывод по эталону", () => {
     expect(c.recommendedScenarioKey).toBe("r1");
     // Разряды ICU разделяет неразрывным пробелом — сравниваем после замены на обычный.
     expect(c.headline.replace(/\s/g, " ")).toBe(
-      "Рекомендуемый сценарий: Услуга (RaaS) — Ronavi H1500. NPV 6 713 156 ₽ за 5 лет, окупаемость 0,7 года — быстрая окупаемость (менее 3 лет).",
+      "Предварительный финансовый выбор: Услуга (RaaS) — Ronavi H1500. NPV 6 713 156 ₽ за 5 лет, окупаемость 0,7 года — быстрая окупаемость (менее 3 лет).",
     );
     expect(c.disclaimer).toBe("Результат расчёта — предварительная оценка, его нужно проверить при обследовании объекта.");
     expect(c.disclaimer).toBe(DISCLAIMER);
@@ -118,6 +118,30 @@ describe("вывод по эталону", () => {
     const base = ok(results, "p1");
     const twin: ScenarioOk = { ...base, key: "p9", capexRub: base.capexRub - 1 };
     expect(pickRecommended([base, twin])?.key).toBe("p9");
+  });
+
+  it("провал потока исключает финансового лидера из выбора, не меняя его NPV", () => {
+    const leader = ok(results, "r1");
+    const failed: ScenarioOk = {
+      ...leader,
+      risks: [...leader.risks, { code: "SIM_NOT_CONFIRMED", severity: "high", text: "Парк не выполняет заданный поток" }],
+    };
+    expect(failed.npvRub).toBe(leader.npvRub);
+    expect(pickRecommended([failed])).toBeNull();
+    const cc = buildConclusion([failed], ctx, [specs[2]!]);
+    expect(cc.recommendedScenarioKey).toBeNull();
+    expect(cc.headline).toContain("не подтвердили заданную нагрузку");
+    expect(cc.headline).not.toContain("не окупается");
+  });
+
+  it("смена горизонта не возвращает проваленный парк в выбор", () => {
+    const failedPurchase: ScenarioOk = {
+      ...ok(results, "p1"),
+      risks: [{ code: "SIM_NOT_CONFIRMED", severity: "high", text: "Не выполнен поток" }],
+    };
+    const cc = buildConclusion([ok(results, "asis"), failedPurchase, ok(results, "r1")], ctx, specs);
+    expect(cc.recommendedScenarioKey).toBe("r1");
+    expect(cc.bullets.some((b) => b.startsWith("При горизонте") && b.includes("Покупка"))).toBe(false);
   });
 
   it("ограничения модели перечислены", () => {

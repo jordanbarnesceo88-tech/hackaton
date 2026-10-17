@@ -1,3 +1,9 @@
 # Файл демо-чисел сверяется побайтно с выводом scripts/print-demo-numbers.ts (финальная проверка, ТЗ §5.6),
 # поэтому хранится с LF на любой ОС.
 docs/submission/demo-numbers.md text eol=lf
+
+# Generated offline viewers must compare byte-for-byte across Windows/Linux builds.
+public/*-3d.html text eol=lf
+
+# Accepted historical export: keep the exact CRLF bytes and recorded SHA on every OS.
+docs/submission/sample-report.csv -text whitespace=cr-at-eol

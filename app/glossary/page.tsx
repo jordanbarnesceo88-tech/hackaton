@@ -51,10 +51,10 @@ export default function GlossaryPage() {
       ))}
 
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm">
-        <Link href="/methodology" className="tap-target font-medium underline underline-offset-4">
+        <Link href="/methodology/tz" className="tap-target font-medium underline underline-offset-4">
           Откуда цифры
         </Link>
-        <Link href="/onboarding" className="tap-target font-medium underline underline-offset-4">
+        <Link href="/demo" className="tap-target font-medium underline underline-offset-4">
           Проверить свой объект →
         </Link>
       </footer>

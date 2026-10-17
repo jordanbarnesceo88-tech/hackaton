@@ -5,7 +5,9 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:3d && next build",
+    "build:3d": "node experiments/warehouse-3d/build.mjs",
+    "check:3d": "node experiments/warehouse-3d/build.mjs --check",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
@@ -51,6 +53,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
+    "esbuild": "0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "prisma": "^7.9.1",

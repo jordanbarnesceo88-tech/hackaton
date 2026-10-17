@@ -31,8 +31,12 @@ export function bindIsoDom(svg: SVGSVGElement): IsoDom | null {
     clock: svg.querySelector<SVGTextElement>("text.iso-hud-clock"),
     caption: svg.querySelector<SVGTextElement>("text.iso-hud-caption"),
     pads,
-    botNodes: [],
-    routeNodes: new Map(),
+    botNodes: Array.from(bots.children) as SVGGElement[],
+    routeNodes: new Map(
+      Array.from(routes.querySelectorAll<SVGPolylineElement>("polyline[data-route]"), (node) => [
+        Number(node.dataset.route), node,
+      ]),
+    ),
   };
 }
 

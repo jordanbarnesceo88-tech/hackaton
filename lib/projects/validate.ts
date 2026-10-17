@@ -1,9 +1,16 @@
 import { fx } from "../tz/econ/text";
+import { parseSpatialProjectSnapshot } from "../sim/spatial-bridge";
+import { validateSiteLayout, validateProjectSiteLayout } from "../sim/site-layout";
+import type { SimLayout } from "../sim/types";
+import { LAYOUT_LIMITS } from "../sim/layout";
 import { isNormKey, normDef } from "../tz/norms";
 import { processDef } from "../tz/processes";
 import { facilityLabel } from "../tz/selection/text";
-import type { PendingChange, ScenarioItem, ScenarioKind, ScenarioSpec } from "../tz/types";
+import type { PendingChange, ScenarioItem, ScenarioKind, ScenarioSpec, SpatialEvidence } from "../tz/types";
 import { stableJson } from "../tz/version";
+import { parsePilotPlanInput } from "../tz/pilot-budget";
+import { parseOperationsStaffing } from "../tz/econ/labour";
+import { parseCostPackage } from "../tz/econ/cost-package";
 
 /**
  * Проверка того, что присылает рабочая область проекта (серверные действия и API): сценарии,
@@ -30,18 +37,26 @@ export const CHANGES_MAX = 300;
 /** Длина причины ручного добавления или изменения. */
 export const REASON_MAX = 500;
 
+/** Missing preconditions are rejected, never replaced with the current database revision. */
+export function validProjectRevision(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value < 2_147_483_647;
+}
+
 /** Результат проверки: принятое значение или список ошибок по-русски. */
 export type Checked<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 const SCENARIO_KINDS: ReadonlySet<string> = new Set<ScenarioKind>(["asis", "purchase", "raas"]);
-const SPEC_FIELDS: ReadonlySet<string> = new Set(["key", "name", "kind", "items", "normOverrides"]);
+const SPEC_FIELDS: ReadonlySet<string> = new Set(["key", "name", "kind", "items", "normOverrides", "cashRealizationShare", "operationsStaffing", "spatialEvidence", "siteLayout", "simSeed", "pilotPlan", "terminalResidualRub"]);
 const ITEM_FIELDS: ReadonlySet<string> = new Set([
   "process",
   "productSlug",
   "quantityOverride",
+  "chargersOverride",
+  "automationCoverageOverride",
   "priceRubOverride",
   "throughputPerHOverride",
   "serviceRubYearOverride",
+  "costPackage",
   "raasRubMonthOverride",
   "raasFromEstimate",
   "manuallyAdded",
@@ -92,6 +107,72 @@ function unknownFields(obj: Record<string, unknown>, allowed: ReadonlySet<string
   return Object.keys(obj).filter((k) => !allowed.has(k) && obj[k] !== undefined);
 }
 
+type InputShape = null | { [field: string]: InputShape } | readonly [InputShape];
+const POINT = { x: null, y: null };
+const RECT = { ...POINT, w: null, h: null, id: null, kind: null, heightM: null };
+const INPUT_SHAPE: InputShape = {
+  seed: null, loadMassKg: null,
+  layout: { activeAreaM2: null, mainAisleWidthM: null, rackAisleWidthM: null, receivingDocksCount: null, shippingDocksCount: null, chargers: null },
+  robots: { count: null, speedMps: null, loadedSpeedFactor: null, handlingSec: null, autonomyH: null, chargeMin: null, payloadKg: null },
+  demand: { avgPerH: null, peakPerH: null, warmupMin: null, peakMin: null },
+  thresholds: { servedShareMin: null, p95WaitMaxMin: null, oversizedIdleShare: null },
+  charge: { startSoc: null, stopSoc: null },
+  siteLayout: {
+    widthM: null, heightM: null, wallHeightM: null,
+    zones: [{ ...RECT, label: null }], crossAislesY: [null], rackAislesX: [null], slots: [POINT],
+    receiving: [{ ...POINT, id: null, kind: null }], shipping: [{ ...POINT, id: null, kind: null }], chargers: [{ ...POINT, id: null, kind: null }],
+    footprint: [POINT], walls: [RECT], obstacles: [RECT], columns: [RECT],
+    doors: [{ ...RECT, label: null }], compartments: [{ ...RECT, label: null }], staging: [{ ...RECT, pointIds: [null] }],
+    routingGraph: { clearanceM: null, nodes: [{ ...POINT, id: null }], edges: [{ from: null, to: null }] },
+  },
+};
+
+/** Retain the full audited input, but never arbitrary nested client data or unbounded trees. */
+function checkInputShape(value: unknown, shape: InputShape): void {
+  if (shape === null) {
+    if (!(value === null || (finite(value) && Math.abs(value) <= 1e9) || (typeof value === "string" && value.length <= 500))) throw new Error("Некорректное или слишком большое значение во входе 3D");
+  } else if (Array.isArray(shape)) {
+    if (!Array.isArray(value) || value.length > 2000) throw new Error("Слишком большой список во входе 3D");
+    for (const entry of value) checkInputShape(entry, shape[0]!);
+  } else {
+    if (!isPlainObject(value)) throw new Error("Неверная вложенная структура входа 3D");
+    for (const [key, entry] of Object.entries(value)) {
+      if (entry === undefined) continue;
+      if (!Object.prototype.hasOwnProperty.call(shape, key)) throw new Error(`Неизвестное поле входа 3D: ${key}`);
+      checkInputShape(entry, (shape as Record<string, InputShape>)[key]!);
+    }
+  }
+}
+
+export function checkSpatialEvidence(raw: unknown): SpatialEvidence {
+  if (!isPlainObject(raw) || unknownFields(raw, new Set(["sourceInputKey", "executionInputKey", "simModelVersion", "input", "assessment", "summary"])).length) throw new Error("Неверные поля проверки 3D");
+  for (const key of ["sourceInputKey", "executionInputKey", "simModelVersion"] as const) {
+    if (typeof raw[key] !== "string" || raw[key].length < 1 || raw[key].length > (key === "simModelVersion" ? 200 : 1_900_000)) throw new Error("Некорректный идентификатор проверки 3D");
+  }
+  const a = raw.assessment, s = raw.summary;
+  if (!isPlainObject(a) || unknownFields(a, new Set(["status", "headline", "terminal"])).length ||
+      !["OK", "PARTIAL", "FAIL", "NOT_EVALUATED"].includes(String(a.status)) || a.terminal !== true ||
+      typeof a.headline !== "string" || !a.headline.trim() || a.headline.length > 4000) throw new Error("Неверный завершённый вердикт 3D");
+  if (!isPlainObject(s) || unknownFields(s, new Set(["fleet", "requiredPerH", "achievedPerH", "queueEnd", "waitP95Min"])).length) throw new Error("Неверные показатели 3D");
+  for (const key of ["fleet", "requiredPerH", "achievedPerH", "queueEnd", "waitP95Min"] as const) {
+    if (!finite(s[key]) || s[key] < 0 || s[key] > 1e9) throw new Error("Показатели 3D должны быть конечными неотрицательными числами");
+  }
+  if (!Number.isInteger(s.fleet) || Number(s.fleet) < 1 || Number(s.fleet) > QUANTITY_MAX || !Number.isInteger(s.queueEnd)) throw new Error("Неверный парк или очередь 3D");
+  checkInputShape(raw.input, INPUT_SHAPE);
+  const { input } = parseSpatialProjectSnapshot({ schemaVersion: "spatial-project-1", requestId: "validation", scenarioKey: "validation", scenarioName: "Проверка", variantId: "calculated", input: raw.input, inputKey: raw.sourceInputKey });
+  if (input.layout.activeAreaM2 > LAYOUT_LIMITS.maxActiveAreaM2 || [input.layout.chargers, input.layout.receivingDocksCount, input.layout.shippingDocksCount].some(n => n > LAYOUT_LIMITS.maxPointsPerKind) || input.demand.warmupMin + input.demand.peakMin > 10_080) throw new Error("Превышены границы площади, инфраструктуры или окна 3D");
+  if (input.siteLayout && validateSiteLayout(input.siteLayout).length) throw new Error("Неверная явная планировка 3D");
+  if (s.fleet !== input.robots.count || s.requiredPerH !== input.demand.peakPerH) throw new Error("Показатели 3D не соответствуют исходному парку и нагрузке");
+  return structuredClone({ ...raw, input }) as SpatialEvidence;
+}
+
+export function checkScenarioSiteLayout(raw: unknown): SimLayout {
+  checkInputShape(raw, (INPUT_SHAPE as Record<string, InputShape>).siteLayout!);
+  const issues = validateProjectSiteLayout(raw as SimLayout);
+  if (issues.length) throw new Error(issues.join("; "));
+  return structuredClone(raw) as SimLayout;
+}
+
 /**
  * Название проекта: строка от 1 до 120 символов после обрезки пробелов. null — название
  * пустое, слишком длинное или не строка.
@@ -127,12 +208,28 @@ function checkItem(
     errors.push(`${where}: продукт «${String(productSlug)}» не найден в каталоге — выберите другой`);
   }
   const item: ScenarioItem = { process: String(process), productSlug: String(productSlug) };
+  if (raw.costPackage !== undefined) {
+    try {
+      item.costPackage = parseCostPackage(raw.costPackage);
+      if (item.costPackage.includedChargers > LAYOUT_LIMITS.maxPointsPerKind) errors.push(`${where}: число включённых зарядок превышает предел инфраструктуры`);
+    } catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный состав ценового пакета"}`); }
+  }
 
   const q = raw.quantityOverride;
   if (q !== undefined) {
     if (!(finite(q) && Number.isInteger(q) && q >= 1 && q <= QUANTITY_MAX)) {
       errors.push(`${where}: число роботов должно быть целым от 1 до ${QUANTITY_MAX}`);
     } else item.quantityOverride = q;
+  }
+  if (raw.chargersOverride !== undefined) {
+    const c = raw.chargersOverride;
+    if (!(finite(c) && Number.isInteger(c) && c >= 0 && c <= LAYOUT_LIMITS.maxPointsPerKind)) errors.push(`${where}: число зарядок должно быть целым от 0 до ${LAYOUT_LIMITS.maxPointsPerKind}`);
+    else item.chargersOverride = c;
+  }
+  if (raw.automationCoverageOverride !== undefined) {
+    const c = raw.automationCoverageOverride;
+    if (!(finite(c) && c >= 0 && c <= 1)) errors.push(`${where}: оценочная доля годовой нагрузки должна быть от 0 до 1`);
+    else item.automationCoverageOverride = c;
   }
   for (const key of POSITIVE_OVERRIDES) {
     const v = raw[key];
@@ -236,6 +333,7 @@ export function validateScenarioSpecs(
       rawItems.forEach((ri, j) => {
         const item = checkItem(ri, `${where}, позиция ${j + 1}`, products, processes, errors);
         if (!item) return;
+        if (item.costPackage && kind !== "purchase") errors.push(`${where}: ценовой пакет применим только к покупке`);
         if (seenProcess.has(item.process)) {
           errors.push(`${where}: на процесс «${processName(item.process)}» уже выбрано решение — оставьте одно`);
           return;
@@ -278,9 +376,52 @@ export function validateScenarioSpecs(
       }
     }
 
+    let cashRealizationShare: number | undefined;
+    let operationsStaffing: ScenarioSpec["operationsStaffing"];
+    if (raw.operationsStaffing !== undefined) {
+      try { operationsStaffing = parseOperationsStaffing(raw.operationsStaffing); }
+      catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный эксплуатационный персонал"}`); }
+      if (kind === "asis") errors.push(`${where}: дополнительный эксплуатационный персонал не относится к сценарию «Как есть»`);
+    }
+    let pilotPlan: ScenarioSpec["pilotPlan"];
+    if (raw.pilotPlan !== undefined) {
+      try { pilotPlan = parsePilotPlanInput(raw.pilotPlan); }
+      catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный план пилота"}`); }
+      if (kind === "asis") errors.push(`${where}: план роботизированного пилота не относится к сценарию «Как есть»`);
+    }
+    let terminalResidualRub: number | undefined;
+    if (raw.terminalResidualRub !== undefined) {
+      if (!(finite(raw.terminalResidualRub) && raw.terminalResidualRub >= 0 && raw.terminalResidualRub <= 1_000_000_000_000)) errors.push(`${where}: остаточная стоимость — неотрицательная чистая сумма до 1 трлн ₽`);
+      else if (kind === "asis" && raw.terminalResidualRub > 0) errors.push(`${where}: остаточная стоимость задаётся в сценарии роботизации`);
+      else terminalResidualRub = raw.terminalResidualRub;
+    }
+    if (raw.cashRealizationShare !== undefined) {
+      if (!(finite(raw.cashRealizationShare) && raw.cashRealizationShare >= 0 && raw.cashRealizationShare <= 1)) errors.push(`${where}: доля денежной реализации должна быть от 0 до 1`);
+      else cashRealizationShare = raw.cashRealizationShare;
+    }
+    let spatialEvidence: SpatialEvidence | undefined;
+    if (raw.spatialEvidence !== undefined) {
+      try { spatialEvidence = checkSpatialEvidence(raw.spatialEvidence); }
+      catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверная проверка 3D"}`); }
+    }
+    let siteLayout: SimLayout | undefined;
+    if (raw.siteLayout !== undefined) {
+      try { siteLayout = checkScenarioSiteLayout(raw.siteLayout); }
+      catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверная явная планировка"}`); }
+      if (facility !== "warehouse" || kind === "asis") errors.push(`${where}: явная планировка допустима только в сценарии роботизации склада`);
+    }
+    const simSeed = raw.simSeed;
+    if (simSeed !== undefined && !Number.isSafeInteger(simSeed)) errors.push(`${where}: зерно имитации должно быть безопасным целым числом`);
     if (errors.length === before) {
       const spec: ScenarioSpec = { key: key as string, name, kind: kind as ScenarioKind, items };
       if (normOverrides) spec.normOverrides = normOverrides;
+      if (cashRealizationShare !== undefined) spec.cashRealizationShare = cashRealizationShare;
+      if (operationsStaffing) spec.operationsStaffing = operationsStaffing;
+      if (pilotPlan) spec.pilotPlan = pilotPlan;
+      if (terminalResidualRub !== undefined) spec.terminalResidualRub = terminalResidualRub;
+      if (spatialEvidence) spec.spatialEvidence = spatialEvidence;
+      if (siteLayout) spec.siteLayout = siteLayout;
+      if (typeof simSeed === "number") spec.simSeed = simSeed;
       out.push(spec);
     }
   });
@@ -290,10 +431,10 @@ export function validateScenarioSpecs(
 }
 
 /** Поля журнала позиции сценария (формат PendingChange.field). */
-const ITEM_CHANGE_FIELDS = "quantity|price|throughput|service|raasRate|manual";
+const ITEM_CHANGE_FIELDS = "quantity|price|throughput|service|raasRate|manual|package";
 /** Допустимые значения PendingChange.field (ТЗ §3.5.4 — журнал корректировок). */
 const CHANGE_FIELD_RE = new RegExp(
-  `^(param:[A-Za-z][A-Za-z0-9_]{0,63}|item:[a-z0-9-]{1,60}:(${ITEM_CHANGE_FIELDS})|norm:[A-Za-z][A-Za-z0-9]{0,63}|scenario:add|scenario:remove)$`,
+  `^(param:[A-Za-z][A-Za-z0-9_]{0,63}|item:[a-z0-9-]{1,60}:(${ITEM_CHANGE_FIELDS})|norm:[A-Za-z][A-Za-z0-9]{0,63}|scenario:add|scenario:remove|scenario:pilot|scenario:residual|scenario:staffing)$`,
 );
 const CHANGE_FIELDS: ReadonlySet<string> = new Set(["scenarioKey", "field", "auto", "old", "new", "unit", "reason"]);
 /** Наибольший размер старого или нового значения в журнале, символов JSON. */

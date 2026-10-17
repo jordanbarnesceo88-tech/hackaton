@@ -78,20 +78,20 @@ export default function Home() {
           с xl (1280px), ниже снимок встаёт под текст во всю ширину. */}
       <section className="grid items-center gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
         <div className="flex flex-col gap-6">
-          <h1>Окупится ли роботизация вашего объекта</h1>
+          <h1>Выберите решение для роботизации вашего объекта</h1>
           <p className="text-lg text-muted-foreground">
-            Подбор роботизированных решений, CAPEX, OPEX и TCO, сценарии «Как есть», «Покупка» и «Услуга (RaaS)»,
-            проверка парка имитацией.
+            Узнайте, какую работу выполнят роботы, сколько понадобится техники и какие затраты изменятся.
+            Сравните покупку и услугу, проверьте рабочий поток и подготовьте план пилота.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/demo" className={CTA_PRIMARY}>
+            <Link href="/demo?example=steady-flow" className={CTA_PRIMARY}>
               Открыть демо-расчёт склада
             </Link>
             <Link href="/projects/new" className={CTA_SECONDARY}>
               Создать проект
             </Link>
             {/* Онбординг-тур: карточки по шагам расчёта, см. components/onboarding/onboarding-tour.tsx.
-                Открывается сам один раз новому посетителю и по этой кнопке — в любой момент. */}
+                Открывается по желанию пользователя и не закрывает первый экран. */}
             <OnboardingTour triggerSize="xl" triggerClassName="w-full sm:w-auto" />
           </div>
           <p className="text-sm text-muted-foreground">
@@ -133,14 +133,10 @@ export default function Home() {
         </Accordion>
       </section>
 
-      {/* Входы в прозу: формулы и нормативы модели, методика упрощённой модели («откуда
-          цифры») и словарь — для того, кто на «ЭПЗ» и «AS/RS» ещё останавливается. */}
+      {/* Методика текущего расчёта и словарь — для проверки формул, источников и терминов. */}
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm">
         <Link href="/methodology/tz" className={FOOTER_LINK}>
-          Методика расчёта
-        </Link>
-        <Link href="/methodology" className={FOOTER_LINK}>
-          Откуда цифры
+          Откуда цифры: методика и источники
         </Link>
         <Link href="/glossary" className={FOOTER_LINK}>
           Словарь терминов

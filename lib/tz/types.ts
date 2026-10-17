@@ -1,4 +1,5 @@
-import type { SimSummaryStored } from "../sim/types";
+import type { SimInput, SimLayout, SimSummaryStored } from "../sim/types";
+import type { SimProvenance } from "../sim/adapter";
 import type { NormKey, NormValues } from "./norms";
 
 /**
@@ -314,15 +315,64 @@ export type ScenarioItem = {
   productSlug: string;
   /** Ручное число роботов вместо расчётного. */
   quantityOverride?: number;
+  /** Фиксированная инфраструктура сценария, включая отсутствие зарядок. */
+  chargersOverride?: number;
+  /** Явная оценка доли годовой нагрузки; ограничивает аналитический охват сверху. */
+  automationCoverageOverride?: number;
   priceRubOverride?: number;
   throughputPerHOverride?: number;
   serviceRubYearOverride?: number;
+  costPackage?: CostPackage;
   raasRubMonthOverride?: number;
   /** Ставка RaaS подставлена оценкой raasMonthlyPctOfPrice по явному действию пользователя. */
   raasFromEstimate?: boolean;
   /** Продукт добавлен вручную, хотя подбор его исключил (показывается со значком ⚠). */
   manuallyAdded?: boolean;
   manualReason?: string;
+};
+
+export type SpatialEvidence = {
+  sourceInputKey: string;
+  executionInputKey: string;
+  simModelVersion: string;
+  /** Исходный вход проекта; подготовленный исполнительный вход имеет отдельный ключ. */
+  input: SimInput;
+  assessment: { status: "OK" | "PARTIAL" | "FAIL" | "NOT_EVALUATED"; headline: string; terminal: true };
+  summary: { fleet: number; requiredPerH: number; achievedPerH: number; queueEnd: number; waitP95Min: number };
+};
+
+export type PilotPlanInput = {
+  schemaVersion: "pilot-plan-1"; fleet: number; chargers: number; durationDays: number; dayBasis: "working" | "calendar"; acquisition: "purchase" | "raas";
+  costs: Record<"setup" | "integration" | "training" | "logistics" | "sitePreparation" | "evaluation", { valueRub: number | null; source: string }>;
+  equipmentUnitRubOverride: number | null; contingencyPct: number; targetThroughputPerH: number | null; maxP95WaitMin: number;
+  chargerBudgetRubOverride?: number | null;
+  chargerBudgetSource?: string;
+  maxInterventionsPerShift: number; readiness: string[]; notes: string;
+};
+
+/** Additional site operating costs; absent retains the original per-item dedicated-post model. */
+export type OperationsStaffing =
+  | { mode: "dedicated"; grossSalaryRubMonth: number; payrollMultiplier: number; annualHoursPerFte: number; reason: string }
+  | { mode: "shared-existing"; incrementalHoursYear: number; grossHourlyRub: number; payrollMultiplier: number; reason: string }
+  | { mode: "integrator"; billing: "separate"; annualFeeRub: number; reason: string }
+  | { mode: "integrator"; billing: "included-in-service"; reason: string };
+
+export type OperationsStaffingResult = {
+  mode: OperationsStaffing["mode"];
+  posts: number;
+  fte: number | null;
+  annualCostRub: number;
+  formula: string;
+  substituted: string;
+  reason: string;
+  includedInService: boolean;
+};
+
+export type CostPackage = {
+  softwareIncludedInIntegration: boolean;
+  repairsIncludedInService: boolean;
+  includedChargers: number;
+  reason: string;
 };
 
 /** Сценарий проекта. Ключ — ^[a-z0-9-]{1,40}$, стабилен и используется в журнале и API. */
@@ -333,6 +383,15 @@ export type ScenarioSpec = {
   items: ScenarioItem[];
   /** Нормативы, переопределённые в этом сценарии. */
   normOverrides?: Partial<Record<NormKey, number>>;
+  /** Доля высвобождаемого ФОТ, реализуемая деньгами; отсутствие = 1 для старых сценариев. */
+  cashRealizationShare?: number;
+  operationsStaffing?: OperationsStaffing;
+  spatialEvidence?: SpatialEvidence;
+  /** Explicit physical source geometry; never the traffic controller's augmented parking graph. */
+  siteLayout?: SimLayout;
+  simSeed?: number;
+  pilotPlan?: PilotPlanInput;
+  terminalResidualRub?: number;
 };
 
 // ——————————————————————————— Результаты расчёта ———————————————————————————
@@ -354,6 +413,8 @@ export type LineItem = {
   overridden?: boolean;
   /** Для RaaS: статья входит в подписку (допущение — проверить в договоре). */
   includedInSubscription?: boolean;
+  /** Explicit additional operating-personnel cost is already covered by a paid service. */
+  includedInService?: boolean;
 };
 
 /** Шаг расчёта для раскрытия «Как посчитано»: формула, подстановка, результат и единица. */
@@ -427,6 +488,8 @@ export type ItemResult = {
   baselineLabourRub: number;
   remainingLabourRub: number;
   operatingStaffRub: number;
+  /** Site cost allocated by fleet count; operatorPosts is shown at scenario level, not per item. */
+  operatingStaffScope?: "site-allocation";
 };
 
 /** Строка денежного потока по годам (год 0 — вложения). Все суммы в ₽. */
@@ -436,6 +499,7 @@ export type CashflowRow = {
   opexRub: number;
   batteryRub: number;
   reinvestRub: number;
+  residualRub?: number;
   effectRub: number;
   cashflowRub: number;
   cumulativeRub: number;
@@ -497,6 +561,7 @@ export type ScenarioOk = {
   capexLines: LineItem[];
   opexYearRub: number;
   opexLines: LineItem[];
+  operationsStaffing?: OperationsStaffingResult;
   /** ФОТ процессов охвата в этом сценарии, ₽/год. */
   processLabourYearRub: number;
   /** Чистый годовой эффект относительно «Как есть», ₽/год. */
@@ -650,4 +715,10 @@ export type ProjectResults = {
   /** Сводки имитации по ключу сценария; null — сценарий имитацией не проверялся. */
   sim: Record<string, SimSummaryStored | null>;
   paramIssues: ParamIssue[];
+  runtime?: { layout: SimLayout | null; layouts?: Record<string, SimLayout>; simInputs: ProjectSimInputs; paramDefs?: ParamSpec[]; normsByScenario?: Record<string, NormValues> };
 };
+
+export type ScenarioSimInputs = {
+  calculated: SimInput | null; byNorm: SimInput | null; assumedUtilPct: number | null; provenance: SimProvenance[] | null; unavailableReason?: string;
+};
+export type ProjectSimInputs = Record<string, ScenarioSimInputs>;

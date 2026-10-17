@@ -1,3 +1,6 @@
+import { simInputIdentity } from "../sim/identity";
+import { createSpatialProjectSnapshot, SPATIAL_MODEL_VERSION } from "../sim/spatial-bridge";
+import { calculateProjectPreview } from "../../experiments/warehouse-3d/project-input";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/client";
 import { toCharacteristicData } from "../catalog/queries";
@@ -5,10 +8,10 @@ import { sourcedToCharRow } from "../catalog/product-for-calc";
 import { promoteColumns } from "../catalog/promote";
 import { catalogProduct } from "../data/organizer/catalog";
 import { processDef, solutionTypeDef } from "../tz/processes";
-import { AUTO_MANUAL_SUFFIX } from "../tz/model";
+import { AUTO_MANUAL_SUFFIX, expectedSpatialInputFromStored } from "../tz/model";
 import type { ProductSeed, ProjectResults, ScenarioSpec } from "../tz/types";
 import { stableJson } from "../tz/version";
-import { bestPaybackYears, getProject, getProjectChanges, insertProject, listProjects } from "./queries";
+import { bestPaybackYears, getProject, getProjectChanges, insertProject, listProjects, storeProjectCalculation } from "./queries";
 import { computeProjectResults, liveDataVersion, loadLiveInputs, reproduceModel } from "./recalc";
 
 /**
@@ -44,7 +47,14 @@ vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidate }));
 
-const actions = await import("./actions");
+const serverActions = await import("./actions");
+const currentRevision = async (id: string) => (await prisma.project.findUnique({ where: { id }, select: { revision: true } }))?.revision ?? 0;
+// Ordinary fixtures send a current precondition; conflict/legacy-client tests call serverActions directly.
+const actions = { ...serverActions,
+  saveProjectAction: async (id: string, input: Parameters<typeof serverActions.saveProjectAction>[1]) => serverActions.saveProjectAction(id, { expectedRevision: await currentRevision(id), ...input }),
+  recalcProjectAction: async (id: string) => serverActions.recalcProjectAction(id, await currentRevision(id)),
+  deleteProjectAction: async (id: string) => serverActions.deleteProjectAction(id, await currentRevision(id)),
+};
 
 const P = "tzt-t22-";
 const PT = "pallet-transport";
@@ -216,7 +226,7 @@ describe("действия проектов", () => {
       actions.createProjectAction({ error: null }, form({ name: "TZT22 Склад", facility: "warehouse", source: "demo" })),
     );
     expect(url).toMatch(/^\/projects\/[^/]+$/);
-    projectId = url.split("/").pop() ?? "";
+    projectId = new URL(url, "http://localhost").pathname.split("/").pop() ?? "";
     expect(mockRevalidate).toHaveBeenCalledWith("/projects");
 
     const p = await getProject(prisma, projectId, userA);
@@ -468,4 +478,208 @@ describe("действия проектов", () => {
     expect(await prisma.scenario.count({ where: { projectId } })).toBe(0);
     expect(await actions.deleteProjectAction(projectId)).toMatchObject({ reason: "not_found" });
   }, 60_000);
+});
+
+
+describe("spatial financial scenario persistence", () => {
+  it("retains cash, staffing, package and exact spatial evidence through save, reopen and reproduction", async () => {
+    asUser(userA);
+    const live = await loadLiveInputs(prisma, "warehouse");
+    const params = Object.fromEntries(live.paramDefs.filter(d => d.facility === "warehouse").map(d => [d.key, d.base]));
+    const { id } = await insertProject(prisma, live, { userId: userA, name: "TZT22 spatial roundtrip", objectName: null, facility: "warehouse", params, paramsSource: { kind: "demo" }, scenarios: SPECS });
+    const initial = await getProject(prisma, id, userA);
+    if (!initial?.results) throw new Error("No initial calculation");
+    const input = expectedSpatialInputFromStored(initial.results, "p1");
+    if (!input) throw new Error("No warehouse input");
+    const specs = structuredClone(SPECS), spec = specs.find(s => s.key === "p1")!;
+    spec.cashRealizationShare = 0;
+    spec.operationsStaffing = { mode: "integrator", billing: "separate", annualFeeRub: 900_000, reason: "Оценка дополнительных расходов на всю площадку" };
+    spec.items[0]!.costPackage = { softwareIncludedInIntegration: true, repairsIncludedInService: true, includedChargers: 0, reason: "Условный пакет покупки для проверки сохранения" };
+    spec.items[0]!.chargersOverride = input.layout.chargers;
+    spec.items[0]!.automationCoverageOverride = 0.5;
+    spec.spatialEvidence = { input, sourceInputKey: simInputIdentity(input), executionInputKey: "test-prepared-input", simModelVersion: SPATIAL_MODEL_VERSION,
+      assessment: { status: "PARTIAL", headline: "Выполнена часть нагрузки", terminal: true },
+      summary: { fleet: input.robots.count, requiredPerH: input.demand.peakPerH, achievedPerH: input.demand.peakPerH / 2, queueEnd: 20, waitP95Min: 5 } };
+    const saved = await actions.saveProjectAction(id, { params, scenarios: specs, changes: [
+      { scenarioKey: "p1", field: "scenario:staffing", auto: null, old: null, new: spec.operationsStaffing, reason: spec.operationsStaffing.reason },
+      { scenarioKey: "p1", field: "item:pallet-transport:package", auto: null, old: null, new: spec.items[0]!.costPackage, reason: spec.items[0]!.costPackage.reason },
+    ] });
+    expect(saved.ok).toBe(true);
+    const reopened = await getProject(prisma, id, userA);
+    if (!reopened?.results) throw new Error("No reopened result");
+    const reopenedSpec = reopened.scenarios.find(s => s.key === "p1")!;
+    expect(reopenedSpec).toMatchObject({ cashRealizationShare: spec.cashRealizationShare, operationsStaffing: spec.operationsStaffing, items: spec.items });
+    const canonical = calculateProjectPreview(createSpatialProjectSnapshot({ requestId: "db-check", scenarioKey: "p1", scenarioName: spec.name, variantId: "calculated", input }));
+    expect(reopenedSpec.spatialEvidence).toEqual({ input, sourceInputKey: simInputIdentity(input), executionInputKey: simInputIdentity(canonical.input), simModelVersion: SPATIAL_MODEL_VERSION,
+      assessment: { status: canonical.assessment.status, headline: canonical.assessment.headline, terminal: true },
+      summary: { fleet: canonical.summary.fleet, requiredPerH: canonical.summary.requiredPerH, achievedPerH: canonical.summary.achievedPerH, queueEnd: canonical.summary.queueEnd, waitP95Min: canonical.summary.waitP95Min } });
+    const reproduced = reproduceModel(live, { ...reopened.results, scenarios: reopened.scenarios });
+    const persistedResult = reopened.results.results.find(r => r.key === "p1"), reproducedResult = reproduced.results.find(r => r.key === "p1");
+    expect(reproducedResult).toEqual(persistedResult);
+    if (reproducedResult?.status !== "ok") throw new Error("Refused calculation");
+    expect(reproducedResult.operationsStaffing?.annualCostRub).toBe(900_000);
+    expect(reproducedResult.capexLines.find(line => line.key === "software")?.valueRub).toBe(0);
+    expect(reproducedResult.opexLines.find(line => line.key === "repair")?.valueRub).toBe(0);
+    expect(reproducedResult.items[0]!.remainingLabourRub).toBe(reproducedResult.items[0]!.baselineLabourRub);
+    expect(reproducedResult.risks.some(r => r.code === "SIM_NOT_CONFIRMED")).toBe(true);
+    expect(reproduced.conclusion.recommendedScenarioKey).not.toBe("p1");
+  }, 120_000);
+
+  it("replaces a forged client OK with an actual server check before storage", async () => {
+    asUser(userA);
+    const live = await loadLiveInputs(prisma, "warehouse");
+    const params = Object.fromEntries(live.paramDefs.filter(d => d.facility === "warehouse").map(d => [d.key, d.base]));
+    const specs = structuredClone(SPECS);
+    const spec = specs.find(s => s.key === "p1")!;
+    spec.items[0]!.quantityOverride = 1;
+    spec.items[0]!.chargersOverride = 1;
+    spec.items[0]!.automationCoverageOverride = 0.4;
+    spec.cashRealizationShare = 0;
+    const { id } = await insertProject(prisma, live, { userId: userA, name: "TZT22 forged spatial OK", objectName: null, facility: "warehouse", params, paramsSource: { kind: "demo" }, scenarios: specs });
+    const initial = await getProject(prisma, id, userA);
+    if (!initial?.results) throw new Error("No initial calculation");
+    const input = expectedSpatialInputFromStored(initial.results, "p1");
+    if (!input) throw new Error("No source input");
+    spec.spatialEvidence = { input, sourceInputKey: simInputIdentity(input), executionInputKey: "never-executed", simModelVersion: SPATIAL_MODEL_VERSION,
+      assessment: { status: "OK", headline: "Поддельный положительный статус", terminal: true },
+      summary: { fleet: 1, requiredPerH: input.demand.peakPerH, achievedPerH: 999999, queueEnd: 0, waitP95Min: 0 } };
+    const receipt = await actions.saveProjectAction(id, { params, scenarios: specs, changes: [] });
+    expect(receipt).toMatchObject({ ok: true });
+    const reopened = await getProject(prisma, id, userA);
+    if (!reopened?.results) throw new Error("No saved calculation");
+    if (!receipt.ok) throw new Error("No canonical save receipt");
+    expect(receipt.results).toEqual(reopened.results);
+    expect(receipt.results.scenarios.find(s => s.key === "p1")!.spatialEvidence!.assessment.status).toBe("PARTIAL");
+    const saved = reopened.scenarios.find(s => s.key === "p1")!;
+    expect(saved.spatialEvidence!.assessment.status).toBe("PARTIAL");
+    expect(saved.spatialEvidence!.executionInputKey).not.toBe("never-executed");
+    expect(saved.spatialEvidence!.summary.achievedPerH).not.toBe(999999);
+    expect(saved.cashRealizationShare).toBe(0);
+    expect(saved.items[0]!.automationCoverageOverride).toBe(0.4);
+    const result = reopened.results.results.find(r => r.key === "p1");
+    expect(result?.risks.some(r => r.code === "SIM_NOT_CONFIRMED")).toBe(true);
+    expect(reopened.results.conclusion.recommendedScenarioKey).not.toBe("p1");
+  }, 120_000);
+});
+
+describe("P0 project revision and immutable archive", () => {
+  async function example(name: string) {
+    asUser(userA);
+    const live = await loadLiveInputs(prisma, "warehouse");
+    const params = Object.fromEntries(live.paramDefs.filter(d => d.facility === "warehouse").map(d => [d.key, d.base]));
+    const { id } = await insertProject(prisma, live, { userId: userA, name, objectName: null, facility: "warehouse", params, paramsSource: { kind: "demo" }, scenarios: SPECS });
+    const project = await getProject(prisma, id, userA);
+    if (!project?.results) throw new Error("No initial project");
+    return { id, live, params: project.results.paramsUsed, project };
+  }
+
+  it("two tabs with the same revision have one winner, without mixing scenarios, money or log writes", async () => {
+    const { id, params, project } = await example("TZT22 CAS two tabs");
+    const requests = [130000, 140000].map((salary, index) => ({ expectedRevision: project.revision,
+      name: `TZT22 tab ${index}`, params: { ...params, forkliftSalaryRubMonth: salary },
+      scenarios: SPECS.map(s => s.key === "p1" ? { ...s, items: s.items.map(i => ({ ...i, quantityOverride: 7 + index })) } : s),
+      changes: [{ field: "param:forkliftSalaryRubMonth", auto: 0, old: params.forkliftSalaryRubMonth ?? null, new: salary, reason: `tab-${index}` }],
+    }));
+    const outcomes = await Promise.all(requests.map(request => serverActions.saveProjectAction(id, request)));
+    expect(outcomes.filter(r => r.ok)).toHaveLength(1);
+    expect(outcomes.filter(r => !r.ok && r.reason === "conflict")).toHaveLength(1);
+    const winner = outcomes.findIndex(r => r.ok), saved = await getProject(prisma, id, userA);
+    expect(saved?.revision).toBe(project.revision + 1);
+    expect(saved?.name).toBe(requests[winner]!.name);
+    expect(saved?.params.forkliftSalaryRubMonth).toBe(requests[winner]!.params.forkliftSalaryRubMonth);
+    expect(saved?.scenarios).toEqual(requests[winner]!.scenarios);
+    expect(saved?.results?.paramsUsed.forkliftSalaryRubMonth).toBe(requests[winner]!.params.forkliftSalaryRubMonth);
+    const log = await prisma.changeLog.findMany({ where: { projectId: id } });
+    expect(log).toHaveLength(1); expect(log[0]!.reason).toBe(`tab-${winner}`);
+    expect(await serverActions.recalcProjectAction(id, project.revision)).toMatchObject({ reason: "conflict" });
+    expect(await serverActions.deleteProjectAction(id, project.revision)).toMatchObject({ reason: "conflict" });
+    expect((await getProject(prisma, id, userA))?.revision).toBe(project.revision + 1);
+  }, 120_000);
+
+  it("legacy writes without a precondition fail explicitly, including rename, recalc and delete", async () => {
+    const { id, params, project } = await example("TZT22 missing revision");
+    expect(await serverActions.saveProjectAction(id, { name: "Must not rename", params, scenarios: SPECS, changes: [] })).toMatchObject({ reason: "precondition_required" });
+    expect(await serverActions.recalcProjectAction(id)).toMatchObject({ reason: "precondition_required" });
+    expect(await serverActions.deleteProjectAction(id)).toMatchObject({ reason: "precondition_required" });
+    const after = await getProject(prisma, id, userA);
+    expect(after?.revision).toBe(0); expect(after?.name).toBe(project.name); expect(after?.results).toEqual(project.results);
+  }, 120_000);
+
+  it("a failure after the atomic claim rolls back revision, result, scenarios and log", async () => {
+    const { id, params, project, live } = await example("TZT22 CAS rollback");
+    const invalid = SPECS.map(s => s.kind === "asis" ? s : { ...s, name: "Duplicate name must fail the DB constraint" });
+    await expect(storeProjectCalculation(prisma, { projectId: id, userId: userA, expectedRevision: project.revision,
+      facility: "warehouse", name: "Must roll back", params: { ...params, forkliftSalaryRubMonth: 190000 }, scenarios: invalid,
+      changes: [{ field: "param:forkliftSalaryRubMonth", auto: 0, old: 120000, new: 190000 }], live, snapshot: project.results,
+    })).rejects.toMatchObject({ code: "P2002" });
+    const after = await getProject(prisma, id, userA);
+    expect(after?.revision).toBe(project.revision); expect(after?.name).toBe(project.name);
+    expect(after?.results).toEqual(project.results); expect(after?.scenarios).toEqual(project.scenarios);
+    expect(await prisma.changeLog.count({ where: { projectId: id } })).toBe(0);
+  }, 120_000);
+
+  it("opening an old archive after current bounds/catalog changes leaves results, conclusion and runtime unchanged", async () => {
+    const { id, live, project } = await example("TZT22 immutable historical archive");
+    const historic = structuredClone(project.results!);
+    historic.modelVersion = "unsupported-historic-economy";
+    historic.simModelVersion = "unsupported-historic-simulation";
+    historic.conclusion.headline = "Immutable historical conclusion";
+    const row = historic.results.find(r => r.kind !== "asis" && r.status === "ok");
+    if (row?.status === "ok") row.npvRub = 123456789.123456;
+    await prisma.project.update({ where: { id }, data: { results: historic as unknown as import("@prisma/client").Prisma.InputJsonValue, modelVersion: historic.modelVersion } });
+    const reopened = await getProject(prisma, id, userA);
+    if (!reopened?.results) throw new Error("No historical archive");
+    const current = { ...live, products: [], paramDefs: live.paramDefs.map(d => ({ ...d, min: 1, max: 2, base: 1 })) };
+    const archived = reproduceModel(current, reopened.results);
+    expect(archived.results).toEqual(historic.results); expect(archived.conclusion).toEqual(historic.conclusion);
+    expect(archived.layout).toEqual(historic.runtime!.layout);
+    expect(archived.simInputs).toEqual(historic.runtime!.simInputs);
+    expect((await getProject(prisma, id, userA))?.results).toEqual(historic);
+    expect((await getProject(prisma, id, userA))?.revision).toBe(0);
+  }, 120_000);
+
+  it("cancellation during cooperative calculation leaves revision, archive, scenarios and journal intact", async () => {
+    const { id, live, params, project } = await example("TZT22 cancelled async save");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 0);
+    try {
+      await expect(storeProjectCalculation(prisma, { projectId: id, userId: userA, expectedRevision: project.revision,
+        signal: controller.signal, facility: "warehouse", name: "Must not be written", params: { ...params, forkliftSalaryRubMonth: 190000 },
+        scenarios: SPECS, changes: [{ field: "param:forkliftSalaryRubMonth", auto: 0, old: 120000, new: 190000 }], live, snapshot: project.results,
+      })).rejects.toMatchObject({ name: "AbortError" });
+    } finally { clearTimeout(timer); }
+    const after = await getProject(prisma, id, userA);
+    expect(after?.revision).toBe(project.revision); expect(after?.name).toBe(project.name);
+    expect(after?.results).toEqual(project.results); expect(after?.scenarios).toEqual(project.scenarios);
+    expect(await prisma.changeLog.count({ where: { projectId: id } })).toBe(0);
+  }, 120_000);
+
+  it("an abort observed after the actual SQL claim rolls back the entire transaction", async () => {
+    const { id, live, params, project } = await example("TZT22 abort after SQL claim");
+    const controller = new AbortController();
+    let claimed = false;
+    const abortingDb = { $transaction: (callback: Parameters<typeof prisma.$transaction>[0]) => prisma.$transaction(async tx => {
+      const intercepted = new Proxy(tx, { get(target, key, receiver) {
+        if (key !== "project") return Reflect.get(target, key, receiver);
+        return new Proxy(target.project, { get(model, method, rec) {
+          if (method === "updateMany") return async (args: Parameters<typeof model.updateMany>[0]) => {
+            const result = await model.updateMany(args);
+            claimed = result.count === 1; controller.abort(); return result;
+          };
+          const value = Reflect.get(model, method, rec);
+          return typeof value === "function" ? value.bind(model) : value;
+        } });
+      } });
+      return (callback as (client: typeof tx) => Promise<unknown>)(intercepted);
+    }) } as unknown as typeof prisma;
+    await expect(storeProjectCalculation(abortingDb, { projectId: id, userId: userA, expectedRevision: project.revision,
+      signal: controller.signal, facility: "warehouse", name: "Must roll back after claim", params: { ...params, forkliftSalaryRubMonth: 190000 },
+      scenarios: SPECS, changes: [{ field: "param:forkliftSalaryRubMonth", auto: 0, old: 120000, new: 190000 }], live, snapshot: project.results,
+    })).rejects.toMatchObject({ name: "AbortError" });
+    expect(claimed).toBe(true);
+    const after = await getProject(prisma, id, userA);
+    expect(after?.revision).toBe(project.revision); expect(after?.name).toBe(project.name);
+    expect(after?.results).toEqual(project.results); expect(after?.scenarios).toEqual(project.scenarios);
+    expect(await prisma.changeLog.count({ where: { projectId: id } })).toBe(0);
+  }, 120_000);
 });

@@ -40,6 +40,8 @@ export type ScenarioContext = {
   products: Record<string, ProductForCalc>;
   processes: Record<string, ProcessDef>;
   cycle: Record<string, CycleInfo | null>;
+  /** Scenario-specific physical geometry; supplied by the shared project model. */
+  cycleForSpec?: (spec: ScenarioSpec, norms: NormValues, params: ParamValues) => Record<string, CycleInfo | null>;
   paramBounds?: Record<string, { min: number | null; max: number | null }>;
   paramLabels?: Record<string, string>;
 };

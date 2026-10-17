@@ -18,6 +18,7 @@ import { ProjectActionForm, deleteConfirmText } from "./project-toolbar";
 
 /** Строка списка: только сериализуемые поля (даты — ISO). */
 export type ProjectsListItem = {
+  revision?: number;
   id: string;
   name: string;
   objectName: string | null;
@@ -126,7 +127,7 @@ export function ProjectsList({ items }: { items: readonly ProjectsListItem[] }) 
                     title={`Копировать проект «${p.name}»`}
                   />
                   <ProjectActionForm
-                    run={() => deleteProjectAction(p.id)}
+                    run={() => deleteProjectAction(p.id, p.revision)}
                     label="Удалить"
                     pendingLabel="Удаляем…"
                     size="sm"

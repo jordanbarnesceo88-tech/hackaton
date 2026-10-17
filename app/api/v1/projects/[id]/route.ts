@@ -29,6 +29,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const live = project.results ? await liveDataVersion(prisma, project.results) : null;
     return apiJson({
       id: project.id,
+      revision: project.revision,
       name: project.name,
       objectName: project.objectName,
       facility: project.facility,

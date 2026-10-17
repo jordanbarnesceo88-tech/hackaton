@@ -4,7 +4,8 @@ import { defaultScenarios, initialScenarios, shortProductName } from "../project
 import { runProjectSims } from "../projects/recalc";
 import { cycleThroughputPerH, expectedLegsM } from "../sim/analytic";
 import { buildWarehouseLayout } from "../sim/layout";
-import type { SimSummaryStored } from "../sim/types";
+import { simInputIdentity } from "../sim/identity";
+import { SIM_MODEL_VERSION, type SimSummaryStored } from "../sim/types";
 import { pickRecommended } from "./econ";
 import { FIXTURE_CARRIER_P, FIXTURE_DMR600, FIXTURE_H1500, WAREHOUSE_BASE_PARAMS } from "./econ/fixtures";
 import {
@@ -18,7 +19,7 @@ import {
 import { resolveNorms } from "./norms";
 import { timed } from "./timing";
 import type { ScenarioOk, ScenarioSpec } from "./types";
-import { stableJson } from "./version";
+import { stableJson, TZ_MODEL_VERSION } from "./version";
 
 /**
  * Сборка модели проекта на базовом складе организатора с фикстурными продуктами экономики
@@ -72,8 +73,8 @@ describe("buildProjectModel — базовый склад организатор
       ["r1", "ok"],
       ["p2", "ok"],
     ]);
-    expect(model.modelVersion).toBe("tz-1.0.0");
-    expect(model.simModelVersion).toBe("sim-1.0.0");
+    expect(model.modelVersion).toBe(TZ_MODEL_VERSION);
+    expect(model.simModelVersion).toBe(SIM_MODEL_VERSION);
   });
 
   it("парк H1500 по формуле ТЗ: ⌈λпик / (цикл × 0,775) × 1,175⌉ по циклу на той же планировке", () => {
@@ -181,7 +182,8 @@ describe("buildProjectModel — ошибки и имитация", () => {
   const simOf = (patch: Partial<SimSummaryStored>): SimSummaryStored => {
     const item = ok(model, "p1").items[0];
     return {
-      simModelVersion: "sim-1.0.0",
+      simModelVersion: SIM_MODEL_VERSION,
+      inputKey: simInputIdentity(model.simInputs.p1!.calculated!),
       seed: 1,
       scenarioKey: "p1",
       fleet: item?.n ?? 0,
@@ -226,6 +228,25 @@ describe("buildProjectModel — ошибки и имитация", () => {
     expect(risk?.text).toMatch(/простой 45 %/);
     const stale = buildProjectModel(input({ sims: { p1: simOf({ fleet: 7 }) } }));
     expect(ok(stale, "p1").risks.some((r) => r.code.startsWith("SIM_"))).toBe(false);
+  });
+
+  it("сводка с теми же N и потоком не переносится на другую автономность", () => {
+    const changed = buildProjectModel(input({
+      products: [{ ...FIXTURE_H1500, autonomyH: 0.2, chargeMin: 240 }, FIXTURE_CARRIER_P, FIXTURE_DMR600],
+      sims: { p1: simOf({}) },
+    }));
+    expect(ok(changed, "p1").risks.some((r) => r.code.startsWith("SIM_"))).toBe(false);
+  });
+
+  it("ручная выработка остаётся экономической оценкой без ложного подтверждения симулятором", () => {
+    const scenarios = structuredClone(SPECS);
+    scenarios[1]!.items[0]!.quantityOverride = 11;
+    scenarios[1]!.items[0]!.throughputPerHOverride = 0.1;
+    const changed = buildProjectModel(input({ scenarios }));
+    expect(ok(changed, "p1").items[0]?.coverage).toBeLessThan(0.01);
+    expect(changed.simInputs.p1?.calculated).toBeNull();
+    expect(changed.simInputs.p1?.byNorm).toBeNull();
+    expect(changed.simInputs.p1?.unavailableReason).toContain("заданную вручную");
   });
 
   it("аэропорт: экономика процессов в прототипе не считается — отказ calc_not_supported", () => {
@@ -373,18 +394,19 @@ describe("версия данных", () => {
 
 describe("прогоны имитации проекта", () => {
   it("общий бюджет подбора минимального парка исчерпан — подбор пропускается, вердикты есть", () => {
-    let t = 0;
-    const clock = () => {
-      t += 30_000;
-      return t;
-    };
-    const sims = runProjectSims(model, { now: clock, projectBudgetMs: 40_000 });
+    const sims = runProjectSims(model, { now: () => 0, projectBudgetMs: 0 });
     expect(sims.asis).toBeNull();
     for (const k of ["p1", "r1", "p2"]) {
       expect(sims[k]?.verdict).toMatch(/CONFIRMED|NOT_CONFIRMED/);
       expect(sims[k]?.minStableFleet).toBeNull();
     }
   }, 60_000);
+
+  it("истёкший общий бюджет не запускает основные прогоны", () => {
+    expect(() => runProjectSims(model, { now: () => 0, budgetMs: 0 })).toThrow(
+      expect.objectContaining({ name: "SimBudgetExceeded" }),
+    );
+  });
 });
 
 describe("сценарии по умолчанию", () => {

@@ -11,7 +11,7 @@ import { fx, mrub, q, rangeText, rub, yearsGen, yearsNom } from "./text";
  * Вывод по проекту (ТЗ §3.5.7): не жёсткий порог окупаемости, а число, риски и интерпретация.
  *
  * Рекомендуется жизнеспособный сценарий роботизации (NPV ≥ 0 и дисконтированная окупаемость
- * внутри горизонта) с наибольшим NPV; при равенстве — с меньшим CAPEX. Интервал окупаемости
+ * внутри горизонта) без актуального провала имитации, с наибольшим NPV; при равенстве — с меньшим CAPEX. Интервал окупаемости
  * описывает результат, но не отбирает сценарии.
  */
 
@@ -35,11 +35,16 @@ export function isViableScenario(r: ScenarioOk): boolean {
   return r.npvRub !== null && r.npvRub >= 0 && r.discountedPaybackYears !== null;
 }
 
+/** Этот риск добавляется сборщиком модели только для актуальной проверки данного входа. */
+export function simulationFailure(r: ScenarioOk): Risk | undefined {
+  return r.risks.find((risk) => risk.code === "SIM_NOT_CONFIRMED" || risk.code === "SPATIAL_STALE");
+}
+
 /** Рекомендуемый сценарий: наибольший NPV среди жизнеспособных, при равенстве — меньший CAPEX. */
 export function pickRecommended(results: readonly ScenarioResult[]): ScenarioOk | null {
   let best: ScenarioOk | null = null;
   for (const r of results) {
-    if (!isRobotOk(r) || !isViableScenario(r) || r.npvRub === null) continue;
+    if (!isRobotOk(r) || !isViableScenario(r) || simulationFailure(r) || r.npvRub === null) continue;
     if (!best || best.npvRub === null) {
       best = r;
       continue;
@@ -92,7 +97,7 @@ export function breakEvenSalary(
 /**
  * Докупка оборудования, которая входит в первые H лет денежного потока покупки при горизонте
  * `horizonYears`, но не входит при горизонте на год меньше. С этого горизонта NPV покупки
- * скачком снижается: остаточная стоимость докупленного парка не учитывается (MODEL_LIMITATIONS).
+ * может снижаться скачком; заданный остаток учитывается отдельно в конце периода TCO.
  */
 export type ReinvestNote = {
   /** Горизонт, с которого докупка входит в расчёт, лет. */
@@ -272,7 +277,10 @@ export function buildConclusion(
   } else if (rec) {
     const band = interpretBand(rec.paybackYears, ctx.norms);
     const pb = rec.paybackYears !== null ? formatYearsRu(rec.paybackYears) : "—";
-    headline = `Рекомендуемый сценарий: ${rec.name}. NPV ${mrub(rec.npvRub ?? 0)} за ${yearsNom(H)}, окупаемость ${pb} — ${band.text}.`;
+    headline = `Предварительный финансовый выбор: ${rec.name}. NPV ${mrub(rec.npvRub ?? 0)} за ${yearsNom(H)}, окупаемость ${pb} — ${band.text}.`;
+    bullets.push("Финансовый выбор не подтверждает эксплуатационную пригодность: проверьте нагрузку и условия объекта; успешная имитация относится только к условиям модели.");
+  } else if (robots.some((r) => isViableScenario(r) && simulationFailure(r))) {
+    headline = "Рекомендации нет: экономически окупаемые варианты не подтвердили заданную нагрузку; измените парк или условия и повторите проверку. Финансовые показатели оставлены для сравнения.";
   } else {
     const lever = bestRobot?.sensitivity[0]?.label;
     headline = `При текущих параметрах ни один вариант роботизации не окупается за ${yearsNom(H)}; сильнейший рычаг — ${lever ? q(lever) : "не определён (нет анализа чувствительности)"}`;
@@ -284,7 +292,7 @@ export function buildConclusion(
   if (tcoWinner) {
     if (rec && tcoWinner.key !== rec.key) {
       bullets.push(
-        `По TCO за ${yearsNom(tcoWinner.tcoYears)} выгоднее ${q(tcoWinner.name)}: ${mrub(tcoWinner.tcoRub)} против ${mrub(rec.tcoRub)} у рекомендуемого сценария`,
+        `По TCO за ${yearsNom(tcoWinner.tcoYears)} выгоднее ${q(tcoWinner.name)}: ${mrub(tcoWinner.tcoRub)} против ${mrub(rec.tcoRub)} у предварительного финансового выбора`,
       );
     } else if (!rec && robots.length > 0) {
       bullets.push(`Наименьшая TCO за ${yearsNom(tcoWinner.tcoYears)} — ${q(tcoWinner.name)}: ${mrub(tcoWinner.tcoRub)}`);
@@ -310,7 +318,9 @@ export function buildConclusion(
   }
 
   if (specs && robots.length > 0) {
-    const flip = horizonFlip(ctx, specs);
+    // Смена финансового горизонта не снимает провал проверки физической нагрузки.
+    const failed = new Set(robots.filter((r) => simulationFailure(r)).map((r) => r.key));
+    const flip = horizonFlip(ctx, specs.filter((s) => !failed.has(s.key)));
     if (flip) bullets.push(flip.text);
   }
 

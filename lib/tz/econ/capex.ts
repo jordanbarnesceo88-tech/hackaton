@@ -1,5 +1,6 @@
 import { normDef, type NormValues } from "../norms";
-import type { LineItem, Origin } from "../types";
+import type { CostPackage, LineItem, Origin } from "../types";
+import { costPackageForItem } from "./cost-package";
 import { FACILITY_PARAM_KEYS, isRonavi, isWaybot, optNum, paramLabel, refuse, type ScenarioContext } from "./context";
 import { CAPEX_LINE_KEYS, FORMULAS, capexFormulaKey, type CapexLineKey } from "./formulas";
 import { charOrigin, mergeLines, sumLines, type ItemCalc } from "./internal";
@@ -63,7 +64,15 @@ function analogNote(isSameVendor: boolean, vendor: string): string | undefined {
   return isSameVendor ? undefined : `аналог: ${vendor}`;
 }
 
-function softwareLine(c: ItemCalc): LineItem {
+function softwareLine(c: ItemCalc, costPackage?: CostPackage): LineItem {
+  if (costPackage?.softwareIncludedInIntegration) {
+    const includedSoftware = line("software", 0, "отдельная плата 0 ₽ — ПО включено в интеграционный пакет", "user", {
+      originNote: `ПО включено в интеграционный пакет. Основание: ${costPackage.reason}`,
+      overridden: true,
+    });
+    includedSoftware.formula = "CAPEXпо = 0 (включено в интеграционный пакет)";
+    return includedSoftware;
+  }
   const p = c.product;
   if (p.softwareRubOneTime !== null && Number.isFinite(p.softwareRubOneTime) && p.softwareRubOneTime >= 0) {
     return line("software", p.softwareRubOneTime, `${rub(p.softwareRubOneTime)} (карточка ${p.name})`, charOrigin(p, "softwareRubOneTime", "research"));
@@ -128,6 +137,7 @@ function infrastructureLine(ctx: Pick<ScenarioContext, "params" | "paramLabels">
 /** Строки CAPEX покупки одной позиции, кроме инфраструктуры и резерва. */
 function purchaseItemLines(c: ItemCalc): LineItem[] {
   const p = c.product;
+  const costPackage = costPackageForItem(c.item, { kind: "purchase", chargers: c.chargers });
   const price = c.priceRub ?? 0;
   // Происхождение цены: ручная — «задано вами»; иначе из карточки (priceOrigin, затем запись
   // источника priceRub). Если его нет нигде, цена помечается оценкой, а не приписывается
@@ -149,12 +159,21 @@ function purchaseItemLines(c: ItemCalc): LineItem[] {
     },
   );
   const chargerRub = c.norms.chargerRub;
-  const chargers =
+  let chargers =
     c.chargers > 0
       ? line("chargers", c.chargers * chargerRub, `${fx(c.chargers)} × ${rub(chargerRub)}`, normDef("chargerRub").origin, {
           originNote: analogNote(isRonavi(p), "Ronavi"),
         })
       : line("chargers", 0, "стационарное решение — зарядные станции не нужны", "derived");
+  if (costPackage && costPackage.includedChargers > 0) {
+    const additional = c.chargers - costPackage.includedChargers;
+    chargers = line("chargers", additional * chargerRub,
+      `(${fx(c.chargers)} требуется − ${fx(costPackage.includedChargers)} включено) × ${rub(chargerRub)}`, "user", {
+        originNote: `В стоимость оборудования включено ${fx(costPackage.includedChargers)} зарядных станций этой позиции. Основание: ${costPackage.reason}`,
+        overridden: true,
+      });
+    chargers.formula = "CAPEXзар = (C − Cвключено) × pзар";
+  }
   const perUnit = c.norms.commissioningRubPerUnit;
   const commissioning = line(
     "commissioning",
@@ -163,7 +182,7 @@ function purchaseItemLines(c: ItemCalc): LineItem[] {
     normDef("commissioningRubPerUnit").origin,
     { originNote: analogNote(isWaybot(p), "Вейбот Роботикс (Клинботикс)") },
   );
-  return [equipment, chargers, softwareLine(c), integrationLine(c), commissioning, trainingLine(c)];
+  return [equipment, chargers, softwareLine(c, costPackage), integrationLine(c), commissioning, trainingLine(c)];
 }
 
 /** Упорядочивает строки по CAPEX_LINE_KEYS. */
@@ -191,6 +210,7 @@ export function purchaseCapexLines(
  * ПО и пусконаладка приняты входящими в подписку (допущение — проверить в договоре).
  */
 export function raasCapexLines(items: readonly ItemCalc[], norms: NormValues): LineItem[] {
+  for (const c of items) costPackageForItem(c.item, { kind: "raas", chargers: c.chargers });
   const merged = mergeLines(
     items.map((c) => [
       included("equipment"),

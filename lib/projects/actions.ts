@@ -8,18 +8,19 @@ import { prisma } from "@/lib/db/client";
 import { applyDefaults } from "@/lib/tz/params/schema";
 import { hasErrors, validateParamValues } from "@/lib/tz/params/validate";
 import { isFacilitySlug, processesForFacility } from "@/lib/tz/processes";
-import type { ParamIssue, ParamValues, PendingChange, ScenarioSpec } from "@/lib/tz/types";
+import type { ParamIssue, ParamValues, PendingChange, ProjectResults, ScenarioSpec } from "@/lib/tz/types";
 import {
   asProjectResults,
   getProject,
   insertProject,
-  scenarioFromRow,
-  scenarioSpecJson,
   storeProjectCalculation,
+  ProjectRevisionConflict,
   type ParamsSource,
 } from "./queries";
 import { loadLiveInputs, type LiveInputs } from "./recalc";
-import { sanitizeProjectName, validatePendingChanges, validateScenarioSpecs } from "./validate";
+import { sanitizeProjectName, validProjectRevision, validatePendingChanges, validateScenarioSpecs } from "./validate";
+import { calculationFailure } from "../sim/server-execution";
+import { projectInputSizeIssue } from "./payload-limit";
 
 /*
  * Серверные действия проектов (ТЗ §3.1.3: создание, редактирование, копирование, сохранение,
@@ -47,16 +48,17 @@ import { sanitizeProjectName, validatePendingChanges, validateScenarioSpecs } fr
 export type CreateProjectState = { error: string | null; issues?: ParamIssue[] };
 
 /** Причина отказа действия с проектом. */
-export type ProjectActionReason = "unauthenticated" | "not_found" | "invalid" | "error";
+export type ProjectActionReason = "unauthenticated" | "not_found" | "invalid" | "error" | "conflict" | "precondition_required";
 
 /** Отказ действия: причина и сообщение по-русски — что не так и как исправить. */
 export type ProjectActionFailure = { ok: false; reason: ProjectActionReason; message: string };
 
 /** Результат сохранения или пересчёта проекта. */
-export type SaveProjectResult = { ok: true; calculatedAt: string; dataVersion: string } | ProjectActionFailure;
+export type SaveProjectResult = { ok: true; calculatedAt: string; dataVersion: string; revision: number; results: ProjectResults } | ProjectActionFailure;
 
 /** Что присылает рабочая область при сохранении. */
 export type SaveProjectInput = {
+  expectedRevision?: number;
   name?: string;
   params: ParamValues;
   scenarios: ScenarioSpec[];
@@ -77,6 +79,7 @@ const MESSAGES = {
   error: "Не удалось сохранить проект, попробуйте ещё раз",
   stale: "Сессия устарела — войдите заново",
   demo: "Демо-проект общий для всех, кто входит демо-аккаунтом, — его нельзя изменить, пересчитать или удалить. Скопируйте проект и работайте с копией",
+  precondition: "Для записи требуется ревизия проекта (expectedRevision). Откройте актуальную версию; старый клиент не может перезаписать проект без проверки.",
 } as const;
 
 function fail(reason: ProjectActionReason, message: string): ProjectActionFailure {
@@ -96,7 +99,7 @@ function prismaCode(e: unknown): string | null {
 
 /** Сообщение об ошибке записи: пользователя из токена нет в БД (P2003) — войти заново. */
 function writeErrorMessage(e: unknown, fallback: string = MESSAGES.error): string {
-  return prismaCode(e) === "P2003" ? MESSAGES.stale : fallback;
+  return calculationFailure(e)?.message ?? (prismaCode(e) === "P2003" ? MESSAGES.stale : fallback);
 }
 
 /** Подписи параметров с ошибками — для сообщения «исправьте: …». */
@@ -206,7 +209,7 @@ export async function createProjectAction(_prev: CreateProjectState, formData: F
     return { error: writeErrorMessage(e, "Не удалось создать проект, попробуйте ещё раз") };
   }
   revalidatePath("/projects");
-  redirect(`/projects/${id}`);
+  redirect(`/projects/${id}?edit=1`);
 }
 
 /**
@@ -222,6 +225,9 @@ export async function saveProjectAction(projectId: string, input: SaveProjectInp
   const id = projectIdOf(projectId);
   if (!id) return fail("not_found", MESSAGES.notFound);
   if (!isPlainObject(input)) return fail("invalid", "Нет данных для сохранения");
+  const sizeIssue = projectInputSizeIssue(input);
+  if (sizeIssue) return fail("invalid", sizeIssue);
+  if (!validProjectRevision(input.expectedRevision)) return fail("precondition_required", MESSAGES.precondition);
 
   let name: string | undefined;
   if (input.name !== undefined) {
@@ -235,10 +241,11 @@ export async function saveProjectAction(projectId: string, input: SaveProjectInp
   try {
     const project = await prisma.project.findFirst({
       where: { id, userId },
-      select: { id: true, facilityTypeSlug: true, results: true, isDemo: true },
+      select: { id: true, facilityTypeSlug: true, results: true, isDemo: true, revision: true },
     });
     if (!project) return fail("not_found", MESSAGES.notFound);
     if (project.isDemo) return fail("invalid", MESSAGES.demo);
+    if (project.revision !== input.expectedRevision) return fail("conflict", new ProjectRevisionConflict().message);
     const facility = project.facilityTypeSlug;
     const live = await loadLiveInputs(prisma, facility);
 
@@ -263,6 +270,7 @@ export async function saveProjectAction(projectId: string, input: SaveProjectInp
     const saved = await storeProjectCalculation(prisma, {
       projectId: id,
       userId,
+      expectedRevision: input.expectedRevision,
       facility,
       name,
       params: applyDefaults(live.paramDefs, checked.values),
@@ -271,8 +279,9 @@ export async function saveProjectAction(projectId: string, input: SaveProjectInp
       live,
       snapshot: stored,
     });
-    result = { ok: true, calculatedAt: saved.calculatedAt, dataVersion: saved.dataVersion };
+    result = { ok: true, calculatedAt: saved.calculatedAt, dataVersion: saved.dataVersion, revision: saved.revision, results: saved.results };
   } catch (e) {
+    if (e instanceof ProjectRevisionConflict) return fail("conflict", e.message);
     console.error("saveProjectAction: не удалось сохранить проект", e);
     return fail("error", writeErrorMessage(e));
   }
@@ -285,18 +294,20 @@ export async function saveProjectAction(projectId: string, input: SaveProjectInp
  * «Пересчитать на актуальных данных», §3.1.5): те же параметры и сценарии, живые продукты и
  * нормативы, новые версия данных и момент расчёта.
  */
-export async function recalcProjectAction(projectId: string): Promise<SaveProjectResult> {
+export async function recalcProjectAction(projectId: string, expectedRevision?: number): Promise<SaveProjectResult> {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return fail("unauthenticated", MESSAGES.unauthenticated);
   const id = projectIdOf(projectId);
   if (!id) return fail("not_found", MESSAGES.notFound);
+  if (!validProjectRevision(expectedRevision)) return fail("precondition_required", MESSAGES.precondition);
 
   let result: SaveProjectResult;
   try {
     const project = await getProject(prisma, id, userId);
     if (!project) return fail("not_found", MESSAGES.notFound);
     if (project.isDemo) return fail("invalid", MESSAGES.demo);
+    if (project.revision !== expectedRevision) return fail("conflict", new ProjectRevisionConflict().message);
     const live = await loadLiveInputs(prisma, project.facility);
     const checked = validateParamValues(live.paramDefs, project.params, { origin: "manual" });
     if (hasErrors(checked.issues)) {
@@ -305,6 +316,7 @@ export async function recalcProjectAction(projectId: string): Promise<SaveProjec
     const saved = await storeProjectCalculation(prisma, {
       projectId: id,
       userId,
+      expectedRevision,
       facility: project.facility,
       params: applyDefaults(live.paramDefs, checked.values),
       scenarios: project.scenarios,
@@ -312,8 +324,9 @@ export async function recalcProjectAction(projectId: string): Promise<SaveProjec
       live,
       snapshot: null,
     });
-    result = { ok: true, calculatedAt: saved.calculatedAt, dataVersion: saved.dataVersion };
+    result = { ok: true, calculatedAt: saved.calculatedAt, dataVersion: saved.dataVersion, revision: saved.revision, results: saved.results };
   } catch (e) {
+    if (e instanceof ProjectRevisionConflict) return fail("conflict", e.message);
     console.error("recalcProjectAction: не удалось пересчитать проект", e);
     return fail("error", writeErrorMessage(e, "Не удалось пересчитать проект, попробуйте ещё раз"));
   }
@@ -360,7 +373,7 @@ export async function copyProjectAction(projectId: string): Promise<ProjectActio
             name: s.name,
             kind: s.kind,
             order: s.order,
-            spec: scenarioSpecJson(scenarioFromRow(s)),
+            spec: s.spec as Prisma.InputJsonValue,
           })),
         },
       },
@@ -379,20 +392,21 @@ export async function copyProjectAction(projectId: string): Promise<ProjectActio
  * Удаление проекта вместе со сценариями и журналом (каскад в БД; загруженные файлы не
  * хранятся — ТЗ §4.4.6). При успехе — переход к списку проектов.
  */
-export async function deleteProjectAction(projectId: string): Promise<ProjectActionFailure> {
+export async function deleteProjectAction(projectId: string, expectedRevision?: number): Promise<ProjectActionFailure> {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return fail("unauthenticated", MESSAGES.unauthenticated);
   const id = projectIdOf(projectId);
   if (!id) return fail("not_found", MESSAGES.notFound);
+  if (!validProjectRevision(expectedRevision)) return fail("precondition_required", MESSAGES.precondition);
 
   try {
     const project = await prisma.project.findFirst({ where: { id, userId }, select: { isDemo: true } });
     if (!project) return fail("not_found", MESSAGES.notFound);
     if (project.isDemo) return fail("invalid", MESSAGES.demo);
     // isDemo: false и в самом удалении — на случай, если проект пересоздали между запросами.
-    const { count } = await prisma.project.deleteMany({ where: { id, userId, isDemo: false } });
-    if (count === 0) return fail("not_found", MESSAGES.notFound);
+    const { count } = await prisma.project.deleteMany({ where: { id, userId, isDemo: false, revision: expectedRevision } });
+    if (count === 0) return fail("conflict", new ProjectRevisionConflict().message);
   } catch (e) {
     console.error("deleteProjectAction: не удалось удалить проект", e);
     return fail("error", "Не удалось удалить проект, попробуйте ещё раз");

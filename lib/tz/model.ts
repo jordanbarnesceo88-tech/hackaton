@@ -1,8 +1,11 @@
 import { ORGANIZER_DATA_VERSION } from "../data/organizer/version.generated";
 import { pluralRu } from "../format/plural";
-import { handlingSecFor, toSimInput, type SimProvenance } from "../sim/adapter";
+import { handlingSecFor, toSimInput } from "../sim/adapter";
 import { cycleThroughputPerH, expectedLegsM, type ExpectedLegs } from "../sim/analytic";
+import { validateProjectSiteLayout } from "../sim/site-layout";
 import { BOTTLENECK_LABELS } from "../sim/export-rows";
+import { simSummaryMatchesInput } from "../sim/identity";
+import { spatialEvidenceMatchesInput } from "../sim/spatial-evidence";
 import { LAYOUT_LIMITS, buildWarehouseLayout, isWarehouseLike } from "../sim/layout";
 import {
   SIM_MODEL_VERSION,
@@ -24,11 +27,12 @@ import {
   type CycleInfo,
   type ScenarioContext,
 } from "./econ";
+import { refuse } from "./econ/context";
 import { fx, q, unitShort } from "./econ/text";
 import type { NormValues } from "./norms";
 import { applyDefaults } from "./params/schema";
 import { validateParamValues } from "./params/validate";
-import { processesForFacility, type ProcessDef } from "./processes";
+import { processDef, processesForFacility, type ProcessDef } from "./processes";
 import { relevantProducts, selectProducts, type SelectionEcon } from "./selection";
 import type {
   ComparisonRow,
@@ -46,7 +50,9 @@ import type {
   ScenarioSpec,
   SelectionResult,
   SelectionStatus,
+  ScenarioSimInputs,
 } from "./types";
+export type { ScenarioSimInputs } from "./types";
 import { TZ_MODEL_VERSION, dataVersionOf } from "./version";
 
 /**
@@ -92,12 +98,6 @@ export type BuildProjectModelInput = {
  * заложенная в расчёт парка, % (для сравнения с загрузкой по имитации); `provenance` —
  * «Откуда параметры» имитации по расчётному парку (адаптер toSimInput).
  */
-export type ScenarioSimInputs = {
-  calculated: SimInput | null;
-  byNorm: SimInput | null;
-  assumedUtilPct: number | null;
-  provenance: SimProvenance[] | null;
-};
 
 /**
  * Модель проекта: всё, что сохраняется в Project.results, кроме момента расчёта и сводок
@@ -386,8 +386,8 @@ function refusedForLayout(spec: ScenarioSpec, problem: { key: string; message: s
  * относится к текущему расчёту — тот же парк и тот же пиковый поток; устаревшая сводка (после
  * правки параметров) рисков не добавляет.
  */
-function simRisks(ctx: ScenarioContext, spec: ScenarioSpec, result: ScenarioOk, sim: SimSummaryStored | null | undefined): Risk[] {
-  if (!sim || result.kind === "asis") return [];
+function simRisks(ctx: ScenarioContext, spec: ScenarioSpec, result: ScenarioOk, sim: SimSummaryStored | null | undefined, expected: SimInput | null | undefined): Risk[] {
+  if (!simSummaryMatchesInput(sim, expected) || result.kind === "asis") return [];
   const item = result.items.find((r) => ctx.processes[r.process]?.simSupported);
   if (!item || item.n === null || sim.fleet !== item.n) return [];
   const tol = 1e-6 * Math.max(1, Math.abs(item.peakPerHour));
@@ -712,8 +712,10 @@ function simInputsOf(
       peakPerH: ir.peakPerHour,
       avgPerH: ir.avgPerHour,
       norms,
-      seed: PROJECT_SIM_SEED,
+      seed: spec.simSeed ?? PROJECT_SIM_SEED,
+      ...(spec.siteLayout ? { siteLayout: spec.siteLayout } : {}),
       paramSpecs: defs,
+      throughputPerHOverride: item.throughputPerHOverride,
     };
     const calculated = toSimInput({ ...base, fleet: ir.n, chargers: ir.chargers, fleetOrigin: ir.nOverridden ? "user" : "derived" });
     let byNorm: SimInput | null = null;
@@ -725,7 +727,7 @@ function simInputsOf(
         availability: norms.availability,
         reservePct: norms.reservePct,
       });
-      const chargers = chargersNeeded(nAuto, product, norms).count;
+      const chargers = item.chargersOverride ?? chargersNeeded(nAuto, product, norms).count;
       const res = toSimInput({ ...base, fleet: nAuto, chargers, fleetOrigin: "derived" });
       byNorm = res.ok ? res.input : null;
     }
@@ -733,7 +735,9 @@ function simInputsOf(
       calculated: calculated.ok ? calculated.input : null,
       byNorm,
       assumedUtilPct: calculated.ok ? calculated.assumedUtilPct : null,
-      provenance: calculated.ok ? calculated.provenance : null,
+      provenance: calculated.ok ? calculated.provenance.map(p => p.field === "calc:chargers" && item.chargersOverride !== undefined
+        ? { ...p, origin: "user" as const, note: "Фиксированная инфраструктура сценария, задано вами" } : p) : null,
+      ...(!calculated.ok ? { unavailableReason: calculated.message } : {}),
     };
   }
   return out;
@@ -798,6 +802,23 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
     paramBounds: boundsOf(defs),
     paramLabels,
   };
+  const explicitLegs = new WeakMap<SimLayout, ExpectedLegs>();
+  ctx.cycleForSpec = (spec, scenarioNorms, currentParams) => {
+    if (!spec.siteLayout) return ctx.cycle;
+    if (facility !== "warehouse") refuse("invalid_inputs", "Явная складская планировка поддерживается только для склада", ["scenario:siteLayout"]);
+    const site = spec.siteLayout;
+    const issues = validateProjectSiteLayout(site, { activeAreaM2: toNumber(currentParams.activeAreaM2) ?? NaN,
+      receivingDocksCount: toNumber(currentParams.receivingDocksCount) ?? NaN, shippingDocksCount: toNumber(currentParams.shippingDocksCount) ?? NaN,
+      chargers: site.chargers?.length ?? -1 });
+    if (issues.length) refuse("invalid_inputs", issues.join("; "), ["scenario:siteLayout"]);
+    let scenarioLegs = explicitLegs.get(site);
+    if (!scenarioLegs) {
+      try { scenarioLegs = expectedLegsM(site); }
+      catch { refuse("invalid_inputs", "Явная планировка не даёт связных маршрутов между точками работы", ["scenario:siteLayout"]); }
+      explicitLegs.set(site, scenarioLegs);
+    }
+    return cyclesOf(products, scenarioLegs, scenarioNorms);
+  };
 
   const specsIn = input.scenarios.map(cloneSpec);
   const econAllowed = paramErrors.length === 0;
@@ -821,18 +842,30 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
     });
   }
 
+  const simInputs = simInputsOf(ctx, specs, results, defs);
   const sims = input.sims;
-  if (sims) {
+  {
     results = results.map((r, i) => {
       const spec = specs[i];
       if (!spec || r.status !== "ok") return r;
-      const extra = simRisks(ctx, spec, r, sims[r.key]);
+      const expected = simInputs[r.key]?.calculated;
+      const extra = simRisks(ctx, spec, r, sims?.[r.key], expected);
+      const evidence = spec.spatialEvidence;
+      if (evidence && r.kind !== "asis") {
+        if (!spatialEvidenceMatchesInput(evidence, expected)) {
+          extra.push({ code: "SPATIAL_STALE", severity: "high", text: "Сохранённая проверка 3D устарела или относится к другому входу/версии модели; повторите проверку текущего сценария. Её показатели не подтверждают текущий расчёт" });
+        } else if (evidence.assessment.status !== "OK") {
+          const measurement = evidence.assessment.status === "NOT_EVALUATED"
+            ? "Поток, очередь и ожидание не оценены"
+            : `Достигнуто ${fx(evidence.summary.achievedPerH, 1)} из ${fx(evidence.summary.requiredPerH, 1)} ед./ч, очередь ${evidence.summary.queueEnd}`;
+          extra.push({ code: "SIM_NOT_CONFIRMED", severity: "high", text: `Проверка 3D: ${evidence.assessment.status} — ${evidence.assessment.headline}. ${measurement}; финансовый расчёт показан только для сравнения` });
+        }
+      }
       return extra.length > 0 ? { ...r, risks: sortRisks([...r.risks, ...extra]) } : r;
     });
   }
 
   const comparison = comparisonOf(ctx, sels, specs);
-  const simInputs = simInputsOf(ctx, specs, results, defs);
   // Смена вывода по горизонту пересчитывает сценарии по их описаниям: сценарий с отказом из-за
   // планировки туда не передаётся, иначе он посчитался бы по паспортной норме.
   const conclusionSpecs = layoutProblem ? specs.filter((s) => !layoutBlocked(s)) : specs;
@@ -863,7 +896,27 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
 export function storedPartOf(model: ProjectModel): Omit<ProjectResults, "calculatedAt" | "sim"> {
   // Деструктуризация отбрасывает поля, которых нет в ProjectResults.
   const { layout: _layout, simInputs: _simInputs, ...rest } = model;
-  void _layout;
-  void _simInputs;
-  return rest;
+  // A current model's exact inputs are exportable facts; old archives without them stay unavailable.
+  if (rest.runtime || !Object.values(_simInputs).some(entry => entry.calculated !== null)) return rest;
+  return { ...rest, runtime: { layout: structuredClone(_layout), simInputs: structuredClone(_simInputs),
+    layouts: Object.fromEntries(Object.entries(_simInputs).flatMap(([key, entry]) => entry.calculated
+      ? [[key, structuredClone(entry.calculated.siteLayout ?? buildWarehouseLayout(entry.calculated.layout))]] : [])),
+    normsByScenario: Object.fromEntries(model.scenarios.map(spec => [spec.key, normsForSpec({ norms: model.normsUsed }, spec)])),
+  } };
+}
+
+/** Archived reports use the saved runtime input; no current-engine reconstruction of old archives. */
+export function expectedSpatialInputFromStored(
+  stored: Pick<ProjectResults, "paramsUsed" | "normsUsed" | "scenarios" | "results" | "productSnapshots"> & Pick<Partial<ProjectResults>, "runtime">,
+  scenarioKey: string,
+): SimInput | null {
+  const input = stored.runtime?.simInputs[scenarioKey]?.calculated;
+  const spec = stored.scenarios.find(s => s.key === scenarioKey), result = stored.results.find(r => r.key === scenarioKey);
+  const item = result?.status === "ok" ? result.items.find(i => processDef(i.process)?.simSupported) : null;
+  const source = item && spec?.items.find(i => i.process === item.process && i.productSlug === item.productSlug);
+  if (!input || !source || !item || input.robots.count !== item.n || input.layout.chargers !== item.chargers || input.demand.peakPerH !== item.peakPerHour ||
+    (source.quantityOverride !== undefined && source.quantityOverride !== input.robots.count) ||
+    (source.chargersOverride !== undefined && source.chargersOverride !== input.layout.chargers) ||
+    (spec?.simSeed !== undefined && spec.simSeed !== input.seed)) return null;
+  return structuredClone(input);
 }

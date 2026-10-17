@@ -1,10 +1,15 @@
+import { checkSpatialEvidence } from "./validate";
 import type { Prisma, PrismaClient, ScenarioKind as DbScenarioKind } from "@prisma/client";
 import { getParamDefinitions, type Db } from "../catalog/queries";
 import { paramSpecsFor } from "../data/organizer/params";
 import { processesForFacility } from "../tz/processes";
 import type { ParamValues, PendingChange, ProjectResults, ScenarioKind, ScenarioSpec } from "../tz/types";
 import { changeFieldLabel, serverAutoFrom, toChangeLogRows } from "./changes";
-import { resultsFromInputs, type LiveInputs } from "./recalc";
+import { resultsFromInputsAsync, type LiveInputs } from "./recalc";
+import { checkExecution } from "../sim/cooperative";
+import { checkScenarioSiteLayout, validProjectRevision } from "./validate";
+import { parsePilotPlanInput } from "../tz/pilot-budget";
+import { parseOperationsStaffing } from "../tz/econ/labour";
 
 /**
  * Чтение и запись проектов (ТЗ §3.1.3 — проекты пользователя, §4.4.2 — изоляция данных).
@@ -93,6 +98,24 @@ export function scenarioFromRow(row: {
     items: Array.isArray(spec.items) ? (spec.items as unknown as ScenarioSpec["items"]) : [],
   };
   if (isPlainObject(spec.normOverrides)) out.normOverrides = spec.normOverrides as ScenarioSpec["normOverrides"];
+  if (spec.operationsStaffing !== undefined) out.operationsStaffing = parseOperationsStaffing(spec.operationsStaffing);
+  if (spec.cashRealizationShare !== undefined) {
+    const share = spec.cashRealizationShare;
+    if (typeof share !== "number" || !Number.isFinite(share) || share < 0 || share > 1) throw new Error("В сохранённом сценарии некорректна доля денежного эффекта");
+    out.cashRealizationShare = share;
+  }
+  if (spec.spatialEvidence !== undefined) out.spatialEvidence = checkSpatialEvidence(spec.spatialEvidence);
+  if (spec.siteLayout !== undefined) out.siteLayout = checkScenarioSiteLayout(spec.siteLayout);
+  if (spec.simSeed !== undefined) {
+    if (!Number.isSafeInteger(spec.simSeed)) throw new Error("В сохранённом сценарии некорректно зерно имитации");
+    out.simSeed = spec.simSeed as number;
+  }
+  if (spec.pilotPlan !== undefined) out.pilotPlan = parsePilotPlanInput(spec.pilotPlan);
+  if (spec.terminalResidualRub !== undefined) {
+    const value = spec.terminalResidualRub;
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1e12) throw new Error("В сохранённом сценарии некорректна остаточная стоимость");
+    out.terminalResidualRub = value;
+  }
   return out;
 }
 
@@ -109,6 +132,7 @@ export function bestPaybackYears(results: ProjectResults | null): number | null 
 
 /** Строка списка «Мои проекты». */
 export type ProjectListItem = {
+  revision: number;
   id: string;
   name: string;
   objectName: string | null;
@@ -146,6 +170,7 @@ export async function listProjects(db: Db, userId: string): Promise<ProjectListI
       orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
       select: {
         id: true,
+        revision: true,
         name: true,
         objectName: true,
         facilityTypeSlug: true,
@@ -159,6 +184,7 @@ export async function listProjects(db: Db, userId: string): Promise<ProjectListI
   ]);
   return rows.map((r) => ({
     id: r.id,
+    revision: r.revision,
     name: r.name,
     objectName: r.objectName,
     facility: r.facilityTypeSlug,
@@ -175,6 +201,7 @@ export type ScenarioRow = { id: string; key: string; name: string; kind: Scenari
 
 /** Проект целиком: параметры, сценарии и сохранённые результаты. */
 export type ProjectRecord = {
+  revision: number;
   id: string;
   userId: string;
   name: string;
@@ -202,15 +229,17 @@ export async function getProject(db: Db, id: string, userId: string): Promise<Pr
     include: { scenarios: { orderBy: [{ order: "asc" }, { key: "asc" }] } },
   });
   if (!p) return null;
+  const results = asProjectResults(p.results);
   return {
     id: p.id,
+    revision: p.revision,
     userId: p.userId,
     name: p.name,
     objectName: p.objectName,
     facility: p.facilityTypeSlug,
     params: asParams(p.params),
     paramsSource: asParamsSource(p.paramsSource),
-    results: asProjectResults(p.results),
+    results,
     modelVersion: p.modelVersion,
     dataVersion: p.dataVersion,
     calculatedAt: p.calculatedAt,
@@ -218,7 +247,8 @@ export async function getProject(db: Db, id: string, userId: string): Promise<Pr
     isDemo: p.isDemo,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
-    scenarios: p.scenarios.map(scenarioFromRow),
+    // The saved calculation owns its historical spec; reading it must not invoke today's validators.
+    scenarios: results ? structuredClone(results.scenarios) : p.scenarios.map(scenarioFromRow),
     scenarioRows: p.scenarios.map((s) => ({ id: s.id, key: s.key, name: s.name, kind: scenarioKindOf(s.kind), order: s.order })),
   };
 }
@@ -287,7 +317,9 @@ function json(v: unknown): Prisma.InputJsonValue {
 
 /** spec сценария в БД: позиции и переопределения нормативов (ключ, название и вид — колонки). */
 export function scenarioSpecJson(s: ScenarioSpec): Prisma.InputJsonValue {
-  return json(JSON.parse(JSON.stringify({ items: s.items, normOverrides: s.normOverrides })));
+  const { key: _key, name: _name, kind: _kind, ...spec } = s;
+  void _key; void _name; void _kind;
+  return json(JSON.parse(JSON.stringify(spec)));
 }
 
 /** Колонки проекта с результатом расчёта. */
@@ -302,6 +334,7 @@ function resultColumns(results: ProjectResults) {
 
 /** Новый проект. */
 export type NewProject = {
+  signal?: AbortSignal;
   userId: string;
   name: string;
   objectName: string | null;
@@ -325,11 +358,13 @@ export async function insertProject(
   live: LiveInputs,
   input: NewProject,
 ): Promise<{ id: string; results: ProjectResults }> {
-  const { results } = resultsFromInputs(live, {
+  const { results } = await resultsFromInputsAsync(live, {
+    signal: input.signal,
     facility: input.facility,
     params: input.params,
     scenarios: input.scenarios,
   });
+  checkExecution({ signal: input.signal });
   const created = await db.project.create({
     data: {
       ...(input.id !== undefined ? { id: input.id } : {}),
@@ -358,6 +393,8 @@ export async function insertProject(
 
 /** Пересчёт и запись существующего проекта. */
 export type ProjectCalculation = {
+  signal?: AbortSignal;
+  expectedRevision: number;
   projectId: string;
   /** Автор изменений журнала. */
   userId: string;
@@ -383,9 +420,11 @@ export type ProjectCalculation = {
 export async function storeProjectCalculation(
   db: PrismaClient,
   input: ProjectCalculation,
-): Promise<{ calculatedAt: string; dataVersion: string; results: ProjectResults }> {
+): Promise<{ calculatedAt: string; dataVersion: string; results: ProjectResults; revision: number }> {
   const { projectId, userId } = input;
-  const { results, model } = resultsFromInputs(input.live, {
+  if (!validProjectRevision(input.expectedRevision)) throw new Error("Для записи требуется expectedRevision сохранённого проекта");
+  const { results: calculatedResults, model } = await resultsFromInputsAsync(input.live, {
+    signal: input.signal,
     facility: input.facility,
     params: input.params,
     scenarios: input.scenarios,
@@ -393,16 +432,22 @@ export async function storeProjectCalculation(
       ? { productSnapshots: input.snapshot.productSnapshots, normsUsed: input.snapshot.normsUsed }
       : null,
   });
+  // Return the exact JSON snapshot persisted by Prisma, including JSON's normalization of -0.
+  const results: ProjectResults = JSON.parse(JSON.stringify(calculatedResults));
   const serverAuto = serverAutoFrom(model, input.live.paramDefs);
+  checkExecution({ signal: input.signal });
   await db.$transaction(async (tx) => {
-    await tx.project.update({
-      where: { id: projectId },
+    checkExecution({ signal: input.signal });
+    const claimed = await tx.project.updateMany({
+      where: { id: projectId, userId, revision: input.expectedRevision, isDemo: false },
       data: {
+        revision: { increment: 1 },
         ...(input.name !== undefined ? { name: input.name } : {}),
         params: json(results.paramsUsed),
         ...resultColumns(results),
       },
     });
+    if (claimed.count !== 1) throw new ProjectRevisionConflict();
     const existing = await tx.scenario.findMany({ where: { projectId }, select: { id: true, key: true, name: true } });
     const byKey = new Map(results.scenarios.map((s) => [s.key, s]));
     const gone = existing.filter((s) => !byKey.has(s.key)).map((s) => s.id);
@@ -430,6 +475,15 @@ export async function storeProjectCalculation(
         data: toChangeLogRows(input.changes, { projectId, userId, scenarioIdByKey: idByKey, serverAuto }),
       });
     }
+    // An abort observed before commit must roll back the claim, scenario changes and log together.
+    checkExecution({ signal: input.signal });
   });
-  return { calculatedAt: results.calculatedAt, dataVersion: results.dataVersion, results };
+  return { calculatedAt: results.calculatedAt, dataVersion: results.dataVersion, results, revision: input.expectedRevision + 1 };
+}
+
+export class ProjectRevisionConflict extends Error {
+  constructor() {
+    super("Проект изменён в другой вкладке. Ваши локальные правки сохранены на странице. Откройте актуальную версию отдельно и сравните изменения; автоматическая перезапись запрещена.");
+    this.name = "ProjectRevisionConflict";
+  }
 }

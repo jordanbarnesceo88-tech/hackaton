@@ -37,6 +37,7 @@ function avgRoute(layout: SimLayout, from: readonly Pt[], to: readonly Pt[]): nu
 function avgSlotToSlot(layout: SimLayout): number {
   const K = layout.slots;
   if (K.length === 0) return 0;
+  if (layout.routingGraph) return avgRoute(layout, K, K);
   const byX = new Map<number, number[]>();
   for (const s of K) {
     const list = byX.get(s.x);

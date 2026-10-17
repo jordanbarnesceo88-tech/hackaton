@@ -10,6 +10,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "font-src 'self'",
+  "worker-src 'self'",
   "connect-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -28,6 +29,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // JSON admission is capped at 4 MiB in client/server guards. Leave a bounded extra
+  // MiB for React Server Action framing; source field/geometry limits remain in force.
+  experimental: { serverActions: { bodySizeLimit: "5mb" } },
   // Standalone output is for the Docker image (the runner stage copies `.next/standalone`).
   // It must NOT be set when Vercel builds: their `onBuildComplete` step reads
   // `.next/next-server.js.nft.json`, which standalone mode relocates, and the build dies with
@@ -41,7 +45,14 @@ const nextConfig: NextConfig = {
   // сборки Docker его файлы попадают в .next/standalone через трассировку зависимостей.
   serverExternalPackages: ["exceljs"],
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // Only the self-contained viewers create a local Blob worker from their embedded core.
+    const viewerHeaders = securityHeaders.map(header => header.key === "Content-Security-Policy"
+      ? { ...header, value: csp.replace("worker-src 'self'", "worker-src 'self' blob:") } : header);
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/warehouse-3d.html", headers: viewerHeaders },
+      { source: "/cleaning-3d.html", headers: viewerHeaders },
+    ];
   },
 };
 

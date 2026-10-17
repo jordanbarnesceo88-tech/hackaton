@@ -2,6 +2,10 @@ import { formatYearsRu, pluralRu } from "../../format/plural";
 import { formatMRub, formatNum, formatPct, formatRub } from "../../format/rub";
 import { BOTTLENECK_LABELS } from "../../sim/export-rows";
 import type { SimSummaryStored } from "../../sim/types";
+import { spatialEvidenceMatchesInput } from "../../sim/spatial-evidence";
+import { expectedSpatialInputFromStored } from "../../tz/model";
+import { buildPilotBudget } from "../../tz/pilot-budget";
+import { operationsStaffingText } from "../../tz/operations-staffing-text";
 import { displayDataText, originLabel, sourceRefLabel } from "../../tz/characteristics";
 import {
   DEFAULT_PARAM_LABELS,
@@ -9,7 +13,8 @@ import {
   horizonOf,
   interpretBand,
   isViableScenario,
-  normsForSpec,
+  pickRecommended,
+  simulationFailure,
   sortRisks,
 } from "../../tz/econ";
 import { DEFAULT_NORMS, isNormKey, normDef, type NormValues } from "../../tz/norms";
@@ -105,10 +110,13 @@ export function scenarioSpecOf(results: Pick<ReportResults, "scenarios">, key: s
  * Нормативы сценария — как у движка: сохранённые нормативы расчёта плюс переопределения
  * сценария (`normsForSpec`). Недостающие ключи (результаты старой версии) берутся по умолчанию.
  */
-export function scenarioNorms(results: Pick<ReportResults, "normsUsed" | "scenarios">, key: string): NormValues {
+export function scenarioNorms(results: Pick<ReportResults, "normsUsed" | "scenarios"> & Pick<Partial<ReportResults>, "runtime">, key: string): NormValues {
+  const resolved = results.runtime?.normsByScenario?.[key];
+  if (resolved) return { ...resolved };
   const base: NormValues = { ...DEFAULT_NORMS, ...results.normsUsed };
   const spec = scenarioSpecOf(results, key);
-  return normsForSpec({ norms: base }, spec ?? {});
+  // Saved values are historical data: applying today's bounds would change export discount rates.
+  return { ...base, ...spec?.normOverrides };
 }
 
 /** Решение в сценарии добавлено вручную (по спецификации или по результату позиции). */
@@ -138,7 +146,7 @@ export type ScenarioColumn = {
 
 /** Колонки таблицы сценариев в порядке результатов. */
 export function scenarioColumns(results: ReportResults): ScenarioColumn[] {
-  const rec = results.conclusion.recommendedScenarioKey;
+  const rec = pickRecommended(results.results.filter((r) => r.key === results.conclusion.recommendedScenarioKey))?.key ?? null;
   return results.results.map((r) => {
     const manual = isManualScenario(results, r);
     return {
@@ -285,9 +293,10 @@ export function risksCellText(r: ScenarioResult): string {
 /** Ячейка «Вывод»: ★ у рекомендуемого сценария. */
 export function verdictCellText(r: ScenarioResult, recommendedKey: string | null): string {
   if (r.status === "refused") return "Не рассчитан";
-  if (recommendedKey !== null && r.key === recommendedKey) return "★ Рекомендуется";
   if (r.kind === "asis") return "База сравнения";
-  return isViableScenario(r) ? "Окупается (NPV ≥ 0), но уступает рекомендуемому" : "Не окупается за горизонт расчёта";
+  if (simulationFailure(r)) return "Не подтверждена нагрузка; финансовый расчёт — только для сравнения";
+  if (recommendedKey !== null && r.key === recommendedKey && isViableScenario(r)) return "★ Предварительный финансовый выбор";
+  return isViableScenario(r) ? "Предварительно окупается (NPV ≥ 0); сравните условия применения" : "Не окупается за горизонт расчёта";
 }
 
 type Cell = [value: number | null, text: string];
@@ -296,11 +305,27 @@ const DASH: Cell = [null, "—"];
 
 function tableCell(key: ScenarioRowKey, r: ScenarioResult, results: ReportResults): Cell {
   const rec = results.conclusion.recommendedScenarioKey;
+  const spec = results.scenarios.find(s => s.key === r.key);
   switch (key) {
-    case "composition":
-      return [null, compositionText(r)];
-    case "sim":
+    case "composition": {
+      const assumptions: string[] = [];
+      for (const item of spec?.items ?? []) {
+        if (item.automationCoverageOverride !== undefined) assumptions.push(`оценочный годовой охват: ${formatPct(item.automationCoverageOverride * 100)}`);
+        if (item.chargersOverride !== undefined) assumptions.push(`фиксированное число зарядок: ${item.chargersOverride}`);
+      }
+      if (spec?.cashRealizationShare !== undefined) assumptions.push(`денежная реализация высвобождаемого ФОТ: ${formatPct(spec.cashRealizationShare * 100)} (оценка; FTE отдельно)`);
+      if (spec?.operationsStaffing) assumptions.push(operationsStaffingText(spec.operationsStaffing));
+      return [null, [compositionText(r), ...assumptions].join("; ")];
+    }
+    case "sim": {
+      const evidence = spec?.spatialEvidence;
+      if (evidence) {
+        const fresh = spatialEvidenceMatchesInput(evidence, expectedSpatialInputFromStored(results, r.key));
+        if (evidence.assessment.status === "NOT_EVALUATED") return [null, `Пространственная проверка не выполнена; показатели не оценены. ${evidence.assessment.headline}; модель ${evidence.simModelVersion}`];
+        return [null, `${fresh ? "Проверка 3D текущего входа" : "Устаревшая или непроверенная проверка 3D"}: ${evidence.assessment.status}; ${evidence.assessment.headline}; ${formatNum(evidence.summary.achievedPerH)} из ${formatNum(evidence.summary.requiredPerH)} ед./ч; очередь ${formatNum(evidence.summary.queueEnd)}; модель ${evidence.simModelVersion}`];
+      }
       return [null, simCellText(results.sim?.[r.key])];
+    }
     case "risks":
       return [null, risksCellText(r)];
     case "verdict":
@@ -539,6 +564,32 @@ export function cashflowRows(result: ScenarioOk): CashflowReportRow[] {
   }));
 }
 
+export type PilotReportRow = { scenarioKey: string; scenarioName: string; label: string; valueRub: number | null; text: string; source: string };
+
+/** Same persisted plan and estimates for CSV and XLSX; no unknown budget becomes zero. */
+export function pilotReportRows(results: ReportResults): PilotReportRow[] {
+  const rows: PilotReportRow[] = [];
+  for (const spec of results.scenarios) {
+    if (!spec.pilotPlan) continue;
+    const push = (label: string, text: string, source = "План сценария; оценка", valueRub: number | null = null) => rows.push({ scenarioKey: spec.key, scenarioName: spec.name, label, text, source, valueRub });
+    try {
+      const budget = buildPilotBudget(results, spec.key);
+      push("Состав и срок пилота", `${budget.plan.fleet} роботов; ${budget.plan.chargers} зарядок; ${budget.plan.durationDays} ${budget.plan.dayBasis === "working" ? "рабочих" : "календарных"} дней; ${budget.plan.acquisition === "raas" ? `RaaS ${budget.subscriptionMonths} полных мес.` : "покупка"}`);
+      push("Граница проверки", budget.warning);
+      for (const line of budget.lines) push(line.label, line.valueRub === null ? "Не определено" : formatRub(line.valueRub), `${line.formula}; ${line.source}`, line.valueRub);
+      push("Известная часть сметы пилота", formatRub(budget.knownSubtotalRub), "Сумма только заданных статей; не полный бюджет при наличии неизвестных", budget.knownSubtotalRub);
+      push("Резерв пилота", budget.reserveRub === null ? "Не определён до заполнения статей" : formatRub(budget.reserveRub), `${budget.plan.contingencyPct}% от полной сметы`, budget.reserveRub);
+      push("Полный бюджет пилота", budget.totalRub === null ? "Не определён" : formatRub(budget.totalRub), budget.quoteNote, budget.totalRub);
+      if (budget.unknowns.length) push("Неизвестные статьи", budget.unknowns.join("; "));
+      for (const criterion of budget.criteria) push("Критерий успеха", criterion);
+      for (const check of budget.readiness) push("Готовность участка", `${check.ready ? "Готово" : "Подготовить"}: ${check.label}`);
+      push("Остаточная стоимость сценария", formatRub(budget.residual.valueRub), `Год ${budget.residual.year}; ${budget.residual.valueRub === 0 ? "исключена из денежных потоков и NPV" : budget.residual.includedInNpv ? "входит в NPV" : `не входит в NPV за ${budget.residual.financialHorizonYears} лет`}; ${budget.residual.note}`, budget.residual.valueRub);
+      if (budget.plan.notes) push("Примечание пилота", budget.plan.notes);
+    } catch (error) { push("План пилота не рассчитан", error instanceof Error ? error.message : "Проверьте сохранённый состав и данные решения"); }
+  }
+  return rows;
+}
+
 // ——————————————————————————— Источники данных ———————————————————————————
 
 /** Заголовок таблицы источников. */
@@ -654,6 +705,7 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   service: "сервис за робота в год",
   raasRate: "ставка RaaS за робота в месяц",
   manual: "решение добавлено вручную",
+  package: "комплектация и границы платежей",
 };
 
 /**
@@ -671,6 +723,7 @@ export function changeFieldLabel(field: string, paramLabels?: Readonly<Record<st
   }
   if (field === "scenario:add") return "Сценарий добавлен";
   if (field === "scenario:remove") return "Сценарий удалён";
+  if (field === "scenario:staffing") return "Организация и дополнительные расходы эксплуатации";
   return field;
 }
 

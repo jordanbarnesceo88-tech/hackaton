@@ -1,5 +1,6 @@
 import type { SimProvenance } from "@/lib/sim/adapter";
-import { SIM_MODEL_VERSION, type SimInput, type SimSummaryStored } from "@/lib/sim/types";
+import type { SimInput, SimSummaryStored } from "@/lib/sim/types";
+import { simSummaryMatchesInput } from "@/lib/sim/identity";
 
 /**
  * Сценарии и варианты парка для списка «Сценарий и парк» (ТЗ §3.6.3 — выбор сценария). Для
@@ -268,26 +269,13 @@ function variantInput(s: SimScenario, id: SimVariantId): SimInput | null {
 }
 
 /**
- * Относится ли сохранённая сводка к текущему расчёту: то же зерно, тот же парк, тот же пиковый
- * поток и та же версия модели имитации. Так же отбраковывает устаревшие сводки lib/tz/model.ts
- * (риски SIM_*). После правки параметров или пересчёта до сохранения сводка устаревает, и её
- * минимальный парк, парк по норме и вердикт по норме показывать нельзя.
- *
- * Граница: сводка хранит только скаляры, поэтому правка планировки, после которой парк и поток
- * не изменились, здесь не видна.
+ * Та же полная проверка входа, что на сервере. Legacy без inputKey не подтверждает новый вход.
  */
 export function storedMatches(
   stored: SimSummaryStored | null | undefined,
   calculated: SimInput | null | undefined,
 ): stored is SimSummaryStored {
-  if (!stored || !calculated) return false;
-  const peak = calculated.demand.peakPerH;
-  return (
-    stored.simModelVersion === SIM_MODEL_VERSION &&
-    stored.seed === calculated.seed &&
-    stored.fleet === calculated.robots.count &&
-    Math.abs(stored.requiredPerH - peak) <= 1e-6 * Math.max(1, Math.abs(peak))
-  );
+  return simSummaryMatchesInput(stored, calculated);
 }
 
 /** Сведения о парках сценария, которых нет в самом прогоне. */

@@ -3,6 +3,7 @@ import { BOTTLENECK_LABELS, NO_RUN_VALUE, VERDICT_LABELS, simSummaryRows } from 
 import { H1500_ROBOT, warehouseBaseInput } from "./fixtures";
 import { toStored } from "./metrics";
 import { runSimSync } from "./runner";
+import { SIM_MODEL_VERSION } from "./types";
 
 describe("simSummaryRows", () => {
   it("первые десять строк — показатели сверки с расчётом, в заданном порядке", () => {
@@ -38,7 +39,7 @@ describe("simSummaryRows", () => {
     expect(rows.get("Минимальный устойчивый парк")).toBe("не определён");
     expect(rows.get("Парк по паспортной норме")).toBe("нет нормы");
     expect(rows.get("Вердикт при парке по норме")).toBe("не проверялся");
-    expect(rows.get("Модель имитации")).toBe("sim-1.0.0");
+    expect(rows.get("Модель имитации")).toBe(SIM_MODEL_VERSION);
   });
 
   it("парк избыточен — отмечено в вердикте", () => {

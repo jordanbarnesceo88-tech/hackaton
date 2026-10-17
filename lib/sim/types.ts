@@ -15,7 +15,7 @@
  * данных» вместо молчаливой подмены результата. Повышается при любом изменении логики
  * движка, которое меняет числа сводки.
  */
-export const SIM_MODEL_VERSION = "sim-1.0.0" as const;
+export const SIM_MODEL_VERSION = "sim-1.1.0" as const;
 
 /**
  * Параметры объекта, из которых строится планировка. Это подмножество параметров склада
@@ -78,7 +78,24 @@ export type SimLayout = {
   receiving: OpPoint[];
   shipping: OpPoint[];
   chargers: OpPoint[];
+  /** Optional surveyed/test site. Coordinates share the engine's lower-left origin. */
+  footprint?: { x: number; y: number }[];
+  walls?: SiteRect[];
+  obstacles?: SiteRect[];
+  columns?: SiteRect[];
+  wallHeightM?: number;
+  doors?: (SiteRect & { id: string; label: string })[];
+  compartments?: (SiteRect & { id: string; label: string; kind: "receiving" | "storage" | "packing" | "shipping" | "charging" })[];
+  staging?: (SiteRect & { id: string; kind: OpPoint["kind"]; pointIds: string[] })[];
+  routingGraph?: {
+    nodes: { id: string; x: number; y: number }[];
+    /** Undirected, axis-aligned centre lines. */
+    edges: { from: string; to: string }[];
+    clearanceM: number;
+  };
 };
+
+export type SiteRect = { x: number; y: number; w: number; h: number; id?: string; kind?: string; heightM?: number };
 
 /**
  * Характеристики парка, с которыми запускается имитация. Берутся из снимка продукта
@@ -110,6 +127,8 @@ export type SimInput = {
   /** Зерно генератора mulberry32. «Перезапуск» использует то же зерно. */
   seed: number;
   layout: SimLayoutParams;
+  /** Explicit obstacle-aware site; omitted for the unchanged standard warehouse model. */
+  siteLayout?: SimLayout;
   robots: RobotSimParams;
   /**
    * Поток заданий: сначала `warmupMin` минут на среднем потоке, затем `peakMin` минут на
@@ -160,6 +179,8 @@ export type SimBottleneck = "none" | "fleet" | "points" | "charging" | "payload"
  */
 export type SimSummaryStored = {
   simModelVersion: string;
+  /** Полный канонический вход и версия; отсутствует у старых непроверенных сводок. */
+  inputKey?: string;
   seed: number;
   /** Ключ сценария (`ScenarioSpec.key`), для которого выполнен прогон. */
   scenarioKey: string;

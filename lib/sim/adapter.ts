@@ -3,7 +3,8 @@ import { normDef, type NormKey, type NormValues } from "../tz/norms";
 import type { HandlingClass, Origin, ParamSpec, ParamValues, ProductForCalc } from "../tz/types";
 import { SIM_LIMITS, chargeThresholdsValid, expectedTasks } from "./engine";
 import { LAYOUT_ASSUMPTIONS, LAYOUT_LIMITS } from "./layout";
-import { SIM_MODEL_VERSION, type SimInput } from "./types";
+import { SIM_MODEL_VERSION, type SimInput, type SimLayout } from "./types";
+import { validateProjectSiteLayout } from "./site-layout";
 
 /**
  * Адаптер: параметры проекта + снимок продукта + парк из расчёта экономики → вход имитации.
@@ -51,6 +52,9 @@ export type ToSimInputArgs = {
   paramSpecs?: readonly ParamSpec[];
   /** Происхождение числа роботов: derived (расчёт) по умолчанию, user — ручная правка. */
   fleetOrigin?: Origin;
+  /** Ручная выработка требует отдельной калибровки физических времён модели. */
+  throughputPerHOverride?: number | null;
+  siteLayout?: SimLayout;
 };
 
 /**
@@ -172,6 +176,15 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
   const seed = args.seed ?? 1;
   const fleetOrigin = args.fleetOrigin ?? "derived";
 
+  if (args.throughputPerHOverride != null) {
+    return {
+      ok: false,
+      missing: [],
+      reason: "not_supported",
+      message: "Имитация не подтверждает производительность, заданную вручную: модель рассчитывает цикл по скорости и маршрутам. Уберите ручную выработку для проверки по циклу; для замеров нужна отдельная калибровка.",
+    };
+  }
+
   const handlingKey = HANDLING_NORM[product.handlingClass];
   if (!product.mobile || !handlingKey) {
     return {
@@ -214,7 +227,7 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
     product.autonomyH !== null && product.autonomyH > 0 && product.chargeMin !== null && product.chargeMin > 0;
 
   if (!Number.isInteger(args.fleet) || args.fleet < 1) need("fleet", "Число роботов");
-  if (!Number.isInteger(args.chargers) || args.chargers < 0 || (chargeModelled && args.chargers < 1)) {
+  if (!Number.isInteger(args.chargers) || args.chargers < 0) {
     need("chargers", "Число зарядных станций");
   }
   if (!Number.isFinite(args.peakPerH) || args.peakPerH < 0) need("peakPerH", "Пиковый поток заданий");
@@ -301,7 +314,15 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
     charge: { startSoc: norms.chargeStartSoc, stopSoc: norms.chargeStopSoc },
   };
 
+  if (!Number.isSafeInteger(seed)) return { ok: false, missing: ["seed"], reason: "out_of_range", message: "Зерно имитации должно быть безопасным целым числом" };
+  if (args.siteLayout) {
+    const issues = validateProjectSiteLayout(args.siteLayout, input.layout);
+    if (issues.length) return { ok: false, missing: ["siteLayout"], reason: "out_of_range", message: issues.join("; ") };
+    input.siteLayout = structuredClone(args.siteLayout);
+  }
+
   const provenance: SimProvenance[] = [];
+  if (args.siteLayout) provenance.push({ field: "scenario:siteLayout", label: "Явная планировка сценария", value: "Общий план для цикла, имитации и экономики", unit: null, origin: "user", note: "Площадь, ворота, зарядки и граф маршрутов проверены; типовая планировка не подставлялась" });
 
   for (const key of Object.keys(PARAM_FIELDS) as ParamField[]) {
     const spec = specByKey.get(key);

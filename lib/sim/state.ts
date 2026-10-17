@@ -115,10 +115,12 @@ export interface SimEngineState extends SimState {
   readonly precheck: SimPrecheck;
   rng: RngState;
   robots: SimRobot[];
-  /** Все поступившие задания в порядке поступления. Очередь — хвост с индекса `head`. */
+  /** Все задания в порядке поступления. Legacy очередь — хвост с `head`; policy очередь — `dispatchQueue.indices`. */
   tasks: SimTask[];
-  /** Индекс первого невзятого задания: задания выдаются строго по порядку (FIFO). */
+  /** Число назначенных заданий; в legacy FIFO совпадает с индексом первого невзятого. */
   head: number;
+  /** Optional policy queue. Indices refer to the unchanged creation-ordered tasks array. */
+  dispatchQueue?: { indices: number[]; enqueuedThrough: number };
   /** Завершено заданий с начала прогона. */
   doneCount: number;
   /** Ворота приёмки, затем ворота отгрузки, затем зарядные станции. */

@@ -11,8 +11,13 @@ import type { CashflowRow } from "../types";
  * окупаемость используют первые H лет, TCO — все T.
  */
 
-/** Периодическое событие: каждые `everyYears` лет (t кратно сроку и t < T) — затрата `costRub`. */
-export type PeriodicCost = { everyYears: number; costRub: number };
+/** Затрата каждые `everyYears` лет; при обновлении оборудования цикл начинается заново. */
+export type PeriodicCost = {
+  everyYears: number;
+  costRub: number;
+  /** Новое оборудование включает новую АКБ и начинает её цикл заново. */
+  resetEveryYears?: number;
+};
 
 export type CashflowInput = {
   capexRub: number;
@@ -27,20 +32,24 @@ export type CashflowInput = {
   /** Горизонт TCO, лет (целое ≥ 1). */
   tcoYears: number;
   discountRate: number;
+  /** Net disposal proceeds at the end of TCO, after tax, removal and delivery. Default excludes salvage. */
+  terminalResidualRub?: number;
 };
 
 function periodic(events: readonly PeriodicCost[], t: number, T: number): number {
   let sum = 0;
   for (const e of events) {
     const every = Math.max(1, Math.round(e.everyYears));
-    if (t % every === 0 && t < T) sum += e.costRub;
+    const age = e.resetEveryYears === undefined ? t : t % Math.max(1, Math.round(e.resetEveryYears));
+    if (age > 0 && age % every === 0 && t < T) sum += e.costRub;
   }
   return sum;
 }
 
 /**
  * Годовые потоки t = 0…T:
- * - АКБt = N × стоимость комплекта, если t кратно сроку замены и t < T;
+ * - АКБt = N × стоимость комплекта, если возраст оборудования кратен сроку замены и t < T;
+ *   в год покупки нового оборудования отдельная АКБ не нужна;
  * - OPEXt = OPEX − АКБср + АКБt;
  * - докупкаt = оборудование, если t кратно сроку службы и t < T;
  * - Et = OPEXкак есть − OPEXt; CF0 = −CAPEX; CFt = Et − докупкаt.
@@ -48,6 +57,8 @@ function periodic(events: readonly PeriodicCost[], t: number, T: number): number
  * горизонт, и это завысило бы стоимость владения.
  */
 export function cashflows(i: CashflowInput): CashflowRow[] {
+  const terminalResidualRub = i.terminalResidualRub ?? 0;
+  if (!Number.isFinite(terminalResidualRub) || terminalResidualRub < 0) throw new Error("Остаточная стоимость должна быть неотрицательной чистой суммой");
   const T = Math.max(1, Math.round(i.tcoYears));
   const rows: CashflowRow[] = [];
   let cumulative = -i.capexRub;
@@ -69,7 +80,8 @@ export function cashflows(i: CashflowInput): CashflowRow[] {
     const reinvestRub = periodic(i.reinvestEvents, t, T);
     const opexRub = i.opexYearRub - i.batteryAvgRub + batteryRub;
     const effectRub = i.opexAsisRub - opexRub;
-    const cashflowRub = effectRub - reinvestRub;
+    const residualRub = t === T ? terminalResidualRub : 0;
+    const cashflowRub = effectRub - reinvestRub + residualRub;
     const discountedRub = cashflowRub / Math.pow(1 + i.discountRate, t);
     cumulative += cashflowRub;
     cumulativeDiscounted += discountedRub;
@@ -84,6 +96,7 @@ export function cashflows(i: CashflowInput): CashflowRow[] {
       cumulativeRub: cumulative,
       discountedRub,
       cumulativeDiscountedRub: cumulativeDiscounted,
+      ...(residualRub > 0 ? { residualRub } : {}),
     });
   }
   return rows;
@@ -129,7 +142,7 @@ export function dpbOf(rows: readonly CashflowRow[], H: number, rate: number): nu
 /** TCO за все T лет потока: CAPEX + Σ (OPEXt + докупкаt). */
 export function tcoOf(rows: readonly CashflowRow[]): number {
   let sum = 0;
-  for (const r of rows) sum += r.year === 0 ? r.capexRub : r.opexRub + r.reinvestRub;
+  for (const r of rows) sum += r.year === 0 ? r.capexRub : r.opexRub + r.reinvestRub - (r.residualRub ?? 0);
   return sum;
 }
 

@@ -147,6 +147,7 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   service: "Сервис в год за робота",
   raasRate: "Ставка RaaS в месяц за робота",
   manual: "Решение добавлено вручную",
+  package: "Комплектация и границы платежей",
 };
 
 /**
@@ -161,6 +162,7 @@ export function changeFieldLabel(
 ): string {
   if (field === "scenario:add") return "Сценарий добавлен";
   if (field === "scenario:remove") return "Сценарий удалён";
+  if (field === "scenario:staffing") return "Организация и дополнительные расходы эксплуатации";
   if (field.startsWith("param:")) {
     const key = field.slice("param:".length);
     return `Параметр: ${paramLabels[key] ?? key}`;

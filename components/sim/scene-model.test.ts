@@ -72,6 +72,13 @@ describe("aisleWidths", () => {
 });
 
 describe("rackRects", () => {
+  it("exports only surveyed racks for an explicit site, with the SVG Y axis inverted", () => {
+    const layout = buildWarehouseLayout(warehouseBaseInput(11).layout);
+    layout.obstacles = [{ x: 3, y: 7, w: 4, h: 8, kind: "rack" }, { x: 15, y: 2, w: 3, h: 3, kind: "equipment" }];
+    expect(rackRects(layout)).toEqual([{ x: 3, y: layout.heightM - 15, w: 4, h: 8 }]);
+    layout.obstacles = [];
+    expect(rackRects(layout)).toEqual([]);
+  });
   it("keeps every rack inside the storage zone and out of the aisles", () => {
     const layout = buildWarehouseLayout(warehouseBaseInput(11).layout);
     const storage = layout.zones.find((z) => z.kind === "storage")!;
@@ -95,11 +102,11 @@ describe("queueOffset", () => {
 
 describe("formatSimClock and simPhaseLabel", () => {
   it("formats model time as hh:mm", () => {
-    expect(formatSimClock(0)).toBe("00:00");
-    expect(formatSimClock(59)).toBe("00:00");
-    expect(formatSimClock(900)).toBe("00:15");
-    expect(formatSimClock(8100)).toBe("02:15");
-    expect(formatSimClock(Number.NaN)).toBe("00:00");
+    expect(formatSimClock(0)).toBe("00:00:00");
+    expect(formatSimClock(59)).toBe("00:00:59");
+    expect(formatSimClock(900)).toBe("00:15:00");
+    expect(formatSimClock(8100)).toBe("02:15:00");
+    expect(formatSimClock(Number.NaN)).toBe("00:00:00");
   });
 
   it("names the window the clock is in", () => {

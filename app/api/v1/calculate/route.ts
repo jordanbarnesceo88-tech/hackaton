@@ -2,7 +2,9 @@ import { calcVersions, checkCalcInput, FACILITY_HINT, facilityOf, summarizeResul
 import { apiError, apiJson, dbUnavailable, isPlainObject, readJsonBody, tooManyRequests, unknownFields } from "@/lib/api/http";
 import { clientIp, rateLimit } from "@/lib/auth/rate-limit";
 import { prisma } from "@/lib/db/client";
-import { loadLiveInputs, resultsFromInputs } from "@/lib/projects/recalc";
+import { loadLiveInputs, resultsFromInputsAsync } from "@/lib/projects/recalc";
+import { calculationFailure } from "@/lib/sim/server-execution";
+import { PROJECT_INPUT_MAX_BYTES } from "@/lib/projects/payload-limit";
 
 /**
  * POST /api/v1/calculate — расчёт без сохранения (ТЗ §3.1.2 — гостевой демо-расчёт, §3.8.1 —
@@ -19,7 +21,7 @@ import { loadLiveInputs, resultsFromInputs } from "@/lib/projects/recalc";
  */
 
 /** Наибольший размер тела, байт. */
-const MAX_BODY_BYTES = 200_000;
+const MAX_BODY_BYTES = PROJECT_INPUT_MAX_BYTES;
 const RATE = { limit: 60, windowMs: 15 * 60 * 1000 } as const;
 const FIELDS: ReadonlySet<string> = new Set(["facility", "params", "scenarios"]);
 
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
   if (!input.ok) return apiError(422, input.error, input.details);
 
   try {
-    const { results } = resultsFromInputs(live, { facility, params: input.params, scenarios: input.scenarios });
+    const { results } = await resultsFromInputsAsync(live, { facility, params: input.params, scenarios: input.scenarios, signal: request.signal });
     return apiJson({
       versions: calcVersions(results, live),
       summary: summarizeResults(results),
@@ -56,6 +58,9 @@ export async function POST(request: Request) {
       results,
     });
   } catch (e) {
+    const failure = calculationFailure(e);
+    if (failure) return apiError(failure.status, failure.message, undefined,
+      failure.retryAfterSec ? { "Retry-After": String(failure.retryAfterSec) } : undefined);
     console.error("POST /api/v1/calculate: расчёт не выполнен", e);
     return apiError(500, "Расчёт не выполнен из-за внутренней ошибки — повторите запрос; если ошибка повторяется, сообщите администратору");
   }

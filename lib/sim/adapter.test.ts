@@ -3,6 +3,7 @@ import { DEFAULT_NORMS, resolveNorms } from "../tz/norms";
 import type { Origin, ParamSpec, ParamValues, ProductForCalc } from "../tz/types";
 import { handlingSecFor, toSimInput } from "./adapter";
 import { WAREHOUSE_BASE_AVG_PER_H, WAREHOUSE_BASE_PEAK_PER_H } from "./fixtures";
+import { createSim, stepSim } from "./engine";
 
 /** Снимок продукта для тестов адаптера: H1500 по «Примерам решений» организатора. */
 function product(patch: Partial<ProductForCalc> = {}): ProductForCalc {
@@ -116,6 +117,12 @@ const BASE_ARGS = {
 };
 
 describe("toSimInput", () => {
+  it("не выдаёт физический прогон за подтверждение ручной выработки", () => {
+    expect(toSimInput({ ...BASE_ARGS, throughputPerHOverride: 0.1 })).toMatchObject({
+      ok: false, reason: "not_supported", message: expect.stringContaining("заданную вручную"),
+    });
+    expect(toSimInput({ ...BASE_ARGS, throughputPerHOverride: null }).ok).toBe(true);
+  });
   it("базовые значения склада и H1500 дают полный вход имитации с нормативами", () => {
     const r = toSimInput(BASE_ARGS);
     if (!r.ok) throw new Error(r.message);
@@ -187,10 +194,21 @@ describe("toSimInput", () => {
     }
   });
 
-  it("зарядка моделируется — нужна хотя бы одна станция; без автономности станции не нужны", () => {
+  it("ноль зарядок сохраняется: АКБ расходуется, робот ждёт без выдуманной станции", () => {
     const noCharger = toSimInput({ ...BASE_ARGS, chargers: 0 });
-    expect(noCharger.ok).toBe(false);
-    if (!noCharger.ok) expect(noCharger.missing).toEqual(["chargers"]);
+    expect(noCharger.ok).toBe(true);
+    if (noCharger.ok) {
+      expect(noCharger.input.layout.chargers).toBe(0);
+      expect(noCharger.input.robots.autonomyH).toBe(BASE_ARGS.product.autonomyH);
+      const state = createSim(noCharger.input);
+      expect(state.precheck).toBe("ok");
+      state.robots[0]!.soc = noCharger.input.charge.startSoc / 2;
+      const before = state.robots[0]!.soc;
+      stepSim(state);
+      expect(state.robots[0]!.soc).toBeLessThan(before);
+      expect(state.robots[0]!.phase).toBe("waitCharger");
+      expect(state.layout.chargers).toHaveLength(0);
+    }
 
     const noAutonomy = toSimInput({ ...BASE_ARGS, chargers: 0, product: product({ autonomyH: null }) });
     expect(noAutonomy.ok).toBe(true);

@@ -1,0 +1,797 @@
+{
+  "pdfPeer": {
+    "verdict": "PASS_IN_REVIEWED_SCOPE",
+    "reviewer": "Independent peer /root/expert_reliability; author of staffing domain, so this review accepts foreign authored documents and consistency, not self-certification of staffing implementation.",
+    "files": [
+      {
+        "name": "presentation.pdf",
+        "bytes": 346840,
+        "sha256": "fb65879bf3c62a39102bc8042d22c3b529e755fce9dfdcb4b1500ba71aa783eb",
+        "pages": 13,
+        "textSha256": "7e0d91372811509d1ca994b0bad75e716646f902cd3eb6f6059ea64d23f19065"
+      },
+      {
+        "name": "documentation.pdf",
+        "bytes": 242349,
+        "sha256": "62664051b347f505c2b5b1a23249b9102dbaa9c53b0cfb1c95b21d4c8626c486",
+        "pages": 27,
+        "textSha256": "dcd05f6a17b935b3b3b07f1bd3ef960c091f41fec55c546515d5d22915728459"
+      },
+      {
+        "name": "sample-report.pdf",
+        "bytes": 1199661,
+        "sha256": "5395a71207fe368d6430cb77a8d3215fcbf4f9094d0e4c01446d4b5433564930",
+        "pages": 30,
+        "textSha256": "07f70b532ca491ad0a91156380adc229270c432ddf4a6b6d7acc566ae9917040"
+      }
+    ],
+    "checks": {
+      "allTextPagesExtracted": 70,
+      "newPresentationPages": 13,
+      "newDocumentationPages": 27,
+      "historicalSamplePages": 30,
+      "allContactSheetsViewed": [
+        "presentation-contact-1..4",
+        "documentation-contact-1..4",
+        "sample-report-contact-1..4"
+      ],
+      "fullSizeCriticalPagesViewed": [
+        "presentation-08",
+        "presentation-09",
+        "documentation-14",
+        "documentation-15",
+        "documentation-16",
+        "documentation-20",
+        "documentation-27"
+      ],
+      "pageBoundsTextOverflows": 0,
+      "blankPages": 0,
+      "newPdfLinks": 0,
+      "historicalSampleLinks": 62,
+      "invalidOrLocalFileLinks": 0,
+      "moneyConsistency": "docs-consistency.json PASS: exact raw money/matched rows, shared payroll equation, independent annuity delta, NPV-zero budget; remaining labour/FTE unchanged.",
+      "conditionalAssumptions": "Shared 365h*600*1.302 is labelled estimate, service inclusion is conditional, missing MOROS RaaS refused, common model body and mean payload limitation explicit.",
+      "distinctPhysicalContexts": "N14/C1 seed1 source without scripted faults =133.5/h, p95=1.05; standalone with 4 scripted faults =132/h, p95=1.45. Not represented as one run.",
+      "packageContext": "Document combined package includes zero chargers: NPV11.948m. Earlier browser package includes one charger: NPV12.278m. Exact330000 delta from300000 charger+10% reserve; no contradiction.",
+      "historicalSample": "Byte-identical accepted tz-1.0.3, SHA5395a71207fe368d6430cb77a8d3215fcbf4f9094d0e4c01446d4b5433564930. submission README/documentation16 explicitly label historical, old dedicated-post negative NPV.",
+      "layout": "All40 newly authored PDF pages and30 historical contact pages inspected; new critical financial tables/fullsize reviewed. No clipping, overlap or empty pages seen."
+    },
+    "materialFindings": [],
+    "limits": [
+      "Local PDF visual/text/link review; no live external source availability validation.",
+      "Positive conditional NPV is neither calibrated equipment validation nor a global fleet optimum.",
+      "No new50-user load certification after staffing changes; old bounded load evidence remains historical.",
+      "Historical sample preserves old negative dedicated-post arithmetic; current JSON/new documentation carry new assumptions."
+    ],
+    "evidence": [
+      "docs-consistency.json",
+      "text-geometry.json",
+      "presentation.pdf.txt",
+      "documentation.pdf.txt",
+      "sample-report.pdf.txt",
+      "../page-qa/"
+    ]
+  },
+  "economicsSourcePeer": {
+    "status": "PASS_IN_REVIEWED_SCOPE",
+    "reviewer": "expert_reliability",
+    "scope": "Independent read-only review of other authors’ cost-package/capex, conditional-line merging fixes, matched product comparison, root standalone financial UI/export. Does NOT self-accept own staffing backend.",
+    "materialOpenFindings": [],
+    "resolvedFindings": [
+      {
+        "priority": "P2",
+        "issue": "A mixed included/separate software line retained formula CAPEX=0 with a nonzero total",
+        "fix": "Root mergeLines retains per-item formulas when they differ",
+        "confirmation": "Actual two-item probe has value1000000 and explicit sum of both formulas"
+      },
+      {
+        "priority": "P2",
+        "issue": "Mixed included/paid repair line retained includedInService=true with positive total",
+        "fix": "Root mergeLines marks included only if all source lines include the payment",
+        "confirmation": "Actual two-item repair486000 no longer has includedInService flag"
+      }
+    ],
+    "browserAcceptance": {
+      "scope": "Independent root standalone UI/finance/package peer; no acceptance of own staffing backend.",
+      "checks": [
+        {
+          "id": "blank-is-not-zero-and-explicit-shared-options-roundtrip",
+          "annualCost": 285138,
+          "physicalUnchanged": true,
+          "conclusion": "Предварительный финансовый выбор: RaaS. NPV 15,4 млн ₽ за 5 лет, окупаемость 0,3 года — быстрая окупаемость (менее 3 лет)."
+        },
+        {
+          "id": "purchase-package-opt-in-no-RaaS-copy-physical-identity-and-reserve",
+          "before": {
+            "capex": 47740000,
+            "opex": 31653589.8,
+            "npv": 8123218.101330245
+          },
+          "after": {
+            "capex": 46310000,
+            "opex": 30897589.8,
+            "npv": 12278428.91030307
+          },
+          "excluded": 1300000,
+          "reserveRate": 0.1,
+          "conclusion": "Предварительный финансовый выбор: RaaS. NPV 15,4 млн ₽ за 5 лет, окупаемость 0,3 года — быстрая окупаемость (менее 3 лет)."
+        },
+        {
+          "id": "mobile-390-dialog-controls-no-overflow"
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "http": [],
+      "external": [],
+      "artifact": {
+        "bytes": 3640213,
+        "sha256": "e575d57808e56be60e0a04118a02d236728c15e7747619f689a70e115d76b700"
+      },
+      "status": "PASS"
+    },
+    "finalArtifactSmoke": {
+      "scope": "Narrow final artifact identity/initialization/modal regression after namespace and mixed-line fix. Earlier full UI acceptance retained separately.",
+      "errors": [],
+      "warnings": [],
+      "http": [],
+      "external": [],
+      "warehouse": {
+        "bytes": 3640607,
+        "sha256": "a6c8033e175d81777f8108a70135ae0f000554cee31fa854b1afb55ecd510138"
+      },
+      "cleaning": {
+        "bytes": 3640608,
+        "sha256": "ba81db5aa580a70cd097b4e7d4e61d1ac038b32449423f468ad7336fe46517d1"
+      },
+      "status": "PASS"
+    },
+    "staticChecks": [
+      "Partial included chargers are per item C−included, never N×included; actual C and physical input remain unchanged.",
+      "CAPEX reserve applies after package adjustments; repair exclusion preserves paid service, battery and consumables.",
+      "Missing package retains legacy separate articles; malformed/missing fields refuse; purchase package is rejected for RaaS.",
+      "Standalone root UI retains explicit controls, blocks blank hours/includedC>actualC, applies package to purchase only and retains physical identity.",
+      "Matched comparison preserves shared params/norms/annual/cash/staffing; source overrides/evidence never transfer to another product.",
+      "Exact-input/model-version guard controls source proof reuse; stale receipt/unknown price/rate/charge do not become confirmed or zero.",
+      "Workspace stale/adoption input-key guard and additive new-scenario path preserve the source.",
+      "XLSX/CSV consume actual line formulas and stored numeric totals; root export test checks cached NPV against model."
+    ],
+    "knownLimits": [
+      "Current real financial UI supports one pallet process; mixed-line counterexamples intentionally enable a second process in the core fixture, matching existing multi-process engine tests.",
+      "Compact matched JSON still repeats serialized input identities containing geometry; measured fixture142022bytes, shared geometry14296bytes, four identity strings14848bytes each. This is a deduplication limit, not a money/proof correctness failure.",
+      "Main Next UI/save/report browser acceptance belongs to independent design reviewer; root reports17DB tests. This reviewer did not rerun DB or accept own staffing implementation.",
+      "No claim of verified supplier contracts, global optimum, industrial safety, public deployment or full market comparability."
+    ],
+    "files": [
+      {
+        "file": "lib/tz/econ/cost-package.ts",
+        "sha256": "366aee042761bce18b1c196b5694d4cd81cfc60dbebc5ed9288764dbc1f306d3"
+      },
+      {
+        "file": "lib/tz/econ/capex.ts",
+        "sha256": "6e84dc9ab3f8a282906b1d3f1ebfb85cab21f913dfec3d51cd3645dd320b2aeb"
+      },
+      {
+        "file": "lib/tz/econ/internal.ts",
+        "sha256": "f148d0257ee6c827c7ffe84dee11555a05bc68e30372f3542e590656edc96602"
+      },
+      {
+        "file": "experiments/warehouse-3d/finance.ts",
+        "sha256": "f2e55982039d813daa931c61cf1ae32f13c7c1643274ae91e6e9927f4e489c08"
+      },
+      {
+        "file": "experiments/warehouse-3d/finance-controls.js",
+        "sha256": "3403f22e4fcbe21c62f85f51d2fad5a5298a7f4df675ba5ba15794a87d8571b5"
+      },
+      {
+        "file": "experiments/warehouse-3d/app.js",
+        "sha256": "816f7a27039cbbde6d947353fc37f6740c532e3c9c78520c420ac8888fa8e2bf"
+      },
+      {
+        "file": "lib/tz/matched-comparison.ts",
+        "sha256": "a4480456f7f03a098c88eacb10b01912bce34e0f65b90ddb67ebd0f67dd31cea"
+      },
+      {
+        "file": "components/project/matched-comparison.tsx",
+        "sha256": "9534890a9c0fb374a0f040d6a77ba0ba71724311eadbbf32d73ab34a1005804b"
+      }
+    ],
+    "latestPresentationConfirmation": {
+      "scope": "One N14 configuration, one full financial submission, same page desktop/mobile confirmation of compact status/details; no broad model tests.",
+      "errors": [],
+      "warnings": [],
+      "http": [],
+      "external": [],
+      "warehouse": {
+        "bytes": 3641395,
+        "sha256": "77a94b7ceb51a3885cf0288e6f126cf13775a724a2db10bc0c941bc7306b8cc9"
+      },
+      "headline": "Предварительный финансовый выбор: RaaS. NPV 15,4 млн ₽ за 5 лет, окупаемость 0,3 года — быстрая окупаемость (менее 3 лет).",
+      "staffing": {
+        "rawAnnualRub": 285138,
+        "display": "0,29 млн ₽"
+      },
+      "assumptionNotes": [
+        "Годовая доля автоматизации и доля денежного эффекта заданы явно как оценки; выпуск короткого прогона не пересчитывается в годовую экономию.",
+        "NPV, CAPEX, OPEX и окупаемость рассчитываются общим финансовым движком проекта для Ronavi H1500.",
+        "Исходный вход пространственной проверки совпадает с входом финансового сценария; плечи и цикл рассчитаны по тому же плану и графу маршрутов.",
+        "Существующий персонал: только дополнительная оплата 365 ч/год × 600 ₽/ч × 1,302; исходный ФОТ повторно не начисляется. Основание (допущение): Оценка: существующий инженер, 365 дополнительно оплаченных часов",
+        "Комплектация покупки задана отдельно: Оценка комплектации: ПО, ремонт и одна зарядная станция включены. На RaaS этот пакет покупки не переносится."
+      ],
+      "detailsCollapsedByDefault": true,
+      "physicalUnchanged": true,
+      "finance": {
+        "capex": 46310000,
+        "opex": 30897589.8,
+        "npv": 12278428.91030307
+      },
+      "cleaning": {
+        "bytes": 3641396,
+        "sha256": "67f65a2b0249475d68d5c6b52c7353fab3468f40425b727fbe6fd5e120046ef4"
+      },
+      "status": "PASS"
+    },
+    "latestArtifact": {
+      "bytes": 3641395,
+      "sha256": "77a94b7ceb51a3885cf0288e6f126cf13775a724a2db10bc0c941bc7306b8cc9"
+    }
+  },
+  "designPeer": {
+    "at": "2026-10-17T19:45:41.540Z",
+    "status": "FUNCTIONAL_PASS_WITH_TWO_COPY_FINDINGS",
+    "raw": "C:/workspace/hackaton/research/alfa-audit/economics-stage20261018/design-ui-peer.json",
+    "rawSha256": "550fa96c25d950ee92b926da6a4f75e6c757bc1c277f3a4b3223ecc872a47471",
+    "viewedImages": [
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-economics-initial.png",
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-staffing-explicit-zero.png",
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-matched-comparison.png",
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-staffing-refused.png",
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-economics-initial.png",
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-staffing-explicit-zero.png",
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-matched-comparison.png",
+      "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-staffing-refused.png"
+    ],
+    "widths": [
+      1440,
+      384
+    ],
+    "browserClosed": true,
+    "sourceChanges": 0,
+    "accepted": [
+      "Staffing model/zero/refused/null amount and recovery editor",
+      "Matched CSV, separate adoption, original preserved, selected scenario follows to step7",
+      "Same demand/seed/cash/staff; exact money rebuilt through existing engine",
+      "No competitor inherits canonical proof; unknown RaaS stays refused; no global optimum claim"
+    ],
+    "findings": [
+      {
+        "id": "REFUSAL_RAW_FIELD",
+        "severity": "P2",
+        "observation": "What to fill renders scenario:operationsStaffing as a technical key",
+        "source": "components/project/refusal-note.tsx:39",
+        "evidence": "C:/workspace/hackaton/research/alfa-audit/economics-stage20261018/384-staffing-refused.png",
+        "fix": "Map operationsStaffing to the human label for operating personnel"
+      },
+      {
+        "id": "MATCHED_INAPPLICABLE_ESTIMATE_CTA",
+        "severity": "P2",
+        "observation": "Unknown RaaS row repeats refusal and directs to a missing Подставить оценку button",
+        "source": "components/project/matched-comparison.tsx:71",
+        "evidence": "C:/workspace/hackaton/research/alfa-audit/economics-stage20261018/1440-matched-comparison.png",
+        "fix": "Use existing refusalMessage(refusal,false) and avoid repeating identical physical/refusal reasons"
+      }
+    ],
+    "limits": [
+      "Fixed generic0.75m spatial disc does not certify dimensional fit of all competitor models; comparison keeps alternatives unverified and explicitly warns about conditional body/load carrier/charge SOC.",
+      "This acceptance covers the guest workflow, not another authenticated save/CAS/archive load matrix.",
+      "First selector attempt timed out finding an exact label (native select options included in label matching); raw selector attempt retained. Final uses observed controlIDs and native interactions."
+    ],
+    "latestStatus": "PASS",
+    "closure": {
+      "at": "2026-10-17T19:50:09.991Z",
+      "scope": "Two P2 copy findings closed; original status/findings/evidence retained as history",
+      "confirmation": "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\copy-final-confirmation.json",
+      "confirmationSha256": "5ceaf6e3f7a001b8ec422a803d97db9b4c6dc49edba5ba3e1e91ca2a0b0710c6",
+      "widths": [
+        1440,
+        384
+      ],
+      "errors": {
+        "page": 0,
+        "console": 0,
+        "http": 0
+      },
+      "personallyViewed": true,
+      "browserClosed": true,
+      "findings": [
+        {
+          "id": "REFUSAL_RAW_FIELD",
+          "status": "CLOSED",
+          "proof": "Human label Организация и дополнительные расходы эксплуатации, uncalculated amount and accessible editor"
+        },
+        {
+          "id": "MATCHED_INAPPLICABLE_ESTIMATE_CTA",
+          "status": "CLOSED",
+          "proof": "Missing-rate refusal appears once without nonexistent estimate CTA"
+        }
+      ]
+    },
+    "documentationPeer": {
+      "status": "PASS",
+      "readOnly": true,
+      "files": [
+        "README.md current header",
+        "docs/BACKLOG.md current header and dated prior section",
+        "docs/LIMITATIONS.md current statements",
+        "docs/FINALIZATION-PLAN-2026-10-16.md §0.16",
+        "docs/DEMO-SCRIPT.md",
+        "docs/ECONOMICS-2026-10-18.md"
+      ],
+      "checks": [
+        "Current finance tz-1.0.4 and 1680 unit/133 files +17 DB separated from historical1618/125 stage.",
+        "50-user/300-action cache-enabled benchmark retained as prior-stage bounded hardware evidence, not repeated for economic package and not universal SLA.",
+        "ECONOMICS file exists and linked from README/BACKLOG/LIMITATIONS/§0.16; DEMO names current version and identifies historical tz-1.0.3 sample.",
+        "Demo distinguishes canonical nofault133.5 from scripted132; no global-minimum claim.",
+        "Unknown costs, conditional staffing/package inputs and competitor physical limitations remain explicit."
+      ],
+      "sourceEdits": 0,
+      "browserRuns": 0,
+      "findings": []
+    }
+  },
+  "focusedCopyConfirmation": {
+    "at": "2026-10-17T19:49:17.994Z",
+    "scope": "Only two P2 copy corrections, widths1440/384; no source changes",
+    "contexts": [
+      {
+        "width": 1440,
+        "errors": [],
+        "screenshots": [
+          {
+            "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-copy-confirmation-raas.png",
+            "sha256": "f8b08ba646e278e4b222a1f076fbc0f20f3416aec481ae72a07de0fc6932bb47"
+          },
+          {
+            "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-copy-confirmation-staffing.png",
+            "sha256": "99ca89d471dc617b22d6b8bd55e26f6e1e3dded120d5e57d5d31b64e738aeb52"
+          }
+        ],
+        "raasCopy": "AMR 1500 (грузоподъемность до 1 500 кг)\nRaaS\nОснования затрат\n\t11 / 2\nПарк по расчёту; зарядки по модели\n\tНе рассчитан\tНе рассчитан\tНе рассчитан\tНе рассчитана\tНет входа для проверки\n\nНет ставки RaaS для «AMR 1500 (грузоподъемность до 1 500 кг)»: укажите ставку, ₽/мес за робота\n\n\tСоздать сценарий\n\nСначала устраните причину недоступности.",
+        "refusalCopy": "Шаг 5 из 8 · Экономика\n\nСостав оборудования, CAPEX и OPEX по статьям, денежный поток и «Как посчитано» — по выбранному сценарию. Расчётные значения можно изменить вручную: каждая корректировка попадает в журнал (шаг 8).\n\nКак есть\nПокупка — Ronavi H1500\nУслуга (RaaS) — Ronavi H1500\nПокупка — AMR 1500\nКто обслуживает парк и что добавится к расходам\nНе рассчитано\n\nДиспетчеризация включена в сервис / RaaS. Основание: QA: включение эксплуатации в нулевой сервис для проверки сообщения\n\nСуществующий ФОТ уже учтён в процессе. Здесь учитываются только новые расходы на эксплуатацию парка. Высвобождение труда и фактическое сокращение расходов на персонал считаются отдельно.\n\nИзменить организацию эксплуатации\nПокупка — Ronavi H1500\nПокупка\n\nПокупка: заказчик приобретает оборудование и оплачивает внедрение. Обслуживание, программное обеспечение, расходные материалы и эксплуатационный персонал перечислены отдельными статьями ниже.\n\nСценарий не рассчитан: исправьте данные\n\nВключение эксплуатационного персонала требует положительной стоимости сервиса или подписки в этом сценарии\n\nЧто заполнить:\n\nОрганизация и дополнительные расходы эксплуатации\nСостав оборудования и как он получен\n\nRonavi H1500 (грузоподъемность до 1 500 кг) · Перемещение паллет: приёмка → хранение → отгрузка\n\nСпрос: 1 900 пал./сут → 86,4 пал./ч в среднем, 129,5 пал./ч в пик\nПроизводительность: норма 90 · по циклу 19,2 (плечо 93,8 м, оценка по планировке) · принято 19,2 пал./ч (цикл)\nРоботов: ⌈10,22⌉ = 11\nОхват пикового спроса: 100 %\nЗарядных станций: 1\nЭксплуатационный персонал рассчитан один раз на весь парк сценария\nВысвобождается ставок: 11,9 из 25\nЧисло роботов\nшт.\nПрименить\n\nавто: 11 шт.\n\nПроизводительность, пал./ч\nПрименить\n\nавто: 19,23 пал./ч\n\nЦена робота, ₽\nПрименить\n\nавто: 2 700 000 ₽\n\nСервис, ₽/год за робота\nПрименить\n\nавто: 300 000 ₽/год\nзадано вами\n0 ₽/год\nвернуть расчётное\n\nКомплектация и границы платежей\nКак посчитано (14 шагов)\nНормативы и допущения\n\nКорректировки сценария «Покупка — Ronavi H1500»\n\nЗначения вводятся в процентах, в пределах диапазона норматива. Каждое изменение записывается в журнал корректировок.\n\nКоэффициент загрузки робота\n%\nПрименить\n\nавто: 77,5 %\n\nдиапазон 70–85 %\n\nРезерв парка сверх пиковой потребности\n%\nПрименить\n\nавто: 17,5 %\n\nдиапазон 15–20 %\n\nКоэффициент доступности робота\n%\nПрименить\n\nавто: 100 %\n\nдиапазон 90–100 %\n\nСтавка дисконтирования\n% в год\nПрименить\n\nавто: 12 % в год\n\nдиапазон 8–20 % в год\n\nДоля труда процесса, которую берут роботы\n%\nПрименить\n\nавто: 50 %\n\nдиапазон 30–70 %\n\nВсе нормативы и допущения (48): значение, источник и обоснование",
+        "status": "PASS"
+      },
+      {
+        "width": 384,
+        "errors": [],
+        "screenshots": [
+          {
+            "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-copy-confirmation-raas.png",
+            "sha256": "8f03fad773749b77350af69240776ca232070533dd248a29274baff1607ac144"
+          },
+          {
+            "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-copy-confirmation-staffing.png",
+            "sha256": "157441caa88a20d5451015424b952261da778561a0e72380bf8446bc4e1487ac"
+          }
+        ],
+        "raasCopy": "AMR 1500 (грузоподъемность до 1 500 кг)\nRaaS\nОснования затрат\nПарк / зарядки11 / 2\nПарк по расчёту; зарядки по модели\nCAPEX\nНе рассчитан\nOPEX/год\nНе рассчитан\nNPV\nНе рассчитан\nОкупаемость\nНе рассчитана\nНет входа для проверки\n\nНет ставки RaaS для «AMR 1500 (грузоподъемность до 1 500 кг)»: укажите ставку, ₽/мес за робота\n\nСоздать сценарий\n\nСначала устраните причину недоступности.",
+        "refusalCopy": "Шаг 5 из 8 · Экономика\n\nСостав оборудования, CAPEX и OPEX по статьям, денежный поток и «Как посчитано» — по выбранному сценарию. Расчётные значения можно изменить вручную: каждая корректировка попадает в журнал (шаг 8).\n\nКак есть\nПокупка — Ronavi H1500\nУслуга (RaaS) — Ronavi H1500\nПокупка — AMR 1500\nКто обслуживает парк и что добавится к расходам\nНе рассчитано\n\nДиспетчеризация включена в сервис / RaaS. Основание: QA: включение эксплуатации в нулевой сервис для проверки сообщения\n\nСуществующий ФОТ уже учтён в процессе. Здесь учитываются только новые расходы на эксплуатацию парка. Высвобождение труда и фактическое сокращение расходов на персонал считаются отдельно.\n\nИзменить организацию эксплуатации\nПокупка — Ronavi H1500\nПокупка\n\nПокупка: заказчик приобретает оборудование и оплачивает внедрение. Обслуживание, программное обеспечение, расходные материалы и эксплуатационный персонал перечислены отдельными статьями ниже.\n\nСценарий не рассчитан: исправьте данные\n\nВключение эксплуатационного персонала требует положительной стоимости сервиса или подписки в этом сценарии\n\nЧто заполнить:\n\nОрганизация и дополнительные расходы эксплуатации\nСостав оборудования и как он получен\n\nRonavi H1500 (грузоподъемность до 1 500 кг) · Перемещение паллет: приёмка → хранение → отгрузка\n\nСпрос: 1 900 пал./сут → 86,4 пал./ч в среднем, 129,5 пал./ч в пик\nПроизводительность: норма 90 · по циклу 19,2 (плечо 93,8 м, оценка по планировке) · принято 19,2 пал./ч (цикл)\nРоботов: ⌈10,22⌉ = 11\nОхват пикового спроса: 100 %\nЗарядных станций: 1\nЭксплуатационный персонал рассчитан один раз на весь парк сценария\nВысвобождается ставок: 11,9 из 25\nЧисло роботов\nшт.\nПрименить\n\nавто: 11 шт.\n\nПроизводительность, пал./ч\nПрименить\n\nавто: 19,23 пал./ч\n\nЦена робота, ₽\nПрименить\n\nавто: 2 700 000 ₽\n\nСервис, ₽/год за робота\nПрименить\n\nавто: 300 000 ₽/год\nзадано вами\n0 ₽/год\nвернуть расчётное\n\nКомплектация и границы платежей\nКак посчитано (14 шагов)\nНормативы и допущения\n\nКорректировки сценария «Покупка — Ronavi H1500»\n\nЗначения вводятся в процентах, в пределах диапазона норматива. Каждое изменение записывается в журнал корректировок.\n\nКоэффициент загрузки робота\n%\nПрименить\n\nавто: 77,5 %\n\nдиапазон 70–85 %\n\nРезерв парка сверх пиковой потребности\n%\nПрименить\n\nавто: 17,5 %\n\nдиапазон 15–20 %\n\nКоэффициент доступности робота\n%\nПрименить\n\nавто: 100 %\n\nдиапазон 90–100 %\n\nСтавка дисконтирования\n% в год\nПрименить\n\nавто: 12 % в год\n\nдиапазон 8–20 % в год\n\nДоля труда процесса, которую берут роботы\n%\nПрименить\n\nавто: 50 %\n\nдиапазон 30–70 %\n\nВсе нормативы и допущения (48): значение, источник и обоснование",
+        "status": "PASS"
+      }
+    ],
+    "status": "PASS",
+    "visualReview": {
+      "personallyViewed": [
+        "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-copy-confirmation-raas.png",
+        "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\1440-copy-confirmation-staffing.png",
+        "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-copy-confirmation-raas.png",
+        "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\384-copy-confirmation-staffing.png"
+      ],
+      "verdict": "PASS: refusal uses human field label; editor remains accessible, uncalculated amount honest. Missing RaaS rate appears once without nonexistent CTA at both widths. No new broad acceptance claim.",
+      "harnessNotes": [
+        "Initial selector incorrectly expected manufacturer name MOROS; actual displayed catalog name is AMR 1500. Corrected selector to observed missing-rate row.",
+        "Apply intentionally closes native details. Editor accessibility confirmed by reopening its summary. Preserved preliminary attempts separately; neither is a product defect."
+      ]
+    }
+  },
+  "currentTypicalApiPerformance": {
+    "at": "2026-10-17T19:47:27.461Z",
+    "scope": "Three sequential typical organizer warehouse API calculations, including data loading, economics, base simulation, fleet enumeration and JSON transfer. No concurrent-computation SLA claim.",
+    "runs": [
+      {
+        "index": 0,
+        "kind": "first request in probe; server already running",
+        "httpStatus": 200,
+        "totalMs": 373.8543,
+        "versions": {
+          "modelVersion": "tz-1.0.4",
+          "simModelVersion": "sim-1.1.0",
+          "dataVersion": "b97f38c0",
+          "calculatedAt": "2026-10-17T19:47:27.824Z",
+          "organizer": {
+            "datasets": "2026-09-22#4be0fac8",
+            "catalog": "2026-09-22#da43c64c",
+            "examples": "2026-09-22#6e738822",
+            "research": "svod 2026-09-23 + found_batch1-6@2026-09-23T21:13:10Z"
+          },
+          "paramDefsFrom": "db"
+        },
+        "scenarios": [
+          {
+            "key": "asis",
+            "name": "Как есть",
+            "kind": "asis",
+            "recommended": false,
+            "equipment": [],
+            "simVerdict": null,
+            "status": "ok",
+            "capexRub": 0,
+            "opexYearRub": 46872000,
+            "effectYearRub": 0,
+            "paybackYears": null,
+            "band": "none",
+            "roiTzPct": null,
+            "npvRub": null,
+            "discountedPaybackYears": null,
+            "tcoRub": 234360000,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p1",
+            "name": "Покупка — Ronavi H1500",
+            "kind": "purchase",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 38500000,
+            "opexYearRub": 37550397.77045109,
+            "effectYearRub": 9321602.229548909,
+            "paybackYears": 4.130191253812285,
+            "band": "moderate",
+            "roiTzPct": 122.98834064349231,
+            "npvRub": -4108652.477817145,
+            "discountedPaybackYears": null,
+            "tcoRub": 225509488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "r1",
+            "name": "Услуга (RaaS) — Ronavi H1500",
+            "kind": "raas",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 1540000,
+            "opexYearRub": 45816897.77045109,
+            "effectYearRub": 1055102.2295489088,
+            "paybackYears": 1.4595742070021036,
+            "band": "fast",
+            "roiTzPct": 342.5656589444509,
+            "npvRub": 2263407.408119062,
+            "discountedPaybackYears": 1.7108898852634389,
+            "tcoRub": 230624488.85225546,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p2",
+            "name": "Покупка — AMR 1500",
+            "kind": "purchase",
+            "recommended": true,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "moros-amr-1500",
+                "productName": "AMR 1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 2
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 32780000,
+            "opexYearRub": 36851897.77045109,
+            "effectYearRub": 10020102.229548909,
+            "paybackYears": 3.271423708965064,
+            "band": "moderate",
+            "roiTzPct": 154.6842927020883,
+            "npvRub": 3983161.9148210594,
+            "discountedPaybackYears": 4.339329436859272,
+            "tcoRub": 216434488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          }
+        ],
+        "simKeys": [
+          "asis",
+          "p1",
+          "r1",
+          "p2"
+        ]
+      },
+      {
+        "index": 1,
+        "kind": "repeat",
+        "httpStatus": 200,
+        "totalMs": 139.1053,
+        "versions": {
+          "modelVersion": "tz-1.0.4",
+          "simModelVersion": "sim-1.1.0",
+          "dataVersion": "b97f38c0",
+          "calculatedAt": "2026-10-17T19:47:27.969Z",
+          "organizer": {
+            "datasets": "2026-09-22#4be0fac8",
+            "catalog": "2026-09-22#da43c64c",
+            "examples": "2026-09-22#6e738822",
+            "research": "svod 2026-09-23 + found_batch1-6@2026-09-23T21:13:10Z"
+          },
+          "paramDefsFrom": "db"
+        },
+        "scenarios": [
+          {
+            "key": "asis",
+            "name": "Как есть",
+            "kind": "asis",
+            "recommended": false,
+            "equipment": [],
+            "simVerdict": null,
+            "status": "ok",
+            "capexRub": 0,
+            "opexYearRub": 46872000,
+            "effectYearRub": 0,
+            "paybackYears": null,
+            "band": "none",
+            "roiTzPct": null,
+            "npvRub": null,
+            "discountedPaybackYears": null,
+            "tcoRub": 234360000,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p1",
+            "name": "Покупка — Ronavi H1500",
+            "kind": "purchase",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 38500000,
+            "opexYearRub": 37550397.77045109,
+            "effectYearRub": 9321602.229548909,
+            "paybackYears": 4.130191253812285,
+            "band": "moderate",
+            "roiTzPct": 122.98834064349231,
+            "npvRub": -4108652.477817145,
+            "discountedPaybackYears": null,
+            "tcoRub": 225509488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "r1",
+            "name": "Услуга (RaaS) — Ronavi H1500",
+            "kind": "raas",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 1540000,
+            "opexYearRub": 45816897.77045109,
+            "effectYearRub": 1055102.2295489088,
+            "paybackYears": 1.4595742070021036,
+            "band": "fast",
+            "roiTzPct": 342.5656589444509,
+            "npvRub": 2263407.408119062,
+            "discountedPaybackYears": 1.7108898852634389,
+            "tcoRub": 230624488.85225546,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p2",
+            "name": "Покупка — AMR 1500",
+            "kind": "purchase",
+            "recommended": true,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "moros-amr-1500",
+                "productName": "AMR 1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 2
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 32780000,
+            "opexYearRub": 36851897.77045109,
+            "effectYearRub": 10020102.229548909,
+            "paybackYears": 3.271423708965064,
+            "band": "moderate",
+            "roiTzPct": 154.6842927020883,
+            "npvRub": 3983161.9148210594,
+            "discountedPaybackYears": 4.339329436859272,
+            "tcoRub": 216434488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          }
+        ],
+        "simKeys": [
+          "asis",
+          "p1",
+          "r1",
+          "p2"
+        ]
+      },
+      {
+        "index": 2,
+        "kind": "repeat",
+        "httpStatus": 200,
+        "totalMs": 141.4249000000001,
+        "versions": {
+          "modelVersion": "tz-1.0.4",
+          "simModelVersion": "sim-1.1.0",
+          "dataVersion": "b97f38c0",
+          "calculatedAt": "2026-10-17T19:47:28.111Z",
+          "organizer": {
+            "datasets": "2026-09-22#4be0fac8",
+            "catalog": "2026-09-22#da43c64c",
+            "examples": "2026-09-22#6e738822",
+            "research": "svod 2026-09-23 + found_batch1-6@2026-09-23T21:13:10Z"
+          },
+          "paramDefsFrom": "db"
+        },
+        "scenarios": [
+          {
+            "key": "asis",
+            "name": "Как есть",
+            "kind": "asis",
+            "recommended": false,
+            "equipment": [],
+            "simVerdict": null,
+            "status": "ok",
+            "capexRub": 0,
+            "opexYearRub": 46872000,
+            "effectYearRub": 0,
+            "paybackYears": null,
+            "band": "none",
+            "roiTzPct": null,
+            "npvRub": null,
+            "discountedPaybackYears": null,
+            "tcoRub": 234360000,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p1",
+            "name": "Покупка — Ronavi H1500",
+            "kind": "purchase",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 38500000,
+            "opexYearRub": 37550397.77045109,
+            "effectYearRub": 9321602.229548909,
+            "paybackYears": 4.130191253812285,
+            "band": "moderate",
+            "roiTzPct": 122.98834064349231,
+            "npvRub": -4108652.477817145,
+            "discountedPaybackYears": null,
+            "tcoRub": 225509488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "r1",
+            "name": "Услуга (RaaS) — Ronavi H1500",
+            "kind": "raas",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 1540000,
+            "opexYearRub": 45816897.77045109,
+            "effectYearRub": 1055102.2295489088,
+            "paybackYears": 1.4595742070021036,
+            "band": "fast",
+            "roiTzPct": 342.5656589444509,
+            "npvRub": 2263407.408119062,
+            "discountedPaybackYears": 1.7108898852634389,
+            "tcoRub": 230624488.85225546,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p2",
+            "name": "Покупка — AMR 1500",
+            "kind": "purchase",
+            "recommended": true,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "moros-amr-1500",
+                "productName": "AMR 1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 2
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 32780000,
+            "opexYearRub": 36851897.77045109,
+            "effectYearRub": 10020102.229548909,
+            "paybackYears": 3.271423708965064,
+            "band": "moderate",
+            "roiTzPct": 154.6842927020883,
+            "npvRub": 3983161.9148210594,
+            "discountedPaybackYears": 4.339329436859272,
+            "tcoRub": 216434488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          }
+        ],
+        "simKeys": [
+          "asis",
+          "p1",
+          "r1",
+          "p2"
+        ]
+      }
+    ],
+    "status": "PASS"
+  },
+  "scope": "Current tz-1.0.4 opt-in economics and foreign-authored PDF review. Historical sample and original load receipt remain separate. No author accepts their own implementation."
+}

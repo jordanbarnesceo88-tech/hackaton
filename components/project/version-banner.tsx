@@ -1,7 +1,7 @@
 "use client";
 
 import { unstable_rethrow } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { recalcProjectAction } from "@/lib/projects/actions";
 import { formatCalcDate } from "@/lib/report/tz/rows";
@@ -45,34 +45,59 @@ export function VersionBanner({
   projectId,
   stored,
   liveDataVersion,
+  dirty,
   disabledReason,
+  revision,
+  archive = false,
 }: {
   projectId: string;
   stored: StoredVersions;
   /** Версия данных, которую получил бы проект на живых данных (lib/projects/recalc.liveDataVersion). */
   liveDataVersion: string;
+  /** Есть несохранённые правки: серверный пересчёт использует прежний сохранённый ввод. */
+  dirty: boolean;
   /** Почему пересчитать нельзя (демо-проект, режим чтения); null — можно. */
   disabledReason?: string | null;
+  revision?: number;
+  archive?: boolean;
 }) {
+  const hintId = useId();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const editedDuringRecalc = useRef(false);
+  useLayoutEffect(() => {
+    if (dirty) editedDuringRecalc.current = true;
+  }, [dirty]);
+  const blockedReason = dirty
+    ? "Есть несохранённые изменения. Сначала сохраните проект, затем пересчитайте на актуальных данных."
+    : disabledReason;
   const changed = versionChanges(stored, liveDataVersion);
-  if (changed.length === 0) return null;
+  if (!archive && changed.length === 0 && !pending && error === null) return null;
 
   function recalc() {
+    if (pending || blockedReason) return;
+    editedDuringRecalc.current = false;
     setError(null);
     startTransition(async () => {
       try {
-        const r = await recalcProjectAction(projectId);
+        const r = await recalcProjectAction(projectId, revision);
         if (!r.ok) {
           startTransition(() => setError(r.message));
+          return;
+        }
+        if (editedDuringRecalc.current) {
+          startTransition(() => setError(
+            "После начала пересчёта ввод на странице изменился. Страница не перезагружена, чтобы сохранить ваши правки. Проверьте и сохраните проект.",
+          ));
           return;
         }
         // Рабочая область держит расчёт в своём состоянии и новые пропсы после revalidatePath
         // не подхватывает (иначе сохранение сбрасывало бы её вместе с сообщением «Проект
         // сохранён»). Поэтому после пересчёта на сервере страница открывается заново — на
         // новом снимке, и баннер исчезает сам.
-        window.location.reload();
+        const url = new URL(window.location.href);
+        url.searchParams.set("edit", "1");
+        window.location.assign(url.href);
       } catch (e) {
         unstable_rethrow(e);
         console.error("VersionBanner", e);
@@ -88,12 +113,11 @@ export function VersionBanner({
       className="callout no-print flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex flex-col gap-1">
-        <p>{versionBannerText(stored, changed)}</p>
+        <p>{archive ? `Архив: показаны сохранённые числа и вывод от ${formatCalcDate(stored.calculatedAt)} (модель ${stored.modelVersion}, данные ${stored.dataVersion}), без повторного прогона текущей модели.` : versionBannerText(stored, changed)}</p>
         <p className="text-xs text-muted-foreground">
-          Числа ниже взяты из сохранённого расчёта и совпадают с отчётом. Пересчёт возьмёт текущие данные каталога,
-          нормативы и модель, но не учтёт несохранённые правки на странице.
+          Числа ниже взяты из сохранённого расчёта и совпадают с отчётом. Явный пересчёт заменит сохранённый расчёт текущей моделью и откроет редактирование. Чтобы оставить исходный архив, сначала скопируйте проект.
         </p>
-        {disabledReason && <p className="text-xs text-muted-foreground">{disabledReason}</p>}
+        {blockedReason && <p id={hintId} className="text-xs text-muted-foreground">{blockedReason}</p>}
         <p role="alert" className="text-destructive [&:empty]:hidden">
           {error ?? ""}
         </p>
@@ -102,7 +126,8 @@ export function VersionBanner({
         type="button"
         variant="outline"
         onClick={recalc}
-        disabled={pending || Boolean(disabledReason)}
+        disabled={pending || Boolean(blockedReason)}
+        aria-describedby={blockedReason ? hintId : undefined}
         className="shrink-0"
       >
         {pending ? "Пересчитываем…" : "Пересчитать на актуальных данных"}

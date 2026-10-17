@@ -4,6 +4,8 @@ import { ORGANIZER_DATA_VERSION } from "../../data/organizer/version.generated";
 import { displayDataText } from "../../tz/characteristics";
 import { boundsSourceLabel } from "../../tz/econ";
 import type { ParamSpec, ScenarioResult } from "../../tz/types";
+import { TZ_MODEL_VERSION } from "../../tz/version";
+import { SIM_MODEL_VERSION } from "../../sim/types";
 import {
   CHANGES_HEADER,
   MANUAL_NOTE,
@@ -21,6 +23,7 @@ import {
   scenarioTitle,
   sourcesRows,
   yearsCount,
+  pilotReportRows,
   type CellKind,
   type ReportChange,
   type ReportResults,
@@ -123,7 +126,7 @@ function formula(expr: string, result: number | string): Value {
   return { formula: expr, result };
 }
 
-function sheet(wb: ExcelJS.Workbook, name: (typeof XLSX_SHEET_NAMES)[number], frozenHeader: boolean): ExcelJS.Worksheet {
+function sheet(wb: ExcelJS.Workbook, name: (typeof XLSX_SHEET_NAMES)[number] | "Пилоты и бюджет", frozenHeader: boolean): ExcelJS.Worksheet {
   return wb.addWorksheet(name, frozenHeader ? { views: [{ state: "frozen", xSplit: 0, ySplit: 1 }] } : {});
 }
 
@@ -345,7 +348,7 @@ function equipmentSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
         it.nOverridden ? "да" : "нет",
         numOr(it.coverage * 100),
         it.chargers,
-        it.operatorPosts,
+        it.operatingStaffScope === "site-allocation" ? "На весь парк" : it.operatorPosts,
         numOr(it.headcount),
         numOr(it.releasedFte),
         numOr(it.baselineLabourRub),
@@ -449,6 +452,7 @@ function cashflowBlock(ws: ExcelJS.Worksheet, results: ReportResults, res: Scena
   }
   const f = scenarioFinance(results, res);
   const asis = res.kind === "asis";
+  const hasResidual = res.cashflows.some(row => (row.residualRub ?? 0) > 0);
 
   const rateRow = r;
   labelValue(ws, r++, "Ставка дисконтирования", f.rate, FMT.rate);
@@ -459,17 +463,21 @@ function cashflowBlock(ws: ExcelJS.Worksheet, results: ReportResults, res: Scena
   labelValue(ws, r++, "OPEX «Как есть» по охвату сравнения, ₽/год", f.opexAsisRub, FMT.rub);
   const opexRow = r;
   labelValue(ws, r++, "OPEX сценария в среднем за год, ₽/год", res.opexYearRub, FMT.rub);
+  if (hasResidual) {
+    labelValue(ws, r++, "Чистая остаточная стоимость в конце TCO, ₽", res.cashflows.reduce((sum, row) => sum + (row.residualRub ?? 0), 0), FMT.rub);
+    noteRow(ws, r++, `Оценка после налогов, демонтажа и вывоза; год ${f.T}. ${f.H !== null && f.H >= f.T ? "Входит в NPV." : `За пределами NPV за ${f.H ?? "выбранный горизонт"} лет; учитывается в TCO.`}`);
+  }
 
-  headerRow(ws, r++, CASHFLOW_XLSX_HEADER);
+  headerRow(ws, r++, hasResidual ? [...CASHFLOW_XLSX_HEADER, "Чистая остаточная стоимость, ₽"] : CASHFLOW_XLSX_HEADER);
   const r0 = r;
   const rubFmts = [undefined, FMT.rub, FMT.rub, FMT.rub, FMT.rub, FMT.rub, FMT.rub, FMT.rub, FMT.rub];
   res.cashflows.forEach((c, t) => {
     const x = r0 + t;
     const effect: Value = t === 0 ? c.effectRub : formula(`$B$${asisRow}-C${x}`, c.effectRub);
-    const flow: Value = t === 0 ? formula(`-B${x}`, c.cashflowRub) : formula(`F${x}-E${x}`, c.cashflowRub);
+    const flow: Value = t === 0 ? formula(`-B${x}`, c.cashflowRub) : formula(`F${x}-E${x}${hasResidual ? `+J${x}` : ""}`, c.cashflowRub);
     const cumulative: Value = t === 0 ? formula(`G${x}`, c.cumulativeRub) : formula(`H${x - 1}+G${x}`, c.cumulativeRub);
     const discounted: Value = formula(`G${x}/(1+$B$${rateRow})^A${x}`, c.discountedRub);
-    putRow(ws, x, [c.year, c.capexRub, c.opexRub, c.batteryRub, c.reinvestRub, effect, flow, cumulative, discounted], rubFmts);
+    putRow(ws, x, [c.year, c.capexRub, c.opexRub, c.batteryRub, c.reinvestRub, effect, flow, cumulative, discounted, ...(hasResidual ? [c.residualRub ?? 0] : [])], [...rubFmts, ...(hasResidual ? [FMT.rub] : [])]);
   });
   r = r0 + res.cashflows.length + 1;
 
@@ -535,7 +543,7 @@ function cashflowBlock(ws: ExcelJS.Worksheet, results: ReportResults, res: Scena
     ws,
     r++,
     `TCO за ${yearsCount(f.T)}, ₽`,
-    formula(`B${r0}+SUM(C${r1}:C${rT})+SUM(E${r1}:E${rT})`, res.tcoRub),
+    formula(`B${r0}+SUM(C${r1}:C${rT})+SUM(E${r1}:E${rT})${hasResidual ? `-SUM(J${r1}:J${rT})` : ""}`, res.tcoRub),
     FMT.rub,
   );
   const tcoAsisRow = r;
@@ -801,6 +809,23 @@ export async function buildProjectXlsx(input: ProjectXlsxInput): Promise<Uint8Ar
   sourcesSheet(wb, input);
   changesSheet(wb, input);
   aboutSheet(wb, input);
+  const pilotRows = pilotReportRows(input.results);
+  if (pilotRows.length) {
+    const ws = sheet(wb, "Пилоты и бюджет", true);
+    widths(ws, [35, 35, 22, 70, 95]);
+    headerRow(ws, 1, ["Сценарий", "Статья / условие", "Сумма, ₽", "Значение", "Источник / допущение"]);
+    pilotRows.forEach((row, index) => putRow(ws, index + 2, [row.scenarioName, row.label, row.valueRub ?? "", row.text, row.source], [undefined, undefined, FMT.rub]));
+  }
+
+  if (input.results.modelVersion !== TZ_MODEL_VERSION || input.results.simModelVersion !== SIM_MODEL_VERSION) {
+    wb.calcProperties.fullCalcOnLoad = false;
+    wb.eachSheet(ws => ws.eachRow(row => row.eachCell(cell => {
+      const value = cell.value;
+      if (value && typeof value === "object" && ("formula" in value || "sharedFormula" in value)) cell.value = value.result ?? null;
+    })));
+    const about = wb.getWorksheet("О расчёте");
+    if (about) noteRow(about, about.rowCount + 2, "Архивная версия модели: сохранённые показатели выгружены числами. Автоматический пересчёт формул отключён, чтобы текущая методика не подменяла архивный результат.");
+  }
 
   const buf = await wb.xlsx.writeBuffer();
   return new Uint8Array(buf);

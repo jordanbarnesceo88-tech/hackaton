@@ -1,3 +1,7 @@
+import { notFound } from "next/navigation";
+import { BusinessExamples } from "@/components/project/business-examples";
+import { businessExample } from "@/lib/projects/business-examples";
+import { buildBusinessExampleAsync } from "@/lib/projects/business-example-model";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -11,6 +15,7 @@ import { FACILITY_LABELS } from "@/lib/tz/params/template";
 import { isFacilitySlug, processesForFacility, type FacilitySlug } from "@/lib/tz/processes";
 import type { ParamValues } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
+import { calculationFailure } from "@/lib/sim/server-execution";
 
 export const metadata: Metadata = { title: "Демо-расчёт — Платформа оценки роботизации" };
 
@@ -66,6 +71,8 @@ export default async function DemoPage({
   await connection();
   const sp = await searchParams;
   const facility: FacilitySlug = typeof sp.facility === "string" && isFacilitySlug(sp.facility) ? sp.facility : "warehouse";
+  const example = businessExample(sp.example);
+  if (sp.example !== undefined && (!example || facility !== "warehouse")) notFound();
   const facilityLabel = FACILITY_LABELS[facility] ?? facility;
 
   const [live, normRows, dbProcesses] = await Promise.all([
@@ -76,21 +83,32 @@ export default async function DemoPage({
   const defs = live.paramDefs.filter((d) => d.facility === facility);
   const baseValues: ParamValues = Object.fromEntries(defs.map((d) => [d.key, d.base]));
   const processes = dbProcesses.length > 0 ? dbProcesses : processesForFacility(facility);
-  const demo = demoProject(live, facility);
+  let prepared: Awaited<ReturnType<typeof buildBusinessExampleAsync>> | null;
+  try { prepared = example ? await buildBusinessExampleAsync(live, example.id) : null; }
+  catch (error) {
+    const failure = calculationFailure(error);
+    if (!failure) throw error;
+    return <div className="surface-data flex flex-col gap-4 py-8"><h1>Демо-расчёт временно недоступен</h1>
+      <p role="status">{failure.message}</p>
+      <Link className="tap-target text-primary underline" href={`/demo?example=${example!.id}`}>Повторить расчёт примера</Link>
+      <Link className="tap-target text-primary underline" href="/demo">Открыть исходные параметры</Link></div>;
+  }
+  const demo = prepared ? { params: prepared.params, scenarios: prepared.model.scenarios, model: prepared.model, ms: prepared.ms } : demoProject(live, facility);
 
   return (
-    <div className="surface-data flex flex-col gap-6 py-8">
+    <div className="surface-data flex flex-col gap-4 py-5 sm:gap-6 sm:py-8">
       <div className="flex flex-col gap-3">
-        <h1>Демо-расчёт: {facilityLabel}</h1>
-        <p className="max-w-4xl text-sm text-muted-foreground">
-          Гостевой режим: параметры — базовые значения демо-набора данных, сценарии — те же, что получит новый
-          проект на демо-данных. Всё можно менять и пересчитывать в браузере; ничего не сохраняется.{" "}
+        <h1>{example ? example.title : `Демо-расчёт: ${facilityLabel}`}</h1>
+        <details className="max-w-4xl text-sm text-muted-foreground"><summary className="tap-target cursor-pointer">{prepared ? "Готовый пример" : "Гостевой расчёт"} · не сохранён</summary><p className="mt-2">
+          {prepared ? "Готовый бизнес-пример: объект, парк и денежные допущения уже заданы. " : "Гостевой расчёт на базовых данных организатора. "}
+          Меняйте параметры и пересчитывайте результат. Для записи проекта и PDF/Excel{" "}
           <Link href="/login" className="tap-target text-primary underline underline-offset-2">
-            Войдите
+            войдите
           </Link>
-          , чтобы сохранить проект, получить отчёт (PDF) и Excel.
-        </p>
-        <nav aria-label="Тип объекта демо-расчёта" className="flex flex-wrap gap-2 text-sm">
+          .
+        </p></details>
+        <details className="min-w-0"><summary className="tap-target cursor-pointer text-sm">Тип объекта: {facilityLabel}</summary>
+        <nav aria-label="Тип объекта демо-расчёта" className="mt-2 flex flex-wrap gap-2 text-sm">
           {FACILITIES.map((f) => {
             const current = f === facility;
             return (
@@ -108,10 +126,15 @@ export default async function DemoPage({
               </Link>
             );
           })}
-        </nav>
+        </nav></details>
       </div>
+      {prepared && <div className="grid max-w-5xl gap-1 text-sm"><p className="hidden font-medium sm:block">{prepared.example.lesson}</p><details><summary className="tap-target cursor-pointer text-primary">На каких данных получен результат</summary><p className="mt-2 leading-relaxed text-muted-foreground">{prepared.assumption}</p></details></div>}
+      {facility === "warehouse" && <BusinessExamples active={example?.id} />}
       <Workspace
-        key={facility}
+        key={`${facility}:${example?.id ?? "baseline"}`}
+        initialStep={prepared ? 8 : 1}
+        initialFocusKey={prepared ? "purchase" : undefined}
+        initialSims={prepared?.results.sim}
         mode="guest"
         project={{
           name: `Демо-расчёт — ${facilityLabel}`,

@@ -4,6 +4,7 @@
  * часов — одинаково работает на сервере и в браузере.
  */
 export * from "./types";
+export * from "./identity";
 export * from "./rng";
 export * from "./layout";
 export * from "./routing";

@@ -13,6 +13,7 @@ import { LineItems } from "./line-items";
 import { OverrideInput } from "./override-input";
 import { RefusalNote } from "./refusal-note";
 import { TraceList } from "./trace-list";
+import { CostPackageEditor } from "./cost-package";
 
 /**
  * Подробности сценария (ТЗ §2.2 шаг 5, §3.5.2–3.5.4, §3.5.8): состав парка и как он получен,
@@ -86,7 +87,9 @@ export function fleetCardLines(r: ItemResult): string[] {
   }
   lines.push(`Охват пикового спроса: ${fx(r.coverage * 100, 1)} %`);
   lines.push(`Зарядных станций: ${r.chargers}`);
-  lines.push(`Постов диспетчера парка: ${r.operatorPosts}`);
+  lines.push(r.operatingStaffScope === "site-allocation"
+    ? "Эксплуатационный персонал рассчитан один раз на весь парк сценария"
+    : `Постов диспетчера парка: ${r.operatorPosts}`);
   lines.push(`Высвобождается ставок: ${fx(r.releasedFte, 1)} из ${fx(r.headcount)}`);
   return lines;
 }
@@ -133,6 +136,7 @@ function ItemCard({
   norms,
   editable,
   onOverride,
+  onCostPackage,
 }: {
   view: ItemView;
   kind: ScenarioKind;
@@ -140,6 +144,7 @@ function ItemCard({
   norms: NormValues;
   editable: boolean;
   onOverride?: (field: string, value: number | null, reason?: string) => void;
+  onCostPackage?: (process: string, value: ScenarioItem["costPackage"]) => void;
 }) {
   const { result: r, spec: it, product } = view;
   const p = processDef(view.process);
@@ -278,6 +283,13 @@ function ItemCard({
           </span>
         </div>
       )}
+      {kind === "purchase" && (editable || it?.costPackage) && <CostPackageEditor
+        key={JSON.stringify(it?.costPackage ?? null)}
+        value={it?.costPackage}
+        chargers={r?.chargers ?? it?.chargersOverride ?? 0}
+        readOnly={!editable}
+        onChange={editable && onCostPackage ? value => onCostPackage(view.process, value) : undefined}
+      />}
     </div>
   );
 }
@@ -292,6 +304,7 @@ export function ScenarioDetails({
   readOnly = false,
   print = false,
   onOverride,
+  onCostPackage,
 }: {
   result: ScenarioResult;
   /** Описание сценария — источник текущих ручных корректировок (цена, сервис, ставка). */
@@ -308,6 +321,7 @@ export function ScenarioDetails({
   /** Вариант для отчёта: без полей ввода, трассировка раскрыта. */
   print?: boolean;
   onOverride?: (field: string, value: number | null, reason?: string) => void;
+  onCostPackage?: (process: string, value: ScenarioItem["costPackage"]) => void;
 }) {
   const editable = !print && !readOnly && onOverride !== undefined;
   const views = result.kind === "asis" ? [] : itemViews(result, spec, products);
@@ -322,6 +336,10 @@ export function ScenarioDetails({
         <h3 className="section-title">{result.name}</h3>
         <span className="text-xs text-muted-foreground">{KIND_LABELS[result.kind]}</span>
       </header>
+
+      {result.kind !== "asis" && <p className="max-w-4xl text-sm leading-relaxed text-muted-foreground">{result.kind === "purchase"
+        ? "Покупка: заказчик приобретает оборудование и оплачивает внедрение. Обслуживание, программное обеспечение, расходные материалы и эксплуатационный персонал перечислены отдельными статьями ниже."
+        : "Услуга (RaaS): оборудование предоставляет поставщик, заказчик оплачивает регулярную ставку за робота. Состав включённых услуг отмечен в статьях расходов; первоначальная подготовка объекта и внедрение показаны отдельно. Условие модели: договор на 12 месяцев с ежегодным продлением по неизменной ставке на весь расчётный период, без выкупа. Эти условия нужно подтвердить у поставщика."}</p>}
 
       {result.status === "refused" && (
         <RefusalNote refusal={result.refusal} paramLabels={paramLabels} actionable={editable} />
@@ -339,6 +357,7 @@ export function ScenarioDetails({
               norms={norms}
               editable={editable}
               onOverride={onOverride}
+              onCostPackage={onCostPackage}
             />
           ))}
         </div>

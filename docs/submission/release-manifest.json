@@ -1,0 +1,354 @@
+{
+  "schemaVersion": "hackathon-submission-local-1",
+  "generatedAt": "2026-10-17T20:25:08.766Z",
+  "status": "INDEPENDENTLY_REVIEWED_LOCAL_SOURCE_READY_NO_COMMIT",
+  "source": {
+    "branch": "fix/precommit-review-2026-10-18",
+    "baseCommit": "709078349f1edff9aa8a851501d7a436f541d7ba",
+    "workingTreeChangesIncluded": true,
+    "committed": false,
+    "pushed": false,
+    "deployed": false,
+    "standaloneArtifacts": [
+      {
+        "path": "public/warehouse-3d.html",
+        "bytes": 3640950,
+        "sha256": "2286aceaef2800bfc9f49443d0b508a0ea4b3a04e8020f5d29911835d5a15f48"
+      },
+      {
+        "path": "public/cleaning-3d.html",
+        "bytes": 3640951,
+        "sha256": "30dc755c1a22d0eb8e432724ccc493078762fdeb48a82682d0832b2d84da2315"
+      }
+    ]
+  },
+  "versions": {
+    "finance": "tz-1.0.4",
+    "baseSim": "sim-1.1.0",
+    "spatial": "warehouse-demo-incidents-1.4.0",
+    "traffic": "traffic-1.3.0"
+  },
+  "artifacts": [
+    {
+      "path": "presentation.pdf",
+      "bytes": 346840,
+      "sha256": "fb65879bf3c62a39102bc8042d22c3b529e755fce9dfdcb4b1500ba71aa783eb",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4",
+      "pages": 13
+    },
+    {
+      "path": "documentation.pdf",
+      "bytes": 242349,
+      "sha256": "62664051b347f505c2b5b1a23249b9102dbaa9c53b0cfb1c95b21d4c8626c486",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4",
+      "pages": 27
+    },
+    {
+      "path": "sample-report.pdf",
+      "bytes": 1199661,
+      "sha256": "5395a71207fe368d6430cb77a8d3215fcbf4f9094d0e4c01446d4b5433564930",
+      "status": "HISTORICAL_REVIEWED_TZ_1_0_3",
+      "financeVersion": "tz-1.0.3",
+      "pages": 30
+    },
+    {
+      "path": "sample-report.csv",
+      "bytes": 14877,
+      "sha256": "fadbcaf941e67aa3ae3bcee6dec4e78b79e36dcac027d31b52affdd890589319",
+      "status": "HISTORICAL_REVIEWED_TZ_1_0_3",
+      "financeVersion": "tz-1.0.3"
+    },
+    {
+      "path": "sample-report.xlsx",
+      "bytes": 63462,
+      "sha256": "a86098cb60ba23de104c1a181667b238c1c94dc3c42b406295d5986485b9ca8c",
+      "status": "HISTORICAL_REVIEWED_TZ_1_0_3",
+      "financeVersion": "tz-1.0.3"
+    },
+    {
+      "path": "sample-report.png",
+      "bytes": 176961,
+      "sha256": "d777a6dd52f7ca90a0066e87aaf6a65bfda3a04d3739d73848a7f74b7749335d",
+      "status": "HISTORICAL_REVIEWED_TZ_1_0_3",
+      "financeVersion": "tz-1.0.3"
+    },
+    {
+      "path": "demo-numbers.md",
+      "bytes": 30373,
+      "sha256": "6332eec3205cae1e222f40b3f900845bd05a7e80c248533778f13da788d57685",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4"
+    },
+    {
+      "path": "calculation-source.json",
+      "bytes": 1084278,
+      "sha256": "0c7d7c10ae89e333604916ab1300cbfd75db76e8d2eb7b595053db2874264081",
+      "status": "HISTORICAL_REVIEWED_TZ_1_0_3",
+      "financeVersion": "tz-1.0.3"
+    },
+    {
+      "path": "assets/selection.png",
+      "bytes": 134588,
+      "sha256": "8c5777c31a289656f1c0ec56d703381563da1d4d65ac2552389ad69b012c2c5d",
+      "status": "ILLUSTRATIVE_PRIOR_BASELINE_SAME_SPATIAL_VERSION",
+      "financeVersion": "tz-1.0.3"
+    },
+    {
+      "path": "assets/spatial.png",
+      "bytes": 186803,
+      "sha256": "57ab422f4c85006ff06351208db6a65f51f25cf21e6fb48778373208a7a7aed7",
+      "status": "ILLUSTRATIVE_PRIOR_BASELINE_SAME_SPATIAL_VERSION",
+      "financeVersion": "tz-1.0.3"
+    },
+    {
+      "path": "verification-review.json",
+      "bytes": 25461,
+      "sha256": "9fc39bc067538b920f427b1668e3da9f1744f162bd41319b0889015281e12719",
+      "status": "HISTORICAL_REVIEWED_TZ_1_0_3",
+      "financeVersion": "tz-1.0.3"
+    },
+    {
+      "path": "economics-comparison.json",
+      "bytes": 126002,
+      "sha256": "410d33f41d2d4ef3e3371f0f438c6fb902352959e561ee34d6665c15737d2dbf",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4"
+    },
+    {
+      "path": "economics-verification-review.json",
+      "bytes": 45549,
+      "sha256": "0178e45dd3a7a3f4229708cea6afae0205762acc4d0dee6e6958ec48f385c57e",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5248,
+      "sha256": "5e4dd05bab3b4c811a8ff9576490eb2461e2df244beffc0d113a550edfb81822",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4"
+    },
+    {
+      "path": "PRESENTATION-OUTLINE.md",
+      "bytes": 3926,
+      "sha256": "d82cf32343f9769dba1c549d77be3013c27444f90e69a5fd4acb1a2ee504825b",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4"
+    },
+    {
+      "path": "../ECONOMICS-2026-10-18.md",
+      "bytes": 12201,
+      "sha256": "f9b5bbf40c96ba2b6568514ccfe2bc4f1b465d7cb9fade5af8f5118672d0875a",
+      "status": "CURRENT_REVIEWED",
+      "financeVersion": "tz-1.0.4"
+    },
+    {
+      "path": "precommit-verification.json",
+      "status": "CURRENT_PRECOMMIT_REVIEW",
+      "financeVersion": "tz-1.0.4",
+      "bytes": 13453,
+      "sha256": "eabfe061b9578240cba4669c2056271918925e8439c20c913dc0b24fe8acb7b1"
+    },
+    {
+      "path": "../PRECOMMIT-REVIEW-2026-10-18.md",
+      "status": "CURRENT_PRECOMMIT_REVIEW",
+      "financeVersion": "tz-1.0.4",
+      "bytes": 12947,
+      "sha256": "04474508d618c19af35f2816d576ae9bcb9b18e4dada1db9b5b061627caf291b"
+    }
+  ],
+  "sourceInputs": {
+    "calculationSource": "calculation-source.json",
+    "base2dNumbers": "demo-numbers.md",
+    "savedReportProjectId": "cmvcrh7hp000004qqffktuyv7",
+    "scenarioKey": "purchase",
+    "standaloneConditions": "N14/C1; seed1; 15min warmup +120min peak; four scripted incidents:132pal/h, p95=1.45min",
+    "serverReportConditions": "sameN14/C1, source input without scripted incidents; serverrechecked:133.5pal/h,p95=1.05min",
+    "financialInputs": "Historicalbaseline: N14/C1, annualCoverage=1,cashRealization=1,H5,rate.12,residual0. Current opt-in scenarios change ONLY declared staffing and/or package assumptions; physical inputs unchanged.",
+    "moneyIdentity": "server CAPEX/NPV exactly equal to current existing money engine for same N/C; no manual replacement",
+    "historicalSavedReportFinanceVersion": "tz-1.0.3",
+    "currentEconomicsSource": "economics-comparison.json",
+    "currentEconomicsExplanation": "../ECONOMICS-2026-10-18.md"
+  },
+  "quality": {
+    "authorViewedAllPdfPages": true,
+    "authorPageCounts": {
+      "presentation": 13,
+      "documentation": 27,
+      "historicalSample": 30
+    },
+    "automatedPdfBounds": {
+      "documentation": {
+        "pages": 27,
+        "blankPages": [],
+        "outsideBounds": [],
+        "textChars": 56097
+      },
+      "presentation": {
+        "pages": 13,
+        "blankPages": [],
+        "outsideBounds": [],
+        "textChars": 5107
+      },
+      "sample-report": {
+        "pages": 30,
+        "blankPages": [],
+        "outsideBounds": [],
+        "textChars": 93325
+      }
+    },
+    "independentPdfReviewer": "/root/expert_reliability",
+    "independentPdfReviewStatus": "PASS_IN_REVIEWED_SCOPE",
+    "authorDoesNotAcceptOwnFinanceOrPilot": true,
+    "exportChecks": {
+      "projectId": "cmvcrh7hp000004qqffktuyv7",
+      "scenarioKey": "purchase",
+      "sheets": [
+        {
+          "name": "Сводка",
+          "rows": 64
+        },
+        {
+          "name": "Параметры объекта",
+          "rows": 53
+        },
+        {
+          "name": "Подбор",
+          "rows": 70
+        },
+        {
+          "name": "Состав оборудования",
+          "rows": 4
+        },
+        {
+          "name": "CAPEX",
+          "rows": 22
+        },
+        {
+          "name": "OPEX",
+          "rows": 26
+        },
+        {
+          "name": "Денежный поток",
+          "rows": 73
+        },
+        {
+          "name": "Чувствительность",
+          "rows": 23
+        },
+        {
+          "name": "Имитация",
+          "rows": 19
+        },
+        {
+          "name": "Нормативы и допущения",
+          "rows": 49
+        },
+        {
+          "name": "Источники",
+          "rows": 37
+        },
+        {
+          "name": "Журнал корректировок",
+          "rows": 2
+        },
+        {
+          "name": "О расчёте",
+          "rows": 81
+        },
+        {
+          "name": "Пилоты и бюджет",
+          "rows": 27
+        }
+      ],
+      "csvChars": 8976,
+      "csvIncludesPilot": true,
+      "csvIncludesFullFleet": true,
+      "serverN": 14,
+      "serverC": 1,
+      "capexEqual": true,
+      "npvEqual": true,
+      "pilotFleet": 2,
+      "spatial": {
+        "fleet": 14,
+        "requiredPerH": 129.54545454545453,
+        "achievedPerH": 133.5,
+        "queueEnd": 0,
+        "waitP95Min": 1.05
+      }
+    },
+    "stalledAuthoringSession73181": "Closed; write_stdin reports Unknown process id, no pending mutation.",
+    "previousIndependentPdfReview": {
+      "path": "verification-review.json",
+      "originalPath": "C:\\workspace\\hackaton\\research\\alfa-audit\\tz-recheck-20261017\\pdf-peer\\independent-review.json",
+      "originalSha256": "063ec874b8083a00eb1982a6e4dc009132ae9062bbba8503339a4af8cd849e3c",
+      "reviewer": "/root/expert_reliability",
+      "scope": "Final exact-hash12/24/30PDFs;66textpages/allcontacts/criticalfullpages; limits and two simulation conditions explicit; no financial-model self-acceptance"
+    },
+    "independentPdfReview": {
+      "path": "economics-verification-review.json",
+      "originalPath": "C:\\workspace\\hackaton\\research\\alfa-audit\\economics-stage20261018\\pdf-peer\\independent-review.json",
+      "originalSha256": "8d1cc8aede1c5bf6da1bb2161009d9d66e05c3a514e32a05ad2e44c4bf9d934d",
+      "reviewer": "/root/expert_reliability",
+      "pages": {
+        "presentation": 13,
+        "documentation": 27,
+        "historicalSample": 30
+      },
+      "scope": "70textpages, allcontacts, criticalfullpages; exact hashes; assumptions, conditional positive and negative money, historicalsample and links independently verified"
+    },
+    "rootFinalChecks": {
+      "unitTests": 1699,
+      "unitFiles": 138,
+      "dbTests": 117,
+      "dbFiles": 8,
+      "eslintFiles": 188,
+      "e2ePassed": 24,
+      "e2eSkipped": 1,
+      "productionBuild": "PASS",
+      "typecheck": "PASS",
+      "scope": "Current precommit source, isolated local DB, full production-browser suite and bounded native large-action QA; exact details in precommit-verification.json"
+    }
+  },
+  "load50": {
+    "status": "BOUNDED_FUNCTIONAL_READ_LOAD_PASS",
+    "evidencePath": "C:\\workspace\\hackaton\\research\\alfa-audit\\final-completion-20261017\\load-50-1792263687394-563f8758\\load-final-review.json",
+    "sha256": "1998c6ed97042a0c2686c58ad66023866c68cadefc48af1d76d60b70384ebdc8",
+    "users": 50,
+    "interactions": 300,
+    "errors": 0,
+    "scope": "Catalog, editable form, own saved archive+visible report; fresh-browser-cache/reload; same Windows host browser+server Ryzen9950X3D/32logicalCPU/125.6GiB; not login/write/SLA/processcold benchmark",
+    "scopeNote": "Previously measured bounded baseline, not a new load test of opt-in economics interactions"
+  },
+  "pending": [
+    "Changes remain uncommitted and unpublished. Future local commit author is configured; this review does not perform commit/push/deploy. Physical/customer data and industrial limitations are explicitly retained."
+  ],
+  "historicalBackup": "C:/workspace/hackaton/research/alfa-audit/tz-recheck-20261017/historical-submission/manifest.json",
+  "calculationPerformance": {
+    "status": "PASS_FOR_CURRENT_TYPICAL_SEQUENTIAL_API_SCOPE",
+    "path": "economics-verification-review.json",
+    "originalPath": "C:\\workspace\\hackaton\\research\\alfa-audit\\final-completion-20261017\\calculation-performance.json",
+    "originalSha256": "040991ee5ac46d17f00243f5babad40aa2cca09d4968f57c1113ec7c90841e44",
+    "httpTotalMs": [
+      373.8543,
+      139.1053,
+      141.4249000000001
+    ],
+    "scope": "Three sequential typical organizer warehouse API calculations, including data loading, economics, base simulation, fleet enumeration and JSON transfer. No concurrent-computation SLA claim.",
+    "financeVersion": "tz-1.0.4",
+    "limits": {
+      "economicsSeconds": 10,
+      "baseSimulationSeconds": 60
+    },
+    "notClaimed": "50 simultaneous calculations, arbitrary-layout SLA or fresh opt-in 50-user benchmark"
+  },
+  "precommitReview": {
+    "path": "precommit-verification.json",
+    "sha256": "eabfe061b9578240cba4669c2056271918925e8439c20c913dc0b24fe8acb7b1",
+    "explanation": "../PRECOMMIT-REVIEW-2026-10-18.md",
+    "previousEconomicsManifestSha256": "f63f0558f860428cc35885c940cd1f46fd1e172de7be85d7b8b1f00193f17847",
+    "previousPdfAcceptanceScopeRetained": true
+  }
+}

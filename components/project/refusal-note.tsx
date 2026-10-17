@@ -30,12 +30,15 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   service: "Сервис, ₽/год за робота",
   raasRate: "Ставка RaaS, ₽/мес за робота",
   manual: "Решение для процесса",
+  package: "Комплектация и границы платежей",
 };
 
 /** Подписи полей уровня сценария: 'scenario:<вид>'. */
 const SCENARIO_FIELD_LABELS: Readonly<Record<string, string>> = {
   add: "Сценарий покупки или услуги",
   items: "Решение для сценария",
+  operationsStaffing: "Организация и дополнительные расходы эксплуатации",
+  costPackage: "Комплектация покупки и границы платежей",
 };
 
 /**

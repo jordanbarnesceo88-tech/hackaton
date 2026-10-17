@@ -1,0 +1,642 @@
+{
+  "pdfPeer": {
+    "status": "PASS_IN_REVIEWED_SCOPE",
+    "reviewer": "expert_reliability",
+    "scope": "Independent read-only PDF presentation/documentation/sample peer; no author source or PDFs changed.",
+    "artifacts": [
+      {
+        "name": "presentation.pdf",
+        "pages": 12,
+        "bytes": 341828,
+        "sha256": "9b201b63a90b02ed9443626fcc3fca9f775360e41ffc8106ef6f81751476bd56"
+      },
+      {
+        "name": "documentation.pdf",
+        "pages": 24,
+        "bytes": 217624,
+        "sha256": "bc2edbfa951c0d1c17aa3058d4b2d30859834a2947f6bc685b89bef0c44e0944"
+      },
+      {
+        "name": "sample-report.pdf",
+        "pages": 30,
+        "bytes": 1199661,
+        "sha256": "5395a71207fe368d6430cb77a8d3215fcbf4f9094d0e4c01446d4b5433564930"
+      }
+    ],
+    "textAllPages": 66,
+    "visualReview": {
+      "contactPages": "All 12 presentation, 24 documentation, 30 sample pages",
+      "fullSize": [
+        "presentation6",
+        "documentation13/18/24",
+        "sample1/4/23/29"
+      ],
+      "result": "No observed clipping, overlap, missing glyphs or unreadable wrapped source columns in reviewed images."
+    },
+    "checks": [
+      "Exact frozen hashes/page counts; all pages contain text; no stale tz/sim versions.",
+      "No PDF text spans outside page bounds.",
+      "Sample internal destinations are in range; external URI annotations have HTTP(S) schemes. Network reachability was not tested.",
+      "Scripted N14=132/p95 1.45 and server sample no-fault=133.5/p95 1.05 explicitly distinguished.",
+      "Same N14/C1 financial example: CAPEX 47740000 and NPV -18355734 consistent across PDF/CSV and rounded pitch; negative finance outcome retained.",
+      "Additional 3D, model safety, annual/cash estimates and owner handoff boundaries remain explicit.",
+      "Production load evidence described as bounded local 50-session result; 10/60 performance limits are still separately gated."
+    ],
+    "materialFindings": [],
+    "limits": [
+      "Not an independent proof of the author’s entire pilot-budget implementation or financial engine.",
+      "No claim of industrial safety, complete accessibility certification, public deployment, package handoff or global fleet minimum.",
+      "The separate root UI precision correction does not change these model numbers; PDF uses rounding for a clearly passing example, not the N12 near-miss."
+    ],
+    "linkDiagnostics": [],
+    "resolvedFindings": [
+      {
+        "priority": "P2",
+        "issue": "Documentation page18 linked to an absolute author-local research file",
+        "beforeSha256": "2af28c98c202a4d95beef0b32e2184679eafd3f1fde9feb47869a90780a73a17",
+        "fix": "Replaced the local file annotation with visible docs/TZ-RECHECK-2026-10-17.md text",
+        "confirmation": "Final documentation24 has no PDF link annotations; page18 PNG independently viewed, no overflow."
+      }
+    ]
+  },
+  "load50": {
+    "schemaVersion": "local-read-load-final-1",
+    "at": "2026-10-17T19:03:24.128Z",
+    "status": "BOUNDED_FUNCTIONAL_READ_LOAD_PASS",
+    "browserClosed": true,
+    "baseUrl": "http://127.0.0.1:3081",
+    "serverBuildId": "3VWeV20Ir795wnvl_mlmz",
+    "serverBuildStable": true,
+    "users": 50,
+    "mainNavigationAndTargetInteractions": 300,
+    "environment": {
+      "platform": "win32",
+      "cpu": "AMD Ryzen 9 9950X3D 16-Core Processor          ",
+      "logicalCpu": 32,
+      "ramBytes": 134813700096,
+      "freeRamBefore": 63668789248,
+      "clientAndServerSameHost": true
+    },
+    "fixtureSnapshotUnchanged": true,
+    "sourceProjectId": "demo-warehouse",
+    "sourceModelVersion": "tz-1.0.2",
+    "sourceSnapshotHash": "3337ab1d9c289e5f8b760a70df29d3112ba2b82acdfa39938615b5620e652d3a",
+    "authentication": "50 distinct real temporary USER records, independent pre-issued signed Auth.js sessions; not login throughput.",
+    "cacheMethod": "No page/context routing. Fresh contexts first; same contexts normal reload second. Cache reuse measured per resource, all static assets cached on reload.",
+    "scope": "Catalog table usable; new-project name field editable; own saved project opened then step8 report visibly opened. Same localhost host runs browser+server, isolatedDB55432.",
+    "coldLimitation": "Server process/DB already warm after required preflight; this is browser fresh-cache, not process/OS cold.",
+    "qualitativeRequirement": "Actual measured50 concurrent read users completed; no invented numeric threshold. Saved-project first opening p953.795s remains noticeable. Do not call this universal capacity/SLA proof or measure of economics<=10s/simulation<=60s.",
+    "statePreservationPreflight": {
+      "file": "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/load-50-1792262740382-f8010852/after-state-preflight.json",
+      "status": "PASS",
+      "checked": "Deep links economics/report, inactive heavychildren absent, invalid ParamField draft/details.open/exactDOM nodes retained, simulation selection/speed/exactDOM node retained. Playback-time advancement was not specifically asserted."
+    },
+    "previousMethodErratum": "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/load-methodology-erratum.json",
+    "previousArchiveTimeoutsRetained": true,
+    "cleanup": {
+      "status": "COMPLETE",
+      "at": "2026-10-17T19:02:56.885Z",
+      "remainingUsers": 0,
+      "remainingProjects": 0,
+      "removedPrivateSessionFiles": 50,
+      "sourceSnapshotUnchanged": true,
+      "scope": "Exact manifest users/projects only, no production data; session files in verified own-run directory only",
+      "evidence": "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/load-50-1792263687394-563f8758/cleanup-verified.json"
+    },
+    "waves": [
+      {
+        "route": "catalog",
+        "phase": "fresh-context",
+        "users": 50,
+        "errors": 0,
+        "usableP50Ms": 2327.0780999999997,
+        "usableP95Ms": 2349.7086,
+        "ttfbP95Ms": 914.8000001907349,
+        "projectHeadingVisibleP95Ms": null,
+        "reportClickToVisibleP95Ms": null,
+        "staticCacheHits": 0,
+        "staticResourceCount": 950,
+        "staticTransferP50Bytes": 470545,
+        "explicitPrefetchCancellations": 424,
+        "workers": null,
+        "startSkewMaxMs": 1.7129000000004453
+      },
+      {
+        "route": "catalog",
+        "phase": "same-context-reload",
+        "users": 50,
+        "errors": 0,
+        "usableP50Ms": 1311.0972999999994,
+        "usableP95Ms": 1528.6675999999989,
+        "ttfbP95Ms": 1058.3999998569489,
+        "projectHeadingVisibleP95Ms": null,
+        "reportClickToVisibleP95Ms": null,
+        "staticCacheHits": 950,
+        "staticResourceCount": 950,
+        "staticTransferP50Bytes": 0,
+        "explicitPrefetchCancellations": 442,
+        "workers": null,
+        "startSkewMaxMs": 1.109799999999268
+      },
+      {
+        "route": "new-form",
+        "phase": "fresh-context",
+        "users": 50,
+        "errors": 0,
+        "usableP50Ms": 1861.8320999999996,
+        "usableP95Ms": 1890.4632999999994,
+        "ttfbP95Ms": 160.79999995231628,
+        "projectHeadingVisibleP95Ms": null,
+        "reportClickToVisibleP95Ms": null,
+        "staticCacheHits": 0,
+        "staticResourceCount": 950,
+        "staticTransferP50Bytes": 390309,
+        "explicitPrefetchCancellations": 297,
+        "workers": null,
+        "startSkewMaxMs": 0.9137999999984459
+      },
+      {
+        "route": "new-form",
+        "phase": "same-context-reload",
+        "users": 50,
+        "errors": 0,
+        "usableP50Ms": 701.6301000000003,
+        "usableP95Ms": 707.8528999999999,
+        "ttfbP95Ms": 134.59999990463257,
+        "projectHeadingVisibleP95Ms": null,
+        "reportClickToVisibleP95Ms": null,
+        "staticCacheHits": 950,
+        "staticResourceCount": 950,
+        "staticTransferP50Bytes": 0,
+        "explicitPrefetchCancellations": 409,
+        "workers": null,
+        "startSkewMaxMs": 1.053299999999581
+      },
+      {
+        "route": "stored-project",
+        "phase": "fresh-context",
+        "users": 50,
+        "errors": 0,
+        "usableP50Ms": 3784.4202000000005,
+        "usableP95Ms": 3795.353299999999,
+        "ttfbP95Ms": 189.5,
+        "projectHeadingVisibleP95Ms": 3432.6096999999972,
+        "reportClickToVisibleP95Ms": 357.1749000000018,
+        "staticCacheHits": 0,
+        "staticResourceCount": 1100,
+        "staticTransferP50Bytes": 630320,
+        "explicitPrefetchCancellations": 427,
+        "workers": 0,
+        "startSkewMaxMs": 1.0050000000010186
+      },
+      {
+        "route": "stored-project",
+        "phase": "same-context-reload",
+        "users": 50,
+        "errors": 0,
+        "usableP50Ms": 2839.084999999999,
+        "usableP95Ms": 2984.4641999999985,
+        "ttfbP95Ms": 251.70000004768372,
+        "projectHeadingVisibleP95Ms": 2487.166300000001,
+        "reportClickToVisibleP95Ms": 492.8881999999976,
+        "staticCacheHits": 1100,
+        "staticResourceCount": 1100,
+        "staticTransferP50Bytes": 0,
+        "explicitPrefetchCancellations": 455,
+        "workers": 0,
+        "startSkewMaxMs": 1.1838999999999942
+      }
+    ],
+    "evidence": [
+      {
+        "file": "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/load-50-1792263687394-563f8758/load-read-cache-enabled.json",
+        "sha256": "25c058a7bca001a5db3daf9920c987504bd4ae5dcbbb8af1b8d1bf5b218ddcd1"
+      },
+      {
+        "file": "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/load-50-1792263687394-563f8758/manifest.json",
+        "sha256": "8f2b48c21669a449c77e7f3d0ada20d1c4117475d7c9f9d2fd2f806832aa6bc5"
+      },
+      {
+        "file": "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/load-50-1792262740382-f8010852/after-state-preflight.json",
+        "sha256": "a45cf4d911877d605adfd3e5e4134d12e054cbeeec6d64d66e5093ea43bd96cf"
+      }
+    ],
+    "requirementEvidence": {
+      "clause": "ТЗ§4.3.1",
+      "executed": "50 concurrent distinct authenticated users; catalog, new-project form and own saved project/report; fresh contexts and same-context reload separately.",
+      "verdict": "Bounded read-path acceptance executed successfully; no invented numerical SLA and no universal environment claim. All measured p50/p95 retained."
+    },
+    "controllerPeer": {
+      "status": "BOUNDED_ACCEPT",
+      "version": "warehouse-demo-incidents-1.4.0 / traffic-1.3.0",
+      "evidence": [
+        "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/dispatcher-independent-N14-C1.json",
+        "C:/workspace/hackaton/research/alfa-audit/final-completion-20261017/dispatcher-complex-peer.json"
+      ],
+      "scope": "10 canonical N14/C1 replays: seeds1,7,19,42,101 × baseline/scripted; source hashes stable, workload trace unchanged, task conservation/ownership, physical gaps and replay equality checked. Seeds1/7 reached all assessment criteria; other seeds honestly not evaluated for target throughput because generated workload is below target. ComplexN11 remains honestly PARTIAL. No global minimum/all-seed throughput guarantee."
+    },
+    "remainingFindings": [
+      "No new confirmed blocking read-path defect. Saved-project first use p953.795s and reload2.984s remain noticeable under this50-context single-host workload; measurements are retained without declaring a fabricated SLA failure."
+    ]
+  },
+  "typicalApiPerformance": {
+    "at": "2026-10-17T19:03:08.428Z",
+    "scope": "Three sequential typical organizer warehouse API calculations, including data loading, economics, base simulation, fleet enumeration and JSON transfer. No concurrent-computation SLA claim.",
+    "runs": [
+      {
+        "index": 0,
+        "kind": "first request in probe; server already running",
+        "httpStatus": 200,
+        "totalMs": 256.967,
+        "versions": {
+          "modelVersion": "tz-1.0.3",
+          "simModelVersion": "sim-1.1.0",
+          "dataVersion": "b97f38c0",
+          "calculatedAt": "2026-10-17T19:03:08.676Z",
+          "organizer": {
+            "datasets": "2026-09-22#4be0fac8",
+            "catalog": "2026-09-22#da43c64c",
+            "examples": "2026-09-22#6e738822",
+            "research": "svod 2026-09-23 + found_batch1-6@2026-09-23T21:13:10Z"
+          },
+          "paramDefsFrom": "db"
+        },
+        "scenarios": [
+          {
+            "key": "asis",
+            "name": "Как есть",
+            "kind": "asis",
+            "recommended": false,
+            "equipment": [],
+            "simVerdict": null,
+            "status": "ok",
+            "capexRub": 0,
+            "opexYearRub": 46872000,
+            "effectYearRub": 0,
+            "paybackYears": null,
+            "band": "none",
+            "roiTzPct": null,
+            "npvRub": null,
+            "discountedPaybackYears": null,
+            "tcoRub": 234360000,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p1",
+            "name": "Покупка — Ronavi H1500",
+            "kind": "purchase",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 38500000,
+            "opexYearRub": 37550397.77045109,
+            "effectYearRub": 9321602.229548909,
+            "paybackYears": 4.130191253812285,
+            "band": "moderate",
+            "roiTzPct": 122.98834064349231,
+            "npvRub": -4108652.477817145,
+            "discountedPaybackYears": null,
+            "tcoRub": 225509488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "r1",
+            "name": "Услуга (RaaS) — Ronavi H1500",
+            "kind": "raas",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 1540000,
+            "opexYearRub": 45816897.77045109,
+            "effectYearRub": 1055102.2295489088,
+            "paybackYears": 1.4595742070021036,
+            "band": "fast",
+            "roiTzPct": 342.5656589444509,
+            "npvRub": 2263407.408119062,
+            "discountedPaybackYears": 1.7108898852634389,
+            "tcoRub": 230624488.85225546,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p2",
+            "name": "Покупка — AMR 1500",
+            "kind": "purchase",
+            "recommended": true,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "moros-amr-1500",
+                "productName": "AMR 1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 2
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 32780000,
+            "opexYearRub": 36851897.77045109,
+            "effectYearRub": 10020102.229548909,
+            "paybackYears": 3.271423708965064,
+            "band": "moderate",
+            "roiTzPct": 154.6842927020883,
+            "npvRub": 3983161.9148210594,
+            "discountedPaybackYears": 4.339329436859272,
+            "tcoRub": 216434488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          }
+        ],
+        "simKeys": [
+          "asis",
+          "p1",
+          "r1",
+          "p2"
+        ]
+      },
+      {
+        "index": 1,
+        "kind": "repeat",
+        "httpStatus": 200,
+        "totalMs": 123.00390000000004,
+        "versions": {
+          "modelVersion": "tz-1.0.3",
+          "simModelVersion": "sim-1.1.0",
+          "dataVersion": "b97f38c0",
+          "calculatedAt": "2026-10-17T19:03:08.803Z",
+          "organizer": {
+            "datasets": "2026-09-22#4be0fac8",
+            "catalog": "2026-09-22#da43c64c",
+            "examples": "2026-09-22#6e738822",
+            "research": "svod 2026-09-23 + found_batch1-6@2026-09-23T21:13:10Z"
+          },
+          "paramDefsFrom": "db"
+        },
+        "scenarios": [
+          {
+            "key": "asis",
+            "name": "Как есть",
+            "kind": "asis",
+            "recommended": false,
+            "equipment": [],
+            "simVerdict": null,
+            "status": "ok",
+            "capexRub": 0,
+            "opexYearRub": 46872000,
+            "effectYearRub": 0,
+            "paybackYears": null,
+            "band": "none",
+            "roiTzPct": null,
+            "npvRub": null,
+            "discountedPaybackYears": null,
+            "tcoRub": 234360000,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p1",
+            "name": "Покупка — Ronavi H1500",
+            "kind": "purchase",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 38500000,
+            "opexYearRub": 37550397.77045109,
+            "effectYearRub": 9321602.229548909,
+            "paybackYears": 4.130191253812285,
+            "band": "moderate",
+            "roiTzPct": 122.98834064349231,
+            "npvRub": -4108652.477817145,
+            "discountedPaybackYears": null,
+            "tcoRub": 225509488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "r1",
+            "name": "Услуга (RaaS) — Ronavi H1500",
+            "kind": "raas",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 1540000,
+            "opexYearRub": 45816897.77045109,
+            "effectYearRub": 1055102.2295489088,
+            "paybackYears": 1.4595742070021036,
+            "band": "fast",
+            "roiTzPct": 342.5656589444509,
+            "npvRub": 2263407.408119062,
+            "discountedPaybackYears": 1.7108898852634389,
+            "tcoRub": 230624488.85225546,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p2",
+            "name": "Покупка — AMR 1500",
+            "kind": "purchase",
+            "recommended": true,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "moros-amr-1500",
+                "productName": "AMR 1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 2
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 32780000,
+            "opexYearRub": 36851897.77045109,
+            "effectYearRub": 10020102.229548909,
+            "paybackYears": 3.271423708965064,
+            "band": "moderate",
+            "roiTzPct": 154.6842927020883,
+            "npvRub": 3983161.9148210594,
+            "discountedPaybackYears": 4.339329436859272,
+            "tcoRub": 216434488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          }
+        ],
+        "simKeys": [
+          "asis",
+          "p1",
+          "r1",
+          "p2"
+        ]
+      },
+      {
+        "index": 2,
+        "kind": "repeat",
+        "httpStatus": 200,
+        "totalMs": 109.1128,
+        "versions": {
+          "modelVersion": "tz-1.0.3",
+          "simModelVersion": "sim-1.1.0",
+          "dataVersion": "b97f38c0",
+          "calculatedAt": "2026-10-17T19:03:08.913Z",
+          "organizer": {
+            "datasets": "2026-09-22#4be0fac8",
+            "catalog": "2026-09-22#da43c64c",
+            "examples": "2026-09-22#6e738822",
+            "research": "svod 2026-09-23 + found_batch1-6@2026-09-23T21:13:10Z"
+          },
+          "paramDefsFrom": "db"
+        },
+        "scenarios": [
+          {
+            "key": "asis",
+            "name": "Как есть",
+            "kind": "asis",
+            "recommended": false,
+            "equipment": [],
+            "simVerdict": null,
+            "status": "ok",
+            "capexRub": 0,
+            "opexYearRub": 46872000,
+            "effectYearRub": 0,
+            "paybackYears": null,
+            "band": "none",
+            "roiTzPct": null,
+            "npvRub": null,
+            "discountedPaybackYears": null,
+            "tcoRub": 234360000,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p1",
+            "name": "Покупка — Ronavi H1500",
+            "kind": "purchase",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 38500000,
+            "opexYearRub": 37550397.77045109,
+            "effectYearRub": 9321602.229548909,
+            "paybackYears": 4.130191253812285,
+            "band": "moderate",
+            "roiTzPct": 122.98834064349231,
+            "npvRub": -4108652.477817145,
+            "discountedPaybackYears": null,
+            "tcoRub": 225509488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "r1",
+            "name": "Услуга (RaaS) — Ronavi H1500",
+            "kind": "raas",
+            "recommended": false,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "ronavi-h1500",
+                "productName": "Ronavi H1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 1
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 1540000,
+            "opexYearRub": 45816897.77045109,
+            "effectYearRub": 1055102.2295489088,
+            "paybackYears": 1.4595742070021036,
+            "band": "fast",
+            "roiTzPct": 342.5656589444509,
+            "npvRub": 2263407.408119062,
+            "discountedPaybackYears": 1.7108898852634389,
+            "tcoRub": 230624488.85225546,
+            "tcoYears": 5,
+            "refusal": null
+          },
+          {
+            "key": "p2",
+            "name": "Покупка — AMR 1500",
+            "kind": "purchase",
+            "recommended": true,
+            "equipment": [
+              {
+                "process": "pallet-transport",
+                "productSlug": "moros-amr-1500",
+                "productName": "AMR 1500 (грузоподъемность до 1 500 кг)",
+                "robots": 11,
+                "chargers": 2
+              }
+            ],
+            "simVerdict": "CONFIRMED",
+            "status": "ok",
+            "capexRub": 32780000,
+            "opexYearRub": 36851897.77045109,
+            "effectYearRub": 10020102.229548909,
+            "paybackYears": 3.271423708965064,
+            "band": "moderate",
+            "roiTzPct": 154.6842927020883,
+            "npvRub": 3983161.9148210594,
+            "discountedPaybackYears": 4.339329436859272,
+            "tcoRub": 216434488.8522555,
+            "tcoYears": 5,
+            "refusal": null
+          }
+        ],
+        "simKeys": [
+          "asis",
+          "p1",
+          "r1",
+          "p2"
+        ]
+      }
+    ],
+    "status": "PASS"
+  }
+}

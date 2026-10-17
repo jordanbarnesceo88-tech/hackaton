@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  */
 
 /** Колонки таблицы: ключ строки CashflowRow и русский заголовок. */
-export const CASHFLOW_COLUMNS: readonly { key: Exclude<keyof CashflowRow, "year">; label: string }[] = [
+export const CASHFLOW_COLUMNS: readonly { key: Exclude<keyof CashflowRow, "year" | "residualRub">; label: string }[] = [
   { key: "capexRub", label: "CAPEX" },
   { key: "opexRub", label: "OPEX" },
   { key: "batteryRub", label: "в т. ч. замена АКБ" },
@@ -45,6 +45,7 @@ export function CashflowTable({
   if (rows.length === 0) return null;
   const afterHorizon = (year: number) => horizonYears !== undefined && year > horizonYears;
   const hasTail = rows.some((r) => afterHorizon(r.year));
+  const columns = rows.some(row => (row.residualRub ?? 0) > 0) ? [...CASHFLOW_COLUMNS, { key: "residualRub" as const, label: "Чистая остаточная стоимость" }] : CASHFLOW_COLUMNS;
   return (
     <div className="flex flex-col gap-2">
       <h4 className="block-title">{title}</h4>
@@ -55,7 +56,7 @@ export function CashflowTable({
               <th scope="col" className={`${TH} text-left`}>
                 Год
               </th>
-              {CASHFLOW_COLUMNS.map((c) => (
+              {columns.map((c) => (
                 <th key={c.key} scope="col" className={TH}>
                   {c.label}
                 </th>
@@ -69,9 +70,9 @@ export function CashflowTable({
                   {r.year}
                   {afterHorizon(r.year) && <span className="ml-1 text-xs">(только TCO)</span>}
                 </th>
-                {CASHFLOW_COLUMNS.map((c) => (
-                  <td key={c.key} className={cn(TD, r[c.key] < 0 && !afterHorizon(r.year) && "text-destructive")}>
-                    {formatRub(r[c.key])}
+                {columns.map((c) => (
+                  <td key={c.key} className={cn(TD, (r[c.key] ?? 0) < 0 && !afterHorizon(r.year) && "text-destructive")}>
+                    {formatRub(r[c.key] ?? 0)}
                   </td>
                 ))}
               </tr>
@@ -82,6 +83,7 @@ export function CashflowTable({
       <p className="text-xs text-muted-foreground">
         Поток года = OPEX «Как есть» − OPEX сценария − докупка; год 0 — вложения. OPEX года уже содержит
         фактическую замену АКБ этого года.
+        {rows.some(row => (row.residualRub ?? 0) > 0) && " В конце периода TCO к потоку добавлена чистая остаточная стоимость собственных активов; TCO уменьшен на неё один раз."}
         {hasTail && " Годы после горизонта расчёта входят только в TCO, но не в NPV и ROI."}
       </p>
     </div>

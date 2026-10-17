@@ -1,10 +1,16 @@
-import { assignTasks, setPath } from "./dispatch";
+import { assignTasks, setPath, type SimDispatchGate } from "./dispatch";
 import { buildWarehouseLayout } from "./layout";
 import { bernoulliArrivals, createRng, nextRandom } from "./rng";
 import { positionAlong } from "./routing";
+import { validateSiteLayout } from "./site-layout";
 import { queueLength } from "./state";
 import type { SimEngineState, SimPointState, SimPrecheck, SimRobot, SimTask } from "./state";
 import type { SimInput } from "./types";
+
+/** Optional caller-owned motion reservation. Omitted by the production calculation. */
+export type SimMovementGate = (state: SimEngineState, robot: SimRobot, nextDistM: number) => boolean | number;
+/** Optional demo fault gate: a held robot neither moves nor completes handling/charging. */
+export type SimRobotStepGate = (state: SimEngineState, robot: SimRobot) => boolean;
 
 /**
  * Движок имитации склада: дискретное время с шагом 1 с, детерминированный (ТЗ §2.1.4 —
@@ -123,12 +129,13 @@ function precheckOf(input: SimInput, count: number, chargeModelled: boolean): Si
  * выполняется: `isDone` сразу истинно, а сводка даёт «не подтверждён: грузоподъёмность».
  */
 export function createSim(input: SimInput): SimEngineState {
-  const layout = buildWarehouseLayout(input.layout);
+  const invalidSite = input.siteLayout !== undefined && validateSiteLayout(input.siteLayout).length > 0;
+  const layout = input.siteLayout && !invalidSite ? input.siteLayout : buildWarehouseLayout(input.layout);
   const warmupS = Math.round(nonNegative(input.demand.warmupMin) * 60);
   const endS = warmupS + Math.round(nonNegative(input.demand.peakMin) * 60);
   const count = requestedFleet(input);
   const chargeModelled = isPositive(input.robots.autonomyH) && isPositive(input.robots.chargeMin);
-  const precheck = precheckOf(input, count, chargeModelled);
+  const precheck = invalidSite ? "invalid" : precheckOf(input, count, chargeModelled);
 
   const points: SimPointState[] = [...layout.receiving, ...layout.shipping, ...layout.chargers].map((p) => ({
     ...p,
@@ -276,7 +283,12 @@ function arrive(s: SimEngineState, r: SimRobot): void {
 }
 
 /** Проехать `dist` м по маршруту; при прибытии — переход к следующей фазе. */
-function move(s: SimEngineState, r: SimRobot, dist: number): void {
+function move(s: SimEngineState, r: SimRobot, dist: number, movementGate?: SimMovementGate): boolean {
+  if (movementGate) {
+    const decision = movementGate(s, r, Math.min(r.pathLenM, r.distM + dist));
+    if (decision === false) return false;
+    if (typeof decision === "number") dist = Math.max(0, Math.min(dist, decision - r.distM));
+  }
   r.distM += dist;
   if (r.distM >= r.pathLenM) {
     r.distM = r.pathLenM;
@@ -286,11 +298,12 @@ function move(s: SimEngineState, r: SimRobot, dist: number): void {
       r.y = end.y;
     }
     arrive(s, r);
-    return;
+    return true;
   }
   const p = positionAlong(r.path, r.distM);
   r.x = p.x;
   r.y = p.y;
+  return true;
 }
 
 /** Освободить точку, которую занимает робот. */
@@ -342,7 +355,7 @@ function charge(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean): voi
 /** Вид времени робота за шаг — для разложения времени парка. */
 type TimeKind = "loaded" | "empty" | "handling" | "waitPoint" | "charging" | "idle";
 
-function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean): void {
+function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean, movementGate?: SimMovementGate): void {
   const rb = s.input.robots;
   const acc = s.acc;
 
@@ -365,16 +378,13 @@ function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean): 
       kind = "idle";
       break;
     case "toPickup":
-      move(s, r, rb.speedMps * dt);
-      kind = "empty";
+      kind = move(s, r, rb.speedMps * dt, movementGate) ? "empty" : "waitPoint";
       break;
     case "toDrop":
-      move(s, r, rb.speedMps * rb.loadedSpeedFactor * dt);
-      kind = "loaded";
+      kind = move(s, r, rb.speedMps * rb.loadedSpeedFactor * dt, movementGate) ? "loaded" : "waitPoint";
       break;
     case "toCharger":
-      move(s, r, rb.speedMps * dt);
-      kind = "charging";
+      kind = move(s, r, rb.speedMps * dt, movementGate) ? "charging" : "waitPoint";
       break;
     case "waitPoint": {
       const p = s.points[r.pointIdx]!;
@@ -446,7 +456,7 @@ function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean): 
  * Вердикт и сохраняемая сводка считаются при dt = 1 с; другой шаг допустим, но даёт другие
  * числа (дискретизация движения и поступления заданий).
  */
-export function stepSim(state: SimEngineState, dtS = 1): void {
+export function stepSim(state: SimEngineState, dtS = 1, movementGate?: SimMovementGate, dispatchGate?: SimDispatchGate, robotStepGate?: SimRobotStepGate): void {
   if (isDone(state)) return;
   const dt = Number.isFinite(dtS) && dtS > 0 ? dtS : 1;
   const s = state;
@@ -459,12 +469,17 @@ export function stepSim(state: SimEngineState, dtS = 1): void {
   const arrivals = bernoulliArrivals(rand, perH / 3600, dt);
   for (let i = 0; i < arrivals; i++) addTask(s, rand, t, inWin);
 
-  assignTasks(s);
+  assignTasks(s, dispatchGate);
   if (inWin) {
     const q = queueLength(s);
     if (q > s.acc.queueMax) s.acc.queueMax = q;
   }
 
-  for (const r of s.robots) stepRobot(s, r, dt, inWin);
+  for (const r of s.robots) {
+    if (robotStepGate && !robotStepGate(s, r)) {
+      if (s.chargeModelled) { r.soc = Math.max(0, r.soc - dt / (s.input.robots.autonomyH! * 3600)); if (inWin && r.soc === 0) s.acc.socFloorS += dt; }
+      if (inWin) s.acc.waitPointS += dt;
+    } else stepRobot(s, r, dt, inWin, movementGate);
+  }
   s.tS = t + dt;
 }

@@ -13,8 +13,10 @@ import {
 import { rateLimit } from "@/lib/auth/rate-limit";
 import { prisma } from "@/lib/db/client";
 import { insertProject } from "@/lib/projects/queries";
+import { PROJECT_INPUT_MAX_BYTES } from "@/lib/projects/payload-limit";
 import { loadLiveInputs, type LiveInputs } from "@/lib/projects/recalc";
 import { sanitizeProjectName } from "@/lib/projects/validate";
+import { calculationFailure } from "@/lib/sim/server-execution";
 
 /**
  * POST /api/v1/projects — создать проект пользователя с расчётом (ТЗ §3.1.3, §3.8.1: объект из
@@ -29,7 +31,7 @@ import { sanitizeProjectName } from "@/lib/projects/validate";
  * `{ id, url, versions, summary, warnings, results }` и заголовок Location.
  */
 
-const MAX_BODY_BYTES = 200_000;
+const MAX_BODY_BYTES = PROJECT_INPUT_MAX_BYTES;
 /** Проектов за 15 минут на пользователя: каждый — расчёт с имитацией и запись в БД. */
 const RATE = { limit: 30, windowMs: 15 * 60 * 1000 } as const;
 const FIELDS: ReadonlySet<string> = new Set(["name", "facility", "params", "objectName", "scenarios"]);
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
 
   try {
     const { id, results } = await insertProject(prisma, live, {
+      signal: request.signal,
       userId,
       name,
       objectName,
@@ -88,6 +91,7 @@ export async function POST(request: Request) {
     return apiJson(
       {
         id,
+        revision: 0,
         url: `/projects/${id}`,
         versions: calcVersions(results, live),
         summary: summarizeResults(results),
@@ -98,6 +102,9 @@ export async function POST(request: Request) {
       { status: 201, headers: { Location: `/api/v1/projects/${id}` } },
     );
   } catch (e) {
+    const failure = calculationFailure(e);
+    if (failure) return apiError(failure.status, failure.message, undefined,
+      failure.retryAfterSec ? { "Retry-After": String(failure.retryAfterSec) } : undefined);
     // Пользователя из сессии нет в БД (база пересоздана) — внешний ключ не сходится.
     if (prismaCode(e) === "P2003") return apiError(401, "Сессия устарела — войдите на сайте заново");
     return dbUnavailable("POST /api/v1/projects", e);

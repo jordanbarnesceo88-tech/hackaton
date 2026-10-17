@@ -14,6 +14,7 @@ export const metadata: Metadata = { title: "Мои проекты — Платф
 function toListItem(p: ProjectListItem): ProjectsListItem {
   return {
     id: p.id,
+    revision: p.revision,
     name: p.name,
     objectName: p.objectName,
     facility: p.facility,

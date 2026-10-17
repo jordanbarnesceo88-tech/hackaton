@@ -1,10 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { exampleHref } from "../lib/wizard/example-scenario";
 
-test("anonymous flow: onboarding → compare → calculate", async ({ page }) => {
-  // Подбор стал пошаговым: отрасль → тип объекта → параметры → решения. Параметры
-  // спрашиваются ДО сравнения, иначе сравнению нечем ранжировать, кроме абстрактной цены
-  // за единицу производительности.
+test("legacy v1: onboarding → compare → calculate остаётся доступен по прежнему URL", async ({ page }) => {
+  // Сохранённые ссылки упрощённой модели продолжают работать. Основные входы сайта
+  // ведут в /demo; этот тест проверяет отдельный прежний путь, а не текущий onboarding.
   await page.goto("/onboarding");
   await page.getByRole("radio", { name: /Торговля и e-commerce/ }).click();
   await page.getByRole("link", { name: "Далее" }).click();
@@ -71,13 +70,16 @@ test("первый экран объясняет продукт и ведёт в
   // «в какой вы отрасли?».
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Откуда цифры/ })).toBeVisible();
+  const footer = page.locator("footer");
+  await expect(footer.getByRole("link", { name: "Откуда цифры: методика и источники", exact: true }))
+    .toHaveAttribute("href", "/methodology/tz");
+  await expect(footer.locator('a[href="/methodology"], a[href="/onboarding"]')).toHaveCount(0);
 
   await page.getByRole("link", { name: "Открыть демо-расчёт склада" }).click();
   await expect(page).toHaveURL(/\/demo/);
 });
 
-test("справочник показывает источники, выведенные из данных", async ({ page }) => {
+test("источники v1 сохранены, основной вход ведёт в новый расчёт, прежний подписан отдельно", async ({ page }) => {
   await page.goto("/methodology");
   await expect(page.getByRole("heading", { name: "Откуда цифры" })).toBeVisible();
   // Двадцать две цитаты: по два источника у каждого из семи классов, у трёх складских строк
@@ -88,7 +90,25 @@ test("справочник показывает источники, выведе
   await expect(rows).toHaveCount(22);
   await expect(page.getByRole("heading", { name: "Чем мы не даём себе соврать" })).toBeVisible();
 
-  // Отсюда же — вход в опрос упрощённой модели: с главной он убран.
-  await page.getByRole("link", { name: /Проверить свой объект/ }).click();
-  await expect(page).toHaveURL(/\/onboarding/);
+  // Общее действие больше не отправляет в прежнюю модель молча.
+  const footer = page.locator("footer");
+  const current = footer.getByRole("link", { name: "Проверить свой объект →", exact: true });
+  const legacy = footer.getByRole("link", { name: "Упрощённый расчёт v1 →", exact: true });
+  await expect(current).toHaveAttribute("href", "/demo");
+  await expect(legacy).toHaveAttribute("href", "/onboarding");
+  await current.click();
+  await expect(page).toHaveURL(/\/demo$/);
+  await page.goBack();
+  await legacy.click();
+  await expect(page).toHaveURL(/\/onboarding$/);
+});
+
+test("словарь возвращает к текущей методике и новому расчёту", async ({ page }) => {
+  await page.goto("/glossary");
+  const footer = page.locator("footer");
+  await footer.getByRole("link", { name: "Откуда цифры", exact: true }).click();
+  await expect(page).toHaveURL(/\/methodology\/tz$/);
+  await page.goBack();
+  await footer.getByRole("link", { name: "Проверить свой объект →", exact: true }).click();
+  await expect(page).toHaveURL(/\/demo$/);
 });

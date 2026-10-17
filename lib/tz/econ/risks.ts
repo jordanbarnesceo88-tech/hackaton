@@ -2,6 +2,7 @@ import { pluralRu } from "../../format/plural";
 import { normDef } from "../norms";
 import type { ItemResult, ProductForCalc, Risk, ScenarioItem, ScenarioResult, ScenarioSpec, SensitivityRow } from "../types";
 import { FACILITY_PARAM_KEYS, normsForSpec, optNum, type ScenarioContext } from "./context";
+import { costPackageWarnings } from "./cost-package";
 import { baseOutsideSourceRange } from "./sensitivity";
 import { fx, mrub, q, rangeText, rub, share, unitShort } from "./text";
 
@@ -75,9 +76,25 @@ export function scenarioRisks(
   const norms = spec ? normsForSpec(ctx, spec) : ctx.norms;
   const views = itemViews(ctx, result, spec);
   const ok = result.status === "ok" ? result : null;
+  if (ok?.operationsStaffing) {
+    const staffing = ok.operationsStaffing;
+    add("OPERATIONS_STAFFING_ASSUMPTION", "medium", `Дополнительные расходы на эксплуатационный персонал площадки: ${rub(staffing.annualCostRub)} в год, режим ${staffing.mode}. Основание: ${staffing.reason}. ${staffing.includedInService ? "Включение в оплачиваемый сервис — допущение, не подтверждённое договором; проверьте состав услуг" : "Оценка дополнительных расходов, не полная стоимость существующего сотрудника; подтвердите фактическую нагрузку и оплату"}`);
+  }
+  if (spec?.cashRealizationShare !== undefined) {
+    add("CASH_REALIZATION_ASSUMPTION", "medium", `Денежная реализация высвобождаемого ФОТ принята ${share(spec.cashRealizationShare)}: это оценочное допущение, а не автоматическое сокращение штата; высвобождаемая трудоёмкость считается отдельно`);
+  }
+  if ((spec?.terminalResidualRub ?? 0) > 0) {
+    add("RESIDUAL_VALUE_ASSUMPTION", ok && spec!.terminalResidualRub! > ok.capexRub ? "high" : "medium", `Остаточная стоимость ${rub(spec!.terminalResidualRub!)} принята как чистое поступление от собственных активов после ${ok?.tcoYears ?? "периода TCO"} лет. Это ручная оценка после налогов, демонтажа и вывоза; цена продажи не подтверждена${ok && spec!.terminalResidualRub! > ok.capexRub ? "; оценка выше исходного CAPEX — проверьте её обоснование" : ""}`);
+  }
 
   for (const v of views) {
+    if (v.spec?.automationCoverageOverride !== undefined) {
+      add("ANNUAL_COVERAGE_ASSUMPTION", "medium", `Годовой охват ${q(v.name)} ограничен оценкой ${share(v.spec.automationCoverageOverride)} и аналитической мощностью парка; короткий 3D-прогон не доказывает годовой охват`);
+    }
     const p = v.product;
+    if (result.kind === "purchase" && p && v.spec) {
+      for (const warning of costPackageWarnings(p, v.spec, norms)) add("COST_PACKAGE_SCOPE_UNCONFIRMED", "medium", `${q(v.name)}: ${warning}`);
+    }
     const r = v.result;
     const process = r ? ctx.processes[r.process] : v.spec ? ctx.processes[v.spec.process] : undefined;
     const unit = unitShort(process?.throughputUnit ?? "ед./ч");
@@ -210,7 +227,9 @@ export function scenarioRisks(
       add(
         "ROUTE_ESTIMATE",
         "low",
-        `Плечо перевозки ≈${fx(leg.routeLoadedM, 0)} м оценено по типовой планировке из площади и ширины проходов, а не по чертежу объекта`,
+        spec?.siteLayout
+          ? `Плечо перевозки ≈${fx(leg.routeLoadedM, 0)} м рассчитано по явной планировке и графу сценария; источник и геометрические допущения плана требуют отдельного подтверждения`
+          : `Плечо перевозки ≈${fx(leg.routeLoadedM, 0)} м оценено по типовой планировке из площади и ширины проходов, а не по чертежу объекта`,
       );
     }
     const pallets = ok.items.some((r) => r.process === "pallet-transport");

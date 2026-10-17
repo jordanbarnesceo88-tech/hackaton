@@ -14,6 +14,7 @@ import {
   scenarioFinance,
   scenarioTableRows,
   sourcesRows,
+  verdictCellText,
   type ReportResults,
 } from "./rows";
 import { equipmentRows, lineGroups, normsReportRows, selectionReportRows, simTable } from "./tables";
@@ -127,13 +128,27 @@ describe("таблица сценариев", () => {
   it("★ у рекомендуемого сценария, имитация и риски", () => {
     const rec = results.conclusion.recommendedScenarioKey;
     expect(rec).not.toBeNull();
-    expect(byKey("verdict").cells[col(rec ?? "")]).toBe("★ Рекомендуется");
+    expect(byKey("verdict").cells[col(rec ?? "")]).toBe("★ Предварительный финансовый выбор");
     expect(byKey("verdict").cells.filter((c) => c.includes("★"))).toHaveLength(1);
     expect(byKey("sim").cells[col("p1")]).toBe("✓ подтверждено");
     expect(byKey("sim").cells[col("p2")]).toBe("✗ не подтверждено: парк роботов");
     expect(byKey("sim").cells[col("r1")]).toBe("—");
     expect(byKey("risks").cells[col("p1")]).toMatch(/^\d+: /);
     expect(byKey("risks").cells[col("asis")]).toBe("нет");
+  });
+
+  it("сохранённый старый ключ не выдаёт провал потока за рекомендацию в экспорте", () => {
+    const failed: ScenarioOk = {
+      ...ok("r1"),
+      risks: [{ code: "SIM_NOT_CONFIRMED", severity: "high", text: "Не выполнен поток" }],
+    };
+    const old: ReportResults = {
+      ...results,
+      results: [ok("asis"), failed],
+      conclusion: { ...results.conclusion, recommendedScenarioKey: "r1" },
+    };
+    expect(scenarioColumns(old).some((c) => c.recommended)).toBe(false);
+    expect(verdictCellText(failed, "r1")).toBe("Не подтверждена нагрузка; финансовый расчёт — только для сравнения");
   });
 
   it("сценарий с ручным решением помечен ⚠ в заголовке", () => {

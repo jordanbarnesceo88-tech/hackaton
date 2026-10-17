@@ -7,6 +7,8 @@ import { resolveNorms } from "../tz/norms";
 import { applyDefaults } from "../tz/params/schema";
 import { processDef } from "../tz/processes";
 import type { ScenarioOk } from "../tz/types";
+import { withServerCalculation } from "../sim/server-execution";
+import { PROJECT_INPUT_MAX_BYTES } from "../projects/payload-limit";
 
 // Обработчики API v1 целиком, без Postgres: клиент БД, ограничитель частоты и сессия подменены,
 // живые входы расчёта — данные организатора из кода (как `print-demo-numbers --offline`).
@@ -68,6 +70,45 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("POST /api/v1/calculate", () => {
+  it("admits large project JSON to semantic validation and refuses bodies above the shared cap", async () => {
+    mocks.getSessionUser.mockResolvedValue({ userId: "u1", role: "USER", email: "test@local" });
+    const create = vi.fn(); mocks.prisma.project = { create };
+    for (const [route, url] of [[calculate, "/api/v1/calculate"], [projects, "/api/v1/projects"]] as const) {
+      // An unknown field proves transport admission without running a large fake calculation.
+      const large = await route.POST(jsonReq(url, "POST", { facility: "warehouse", padding: "x".repeat(2_433_182) }));
+      expect(large.status).toBe(422);
+      const tooLarge = await route.POST(jsonReq(url, "POST", { padding: "x".repeat(PROJECT_INPUT_MAX_BYTES) }));
+      expect(tooLarge.status).toBe(413);
+    }
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("busy calculation admission returns retryable503 on both compute routes without a DBwrite", async () => {
+    let release!: () => void;
+    const barrier = new Promise<void>(r => { release = r; });
+    const slots = [withServerCalculation(async()=>barrier), withServerCalculation(async()=>barrier)];
+    const create = vi.fn(); mocks.prisma.project = { create };
+    mocks.getSessionUser.mockResolvedValue({ userId: "u1", role: "USER", email: "test@local" });
+    try {
+      for (const res of [
+        await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "warehouse" })),
+        await projects.POST(jsonReq("/api/v1/projects", "POST", { name: "Must not create", facility: "warehouse" })),
+      ]) {
+        expect(res.status).toBe(503); expect(res.headers.get("retry-after")).toBe("2");
+        expect((await res.json()).error).toContain("два расчёта");
+      }
+      expect(create).not.toHaveBeenCalled();
+    } finally { release(); await Promise.all(slots); }
+  });
+
+  it("a cancelled compute request returns no successful calculation receipt", async () => {
+    const controller = new AbortController(); controller.abort();
+    const req = new Request("http://localhost/api/v1/calculate", { method: "POST", headers: JSON_HEADERS,
+      body: JSON.stringify({ facility: "warehouse" }), signal: controller.signal });
+    const res = await calculate.POST(req);
+    expect(res.status).toBe(499); expect((await res.json()).error).toContain("отменён");
+  });
+
   it("склад на демо-данных: те же числа, что у «Нового проекта» на тех же входах", async () => {
     const res = await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "warehouse" }));
     expect(res.status).toBe(200);

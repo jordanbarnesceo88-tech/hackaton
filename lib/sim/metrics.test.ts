@@ -134,6 +134,7 @@ describe("summarize и toStored", () => {
     expect(Object.keys(stored).sort()).toEqual(
       [
         "simModelVersion",
+        "inputKey",
         "seed",
         "scenarioKey",
         "fleet",

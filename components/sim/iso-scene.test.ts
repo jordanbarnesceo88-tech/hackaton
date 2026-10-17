@@ -60,7 +60,7 @@ describe("isoSceneSvg", () => {
     expect(count(svg, 'class="iso-bot"')).toBe(11);
     const loaded = state.robots.filter((r) => robotGlyph(r.phase, r.loaded) === "loaded").length;
     expect(count(svg, 'data-glyph="loaded"')).toBe(loaded);
-    expect(svg).toContain(">00:25 · пик<");
+    expect(svg).toContain(">00:25:00 · пик<");
     const busy = state.points.filter((p) => p.holder !== null).length;
     expect(count(svg, 'data-busy="1"')).toBe(busy);
   });

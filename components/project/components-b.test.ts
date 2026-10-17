@@ -124,9 +124,39 @@ describe("ScenarioTable: порядок строк", () => {
   it("рекомендуемый сценарий помечен ★ ровно один раз и совпадает с переданным ключом", () => {
     const html = renderToStaticMarkup(createElement(ScenarioTable, { results, tcoYears: 5, recommendedKey: "r1" }));
     expect(html.match(/★/g)?.length).toBe(2); // заголовок колонки и строка «Вывод»
-    expect(text(html)).toContain("★ Рекомендуется");
+    expect(text(html)).toContain("★ Предварительный финансовый выбор");
     const none = renderToStaticMarkup(createElement(ScenarioTable, { results, tcoYears: 5, recommendedKey: null }));
     expect(none).not.toContain("★");
+  });
+
+  it("старый ключ рекомендации не возвращает ★ сценарию с проваленной нагрузкой", () => {
+    const failed: ScenarioOk = {
+      ...ok(results, "r1"),
+      risks: [{ code: "SIM_NOT_CONFIRMED", severity: "high", text: "Не выполнен поток" }],
+    };
+    const html = renderToStaticMarkup(createElement(ScenarioTable, {
+      results: [ok(results, "asis"), failed], tcoYears: 5, recommendedKey: "r1",
+    }));
+    expect(html).not.toContain("★");
+    expect(text(html)).toContain("Не подтверждена нагрузка; финансовый расчёт — только для сравнения");
+    expect(scenarioCell("verdict", failed, { recommended: true, bands: DEFAULT_NORMS }).text).not.toContain("★");
+  });
+
+  it("выбор меньшего NPV после провала лидера не называется максимумом среди всех окупаемых", () => {
+    const failed: ScenarioOk = {
+      ...ok(results, "r1"), key: "failed", name: "Проваленный лидер", npvRub: 100,
+      risks: [{ code: "SIM_NOT_CONFIRMED", severity: "high", text: "Не выполнен поток" }],
+    };
+    const selected: ScenarioOk = { ...ok(results, "r1"), key: "selected", name: "Другой вариант", npvRub: 50 };
+    const html = renderToStaticMarkup(createElement(ScenarioTable, {
+      results: [ok(results, "asis"), failed, selected], tcoYears: 5,
+    }));
+    expect(html.match(/★/g)?.length).toBe(2);
+    const heads = [...html.matchAll(/<th scope="col"[^>]*>(.*?)<\/th>/g)].map((m) => text(m[1] ?? ""));
+    expect(heads.find((h) => h.includes("★"))).toContain("Другой вариант");
+    expect(text(html)).not.toContain("наибольший NPV среди окупаемых");
+    expect(scenarioCell("verdict", selected, { recommended: true, bands: DEFAULT_NORMS }).text)
+      .toBe("★ Предварительный финансовый выбор");
   });
 });
 

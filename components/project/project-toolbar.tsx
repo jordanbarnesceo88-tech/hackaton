@@ -13,6 +13,7 @@ import {
   type SaveProjectResult,
 } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
+import { projectInputSizeIssue } from "@/lib/projects/payload-limit";
 
 /**
  * Панель действий рабочей области (ТЗ §2.2 шаг 8 — сохранение и отчёт; §3.1.3 — копирование и
@@ -25,7 +26,7 @@ import { cn } from "@/lib/utils";
  *   шага, поэтому в панели шага 8 её нет;
  * - `ProjectToolbar` — действия шага 8. Владелец: «Сохранить проект» (серверное действие
  *   пересчитывает модель и имитацию само, результаты браузера не принимаются), «Отчёт (PDF)»,
- *   «Excel», «CSV», «Копировать проект», «Удалить проект». Excel и CSV строятся сервером по
+ *   «Excel», «CSV», «Копировать проект», «Удалить проект». PDF, Excel и CSV строятся сервером по
  *   сохранённому расчёту, поэтому до сохранения правок они недоступны («сначала сохраните
  *   проект»). Гость: «CSV» собирается прямо в браузере (lib/report/tz/csv) и ссылка «Войти,
  *   чтобы сохранить проект».
@@ -78,14 +79,10 @@ export function RecalcBar({ onRecalc, readOnly = false, stale, statusText, simTe
       <Button type="button" size="sm" onClick={onRecalc} disabled={readOnly}>
         Пересчитать
       </Button>
-      <p role="status" aria-live="polite" className="text-muted-foreground tabular-nums">
-        {statusText}
-      </p>
-      {simText && (
-        <p aria-live="polite" className="text-muted-foreground">
-          {simText}
-        </p>
-      )}
+      <details className="min-w-0 text-muted-foreground"><summary className="cursor-pointer py-1">Детали расчёта</summary><div className="grid gap-1 py-2">
+        <p role="status" aria-live="polite" className="break-words tabular-nums">{statusText}</p>
+        {simText && <p aria-live="polite">{simText}</p>}
+      </div></details>
       <p
         role="status"
         data-tone="warn"
@@ -180,10 +177,12 @@ function DownloadLink({ href, label, disabled, hintId }: { href: string; label: 
 }
 
 export type ProjectToolbarProps = {
+  revision?: number;
   mode: "guest" | "owner" | "readonly";
   /** id проекта (владелец и режим чтения). */
   projectId?: string;
   projectName: string;
+  reportScenarioKey?: string;
   /** Засеянный демо-проект: сохранение и удаление закрыты, копирование открыто. */
   isDemo?: boolean;
   /** Есть несохранённые изменения: выгрузки сервера отражали бы прежнюю версию. */
@@ -198,12 +197,14 @@ export type ProjectToolbarProps = {
   savedAtText?: string | null;
 };
 
-type SaveStatus = { kind: "idle" } | { kind: "ok"; text: string } | { kind: "error"; text: string };
+type SaveStatus = { kind: "idle" } | { kind: "ok"; text: string } | { kind: "error" | "conflict"; text: string };
 
 export function ProjectToolbar({
+  revision,
   mode,
   projectId,
   projectName,
+  reportScenarioKey,
   isDemo = false,
   dirty,
   getSaveInput,
@@ -219,6 +220,11 @@ export function ProjectToolbar({
   function save() {
     if (!projectId || !getSaveInput) return;
     const input = getSaveInput();
+    const sizeIssue = projectInputSizeIssue(input);
+    if (sizeIssue) {
+      setStatus({ kind: "error", text: `Не удалось сохранить: ${sizeIssue}. Несохранённые правки остаются в этой вкладке` });
+      return;
+    }
     setStatus({ kind: "idle" });
     startSave(async () => {
       let next: SaveStatus;
@@ -228,7 +234,7 @@ export function ProjectToolbar({
           next = { kind: "ok", text: savedText(r.calculatedAt) };
           onSaved?.(r, input);
         } else {
-          next = { kind: "error", text: saveFailureText(r.message) };
+          next = { kind: r.reason === "conflict" ? "conflict" : "error", text: r.reason === "conflict" ? r.message : saveFailureText(r.message) };
         }
       } catch (e) {
         unstable_rethrow(e);
@@ -297,9 +303,15 @@ export function ProjectToolbar({
             {saving ? "Сохраняем проект…" : "Сохранить проект"}
           </Button>
         </div>
-        <Link href={`/projects/${encodeURIComponent(id)}/report`} className={buttonVariants({ variant: "outline" })}>
-          Отчёт (PDF)
-        </Link>
+        {exportsDisabled ? (
+          <Button type="button" variant="outline" disabled aria-describedby={hintId}>
+            Отчёт (PDF)
+          </Button>
+        ) : (
+          <Link href={`/projects/${encodeURIComponent(id)}/report${reportScenarioKey ? `?scenario=${encodeURIComponent(reportScenarioKey)}` : ""}`} className={buttonVariants({ variant: "outline" })}>
+            Отчёт (PDF)
+          </Link>
+        )}
         <DownloadLink
           href={`/projects/${encodeURIComponent(id)}/export.xlsx`}
           label="Excel"
@@ -318,7 +330,7 @@ export function ProjectToolbar({
           pendingLabel="Копируем…"
         />
         <ProjectActionForm
-          run={() => deleteProjectAction(id)}
+          run={() => deleteProjectAction(id, revision)}
           label="Удалить проект"
           pendingLabel="Удаляем…"
           variant="destructive"
@@ -328,13 +340,14 @@ export function ProjectToolbar({
         />
       </div>
       <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-        <p role="status" aria-live="polite" className={cn("text-sm [&:empty]:hidden", status.kind === "error" ? "text-destructive" : "text-foreground")}>
+        <p role="status" aria-live="polite" className={cn("text-sm [&:empty]:hidden", status.kind === "error" || status.kind === "conflict" ? "text-destructive" : "text-foreground")}>
           {status.kind === "idle" ? "" : status.text}
         </p>
+        {status.kind === "conflict" && <a href={`/projects/${encodeURIComponent(id)}`} target="_blank" rel="noreferrer" className="text-primary underline">Открыть актуальную версию в новой вкладке; оставить этот черновик</a>}
         {saveHint && <p>{saveHint}</p>}
         <p id={hintId}>
           {exportsDisabled
-            ? "Excel и CSV строятся по сохранённому расчёту: сначала сохраните проект."
+            ? "Отчёт (PDF), Excel и CSV строятся по сохранённому расчёту: сначала сохраните проект."
             : "Отчёт (PDF), Excel и CSV строятся по сохранённому расчёту."}
           {savedAtText ? ` Сохранённая версия: ${savedAtText}.` : ""}
         </p>

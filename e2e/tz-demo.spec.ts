@@ -45,6 +45,7 @@ test("демо склада: сценарии в одной таблице, ст
     await expect(scenarios.getByRole("columnheader", { name }), `столбец «${name}»`).toBeVisible();
   }
   // Видимый статус расчёта (ТЗ §4.3.3).
+  await page.getByText("Детали расчёта", { exact: true }).click();
   await expect(page.getByText(/Расчёт выполнен за/).first()).toBeVisible();
   await expectNoHorizontalScroll(page);
 

@@ -1,9 +1,14 @@
 import { getCalcProducts, getNorms, getParamDefinitions, type Db } from "../catalog/queries";
 import { baseValuesFor, paramSpecsFor } from "../data/organizer/params";
 import { toStored, type SimRunSummary } from "../sim/metrics";
-import { runSimSync } from "../sim/runner";
-import { minStableFleet } from "../sim/sweep";
+import { runSim, runSimSync } from "../sim/runner";
+import { minStableFleet, minStableFleetAsync } from "../sim/sweep";
 import type { SimInput, SimSummaryStored } from "../sim/types";
+import { PROJECT_SPATIAL_BUDGET_MS, recheckProjectSpatialEvidence, recheckProjectSpatialEvidenceAsync } from "../sim/spatial-server";
+import { checkExecution, type CooperativeOptions } from "../sim/cooperative";
+import { withServerCalculation, yieldServer } from "../sim/server-execution";
+import { buildWarehouseLayout } from "../sim/layout";
+import { normsForSpec } from "../tz/econ/context";
 import {
   buildProjectModel,
   projectDataVersion,
@@ -17,6 +22,7 @@ import { timed } from "../tz/timing";
 import type { ParamSpec, ParamValues, ProductForCalc, ProjectResults, ScenarioSpec } from "../tz/types";
 import { stableJson } from "../tz/version";
 import { initialScenarios } from "./defaults";
+import { projectSnapshotModel } from "./archive";
 
 /**
  * Пересчёт проекта на сервере (ТЗ §3.1.5, §3.6.2): живые данные из БД или снимок проекта →
@@ -46,6 +52,7 @@ export type ProjectSnapshot = Pick<ProjectResults, "productSnapshots" | "normsUs
 
 /** Вход пересчёта проекта. */
 export type ComputeProjectInput = {
+  signal?: AbortSignal;
   facility: string;
   params: ParamValues;
   /** Сценарии; не заданы — сценарии по умолчанию из подбора (initialScenarios). */
@@ -99,6 +106,8 @@ export function normsFromSnapshot(normsUsed: Readonly<Record<string, number>>): 
 /** Параметры прогонов имитации. */
 export type ProjectSimOptions = {
   now?: () => number;
+  /** Общий бюджет основных прогонов и подбора; по умолчанию 60 с. */
+  budgetMs?: number;
   /** Бюджет подбора минимального парка на сценарий, мс. */
   minFleetBudgetMs?: number;
   /** Общий бюджет подборов минимального парка на проект, мс. */
@@ -124,12 +133,13 @@ export function runProjectSims(model: ProjectModel, opts: ProjectSimOptions = {}
   const perScenarioMs = opts.minFleetBudgetMs ?? MIN_FLEET_BUDGET_MS;
   const projectMs = opts.projectBudgetMs ?? PROJECT_MIN_FLEET_BUDGET_MS;
   const t0 = now();
+  const deadline = t0 + (opts.budgetMs ?? 60_000);
   const runs = new Map<string, SimRunSummary>();
   const run = (input: SimInput): SimRunSummary => {
     const key = stableJson(input);
     let s = runs.get(key);
     if (!s) {
-      s = runSimSync(input, { now });
+      s = runSimSync(input, { now, budgetMs: Math.max(0, deadline - now()) });
       runs.set(key, s);
     }
     return s;
@@ -138,7 +148,7 @@ export function runProjectSims(model: ProjectModel, opts: ProjectSimOptions = {}
   const minOf = (input: SimInput): number | null => {
     const key = stableJson(input);
     if (mins.has(key)) return mins.get(key) ?? null;
-    const left = projectMs - (now() - t0);
+    const left = Math.min(projectMs - (now() - t0), deadline - now());
     if (!(left > 0)) {
       mins.set(key, null);
       return null;
@@ -167,11 +177,70 @@ export function runProjectSims(model: ProjectModel, opts: ProjectSimOptions = {}
       ...s,
       scenarioKey: spec.key,
       assumedUtilPct: si.assumedUtilPct ?? s.assumedUtilPct,
-      minStableFleet: minOf(si.calculated),
+      minStableFleet: null,
       fleetByNorm: si.byNorm ? si.byNorm.robots.count : null,
       verdictByNorm: verdictOf(byNorm),
     });
   }
+  // Сначала проверяем все основные парки: необязательный перебор не отнимает их бюджет.
+  for (const spec of model.scenarios) {
+    const calculated = model.simInputs[spec.key]?.calculated;
+    const summary = out[spec.key];
+    if (calculated && summary) summary.minStableFleet = minOf(calculated);
+  }
+  return out;
+}
+
+/** HTTP/server-action path: canonical 2D runs and optional prefix searches yield to I/O. */
+export async function runProjectSimsAsync(model: ProjectModel, options: CooperativeOptions): Promise<Record<string, SimSummaryStored | null>> {
+  const now = options.now ?? defaultNow;
+  const started = now(), deadline = options.deadline ?? started + 60_000;
+  const runs = new Map<string, SimRunSummary>();
+  const run = async (input: SimInput): Promise<SimRunSummary> => {
+    checkExecution({ ...options, now, deadline });
+    const key = stableJson(input);
+    let summary = runs.get(key);
+    if (!summary) {
+      await (options.yieldFn ?? yieldServer)();
+      checkExecution({ ...options, now, deadline });
+      summary = await runSim(input, { now, signal: options.signal, budgetMs: Math.max(0, deadline - now()),
+        sliceMs: options.sliceMs ?? 8, yieldFn: options.yieldFn ?? yieldServer });
+      runs.set(key, summary);
+    }
+    return summary;
+  };
+  const out: Record<string, SimSummaryStored | null> = {};
+  for (const spec of model.scenarios) {
+    checkExecution({ ...options, now, deadline });
+    const si = model.simInputs[spec.key];
+    if (!si?.calculated) { out[spec.key] = null; continue; }
+    const summary = await run(si.calculated);
+    const byNorm = si.byNorm ? await run(si.byNorm) : null;
+    out[spec.key] = toStored({ ...summary, scenarioKey: spec.key, assumedUtilPct: si.assumedUtilPct ?? summary.assumedUtilPct,
+      minStableFleet: null, fleetByNorm: si.byNorm?.robots.count ?? null, verdictByNorm: verdictOf(byNorm) });
+  }
+  const mins = new Map<string, number | null>();
+  for (const spec of model.scenarios) {
+    checkExecution({ ...options, now, deadline });
+    const input = model.simInputs[spec.key]?.calculated, summary = out[spec.key];
+    if (!input || !summary) continue;
+    const key = stableJson(input);
+    if (!mins.has(key)) {
+      const left = Math.min(PROJECT_MIN_FLEET_BUDGET_MS - (now() - started), deadline - now());
+      let minimum: number | null = null;
+      if (left > 0) {
+        try { minimum = await minStableFleetAsync(input, { min: 1, max: 2 * input.robots.count }, {
+          now, signal: options.signal, budgetMs: Math.min(MIN_FLEET_BUDGET_MS, left),
+          sliceMs: options.sliceMs ?? 8, yieldFn: options.yieldFn ?? yieldServer,
+        }); } catch (error) {
+          if (!(error instanceof Error && error.name === "SimBudgetExceeded")) throw error;
+        }
+      }
+      mins.set(key, minimum);
+    }
+    summary.minStableFleet = mins.get(key) ?? null;
+  }
+  checkExecution({ ...options, now, deadline });
   return out;
 }
 
@@ -182,6 +251,8 @@ export function runProjectSims(model: ProjectModel, opts: ProjectSimOptions = {}
  * сценарии по умолчанию из подбора.
  */
 export function resultsFromInputs(live: LiveInputs, input: ComputeProjectInput): ComputedProject {
+  const now = input.now ?? defaultNow;
+  const deadline = now() + 60_000;
   const snap = input.snapshot ?? null;
   const common = {
     facility: input.facility,
@@ -192,10 +263,46 @@ export function resultsFromInputs(live: LiveInputs, input: ComputeProjectInput):
   };
   const base: BuildProjectModelInput = { ...common, scenarios: input.scenarios ?? initialScenarios(common) };
   const first = buildProjectModel(base);
-  const sims = runProjectSims(first, { now: input.now });
+  base.scenarios = recheckProjectSpatialEvidence(first, { now, budgetMs: Math.min(PROJECT_SPATIAL_BUDGET_MS, Math.max(0, deadline - now())) });
+  const sims = runProjectSims(first, { now, budgetMs: Math.max(0, deadline - now()) });
   const model = buildProjectModel({ ...base, sims });
-  const results: ProjectResults = { ...storedPartOf(model), calculatedAt: new Date().toISOString(), sim: sims };
+  const results: ProjectResults = { ...storedPartOf(model), calculatedAt: new Date().toISOString(), sim: sims,
+    runtime: { layout: structuredClone(model.layout), simInputs: structuredClone(model.simInputs), paramDefs: structuredClone(live.paramDefs),
+      layouts: Object.fromEntries(Object.entries(model.simInputs).flatMap(([key, entry]) => entry.calculated
+        ? [[key, structuredClone(entry.calculated.siteLayout ?? buildWarehouseLayout(entry.calculated.layout))]] : [])),
+      normsByScenario: Object.fromEntries(model.scenarios.map(spec => [spec.key, normsForSpec({ norms: model.normsUsed }, spec)])) } };
   return { results, model };
+}
+
+/** One admitted job, one absolute budget including preparation, proof replay and final projection. */
+export async function resultsFromInputsAsync(live: LiveInputs, input: ComputeProjectInput,
+  options: CooperativeOptions & { budgetMs?: number; spatialBudgetMs?: number } = {}): Promise<ComputedProject> {
+  const now = options.now ?? input.now ?? defaultNow;
+  const execution = { ...options, now, signal: input.signal ?? options.signal,
+    deadline: Math.min(options.deadline ?? Infinity, now() + (options.budgetMs ?? 60_000)), yieldFn: options.yieldFn ?? yieldServer };
+  return withServerCalculation(async () => {
+    checkExecution(execution);
+    await execution.yieldFn();
+    checkExecution(execution);
+    const snap = input.snapshot ?? null;
+    const common = { facility: input.facility, params: input.params, paramDefs: live.paramDefs,
+      products: snap ? withSnapshotProducts(live.products, snap.productSnapshots) : live.products,
+      norms: snap ? normsFromSnapshot(snap.normsUsed) : live.norms };
+    const base: BuildProjectModelInput = { ...common, scenarios: input.scenarios ?? initialScenarios(common) };
+    const first = buildProjectModel(base);
+    checkExecution(execution);
+    base.scenarios = await recheckProjectSpatialEvidenceAsync(first, { ...execution,
+      budgetMs: Math.min(options.spatialBudgetMs ?? PROJECT_SPATIAL_BUDGET_MS, Math.max(0, execution.deadline - now())) });
+    const sims = await runProjectSimsAsync(first, execution);
+    const model = buildProjectModel({ ...base, sims });
+    const results: ProjectResults = { ...storedPartOf(model), calculatedAt: new Date().toISOString(), sim: sims,
+      runtime: { layout: structuredClone(model.layout), simInputs: structuredClone(model.simInputs), paramDefs: structuredClone(live.paramDefs),
+        layouts: Object.fromEntries(Object.entries(model.simInputs).flatMap(([key, entry]) => entry.calculated
+          ? [[key, structuredClone(entry.calculated.siteLayout ?? buildWarehouseLayout(entry.calculated.layout))]] : [])),
+        normsByScenario: Object.fromEntries(model.scenarios.map(spec => [spec.key, normsForSpec({ norms: model.normsUsed }, spec)])) } };
+    checkExecution(execution);
+    return { model, results };
+  }, execution);
 }
 
 /**
@@ -204,7 +311,7 @@ export function resultsFromInputs(live: LiveInputs, input: ComputeProjectInput):
  */
 export async function computeProjectResults(db: Db, input: ComputeProjectInput): Promise<ComputedProject> {
   const live = await loadLiveInputs(db, input.facility);
-  return resultsFromInputs(live, input);
+  return resultsFromInputsAsync(live, input);
 }
 
 /**
@@ -240,15 +347,8 @@ export async function liveDataVersion(
  * с сохранённым расчётом, а «Пересчитать» в браузере продолжает считать на тех же данных.
  */
 export function reproduceModel(live: LiveInputs, stored: ProjectResults): ProjectModel {
-  return buildProjectModel({
-    facility: stored.facility,
-    params: stored.paramsUsed,
-    paramDefs: live.paramDefs,
-    scenarios: stored.scenarios,
-    products: withSnapshotProducts(live.products, stored.productSnapshots),
-    norms: normsFromSnapshot(stored.normsUsed),
-    sims: stored.sim,
-  });
+  void live;
+  return projectSnapshotModel(stored);
 }
 
 /** Новый проект на базовых значениях организатора: параметры, сценарии и модель с временем. */

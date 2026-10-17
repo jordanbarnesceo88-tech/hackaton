@@ -1,6 +1,7 @@
 import { createSim, isDone, stepSim } from "./engine";
 import { summarize, type SimRunSummary, type SimSummaryMeta } from "./metrics";
 import type { SimInput } from "./types";
+import type { SimEngineState } from "./state";
 
 /**
  * Запуск прогона до конца: синхронно (сервер при сохранении проекта) или по частям с
@@ -13,13 +14,26 @@ import type { SimInput } from "./types";
 export type RunSyncOptions = Omit<SimSummaryMeta, "durationMs"> & {
   /** Часы для измерения `durationMs`; без них длительность 0. */
   now?: () => number;
+  budgetMs?: number;
+  signal?: AbortSignal;
 };
 
 /** Прогон до конца за один вызов. Детерминирован: одинаковый вход — одинаковая сводка. */
 export function runSimSync(input: SimInput, opts: RunSyncOptions = {}): SimRunSummary {
   const t0 = opts.now ? opts.now() : 0;
+  const budgetMs = opts.budgetMs ?? 60_000;
+  const check = () => {
+    if (opts.signal?.aborted) throw abortError();
+    if (!(budgetMs > 0) || (opts.now && opts.now() - t0 > budgetMs)) throw budgetError(budgetMs);
+  };
+  check();
   const state = createSim(input);
-  while (!isDone(state)) stepSim(state);
+  let steps = 0;
+  while (!isDone(state)) {
+    stepSim(state);
+    if (++steps % STEPS_PER_CLOCK_CHECK === 0) check();
+  }
+  check();
   const durationMs = opts.now ? opts.now() - t0 : 0;
   return summarize(state, { scenarioKey: opts.scenarioKey, assumedUtilPct: opts.assumedUtilPct, durationMs });
 }
@@ -65,37 +79,50 @@ function budgetError(budgetMs: number): Error {
  * `onProgress` и управление уступается странице. Результат совпадает с `runSimSync` бит-в-бит
  * (кроме `durationMs`): нарезка на части не меняет последовательность шагов.
  */
-export async function runSim(input: SimInput, opts: RunOptions): Promise<SimRunSummary> {
+export async function runSimState(input: SimInput, opts: RunOptions): Promise<{ state: SimEngineState; summary: SimRunSummary; durationMs: number }> {
   const budgetMs = opts.budgetMs ?? 60_000;
   const sliceMs = opts.sliceMs ?? 10;
   const yieldFn = opts.yieldFn ?? (() => Promise.resolve());
   const now = opts.now;
 
   const t0 = now();
+  const check = () => {
+    if (opts.signal?.aborted) throw abortError();
+    if (!(budgetMs > 0) || now() - t0 > budgetMs) throw budgetError(budgetMs);
+  };
+  check();
   const state = createSim(input);
   const span = state.endS > 0 ? state.endS : 1;
   // Прогон, отклонённый предварительной проверкой, завершён сразу — прогресс всё равно 100 %.
   if (isDone(state)) opts.onProgress?.(100);
 
   while (!isDone(state)) {
-    if (opts.signal?.aborted) throw abortError();
+    check();
     const sliceStart = now();
     let steps = 0;
     while (!isDone(state)) {
       stepSim(state);
       steps++;
-      if (steps % STEPS_PER_CLOCK_CHECK === 0 && now() - sliceStart >= sliceMs) break;
+      if (steps % STEPS_PER_CLOCK_CHECK === 0) {
+        check();
+        if (now() - sliceStart >= sliceMs) break;
+      }
     }
-    const elapsed = now() - t0;
+    check();
     opts.onProgress?.(isDone(state) ? 100 : Math.min(100, (100 * state.tS) / span));
-    if (!isDone(state) && elapsed > budgetMs) throw budgetError(budgetMs);
     if (!isDone(state)) await yieldFn();
   }
-  if (opts.signal?.aborted) throw abortError();
+  check();
 
-  return summarize(state, {
+  const durationMs = now() - t0;
+  const summary = summarize(state, {
     scenarioKey: opts.scenarioKey,
     assumedUtilPct: opts.assumedUtilPct,
-    durationMs: now() - t0,
+    durationMs,
   });
+  return { state, summary, durationMs };
+}
+
+export async function runSim(input: SimInput, opts: RunOptions): Promise<SimRunSummary> {
+  return (await runSimState(input, opts)).summary;
 }

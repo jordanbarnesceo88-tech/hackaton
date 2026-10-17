@@ -125,7 +125,7 @@ export function SimControls({
               aria-pressed={speed === s}
               onClick={() => onSpeed(s)}
             >
-              ×{s}
+              {s === 480 ? "Обзор ×480" : `×${s}`}
             </button>
           ))}
         </div>

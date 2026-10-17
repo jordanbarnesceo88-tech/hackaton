@@ -91,6 +91,7 @@ function colgroupHeadings(html: string): string[] {
 const SECTION_TITLES = [
   "1. Итоги",
   "2. Сравнение сценариев",
+  "План пилота и оценочный бюджет",
   "3. Состав оборудования",
   "4. Имитация",
   "5. Чувствительность",
@@ -172,12 +173,24 @@ describe("ProjectReport — печатный отчёт", () => {
     expect(text).toContain(MANUAL_NOTE);
   });
 
-  it("имитация: вердикт, показатели и серверная схема склада в SVG", () => {
+  it("старый архив показывает сохранённую имитацию без генерации новой схемы", () => {
     expect(text).toContain("✗ не подтверждено: парк роботов");
     expect(text).toContain("Достигнуто, пал./ч");
+    expect(html).not.toMatch(/<svg[^>]*role="img"[^>]*aria-label="Схема склада/);
+    expect(text).toContain("не сохранена в архиве");
+    expect(text).toContain("Текущий алгоритм планировки не запускается при чтении");
+  });
+
+  it("новый архив рисует сохранённую схему и не подменяет её по новым параметрам", () => {
+    const results = fixtureResults();
+    const plans = Object.fromEntries(results.results.flatMap(r => r.kind !== "asis" && r.items[0] ? [[r.key, reportLayout(results.paramsUsed, r.items[0].chargers)!]] : []));
+    results.runtime = { layout: null, simInputs: {}, layouts: plans };
+    results.paramsUsed.activeAreaM2 = 900000;
+    const html = renderReport(results), text = textOf(html);
     expect(html).toMatch(/<svg[^>]*role="img"[^>]*aria-label="Схема склада/);
-    expect(text).toContain("Схема склада:");
+    expect(text).toContain("Сохранённая планировка расчёта");
     for (const l of LAYOUT_LEGEND) expect(text).toContain(l.label);
+    expect(layoutGroups(results)[0]!.layout).toEqual(Object.values(plans)[0]);
   });
 
   it("параметры: все описания, источник значения и ⚠ за диапазоном", () => {
@@ -493,6 +506,7 @@ describe("layout-svg — схема склада", () => {
 function reportData(results: ProjectResults | null, name = "Склад (демо) Север"): ReportData {
   const project = {
     id: "proj-1",
+    revision: 0,
     userId: "u1",
     name,
     objectName: null,

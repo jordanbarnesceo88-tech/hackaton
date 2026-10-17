@@ -81,6 +81,7 @@ export {
   horizonFlip,
   isViableScenario,
   pickRecommended,
+  simulationFailure,
   type HorizonFlip,
   type ReinvestNote,
 } from "./conclusion";

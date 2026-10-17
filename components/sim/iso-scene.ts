@@ -298,7 +298,8 @@ const ISO_RULES = [
   ".iso-bot .b-box{fill:var(--iso-cargo);stroke:var(--iso-cargo-line);stroke-width:.8}",
   ".iso-bot .b-tape{fill:none;stroke:var(--iso-cargo-line);stroke-width:.8}",
   ".iso-bot .b-bolt{fill:var(--iso-warn);stroke:var(--iso-bot-line);stroke-width:.8}",
-  ".iso-route{fill:none;stroke:var(--iso-route);stroke-width:1.8;stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round;animation:iso-march 1.1s linear infinite}",
+  ".iso-route{fill:none;stroke:var(--iso-route);stroke-width:1.8;stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round;animation:iso-march 1.1s linear infinite;animation-play-state:paused}",
+  '.iso-root[data-playing="true"] .iso-route{animation-play-state:running}',
   '.iso-route[data-kind="empty"]{opacity:.55}',
   '.iso-route[data-kind="charge"]{stroke:var(--iso-route-charge)}',
   "@keyframes iso-march{to{stroke-dashoffset:-18}}",
@@ -315,7 +316,7 @@ export function isoStyleSheet(mode: "auto" | "light"): string {
   const light = `.iso-root{${paletteVars(ISO_LIGHT)}}`;
   if (mode === "light") return light + ISO_RULES;
   const dark = paletteVars(ISO_DARK);
-  return `${light}@media screen and (prefers-color-scheme:dark){.iso-root{${dark}}}@media screen{.dark .iso-root{${dark}}}${ISO_RULES}`;
+  return `${light}@media screen and (prefers-color-scheme:dark){.iso-root:not(.light *, .light){${dark}}}@media screen{.dark .iso-root{${dark}}}${ISO_RULES}`;
 }
 
 // ——————————————————————————— Статичная сцена ———————————————————————————

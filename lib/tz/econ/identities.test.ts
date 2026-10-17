@@ -55,8 +55,9 @@ describe("тождества ROI, окупаемости и TCO", () => {
     // Срок службы по нормативу 7 лет < T = 10: докупка 10 × 2 700 000 в год 7.
     expect(p.tcoYears).toBe(10);
     expect(p.cashflows.map((c) => c.reinvestRub)).toEqual([0, 0, 0, 0, 0, 0, 0, 27_000_000, 0, 0, 0]);
-    // АКБ раз в 4 года: годы 4 и 8 (12 > T).
-    expect(p.cashflows.filter((c) => c.batteryRub > 0).map((c) => c.year)).toEqual([4, 8]);
+    // Новая техника в год 7 включает АКБ: следующая замена в год 11, за горизонтом.
+    expect(p.cashflows.filter((c) => c.batteryRub > 0).map((c) => c.year)).toEqual([4]);
+    expect(ok(computeScenariosCore(ctx, fixtureSpecs()), "r1").cashflows.every((c) => c.batteryRub === 0 && c.reinvestRub === 0)).toBe(true);
   });
 
   it("срок замены АКБ и срок службы меньше года в карточке — берётся норматив, а не замена каждый год", () => {
@@ -72,8 +73,8 @@ describe("тождества ROI, окупаемости и TCO", () => {
       const ctx = withProduct(patch);
       ctx.params = { ...ctx.params, ...H10 };
       const p = ok(computeScenariosCore(ctx, fixtureSpecs()), "p1");
-      // Как у карточки без срока (null): АКБ в годы 4 и 8, докупка в год 7.
-      expect(p.cashflows.filter((c) => c.batteryRub > 0).map((c) => c.year), JSON.stringify(patch)).toEqual([4, 8]);
+      // Как у карточки без срока (null): АКБ в год 4, новая техника с АКБ в год 7.
+      expect(p.cashflows.filter((c) => c.batteryRub > 0).map((c) => c.year), JSON.stringify(patch)).toEqual([4]);
       expect(p.cashflows.filter((c) => c.reinvestRub > 0).map((c) => c.year), JSON.stringify(patch)).toEqual([7]);
       expect(p.opexYearRub).toBeCloseTo(ref.opexYearRub, 6);
       expect(p.tcoRub).toBeCloseTo(ref.tcoRub, 6);

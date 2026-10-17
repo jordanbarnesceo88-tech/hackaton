@@ -23,7 +23,7 @@ function fakeClock(stepMs: number): () => number {
 }
 
 describe("перебор парка", () => {
-  it("вердикт монотонен по числу роботов: после первого «подтверждён» — только «подтверждён»", () => {
+  it("на эталонном складе увеличение парка не ухудшает вердикт", () => {
     for (const seed of [1, 2, 3]) {
       const verdicts = Array.from({ length: 16 }, (_, i) => runSimSync(warehouseBaseInput(i + 1, { seed })).verdict);
       const first = verdicts.indexOf("CONFIRMED");
@@ -49,13 +49,24 @@ describe("перебор парка", () => {
     expect(minStableFleet(input, { min: Number.NaN, max: 22 })).toBeNull();
   });
 
-  it("двоичный поиск даёт тот же парк, что линейный перебор, на базовом складе (зёрна 1–5)", () => {
+  it("даёт тот же парк, что независимый линейный перебор, на базовом складе (зёрна 1–5)", () => {
     for (const seed of [1, 2, 3, 4, 5]) {
       const input = warehouseBaseInput(11, { seed });
       const binary = minStableFleet(input, { min: 1, max: 22 });
       expect(binary).not.toBeNull();
       expect(binary).toBe(linearMinStableFleet(input, 1, 22));
     }
+  });
+
+  it("находит 3 даже когда 5 и более роботов разряжаются в очереди к одной станции", () => {
+    const base = warehouseBaseInput(1);
+    const input = { ...base,
+      robots: { ...base.robots, autonomyH: 1, chargeMin: 15 },
+      demand: { avgPerH: 20, peakPerH: 20, warmupMin: 10, peakMin: 60 },
+    };
+    expect(runSimSync({ ...input, robots: { ...input.robots, count: 3 } }).verdict).toBe("CONFIRMED");
+    expect(runSimSync({ ...input, robots: { ...input.robots, count: 5 } }).verdict).toBe("NOT_CONFIRMED");
+    expect(minStableFleet(input, { min: 1, max: 16 })).toBe(3);
   });
 
   it("верхняя граница не выше защитного предела SIM_LIMITS.maxRobots", () => {
@@ -69,7 +80,7 @@ describe("перебор парка", () => {
   it("бюджет и отмена: ошибка SimBudgetExceeded с подсказкой по-русски и AbortError", () => {
     const input = warehouseBaseInput(11);
     expect(() => minStableFleet(input, { min: 1, max: 22 }, { now: fakeClock(1000), budgetMs: 1500 })).toThrow(
-      expect.objectContaining({ name: "SimBudgetExceeded", message: expect.stringContaining("не уложился") }),
+      expect.objectContaining({ name: "SimBudgetExceeded", message: expect.stringContaining("не уложил") }),
     );
     const ctrl = new AbortController();
     ctrl.abort();
@@ -84,7 +95,7 @@ describe("перебор парка", () => {
 });
 
 describe("firstTrue", () => {
-  it("монотонный предикат: порог находится за ⌈log₂(hi − lo + 2)⌉ вызовов", () => {
+  it("проверяет все меньшие значения до первого успешного", () => {
     for (const threshold of [1, 2, 577, 1153, 1154]) {
       let calls = 0;
       const r = firstTrue(1, 1154, (n) => {
@@ -92,7 +103,7 @@ describe("firstTrue", () => {
         return n >= threshold;
       });
       expect(r).toBe(threshold);
-      expect(calls).toBeLessThanOrEqual(Math.ceil(Math.log2(1154 + 1)));
+      expect(calls).toBe(threshold);
     }
   });
 
@@ -103,7 +114,7 @@ describe("firstTrue", () => {
       return false;
     };
     expect(firstTrue(1, 100, never)).toBeNull();
-    expect(calls).toBeLessThanOrEqual(7);
+    expect(calls).toBe(100);
     calls = 0;
     expect(firstTrue(5, 4, never)).toBeNull();
     expect(firstTrue(Number.NaN, 4, never)).toBeNull();
@@ -121,7 +132,7 @@ describe("firstTrue", () => {
       return v;
     };
     const r = firstTrue(1, 30, pred);
-    expect(r).not.toBeNull();
+    expect(r).toBe(3);
     expect(seen.get(r!)).toBe(true);
     expect(seen.get(r! - 1)).toBe(false);
   });

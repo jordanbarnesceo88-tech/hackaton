@@ -1,5 +1,6 @@
 import { toCsv, type CsvCell } from "../../files/csv";
 import type { ScenarioOk } from "../../tz/types";
+import { lineGroups } from "./tables";
 import {
   CASHFLOW_HEADER,
   MANUAL_NOTE,
@@ -13,6 +14,7 @@ import {
   scenarioTableRows,
   scenarioTitle,
   yearsCount,
+  pilotReportRows,
   type CellKind,
   type ReportResults,
 } from "./rows";
@@ -55,6 +57,8 @@ function cashflowSection(results: ReportResults, r: ScenarioOk): CsvCell[][] {
     "Горизонт TCO, лет",
     f.T,
   ]);
+  const residual = r.cashflows.find(row => (row.residualRub ?? 0) > 0);
+  if (residual) rows.push(["Чистая остаточная стоимость, ₽", residual.residualRub!, "Год поступления", residual.year, "Включение в NPV", f.H !== null && residual.year <= f.H ? "включена" : "за горизонтом NPV; учитывается только в TCO"]);
   rows.push(CASHFLOW_HEADER.map((h, i) => (i === 0 ? h : `${h}, ₽`)));
   for (const c of r.cashflows) {
     rows.push([
@@ -109,6 +113,14 @@ export function projectCsv(results: ReportResults, opts: { projectName: string }
   if (cols.some((c) => c.manual)) rows.push(["Примечание", MANUAL_NOTE]);
   rows.push([]);
 
+  rows.push(["Затраты по статьям"], ["Сценарий", "Раздел", "Статья", "Сумма, ₽", "Формула", "Подстановка", "Источник / допущение"]);
+  for (const section of ["capex", "opex"] as const) {
+    for (const group of lineGroups(results, section)) {
+      for (const row of group.lines) rows.push([group.scenarioTitle, section.toUpperCase(), row.line.label, Math.round(row.line.valueRub), row.line.formula, row.line.substituted, [row.origin, row.note].filter(Boolean).join("; ")]);
+    }
+  }
+  rows.push([]);
+
   for (const r of results.results) {
     if (r.status === "ok") {
       rows.push(...cashflowSection(results, r));
@@ -116,6 +128,13 @@ export function projectCsv(results: ReportResults, opts: { projectName: string }
       rows.push([`Денежный поток: ${scenarioTitle(results, r)}`]);
       rows.push(["Не рассчитан", r.refusal.message]);
     }
+    rows.push([]);
+  }
+
+  const pilotRows = pilotReportRows(results);
+  if (pilotRows.length) {
+    rows.push(["Планы пилотов и оценочные бюджеты"], ["Сценарий", "Статья / условие", "Сумма, ₽", "Значение", "Источник / допущение"]);
+    for (const row of pilotRows) rows.push([row.scenarioName, row.label, row.valueRub === null ? "" : Math.round(row.valueRub), row.text, row.source]);
     rows.push([]);
   }
 

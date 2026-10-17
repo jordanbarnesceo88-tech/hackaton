@@ -212,7 +212,7 @@ export function equipmentRows(results: ReportResults): EquipmentReportRow[] {
         productName: it.manuallyAdded ? `${it.productName} ${MANUAL_MARK}` : it.productName,
         unit: processDef(it.process)?.throughputUnit ?? "",
         item: it,
-        note: refusal,
+        note: [refusal, it.operatingStaffScope === "site-allocation" ? "Эксплуатационный персонал рассчитан один раз на весь парк; эта строка содержит распределённую долю затрат, не отдельный пост" : ""].filter(Boolean).join("; "),
       });
     }
   }

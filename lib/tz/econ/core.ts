@@ -21,6 +21,7 @@ import {
   type WorkHours,
 } from "./context";
 import { processDemand, type DemandResult } from "./demand";
+import { costPackageForItem } from "./cost-package";
 import { cashflows, dpbOf, npvOf, payback, roiNet, roiTz, tcoAsis, tcoOf, type PeriodicCost } from "./finance";
 import { chargersNeeded, coverage, sizeFleet, throughputFor, type ChargersResult, type ThroughputResult } from "./fleet";
 import { FORMULAS } from "./formulas";
@@ -29,9 +30,11 @@ import { interpretBand } from "./interpret";
 import {
   operatingStaff,
   operatorPosts,
+  parseOperationsStaffing,
   processBaseline,
   releasedFte,
   remaining,
+  siteOperatingStaff,
   type ProcessBaseline,
 } from "./labour";
 import { asisOpexLines, batteryOf, equipmentRub, lifeOf, purchaseOpexLines, raasOpexLines } from "./opex";
@@ -166,6 +169,12 @@ export function allFinite(value: unknown): boolean {
  */
 function validateOverrides(item: ScenarioItem, productName: string): void {
   const f = (what: string) => `item:${item.process}:${what}`;
+  if (item.chargersOverride !== undefined && !(Number.isInteger(item.chargersOverride) && item.chargersOverride >= 0 && item.chargersOverride <= 2000)) {
+    refuse("invalid_inputs", "Число зарядок должно быть целым от 0 до 2000", [f("chargers")]);
+  }
+  if (item.automationCoverageOverride !== undefined && !(finite(item.automationCoverageOverride) && item.automationCoverageOverride >= 0 && item.automationCoverageOverride <= 1)) {
+    refuse("invalid_inputs", "Оценочная доля годовой нагрузки должна быть от 0 до 1", [f("automationCoverage")]);
+  }
   if (item.quantityOverride !== undefined && !(Number.isInteger(item.quantityOverride) && item.quantityOverride >= 1)) {
     refuse("invalid_inputs", `Число роботов ${q(productName)} должно быть целым числом не меньше 1`, [f("quantity")]);
   }
@@ -232,8 +241,11 @@ function physicalOf(ctx: ScenarioContext, item: ScenarioItem, norms: NormValues,
   // Ручное N уже проверено: целое не меньше 1 (validateOverrides).
   const overridden = item.quantityOverride !== undefined;
   const n = item.quantityOverride ?? nAuto;
-  const kappa = coverage(n, thrEff, U, A, demand.peakPerHour);
-  const chargers = chargersNeeded(n, product, norms);
+  const analyticCoverage = coverage(n, thrEff, U, A, demand.peakPerHour);
+  const kappa = Math.min(analyticCoverage, item.automationCoverageOverride ?? 1);
+  const chargers: ChargersResult = item.chargersOverride === undefined ? chargersNeeded(n, product, norms) : {
+    count: item.chargersOverride, method: "override", substituted: `${item.chargersOverride} (фиксированная инфраструктура, задано вами)`,
+  };
 
   const trace: TraceStep[] = [
     ...demand.trace,
@@ -252,8 +264,10 @@ function physicalOf(ctx: ScenarioContext, item: ScenarioItem, norms: NormValues,
     {
       key: "coverage",
       label: FORMULAS.coverage.title,
-      formula: FORMULAS.coverage.expression,
-      substituted: `min(1; ${n} × ${fx(thrEff)} × ${fx(U)} × ${fx(A)} / ${fx(demand.peakPerHour)}) = ${fx(kappa, 3)}`,
+      formula: item.automationCoverageOverride === undefined ? FORMULAS.coverage.expression : "κ = min(κ аналитический; оценочная доля годовой нагрузки)",
+      substituted: item.automationCoverageOverride === undefined
+        ? `min(1; ${n} × ${fx(thrEff)} × ${fx(U)} × ${fx(A)} / ${fx(demand.peakPerHour)}) = ${fx(kappa, 3)}`
+        : `min(${fx(analyticCoverage, 3)}; ${fx(item.automationCoverageOverride, 3)} — заданная оценка годового охвата) = ${fx(kappa, 3)}`,
       value: kappa,
       unit: "доля",
       origin: "derived",
@@ -261,11 +275,11 @@ function physicalOf(ctx: ScenarioContext, item: ScenarioItem, norms: NormValues,
     {
       key: "chargers",
       label: FORMULAS.chargers.title,
-      formula: FORMULAS.chargers.expression,
+      formula: item.chargersOverride === undefined ? FORMULAS.chargers.expression : "C = заданное число зарядок",
       substituted: chargers.substituted,
       value: chargers.count,
       unit: "шт.",
-      origin: "derived",
+      origin: item.chargersOverride === undefined ? "derived" : "user",
     },
   ];
   return { item, process, demand, thr: { ...thr, thrEff }, nExact, nAuto, n, kappa, chargers, trace };
@@ -278,14 +292,16 @@ function withLabour(
   base: BaseOk,
   norms: NormValues,
   hours: WorkHours,
+  cashRealizationShare?: number,
+  explicitStaffing = false,
 ): { calc: ItemCalc; trace: TraceStep[] } {
   const product = ctx.products[ph.item.productSlug];
   const pb = base.byProcess.get(ph.process.slug);
   if (!product || !pb) refuse("invalid_inputs", "Процесс сценария вне охвата сравнения");
   const F = releasedFte(pb.headcount, norms.laborShareAutomatable, ph.demand.excludeSharePct, ph.kappa);
-  const remainingRub = remaining(pb.headcount, F, pb.roleCost);
-  const posts = operatorPosts(ph.n, norms);
-  const opStaff = operatingStaff(posts, hours.Hd, hours.D, norms, pb.roleCost);
+  const remainingRub = remaining(pb.headcount, F, pb.roleCost, cashRealizationShare);
+  const posts = explicitStaffing ? 0 : operatorPosts(ph.n, norms);
+  const opStaff = explicitStaffing ? 0 : operatingStaff(posts, hours.Hd, hours.D, norms, pb.roleCost);
   const result: ItemResult = {
     process: ph.process.slug,
     productSlug: product.slug,
@@ -327,8 +343,10 @@ function withLabour(
     {
       key: "remainingLabour",
       label: FORMULAS.remainingLabour.title,
-      formula: FORMULAS.remainingLabour.expression,
-      substituted: `(${fx(pb.headcount)} − ${fx(F, 3)}) × ${rub(pb.roleCost)} = ${rub(remainingRub)}`,
+      formula: cashRealizationShare === undefined ? FORMULAS.remainingLabour.expression : "ФОТост = H × c − F × c × μ; μ — доля денежной реализации",
+      substituted: cashRealizationShare === undefined
+        ? `(${fx(pb.headcount)} − ${fx(F, 3)}) × ${rub(pb.roleCost)} = ${rub(remainingRub)}`
+        : `${fx(pb.headcount)} × ${rub(pb.roleCost)} − ${fx(F, 3)} × ${rub(pb.roleCost)} × ${fx(cashRealizationShare, 3)} (оценка денежной реализации) = ${rub(remainingRub)}`,
       value: remainingRub,
       unit: "₽/год",
       origin: "derived",
@@ -343,6 +361,7 @@ function withLabour(
       origin: "derived",
     },
   ];
+  if (explicitStaffing) trace.pop(); // The site-level operating cost gets one trace after all items are known.
   const calc: ItemCalc = {
     item: ph.item,
     process: ph.process,
@@ -352,6 +371,7 @@ function withLabour(
     n: ph.n,
     chargers: ph.chargers.count,
     roleCost: pb.roleCost,
+    ...(cashRealizationShare === undefined ? {} : { cashRealizationShare }),
     priceRub: null,
     priceOverridden: false,
     raasRubMonth: null,
@@ -395,6 +415,8 @@ function asisResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scena
   const norms = normsForSpec(ctx, spec);
   const trace: TraceStep[] = [...base.trace];
   try {
+    if (spec.operationsStaffing !== undefined) refuse("invalid_inputs", "Дополнительный эксплуатационный персонал задаётся только в сценарии роботизации", ["scenario:operationsStaffing"]);
+    if (spec.terminalResidualRub !== undefined && spec.terminalResidualRub !== 0) refuse("invalid_inputs", "Остаточная стоимость задаётся в сценарии роботизации для собственных активов", ["scenario:terminalResidualRub"]);
     // H «Как есть» не нужен (нет CAPEX и NPV), но проверяется: без горизонта нет и T.
     const { T } = horizonOf(ctx, norms);
     const opexLines = asisOpexLines(base.list);
@@ -458,6 +480,19 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
   const trace: TraceStep[] = [];
   const items: ItemResult[] = [];
   try {
+    let staffing: ReturnType<typeof parseOperationsStaffing> | undefined;
+    if (spec.operationsStaffing !== undefined) {
+      try { staffing = parseOperationsStaffing(spec.operationsStaffing); }
+      catch (error) { refuse("invalid_inputs", error instanceof Error ? error.message : "Неверная модель эксплуатационного персонала", ["scenario:operationsStaffing"]); }
+    }
+    if (spec.siteLayout && !ctx.cycleForSpec) refuse("invalid_inputs", "Для явной планировки нужен расчёт цикла по этому же плану", ["scenario:siteLayout"]);
+    if (ctx.cycleForSpec) ctx = { ...ctx, cycle: ctx.cycleForSpec(spec, norms, ctx.params) };
+    if (spec.cashRealizationShare !== undefined && !(finite(spec.cashRealizationShare) && spec.cashRealizationShare >= 0 && spec.cashRealizationShare <= 1)) {
+      refuse("invalid_inputs", "Доля денежной реализации высвобождаемого ФОТ должна быть от 0 до 1", ["scenario:cashRealizationShare"]);
+    }
+    if (spec.terminalResidualRub !== undefined && !(finite(spec.terminalResidualRub) && spec.terminalResidualRub >= 0 && spec.terminalResidualRub <= 1_000_000_000_000)) {
+      refuse("invalid_inputs", "Остаточная стоимость должна быть неотрицательной чистой суммой до 1 трлн ₽", ["scenario:terminalResidualRub"]);
+    }
     if (spec.kind !== "purchase" && spec.kind !== "raas") {
       refuse("invalid_inputs", `Неизвестный вид сценария ${q(String(spec.kind))}`);
     }
@@ -495,6 +530,10 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     trace.push(hours.trace);
     const physical = specItems.map((item) => {
       const ph = physicalOf(ctx, item, norms, hours);
+      costPackageForItem(item, { kind: spec.kind, chargers: ph.chargers.count });
+      if (spec.siteLayout && ph.process.simSupported && ph.chargers.count !== spec.siteLayout.chargers.length) {
+        refuse("invalid_inputs", "Количество зарядок явной планировки не совпадает с инфраструктурой финансового сценария", ["scenario:siteLayout", `item:${item.process}:chargers`]);
+      }
       trace.push(...ph.trace);
       return ph;
     });
@@ -504,18 +543,35 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     for (const b of base.list) if (covered.has(b.process.slug)) trace.push(...b.trace);
 
     const calcs = physical.map((ph) => {
-      const { calc, trace: t } = withLabour(ctx, ph, base, norms, hours);
+      const { calc, trace: t } = withLabour(ctx, ph, base, norms, hours, spec.cashRealizationShare, staffing !== undefined);
       trace.push(...t);
       items.push(calc.result);
       return calc;
     });
     for (const c of calcs) withMoney(c, spec.kind);
+    const siteStaff = staffing ? siteOperatingStaff(staffing, calcs.reduce((sum, c) => sum + c.n, 0), hours.Hd, hours.D, norms) : undefined;
+    if (siteStaff) {
+      const fleet = calcs.reduce((sum, c) => sum + c.n, 0);
+      let allocated = 0;
+      calcs.forEach((c, index) => {
+        const amount = index === calcs.length - 1 ? siteStaff.annualCostRub - allocated : siteStaff.annualCostRub * c.n / fleet;
+        c.result.operatingStaffRub = amount;
+        c.result.operatingStaffScope = "site-allocation";
+        allocated += amount;
+      });
+      trace.push({ key: "operatingStaff", label: "Дополнительные затраты на эксплуатационный персонал площадки",
+        formula: siteStaff.formula, substituted: `${siteStaff.substituted}; основание: ${siteStaff.reason}`,
+        value: siteStaff.annualCostRub, unit: "₽/год", origin: "user" });
+    }
 
     const { H, T } = horizonOf(ctx, norms);
     const uncovered = base.list.filter((b) => !covered.has(b.process.slug));
     const purchase = spec.kind === "purchase";
     const capexLines = purchase ? purchaseCapexLines(ctx, calcs, norms) : raasCapexLines(calcs, norms);
-    const opexLines = purchase ? purchaseOpexLines(calcs, uncovered) : raasOpexLines(calcs, uncovered);
+    const opexLines = purchase ? purchaseOpexLines(calcs, uncovered, siteStaff) : raasOpexLines(calcs, uncovered, siteStaff);
+    if (siteStaff?.includedInService && !opexLines.some(line => line.key === (purchase ? "service" : "subscription") && line.valueRub > 0)) {
+      refuse("invalid_inputs", "Включение эксплуатационного персонала требует положительной стоимости сервиса или подписки в этом сценарии", ["scenario:operationsStaffing"]);
+    }
     const capex = sumLines(capexLines);
     const opex = sumLines(opexLines);
     const opexAsis = base.totalRub;
@@ -528,7 +584,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
       for (const c of calcs) {
         const b = batteryOf(c);
         batteryAvg += (c.n * b.costPerRobot) / b.years;
-        batteryEvents.push({ everyYears: b.years, costRub: c.n * b.costPerRobot });
+        batteryEvents.push({ everyYears: b.years, costRub: c.n * b.costPerRobot, resetEveryYears: lifeOf(c) });
         reinvestEvents.push({ everyYears: lifeOf(c), costRub: equipmentRub(c) });
       }
     }
@@ -541,6 +597,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
       reinvestEvents,
       tcoYears: T,
       discountRate: norms.discountRate,
+      terminalResidualRub: spec.terminalResidualRub,
     });
     const pb = payback(capex, effect);
     const { band } = interpretBand(pb, norms);
@@ -568,6 +625,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
       capexLines,
       opexYearRub: opex,
       opexLines,
+      ...(siteStaff ? { operationsStaffing: siteStaff } : {}),
       processLabourYearRub: labour,
       effectYearRub: effect,
       paybackYears: pb,
@@ -674,6 +732,9 @@ function financeTrace(f: {
     });
   }
   for (const r of f.rows) {
+    if ((r.residualRub ?? 0) > 0) {
+      out.push({ key: "terminalResidual", label: `Остаточная стоимость, год ${r.year}`, formula: "CF_T = E_T − докупка_T + чистая остаточная стоимость; TCO = затраты − остаточная стоимость", substituted: `год ${r.year}: ${rub(r.residualRub!)} чистых поступлений после налогов, демонтажа и вывоза (оценка пользователя); ${r.year <= f.H ? "включено в NPV" : `не входит в NPV за ${f.H} лет`}`, value: r.residualRub!, unit: "₽", origin: "user" });
+    }
     if (r.batteryRub > 0) {
       out.push({
         key: "batteryYear",
@@ -723,8 +784,8 @@ function financeTrace(f: {
   out.push({
     key: "tco",
     label: FORMULAS.tco.title,
-    formula: FORMULAS.tco.expression,
-    substituted: `${rub(f.capex)} + Σ за ${yearsNom(f.T)} (OPEXt + докупкаt) = ${rub(f.tco)}`,
+    formula: f.rows.some(r => (r.residualRub ?? 0) > 0) ? "TCO = CAPEX + Σ(OPEXt + докупкаt) − чистая остаточная стоимость в конце TCO" : FORMULAS.tco.expression,
+    substituted: `${rub(f.capex)} + Σ за ${yearsNom(f.T)} (OPEXt + докупкаt)${f.rows.some(r => (r.residualRub ?? 0) > 0) ? ` − ${rub(f.rows.reduce((sum, r) => sum + (r.residualRub ?? 0), 0))} (чистая остаточная стоимость)` : ""} = ${rub(f.tco)}`,
     value: f.tco,
     unit: "₽",
     origin: "derived",

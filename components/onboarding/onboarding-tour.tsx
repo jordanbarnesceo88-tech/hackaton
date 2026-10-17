@@ -16,36 +16,27 @@ import { cn } from "@/lib/utils";
 
 /**
  * Онбординг-тур по восьми шагам пути жюри (ТЗ §5.4): карточка на каждый шаг — картинка шага,
- * короткое объяснение, «Назад»/«Далее» и «Пропустить». Показывается один раз новому
- * посетителю на лендинге, дальше доступен по кнопке «Как это работает».
+ * короткое объяснение, «Назад»/«Далее» и «Пропустить». Доступен по кнопке «Как это работает»;
+ * первый визит не перекрывает вход в расчёт обязательным диалогом.
  *
  * Как и рейл (components/rail-nav.tsx), состояние «показывать ли» синхронизировано через
  * useSyncExternalStore с явным серверным снимком (false — на сервере тур никогда не открыт),
  * а не useState + запись в useEffect: последнее ловит react-hooks/set-state-in-effect под
- * --max-warnings=0 этого репозитория, а внешний источник (localStorage) — ровно тот случай,
- * для которого useSyncExternalStore и существует.
+ * --max-warnings=0 этого репозитория. Состояние открытия разделяется между подписчиками.
  */
 const SEEN_KEY = "onboarding-tour-seen";
 const listeners = new Set<() => void>();
-let cachedOpen: boolean | null = null;
-
-function readShouldOpen(): boolean {
-  try {
-    return window.localStorage.getItem(SEEN_KEY) !== "1";
-  } catch {
-    // Приватный режим/запрещённое хранилище — не навязываем тур насильно каждый раз.
-    return false;
-  }
-}
+let cachedOpen = false;
 
 function getSnapshot(): boolean {
-  if (cachedOpen === null) cachedOpen = readShouldOpen();
   return cachedOpen;
 }
 
 function getServerSnapshot(): boolean {
   return false;
 }
+
+function getClientReady(): boolean { return true; }
 
 function subscribe(onChange: () => void): () => void {
   listeners.add(onChange);
@@ -57,7 +48,7 @@ function markSeenAndClose() {
   try {
     window.localStorage.setItem(SEEN_KEY, "1");
   } catch {
-    // Не критично — просто предложится снова в следующий визит.
+    // Запись истории просмотра необязательна для ручного открытия тура.
   }
   listeners.forEach((l) => l());
 }
@@ -149,6 +140,7 @@ export function OnboardingTour({
   triggerClassName?: string;
 }) {
   const open = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const ready = useSyncExternalStore(subscribe, getClientReady, getServerSnapshot);
   const [index, setIndex] = useState(0);
   const nextRef = useRef<HTMLButtonElement>(null);
   const step = STEPS[index]!;
@@ -179,6 +171,7 @@ export function OnboardingTour({
         variant="outline"
         size={triggerSize}
         className={triggerClassName}
+        disabled={!ready}
         onClick={() => {
           // С начала, а не с того шага, на котором тур закрыли: onOpenChange(true) здесь не
           // вызывается (окно открывается снаружи, не своим триггером), поэтому сброс — тут.

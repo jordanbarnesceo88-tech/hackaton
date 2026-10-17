@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: data ? `Отчёт по проекту «${data.project.name}» — ${TITLE_SUFFIX}` : `Отчёт по проекту — ${TITLE_SUFFIX}` };
 }
 
-export default async function ProjectReportPage({ params }: { params: Params }) {
+export default async function ProjectReportPage({ params, searchParams }: { params: Params; searchParams: Promise<{ scenario?: string | string[] }> }) {
   await connection();
   const user = await requireUser();
   const { projectId } = await params;
@@ -40,6 +40,8 @@ export default async function ProjectReportPage({ params }: { params: Params }) 
   if (!data) notFound();
   const { project } = data;
   if (!project.results) return <ReportNeedsSave projectId={project.id} projectName={project.name} />;
+  const query = await searchParams;
+  const scenarioKey = typeof query.scenario === "string" && project.results.scenarios.some(s => s.key === query.scenario) ? query.scenario : undefined;
   return (
     <ProjectReport
       project={{
@@ -50,6 +52,7 @@ export default async function ProjectReportPage({ params }: { params: Params }) 
         paramsSource: project.paramsSource,
       }}
       results={project.results}
+      scenarioKey={scenarioKey}
       defs={data.defs}
       changes={data.changes}
       liveDataVersion={data.liveDataVersion}

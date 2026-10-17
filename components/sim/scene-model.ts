@@ -62,6 +62,11 @@ export type Rect = { x: number; y: number; w: number; h: number };
  * проездами. Ось Y перевёрнута (y — от верхней стены), как у изометрии и печатной схемы.
  */
 export function rackRects(layout: SimLayout): Rect[] {
+  if (layout.obstacles !== undefined) {
+    return layout.obstacles.filter((obstacle) => obstacle.kind === "rack").map(({ x, y, w, h }) => ({
+      x, y: layout.heightM - y - h, w, h,
+    }));
+  }
   const zone = layout.zones.find((z) => z.kind === "storage");
   if (!zone) return [];
   const { mainM, rackM } = aisleWidths(layout);
@@ -111,12 +116,12 @@ export function queueOffset(kind: OpPoint["kind"], index: number): { dx: number;
   return kind === "shipping" ? { dx: -step, dy: 0 } : { dx: step, dy: 0 };
 }
 
-/** Часы модели «чч:мм» от начала прогона (прогрев + пик). */
+/** Часы модели «чч:мм:сс»: секунды делают ход реального времени видимым. */
 export function formatSimClock(tS: number): string {
   const t = Number.isFinite(tS) && tS > 0 ? Math.floor(tS) : 0;
   const h = Math.floor(t / 3600);
   const m = Math.floor((t % 3600) / 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 }
 
 /** Фаза прогона для подписи часов. */

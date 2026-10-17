@@ -1,5 +1,6 @@
 import { DEFAULT_NORMS } from "../tz/norms";
 import { BUCKET_S, requestedFleet } from "./engine";
+import { simInputIdentity } from "./identity";
 import { queueLength } from "./state";
 import type { SimEngineState } from "./state";
 import {
@@ -300,6 +301,7 @@ export function summarize(state: SimEngineState, meta: SimSummaryMeta = {}): Sim
 
   return {
     simModelVersion: SIM_MODEL_VERSION,
+    inputKey: simInputIdentity(input),
     seed: input.seed,
     scenarioKey: meta.scenarioKey ?? "",
     fleet: requestedFleet(input),
@@ -344,6 +346,7 @@ export function summarize(state: SimEngineState, meta: SimSummaryMeta = {}): Sim
 export function toStored(summary: SimSummaryStored): SimSummaryStored {
   return {
     simModelVersion: summary.simModelVersion,
+    ...(summary.inputKey !== undefined ? { inputKey: summary.inputKey } : {}),
     seed: summary.seed,
     scenarioKey: summary.scenarioKey,
     fleet: summary.fleet,

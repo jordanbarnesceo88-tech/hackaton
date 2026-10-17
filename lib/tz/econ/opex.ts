@@ -1,7 +1,8 @@
 import { pluralRu } from "../../format/plural";
 import { normDef } from "../norms";
-import type { LineItem, Origin } from "../types";
+import type { LineItem, OperationsStaffingResult, Origin } from "../types";
 import { INCLUDED_IN_SUBSCRIPTION } from "./capex";
+import { costPackageRepairIncluded } from "./cost-package";
 import { FORMULAS, OPEX_LINE_KEYS, opexFormulaKey, type OpexLineKey } from "./formulas";
 import { charOrigin, mergeLines, type ItemCalc } from "./internal";
 import type { ProcessBaseline } from "./labour";
@@ -123,19 +124,23 @@ function connectivityLine(c: ItemCalc): LineItem {
 
 function labourLines(c: ItemCalc): LineItem[] {
   const r = c.result;
-  return [
+  const remainingLine = line("remainingLabour", r.remainingLabourRub,
+    c.cashRealizationShare === undefined
+      ? `(${fx(r.headcount)} − ${fx(r.releasedFte, 3)}) × ${rub(r.roleCostRubYear)}`
+      : `${fx(r.headcount)} × ${rub(r.roleCostRubYear)} − ${fx(r.releasedFte, 3)} × ${rub(r.roleCostRubYear)} × ${fx(c.cashRealizationShare, 3)}`,
+    "derived");
+  if (c.cashRealizationShare !== undefined) {
+    remainingLine.formula = "ФОТост = H × c − F × c × μ";
+    remainingLine.originNote = `Оценочная доля денежной реализации высвобождаемого ФОТ: ${share(c.cashRealizationShare)}; FTE — трудоёмкость, не сокращённый штат`;
+  }
+  return r.operatingStaffScope === "site-allocation" ? [remainingLine] : [
     line(
       "operatingStaff",
       r.operatingStaffRub,
       `${fx(r.operatorPosts)} ${pluralRu(r.operatorPosts, ["пост", "поста", "постов"])} × ${fx(c.hours.Hd)} ч × ${fx(c.hours.D)} дн. / ${fx(c.norms.annualHoursPerFte)} ч × ${rub(r.roleCostRubYear)}`,
       normDef("robotsPerOperatorPost").origin,
     ),
-    line(
-      "remainingLabour",
-      r.remainingLabourRub,
-      `(${fx(r.headcount)} − ${fx(r.releasedFte, 3)}) × ${rub(r.roleCostRubYear)}`,
-      "derived",
-    ),
+    remainingLine,
   ];
 }
 
@@ -179,6 +184,15 @@ function purchaseItemLines(c: ItemCalc): LineItem[] {
     `${share(n.repairPctOfPriceYear)} × ${rub(equipment)}`,
     normDef("repairPctOfPriceYear").origin,
   );
+  if (costPackageRepairIncluded(c.item, service.valueRub)) {
+    repair.valueRub = 0;
+    repair.formula = "Отдельная плата за ремонт = 0: входит в оплачиваемый сервис";
+    repair.substituted = "0 ₽: ремонт включён в сервис по явному составу пакета";
+    repair.origin = "user";
+    repair.originNote = c.item.costPackage!.reason;
+    repair.includedInService = true;
+    repair.overridden = true;
+  }
 
   const b = batteryOf(c);
   const battery = line(
@@ -238,15 +252,15 @@ function uncoveredLine(uncovered: readonly ProcessBaseline[]): LineItem | null {
 }
 
 /** OPEX покупки за год (среднее по замене АКБ). */
-export function purchaseOpexLines(items: readonly ItemCalc[], uncovered: readonly ProcessBaseline[]): LineItem[] {
-  const lines = ordered(mergeLines(items.map(purchaseItemLines)));
+export function purchaseOpexLines(items: readonly ItemCalc[], uncovered: readonly ProcessBaseline[], siteStaff?: OperationsStaffingResult): LineItem[] {
+  const lines = ordered(withSiteStaff(mergeLines(items.map(purchaseItemLines)), siteStaff));
   const u = uncoveredLine(uncovered);
   return u ? [...lines, u] : lines;
 }
 
 /** OPEX услуги (RaaS) за год: подписка, электроэнергия, связь, персонал; остальное — в подписке. */
-export function raasOpexLines(items: readonly ItemCalc[], uncovered: readonly ProcessBaseline[]): LineItem[] {
-  const lines = ordered(mergeLines(items.map(raasItemLines)));
+export function raasOpexLines(items: readonly ItemCalc[], uncovered: readonly ProcessBaseline[], siteStaff?: OperationsStaffingResult): LineItem[] {
+  const lines = ordered(withSiteStaff(mergeLines(items.map(raasItemLines)), siteStaff));
   const u = uncoveredLine(uncovered);
   return u ? [...lines, u] : lines;
 }
@@ -256,6 +270,15 @@ export function asisOpexLines(base: readonly ProcessBaseline[]): LineItem[] {
   const total = base.reduce((a, b) => a + b.baselineRub, 0);
   const sub = base.map((b) => `${fx(b.headcount)} × ${rub(b.roleCost)}`).join(" + ");
   return [line("baselineLabour", total, `${sub} = ${rub(total)}`, "derived")];
+}
+
+function withSiteStaff(lines: LineItem[], staffing?: OperationsStaffingResult): LineItem[] {
+  if (!staffing) return lines;
+  return [...lines, { key: "operatingStaff", label: "Дополнительные затраты на эксплуатационный персонал площадки",
+    valueRub: staffing.annualCostRub, formula: staffing.formula, substituted: staffing.substituted,
+    origin: "user", originNote: staffing.reason, overridden: true,
+    ...(staffing.includedInService ? { includedInService: true } : {}),
+  }];
 }
 
 /** Стоимость оборудования позиции (для ремонта и докупки): N × цена. */

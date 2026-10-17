@@ -1,5 +1,6 @@
 import { SIM_LIMITS } from "./engine";
-import { runSimSync } from "./runner";
+import { runSim, runSimSync } from "./runner";
+import type { RunOptions } from "./runner";
 import type { SimRunSummary } from "./metrics";
 import type { SimInput } from "./types";
 
@@ -14,29 +15,13 @@ function withFleet(input: SimInput, count: number): SimInput {
 }
 
 /**
- * Наименьшее n в [lo; hi], для которого `pred(n)` истинно, — двоичным поиском в предположении,
- * что `pred` монотонен (ложно, ложно, …, истинно, истинно). null — `pred` ложно во всём
- * диапазоне (при монотонности — на `hi`). Вызовов `pred` — не больше ⌈log₂(hi − lo + 2)⌉.
- *
- * Правый конец поиска — «часовой» hi + 1, условно истинный: поэтому самые дорогие прогоны
- * (наибольший парк) выполняются, только если меньшие парки не подтверждаются.
- *
- * Что гарантировано и без монотонности: результат r проверен — `pred(r)` истинно, и либо
- * r = lo, либо `pred(r − 1)` проверено и ложно. То есть r — точный порог «не держит → держит»,
- * а не непроверенная точка. Монотонность на эталонном складе проверяют тесты (sweep.test.ts).
+ * Первое подтверждённое целое n. Проверяем все меньшие: при фиксированных зарядках
+ * добавление роботов может ухудшить результат, поэтому двоичный поиск здесь некорректен.
  */
 export function firstTrue(lo: number, hi: number, pred: (n: number) => boolean): number | null {
   if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo > hi) return null;
-  // Инвариант: всё левее `a` ложно (проверено или следует из монотонности), `b` истинно
-  // (проверено) или b = hi + 1 — часовой.
-  let a = lo;
-  let b = hi + 1;
-  while (a < b) {
-    const mid = a + Math.floor((b - a) / 2);
-    if (pred(mid)) b = mid;
-    else a = mid + 1;
-  }
-  return b <= hi ? b : null;
+  for (let n = Math.ceil(lo); n <= Math.floor(hi); n++) if (pred(n)) return n;
+  return null;
 }
 
 /** Параметры перебора парка. */
@@ -74,16 +59,9 @@ function budgetError(budgetMs: number): Error {
  * Наименьшее число роботов в [min; max], при котором имитация подтверждает расчёт (вердикт
  * CONFIRMED); null — такого нет в диапазоне.
  *
- * Поиск двоичный (`firstTrue`): около log₂(max − min) прогонов вместо (max − min) — на крупном
- * объекте (50 000 м², 15 000 паллет/сут, расчётный парк 577) это ≈ 11 прогонов вместо сотен.
- * Двоичный поиск опирается на монотонность «больше роботов — не хуже». В модели она
- * ожидаема (поток заданий при одном зерне одинаков для любого парка, диспетчер без
- * случайности), тесты подтверждают её и сверяют результат с линейным перебором на эталонном
- * складе (зёрна 1–5). Даже если монотонность где-то нарушится, результат остаётся проверенным
- * порогом: при n роботов расчёт подтверждён, при n − 1 — нет (или n = min).
- *
- * Верхняя граница не выше защитного предела `SIM_LIMITS.maxRobots`: за ним прогон не
- * выполняется (NOT_SUPPORTED), и это сломало бы монотонность поиска.
+ * Последовательный перебор ограничен диапазоном, бюджетом и SIM_LIMITS.maxRobots.
+ * Timeout бросает SimBudgetExceeded, а не возвращает «решения нет». Найденный минимум
+ * относится только к этому seed, окну и фиксированной инфраструктуре.
  *
  * Число зарядных станций не меняется: парк меньше расчётного обслуживается теми же станциями.
  */
@@ -98,9 +76,22 @@ export function minStableFleet(
   const t0 = opts.now ? opts.now() : 0;
   return firstTrue(lo, hi, (n) => {
     if (opts.signal?.aborted) throw abortError();
-    if (opts.now && opts.now() - t0 > budgetMs) throw budgetError(budgetMs);
-    return runSimSync(withFleet(input, n)).verdict === "CONFIRMED";
+    const left = opts.now ? budgetMs - (opts.now() - t0) : budgetMs;
+    if (!(left > 0)) throw budgetError(budgetMs);
+    return runSimSync(withFleet(input, n), { now: opts.now, budgetMs: left, signal: opts.signal }).verdict === "CONFIRMED";
   });
+}
+
+/** Async server equivalent: same ascending prefix, yielding within every candidate run. */
+export async function minStableFleetAsync(input: SimInput, range: { min: number; max: number }, opts: RunOptions): Promise<number | null> {
+  const deadline = opts.now() + (opts.budgetMs ?? 60_000);
+  for (let n = Math.max(1, Math.ceil(range.min)); n <= Math.min(SIM_LIMITS.maxRobots, Math.floor(range.max)); n++) {
+    // Even short candidate runs must not form an uninterrupted chain of resolved microtasks.
+    await opts.yieldFn?.();
+    const summary = await runSim(withFleet(input, n), { ...opts, budgetMs: Math.max(0, deadline - opts.now()) });
+    if (summary.verdict === "CONFIRMED") return n;
+  }
+  return null;
 }
 
 /** Разброс результата по зёрнам: диапазон достигнутого потока и ожидания, число подтверждений. */

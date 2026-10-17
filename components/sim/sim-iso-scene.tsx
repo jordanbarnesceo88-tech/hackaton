@@ -27,7 +27,7 @@ export function IsoStyles() {
  * Два режима, как у прежней канвы:
  * - «final» — показан конечный кадр прогона без анимации;
  * - «play» — показано состояние проигрывания из `playRef`; пока `playing`, цикл
- *   requestAnimationFrame делает speed × 60 × длительность кадра шагов модели за кадр.
+ *   requestAnimationFrame делает speed × длительность кадра шагов модели за кадр.
  *
  * Цикл читает только ref и замыкание эффекта, React-состояние не трогает; показатели уходят
  * наверх через `onTick` не чаще 4 раз в секунду. Скрытая вкладка останавливает цикл, возврат на
@@ -63,6 +63,7 @@ export function SimIsoScene({
   onEnd: () => void;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const playbackCarry = useRef({ token: playToken, value: 0 });
   const tick = useEffectEvent((state: SimEngineState) => onTick(state));
   const end = useEffectEvent(() => onEnd());
   const geom = useMemo(() => isoGeometry(layout), [layout]);
@@ -75,9 +76,11 @@ export function SimIsoScene({
     if (!dom) return;
 
     const animate = mode === "play" && playing;
+    svg.dataset.playing = String(animate && !document.hidden);
+    if (playbackCarry.current.token !== playToken) playbackCarry.current = { token: playToken, value: 0 };
     let raf = 0;
     let last = 0;
-    let carry = 0;
+    let carry = playbackCarry.current.value;
     let lastPush = -Infinity;
 
     const paint = () => {
@@ -88,6 +91,7 @@ export function SimIsoScene({
     const loop = (now: number) => {
       const st = playRef.current;
       if (!st || isDone(st)) {
+        svg.dataset.playing = "false";
         paint();
         if (st) {
           tick(st);
@@ -98,9 +102,11 @@ export function SimIsoScene({
       const f = stepsForFrame(speed, last ? (now - last) / 1000 : 0, carry);
       last = now;
       carry = f.carry;
+      playbackCarry.current.value = carry;
       for (let i = 0; i < f.steps && !isDone(st); i++) stepSim(st);
       paint();
       if (isDone(st)) {
+        svg.dataset.playing = "false";
         tick(st);
         end();
         return;
@@ -118,6 +124,7 @@ export function SimIsoScene({
 
     const onVisibility = () => {
       if (!animate) return;
+      svg.dataset.playing = String(!document.hidden);
       if (document.hidden) {
         cancelAnimationFrame(raf);
       } else {
@@ -129,6 +136,7 @@ export function SimIsoScene({
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      svg.dataset.playing = "false";
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVisibility);
     };

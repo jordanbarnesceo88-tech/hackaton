@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { WarehouseSimulation } from "@/components/sim/warehouse-simulation";
+import type { SpatialFinancialAssumptions } from "@/components/sim/spatial-preview";
+import { simInputIdentity } from "@/lib/sim/identity";
+import { createSpatialProjectSnapshot, type SpatialProjectSnapshot, type SpatialProjectResult } from "@/lib/sim/spatial-bridge";
+import { buildSpatialFinancialScenario, parseSpatialScenarioProposal, type SpatialScenarioProposal } from "@/lib/sim/spatial-proposal";
+import { DecisionSummary } from "./decision-summary";
+import { PilotPlan } from "./pilot-plan";
+import { OperationsStaffing } from "./operations-staffing";
+import { MatchedComparison } from "./matched-comparison";
+import { buildMatchedComparison, type MatchedComparison as MatchedComparisonData } from "@/lib/tz/matched-comparison";
+import { staffingBreakEvenBudget } from "@/lib/tz/econ/staffing-budget";
 import { isAbortError, yieldToPage } from "@/components/sim/run-headless";
 import { buildSimVariants, storedMatches, type SimScenario } from "@/components/sim/variants";
 import { BackToTop } from "@/components/ui/back-to-top";
@@ -10,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { pluralRu } from "@/lib/format/plural";
 import { formatNum } from "@/lib/format/rub";
 import type { SaveProjectInput, SaveProjectResult } from "@/lib/projects/actions";
+import { canAdoptSavedSnapshot, projectDraftKey, projectSnapshotModel } from "@/lib/projects/archive";
 import { changeFieldLabel, serverAutoFrom } from "@/lib/projects/changes";
 import { shortProductName } from "@/lib/projects/defaults";
 import type { ParamsSource } from "@/lib/projects/queries";
@@ -30,6 +41,7 @@ import type {
   ParamSpec,
   ParamValues,
   PendingChange,
+  PilotPlanInput,
   ProductForCalc,
   ProjectResults,
   ScenarioItem,
@@ -89,6 +101,7 @@ export type WorkspaceMode = "guest" | "owner" | "readonly";
 
 /** Проект в рабочей области. */
 export type WorkspaceProject = {
+  revision?: number;
   /** id сохранённого проекта; у гостевого расчёта нет. */
   id?: string;
   name: string;
@@ -104,6 +117,10 @@ export type WorkspaceProject = {
 };
 
 export type WorkspaceProps = {
+  archive?: boolean;
+  initialStep?: number;
+  initialFocusKey?: string;
+  initialSims?: Record<string, SimSummaryStored | null>;
   mode: WorkspaceMode;
   project: WorkspaceProject;
   /** Описания параметров типа объекта (администрируемые ParamDefinition или код). */
@@ -272,8 +289,7 @@ class MinFleetBudget extends Error {}
 
 /**
  * Сводки имитации по сценариям модели — те же прогоны и та же сводка, что у сервера
- * (`runProjectSims`): парк по расчёту, парк по норме и минимальный устойчивый парк двоичным
- * поиском на [1; 2N] (`firstTrue` из lib/sim/sweep), только асинхронно. Одинаковые входы
+ * (`runProjectSims`): парк по расчёту, парк по норме и последовательный перебор [1; 2N]. Одинаковые входы
  * (покупка и услуга одного продукта) прогоняются один раз.
  */
 async function runModelSims(
@@ -288,7 +304,7 @@ async function runModelSims(
     const hit = runs.get(key);
     if (hit) return hit;
     const left = SIMS_BUDGET_MS - (now() - t0);
-    const s = await runSim(input, { now, signal: opts.signal, yieldFn: yieldToPage, budgetMs: Math.max(1_000, left) });
+    const s = await runSim(input, { now, signal: opts.signal, yieldFn: yieldToPage, budgetMs: Math.max(0, left) });
     runs.set(key, s);
     return s;
   };
@@ -303,17 +319,19 @@ async function runModelSims(
       const lo = 1;
       const hi = Math.min(SIM_LIMITS.maxRobots, Math.floor(2 * input.robots.count));
       try {
-        // Двоичный поиск «не держит → держит», как firstTrue: правый конец — часовой hi + 1.
-        let a = lo;
-        let b = hi + 1;
-        while (a < b) {
-          const mid = a + Math.floor((b - a) / 2);
+        for (let n = lo; n <= hi; n++) {
           if (now() - tStart > budget) throw new MinFleetBudget();
-          const s = await run({ ...input, robots: { ...input.robots, count: mid } });
-          if (s.verdict === "CONFIRMED") b = mid;
-          else a = mid + 1;
+          const s = await runSim({ ...input, robots: { ...input.robots, count: n } }, {
+            now,
+            signal: opts.signal,
+            yieldFn: yieldToPage,
+            budgetMs: Math.max(0, Math.min(budget - (now() - tStart), SIMS_BUDGET_MS - (now() - t0))),
+          });
+          if (s.verdict === "CONFIRMED") {
+            m = n;
+            break;
+          }
         }
-        m = lo <= hi && b <= hi ? b : null;
       } catch (e) {
         if (!(e instanceof MinFleetBudget) && !(e instanceof Error && e.name === "SimBudgetExceeded")) throw e;
         m = null;
@@ -336,16 +354,20 @@ async function runModelSims(
     opts.onProgress({ done, total: jobs.length, current: spec.name });
     const s = await run(calculated);
     const byNorm = si.byNorm ? await run(si.byNorm) : null;
-    const minStableFleet = await minOf(calculated);
     out[spec.key] = toStored({
       ...s,
       scenarioKey: spec.key,
       assumedUtilPct: si.assumedUtilPct ?? s.assumedUtilPct,
-      minStableFleet,
+      minStableFleet: null,
       fleetByNorm: si.byNorm ? si.byNorm.robots.count : null,
       verdictByNorm: verdictOf(byNorm),
     });
     done++;
+  }
+  for (const spec of model.scenarios) {
+    const calculated = model.simInputs[spec.key]?.calculated;
+    const summary = out[spec.key];
+    if (calculated && summary) summary.minStableFleet = await minOf(calculated);
   }
   return { sims: out, ms: now() - t0, count: jobs.length };
 }
@@ -361,7 +383,7 @@ type Calc = {
   ms: number;
   /** Сводки имитации по сценариям; null — ещё не посчитаны для этого расчёта. */
   sims: Record<string, SimSummaryStored | null> | null;
-  simSource: "stored" | "browser" | null;
+  simSource: "stored" | "browser" | "example" | null;
   simMs: number | null;
   simCount: number | null;
 };
@@ -382,6 +404,7 @@ function simStatusText(calc: Calc, status: SimStatus | null): string | null {
   }
   if (calc.sims === null) return "Имитация: готовим прогоны…";
   if (calc.simSource === "stored") return "Имитация — по сохранённому расчёту";
+  if (calc.simSource === "example") return "Имитация — готовый пример, рассчитан при открытии";
   const count = calc.simCount ?? Object.values(calc.sims).filter((s) => s !== null).length;
   if (count === 0) return null;
   return `Имитация: ${count} ${pluralRu(count, ["сценарий проверен", "сценария проверено", "сценариев проверено"])} за ${msText(calc.simMs ?? 0)} мс`;
@@ -521,6 +544,10 @@ function AddScenarioForm({
 // ——————————————————————————— Рабочая область ———————————————————————————
 
 export function Workspace({
+  archive = false,
+  initialStep = 1,
+  initialFocusKey,
+  initialSims,
   mode,
   project,
   defs,
@@ -537,15 +564,19 @@ export function Workspace({
 }: WorkspaceProps) {
   const uid = useId();
   const facility = project.facility;
-  const editable = mode !== "readonly";
+  const editable = mode !== "readonly" && !archive;
   const guest = mode === "guest";
 
   // Нормативы проекта: у сохранённого проекта — из снимка, у гостя — живые. Не меняются.
-  const [norms] = useState<NormValues>(() => initialModel.normsUsed);
+  const [norms, setNorms] = useState<NormValues>(() => initialModel.normsUsed);
   const [params, setParams] = useState<ParamValues>(initialParams);
   const [savedParams, setSavedParams] = useState<ParamValues>(initialParams);
+  const [revision, setRevision] = useState(project.revision);
   const [paramMeta, setParamMeta] = useState<Record<string, { at: string; reason?: string }>>({});
   const [scenarios, setScenarios] = useState<ScenarioSpec[]>(initialScenarios);
+  const [matched, setMatched] = useState<{ inputKey: string; comparison: MatchedComparisonData } | null>(null);
+  const latestDraft = useRef({ params, scenarios });
+  useLayoutEffect(() => { latestDraft.current = { params, scenarios }; }, [params, scenarios]);
   const [savedKey, setSavedKey] = useState<string>(() => stateKey(initialParams, initialScenarios));
   const [pending, setPending] = useState<LocalChange[]>([]);
   const [stale, setStale] = useState(false);
@@ -555,22 +586,39 @@ export function Workspace({
     base: initialModel,
     model: initialModel,
     ms: initialMs,
-    sims: stored ? stored.results.sim : null,
-    simSource: stored ? "stored" : null,
+    sims: initialSims ?? (stored ? stored.results.sim : archive ? {} : null),
+    simSource: initialSims ? "example" : stored ? "stored" : null,
     simMs: null,
     simCount: null,
   }));
   const [simStatus, setSimStatus] = useState<SimStatus | null>(null);
-  const [focusPick, setFocusPick] = useState<string | null>(null);
+  const [focusPick, setFocusPick] = useState<string | null>(initialFocusKey ?? null);
   const [notice, setNotice] = useState<{ where: "selection" | "scenarios" | "params"; text: string } | null>(null);
-  const [activeStep, setActiveStep] = useState(1);
+  const [activeStep, setActiveStep] = useState(initialStep);
+  const [visitedSteps, setVisitedSteps] = useState<ReadonlySet<number>>(() => new Set([initialStep]));
   const stickyRef = useRef<HTMLDivElement>(null);
   const stepsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = stickyRef.current?.querySelector<HTMLOListElement>('nav[aria-label="Шаги расчёта"] ol');
+    if (!list) return;
+    const reveal = () => {
+      const selected = list.querySelector<HTMLElement>('[aria-current="step"]');
+      if (!selected) return;
+      const bounds = list.getBoundingClientRect(), target = selected.getBoundingClientRect();
+      if (target.left < bounds.left || target.right > bounds.right) {
+        list.scrollLeft += target.left - bounds.left - Math.max(0, (bounds.width - target.width) / 2);
+      }
+    };
+    reveal();
+    const observer = new ResizeObserver(reveal);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [activeStep]);
   /** Номер последнего перехода между шагами — см. goToStep. */
   const stepTransitionSeq = useRef(0);
   /**
    * Пейджер шагов (просьба владельца 2026-09-26; заменил «один экран на шаг» бэклога #4b): на
-   * экране один шаг, остальные — `hidden`, но смонтированы, поэтому черновики полей, выбранные
+   * экране один шаг; содержимое монтируется при первом посещении и затем остаётся под `hidden`, поэтому черновики полей, выбранные
    * вкладки и имитация переход между шагами переживают. Смена шага — горизонтальный сдвиг:
    * вперёд — текущий уходит влево, назад — вправо (View Transitions API, «Пейджер рабочей
    * области» в globals.css). Без API и при prefers-reduced-motion шаг меняется мгновенно.
@@ -591,7 +639,10 @@ export function Workspace({
       return;
     }
     const apply = () => {
-      flushSync(() => setActiveStep(next));
+      flushSync(() => {
+        setVisitedSteps(previous => previous.has(next) ? previous : new Set(previous).add(next));
+        setActiveStep(next);
+      });
       if (id) window.history.replaceState(null, "", `#${id}`);
       revealStepTop();
       // С нижней кнопки «Далее» фокус переносится на заголовок нового шага: сама кнопка
@@ -625,7 +676,7 @@ export function Workspace({
   const model = calc.model;
 
   // ——— Имитация после каждого пересчёта ———
-  const simTarget = calc.sims === null ? calc : null;
+  const simTarget = !archive && calc.sims === null ? calc : null;
   useEffect(() => {
     if (!simTarget) return;
     const ac = new AbortController();
@@ -652,12 +703,14 @@ export function Workspace({
   const onHashStep = useEffectEvent((initial: boolean) => {
     const n = TZ_STEPS.find((st) => `#${st.id}` === window.location.hash)?.n;
     if (n === undefined) return;
-    if (initial) setActiveStep(n);
+    if (initial) flushSync(() => {
+      setVisitedSteps(previous => previous.has(n) ? previous : new Set(previous).add(n));
+      setActiveStep(n);
+    });
     else goToStep(n);
   });
   useEffect(() => {
-    // Кадр спустя, а не синхронно в эффекте: сервер и гидратация рисуют шаг 1 (адреса с
-    // хэшем на сервере нет), шаг из хэша включается сразу после.
+    // Server and hydration share initialStep; the URL hash is applied together with its content after mount.
     const raf = requestAnimationFrame(() => onHashStep(true));
     const onHash = () => onHashStep(false);
     window.addEventListener("hashchange", onHash);
@@ -671,7 +724,7 @@ export function Workspace({
   const defsByKey = useMemo(() => new Map(defs.map((d) => [d.key, d])), [defs]);
   const paramLabels = useMemo(() => Object.fromEntries(defs.map((d) => [d.key, d.label])), [defs]);
   const processNames = useMemo(() => Object.fromEntries(processes.map((p) => [p.slug, p.name])), [processes]);
-  const issues = useMemo(() => validateParamValues(defs, params, { origin: "manual" }).issues, [defs, params]);
+  const issues = useMemo(() => archive ? model.paramIssues : validateParamValues(defs, params, { origin: "manual" }).issues, [archive, model.paramIssues, defs, params]);
   const itemKeys = useMemo(() => scenarioItemKeys(scenarios), [scenarios]);
   const productsBySlug = useMemo(() => new Map(products.map((p) => [p.slug, p])), [products]);
   const currentKey = useMemo(() => stateKey(params, scenarios), [params, scenarios]);
@@ -705,6 +758,7 @@ export function Workspace({
       : (recommendedKey && results.some((r) => r.key === recommendedKey) ? recommendedKey : (firstRobot?.key ?? ""));
   const focusResult = results.find((r) => r.key === focusKey) ?? null;
   const focusSpec = scenarios.find((s) => s.key === focusKey) ?? model.scenarios.find((s) => s.key === focusKey);
+  const matchedInputKey = `${projectDraftKey(params, scenarios)}:${focusKey}:${model.dataVersion}`;
   const tabs = results.map((r) => ({
     key: r.key,
     name: r.name,
@@ -959,6 +1013,78 @@ export function Workspace({
     );
   }
 
+  function onSpatialResult(snapshot: SpatialProjectSnapshot, result: SpatialProjectResult) {
+    if (!editable || stale) return;
+    const expected = model.simInputs[snapshot.scenarioKey]?.calculated;
+    if (!expected || simInputIdentity(expected) !== snapshot.inputKey) return;
+    const evidence = { sourceInputKey: result.sourceInputKey, executionInputKey: result.executionInputKey,
+      simModelVersion: result.simModelVersion, input: snapshot.input,
+      assessment: result.assessment as NonNullable<ScenarioSpec["spatialEvidence"]>["assessment"], summary: result.summary };
+    const source = scenarios.find(s => s.key === snapshot.scenarioKey);
+    if (!source || stableJson(source.spatialEvidence ?? null) === stableJson(evidence)) return;
+    setFocusPick(snapshot.scenarioKey);
+    // A completed check changes eligibility, not the cash-flow assumptions or the selected fleet.
+    recalcWith(params, scenarios.map(s => s.key === source.key ? { ...s, spatialEvidence: evidence } : s));
+  }
+
+
+  function onPilotChange(value: { pilotPlan: PilotPlanInput; terminalResidualRub: number }) {
+    if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    const shortPlan = (plan: PilotPlanInput | undefined) => plan ? {
+      fleet: plan.fleet, chargers: plan.chargers, durationDays: plan.durationDays, dayBasis: plan.dayBasis,
+      acquisition: plan.acquisition, targetThroughputPerH: plan.targetThroughputPerH,
+      costs: Object.fromEntries(Object.entries(plan.costs).map(([key, cost]) => [key, { valueRub: cost.valueRub, source: cost.source.slice(0, 120) }])),
+      contingencyPct: plan.contingencyPct, readiness: plan.readiness,
+    } : null;
+    commitScenarios(scenarios.map(s => s.key === focusSpec.key ? { ...s, ...value } : s), [
+      { scenarioKey: focusSpec.key, field: "scenario:pilot", auto: null, old: shortPlan(focusSpec.pilotPlan), new: shortPlan(value.pilotPlan), reason: "Состав, срок, смета и критерии пилота заданы для выбранного сценария" },
+      ...(value.terminalResidualRub === (focusSpec.terminalResidualRub ?? 0) ? [] : [{ scenarioKey: focusSpec.key, field: "scenario:residual", auto: 0, old: focusSpec.terminalResidualRub ?? 0, new: value.terminalResidualRub, unit: "₽", reason: "Явная оценка чистой остаточной стоимости в конце TCO-периода" }]),
+    ]);
+  }
+
+  function onOperationsStaffing(value: ScenarioSpec["operationsStaffing"]) {
+    if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    const next = { ...focusSpec };
+    if (value) next.operationsStaffing = value;
+    else delete next.operationsStaffing;
+    commitScenarios(scenarios.map(s => s.key === next.key ? next : s), [{
+      scenarioKey: next.key, field: "scenario:staffing", auto: null,
+      old: focusSpec.operationsStaffing ?? null, new: value ?? null,
+      reason: value?.reason ?? "Возврат к исходному допущению о выделенном посте эксплуатации",
+    }]);
+  }
+
+  function onCostPackage(process: string, value: ScenarioItem["costPackage"]) {
+    if (!editable || stale || !focusSpec || focusSpec.kind !== "purchase") return;
+    const previous = focusSpec.items.find(item => item.process === process);
+    if (!previous) return;
+    const nextItem = { ...previous };
+    if (value) nextItem.costPackage = value;
+    else delete nextItem.costPackage;
+    commitScenarios(scenarios.map(s => s.key === focusSpec.key ? { ...s, items: s.items.map(item => item === previous ? nextItem : item) } : s), [{
+      scenarioKey: focusSpec.key, field: `item:${process}:package`, auto: null,
+      old: previous.costPackage ?? null, new: value ?? null,
+      reason: value?.reason ?? "Возврат к исходным отдельным статьям расходов",
+    }]);
+  }
+
+  function onBuildMatchedComparison() {
+    if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    const comparison = buildMatchedComparison({ input: { facility, params, paramDefs: defs, scenarios, products, norms }, source: focusSpec });
+    setMatched({ inputKey: matchedInputKey, comparison });
+  }
+
+  function onAdoptMatchedScenario(value: ScenarioSpec) {
+    if (!editable || stale || matched?.inputKey !== matchedInputKey || scenarios.length >= SCENARIOS_MAX) return;
+    const spec = structuredClone(value);
+    spec.key = nextScenarioKey(value.kind === "raas" ? "r" : "p", scenarios);
+    spec.name = uniqueScenarioName(value.name.slice(0, SCENARIO_NAME_MAX), scenarios);
+    commitScenarios([...scenarios, spec], [{ scenarioKey: spec.key, field: "scenario:add", auto: null, old: null, new: spec.name,
+      reason: "Отдельный вариант из сравнения моделей при одинаковой нагрузке; пространственная пригодность проверяется отдельно" }],
+    { where: "scenarios", text: `Создан сценарий «${spec.name}». Исходный сценарий сохранён.` });
+    setFocusPick(spec.key);
+  }
+
   // ——— Состав сценариев ———
   function onAddScenario(kind: Exclude<ScenarioKind, "asis">, process: string, slug: string) {
     if (scenarios.length >= SCENARIOS_MAX) return;
@@ -1009,14 +1135,26 @@ export function Workspace({
   // ——— Сохранение и выгрузка ———
   function getSaveInput(): SaveProjectInput {
     const scen = stale ? recalcWith(params, scenarios).scenarios : scenarios;
-    return { params, scenarios: scen, changes: [...paramChanges.map((c) => c.change), ...pending.map((c) => c.change)] };
+    return { expectedRevision: revision, params, scenarios: scen, changes: [...paramChanges.map((c) => c.change), ...pending.map((c) => c.change)] };
   }
 
   function onSaved(_r: Extract<SaveProjectResult, { ok: true }>, input: SaveProjectInput) {
+    setRevision(_r.revision);
     const sent = new Set(input.changes);
     setPending((p) => p.filter((c) => !sent.has(c.change)));
-    setSavedParams(input.params);
-    setSavedKey(stateKey(input.params, input.scenarios));
+    const canonical = _r.results;
+    setSavedParams(canonical.paramsUsed);
+    setSavedKey(stateKey(canonical.paramsUsed, canonical.scenarios));
+    if (canAdoptSavedSnapshot(latestDraft.current, input)) {
+      const savedModel = projectSnapshotModel(canonical);
+      setParams(savedModel.paramsUsed);
+      setScenarios(savedModel.scenarios);
+      setNorms(savedModel.normsUsed);
+      setStale(false);
+      setCalc(c => ({ ...c, token: c.token + 1,
+        input: { facility, params: savedModel.paramsUsed, paramDefs: defs, scenarios: savedModel.scenarios, products, norms: savedModel.normsUsed },
+        base: savedModel, model: savedModel, sims: canonical.sim ?? {}, simSource: "stored", simMs: null, simCount: null }));
+    }
   }
 
   function getCsv(): { csv: string; fileName: string } {
@@ -1040,9 +1178,11 @@ export function Workspace({
         ? undefined
         : result?.status === "refused"
           ? "сценарий не рассчитан — см. шаг 5"
-          : !simProcess
-            ? "имитация не моделирует этот процесс"
-            : "нет данных для имитации";
+          : si?.unavailableReason
+            ? si.unavailableReason
+            : !simProcess
+              ? "имитация не моделирует этот процесс"
+              : "нет данных для имитации";
       return {
         key: s.key,
         name: s.name,
@@ -1059,6 +1199,29 @@ export function Workspace({
       };
     });
   }, [calc]);
+  function onSpatialScenario(proposal: SpatialScenarioProposal, assumptions: SpatialFinancialAssumptions) {
+    if (!editable || stale) throw new Error("Сначала пересчитайте актуальный редактируемый проект.");
+    if (scenarios.length >= SCENARIOS_MAX) throw new Error(`В проекте уже ${SCENARIOS_MAX} сценариев. Удалите ненужный вариант перед добавлением.`);
+    const source = scenarios.find(s => s.key === proposal.candidate.scenarioKey);
+    const scenario = simScenarios.find(s => s.key === source?.key);
+    const variant = scenario?.variants.find(v => v.id === proposal.candidate.variantId);
+    if (!source || !variant?.input || simInputIdentity(variant.input) !== proposal.originalInputKey) throw new Error("Исходный вариант изменился после запуска 3D. Повторите проверку.");
+    const snapshot = createSpatialProjectSnapshot({ requestId: proposal.requestId, scenarioKey: source.key,
+      scenarioName: source.name, variantId: variant.id, input: variant.input,
+      ...(variant.provenance ? { provenance: variant.provenance } : {}),
+      ...(scenario?.assumedUtilPct === undefined ? {} : { assumedUtilPct: scenario.assumedUtilPct }),
+    });
+    const verified = parseSpatialScenarioProposal(proposal, snapshot);
+    const key = nextScenarioKey(source.kind === "raas" ? "r" : "p", scenarios);
+    const name = uniqueScenarioName(`${source.name} · 3D · ${verified.candidate.input.robots.count} шт.`, scenarios).slice(0, SCENARIO_NAME_MAX);
+    const spec = buildSpatialFinancialScenario({ source, key, name, proposal: verified, ...assumptions });
+    commitScenarios([...scenarios, spec], [{ scenarioKey: key, field: "scenario:add", auto: null, old: null, new: spec.name,
+      reason: `Пространственная проверка: ${spec.items.find(i => processDef(i.process)?.simSupported)?.quantityOverride} роботов, ${verified.candidate.input.layout.chargers} зарядок; годовое покрытие ${formatNum(assumptions.annualCoverageShare * 100, 2)}%; денежная реализация труда ${formatNum(assumptions.cashRealizationShare * 100, 2)}%.`,
+    }], { where: "scenarios", text: `Создан «${spec.name}». Экономика пересчитана; исходный вариант сохранён для сравнения.` });
+    setFocusPick(key);
+    goToStep(8, { focusHeading: true });
+  }
+
   const simInitialKey =
     (recommendedKey && model.simInputs[recommendedKey]?.calculated ? recommendedKey : null) ??
     model.scenarios.find((s) => model.simInputs[s.key]?.calculated)?.key ??
@@ -1104,18 +1267,10 @@ export function Workspace({
 
   const statusText = calcStatusText(calc.ms, model);
   const simText = simStatusText(calc, simStatus);
-  // Бэклог #4b: «один экран на шаг» — min-h-[85dvh] на каждом разделе плюс scrollIntoView из
-  // setActiveStep (выше), а не display:none. Раздел остаётся в потоке и виден
-  // Playwright/скринридеру всегда — e2e (tz-project.spec.ts и другие) взаимодействует с
-  // разделами напрямую, без клика «Далее» между каждым действием, полагаясь на то, что все
-  // они всегда в DOM и Playwright сам докручивает при действии. Обычная прокрутка колёсиком
-  // мыши работает как раньше, без CSS scroll-snap: тот требует ограниченного по высоте
-  // scroll-контейнера, а вложенный контейнер с своим скроллом внутри sticky-панели —
-  // источник багов (двойной скроллбар, залипание sticky), которые здесь негде визуально
-  // проверить. 85dvh, не 100: sticky-панель StepNav+RecalcBar сверху уже часть экрана.
+  // Only visited content mounts; section anchors/headings always exist. Visited children stay mounted.
   // Ритм шага: заголовок с вводной — одна группа, дальше блоки шага через 40px; внутри блока
   // свой, более плотный шаг. Раньше всё шло через 16px, и соседние разделы сливались.
-  const sectionClass = "flex flex-col gap-10";
+  const sectionClass = "flex flex-col gap-5 sm:gap-10";
   const economicsPanelId = `${uid}-economics-panel`;
   const sensitivityPanelId = `${uid}-sensitivity-panel`;
   const noticeFor = (where: "selection" | "scenarios" | "params") => (notice && notice.where === where ? notice.text : "");
@@ -1127,10 +1282,13 @@ export function Workspace({
   const focusIsAsis = focusSpec?.kind === "asis";
 
   return (
-    <div className="flex flex-col gap-10 pb-16">
+    <div className="flex flex-col gap-10 pb-16" data-project-revision={revision} data-project-archive={archive}>
       {stored && project.id && (
         <VersionBanner
+          archive={archive}
+          revision={revision}
           projectId={project.id}
+          dirty={dirty}
           stored={{
             modelVersion: stored.results.modelVersion,
             dataVersion: stored.results.dataVersion,
@@ -1175,6 +1333,7 @@ export function Workspace({
       {/* Шаг 1 — объект */}
       <section id="object" aria-labelledby={`${uid}-h-object`} className={sectionClass} hidden={activeStep !== 1}>
         <h2 id={`${uid}-h-object`} tabIndex={-1}>{stepHeading(1)}</h2>
+        {visitedSteps.has(1) && <>
         {facility !== "warehouse" && (
           <p data-tone="warn" className="callout callout--sm w-fit">
             {PROTOTYPE_BADGE}
@@ -1222,6 +1381,7 @@ export function Workspace({
             </ul>
           </dd>
         </dl>
+        </>}
       </section>
 
       {/* Шаг 2 — параметры */}
@@ -1233,6 +1393,7 @@ export function Workspace({
             браузер считает по той же модели, что и сервер.
           </p>
         </header>
+        {visitedSteps.has(2) && <>
         {editable && (
           <details className="rounded-lg border px-4 py-3">
             <summary className="cursor-pointer text-sm font-medium">Загрузить параметры из Excel или CSV по шаблону</summary>
@@ -1253,6 +1414,7 @@ export function Workspace({
           onReset={editable ? onParamReset : undefined}
           readOnly={!editable}
         />
+        </>}
       </section>
 
       {/* Шаг 3 — подбор */}
@@ -1260,11 +1422,10 @@ export function Workspace({
         <header className="flex flex-col gap-2">
           <h2 id={`${uid}-h-selection`} tabIndex={-1}>{stepHeading(3)}</h2>
           <p className="text-sm text-muted-foreground">
-            Для каждого процесса объекта: статус решения, балл с разложением по факторам, причины включения или
-            исключения, ограничения и недостающие данные. Исключённое решение можно добавить вручную — с причиной и
-            пометкой ⚠.
+            Выберите технику для процесса. Сначала показаны три кандидата; причины, ограничения и качество данных можно раскрыть.
           </p>
         </header>
+        {visitedSteps.has(3) && <>
         <p role="status" aria-live="polite" className="text-sm [&:empty]:hidden">
           {noticeFor("selection")}
         </p>
@@ -1311,12 +1472,13 @@ export function Workspace({
             </div>
           </details>
         )}
+        </>}
       </section>
 
       {/* Шаг 4 — сравнение */}
       <section id="comparison" aria-labelledby={`${uid}-h-comparison`} className={sectionClass} hidden={activeStep !== 4}>
         <h2 id={`${uid}-h-comparison`} tabIndex={-1}>{stepHeading(4)}</h2>
-        <ComparisonTable rows={model.comparison} pinned={itemKeys} />
+        {visitedSteps.has(4) && <ComparisonTable rows={model.comparison} pinned={itemKeys} />}
       </section>
 
       {/* Шаг 5 — экономика */}
@@ -1328,6 +1490,7 @@ export function Workspace({
             Расчётные значения можно изменить вручную: каждая корректировка попадает в журнал (шаг 8).
           </p>
         </header>
+        {visitedSteps.has(5) && <>
         {/* Вкладки и панель, которой они управляют, — одна группа (16px), а не два блока шага. */}
         <div className="flex flex-col gap-4">
           {results.length > 0 && (
@@ -1347,6 +1510,17 @@ export function Workspace({
               aria-labelledby={`${uid}-eco-tab-${focusResult.key}`}
               className="flex flex-col gap-12"
             >
+              {focusSpec && focusResult.kind !== "asis" && <OperationsStaffing
+                key={`${focusSpec.key}-${stableJson(focusSpec.operationsStaffing ?? null)}`}
+                value={focusSpec.operationsStaffing}
+                annualCostRub={focusResult.status === "ok" ? focusResult.items.reduce((sum, item) => sum + item.operatingStaffRub, 0) : null}
+                breakEvenAnnualRub={focusResult.status === "ok" ? staffingBreakEvenBudget(focusResult.items.reduce((sum, item) => sum + item.operatingStaffRub, 0), focusResult.npvRub, horizonFor(focusResult.key) ?? NaN, scenarioNorms(model, focusResult.key).discountRate) : null}
+                defaultSalaryRubMonth={(focusResult.items[0]?.roleCostRubYear ?? 0) / (12 * scenarioNorms(model, focusResult.key).payrollMultiplier)}
+                defaultPayrollMultiplier={scenarioNorms(model, focusResult.key).payrollMultiplier}
+                defaultAnnualHours={scenarioNorms(model, focusResult.key).annualHoursPerFte}
+                readOnly={!editable || stale}
+                onChange={editable && !stale ? onOperationsStaffing : undefined}
+              />}
               <ScenarioDetails
                 result={focusResult}
                 spec={focusSpec}
@@ -1355,6 +1529,7 @@ export function Workspace({
                 horizonYears={horizonFor(focusResult.key)}
                 paramLabels={paramLabels}
                 readOnly={!editable}
+                onCostPackage={editable && !stale ? onCostPackage : undefined}
                 onOverride={
                   editable && focusResult.kind !== "asis"
                     ? (field, value, reason) => onItemOverride(focusResult.key, field, value, reason)
@@ -1375,6 +1550,7 @@ export function Workspace({
             </div>
           )}
         </div>
+        </>}
       </section>
 
       {/* Шаг 6 — сценарии */}
@@ -1386,6 +1562,19 @@ export function Workspace({
             (RaaS). Строка «Имитация» показывает, подтверждает ли имитация расчётный парк (шаг 7).
           </p>
         </header>
+        {visitedSteps.has(6) && <>
+        {editable && facility === "warehouse" && <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <label htmlFor={`${uid}-matched-source`} className="flex min-w-0 flex-col gap-1.5 text-sm">Исходный сценарий для сравнения моделей
+              <select id={`${uid}-matched-source`} className="h-10 max-w-full rounded-md border bg-background px-3 text-sm" value={focusKey} onChange={event => setFocusPick(event.target.value)}>
+                {scenarios.map(spec => <option key={spec.key} value={spec.key}>{spec.name}</option>)}
+              </select>
+            </label>
+            <Button type="button" variant="outline" disabled={stale || !focusSpec || focusSpec.kind === "asis"} onClick={onBuildMatchedComparison}>Сравнить модели: покупка и RaaS</Button>
+          </div>
+          {matched && matched.inputKey !== matchedInputKey && <p className="text-sm text-muted-foreground" role="status">Условия или исходный сценарий изменились. Постройте сравнение заново.</p>}
+          {matched?.inputKey === matchedInputKey && <MatchedComparison comparison={matched.comparison} onAdopt={scenarios.length < SCENARIOS_MAX ? onAdoptMatchedScenario : undefined} readOnly={scenarios.length >= SCENARIOS_MAX} />}
+        </div>}
         <ScenarioTable
           results={results}
           sim={calc.sims ?? {}}
@@ -1470,12 +1659,22 @@ export function Workspace({
             </div>
           )}
         </div>
+        </>}
       </section>
 
       {/* Шаг 7 — имитация */}
       <section id="simulation" aria-labelledby={`${uid}-h-simulation`} className={sectionClass} hidden={activeStep !== 7}>
         <h2 id={`${uid}-h-simulation`} tabIndex={-1}>{stepHeading(7)}</h2>
-        {showSimulation ? (
+        {visitedSteps.has(7) && <>
+        {archive ? (
+          <div className="grid gap-3 text-sm" data-archive-simulation>
+            <p>Архив имитации: показаны сохранённые итоги. Текущий движок и проигрывание не запускаются при открытии.</p>
+            {Object.entries(calc.sims ?? {}).filter(([, summary]) => summary !== null).map(([key, summary]) => summary && (
+              <p key={key}>{model.scenarios.find(s => s.key === key)?.name ?? key}: {summary.fleet} роботов; достигнуто {formatNum(summary.achievedPerH, 1)} из {formatNum(summary.requiredPerH, 1)} пал./ч; вердикт {summary.verdict}.</p>
+            ))}
+            <p>{model.layout ? `Сохранённая планировка: ${formatNum(model.layout.widthM, 1)} × ${formatNum(model.layout.heightM, 1)} м, ${model.layout.slots.length} мест хранения.` : "Планировка и входы старого архива не сохранены. Они не восстанавливаются текущим алгоритмом."} Для нового прогона явно пересчитайте проект или его копию.</p>
+          </div>
+        ) : showSimulation ? (
           // Таблица «Откуда параметры имитации» печатает ссылки на источники текстом; длинная
           // ссылка без пробелов растягивала раскрытый блок шире карточки (её обрезает
           // overflow-hidden). Переносим такие строки в ячейках раскрывающихся блоков где угодно.
@@ -1483,7 +1682,12 @@ export function Workspace({
             <WarehouseSimulation
               scenarios={simScenarios}
               initialKey={simInitialKey}
+              selectedScenarioKey={focusKey}
+              stale={stale}
               readOnly={!editable}
+              onScenarioSelect={setFocusPick}
+              onSpatialResult={onSpatialResult}
+              onSpatialScenario={onSpatialScenario}
               onAcceptFleet={editable ? onAcceptFleet : undefined}
               nowFn={now}
               headingAs="h3"
@@ -1502,15 +1706,32 @@ export function Workspace({
             }
           />
         )}
+        </>}
       </section>
 
       {/* Шаг 8 — сохранение и отчёт */}
       <section id="report" aria-labelledby={`${uid}-h-report`} className={sectionClass} hidden={activeStep !== 8}>
-        <h2 id={`${uid}-h-report`} tabIndex={-1}>{stepHeading(8, guest ? "Выгрузка и журнал" : "Сохранение и отчёт")}</h2>
+        <h2 id={`${uid}-h-report`} tabIndex={-1}>{stepHeading(8, "Результат и план внедрения")}</h2>
+        {visitedSteps.has(8) && <>
+        {archive ? <section className="grid gap-2" aria-label="Сохранённый вывод">
+          <h3>Сохранённый вывод модели {model.modelVersion}</h3>
+          <p>{model.conclusion.headline}</p>
+          <ul className="list-disc pl-5">{model.conclusion.bullets.map((text, index) => <li key={index}>{text}</li>)}</ul>
+          <p className="text-xs text-muted-foreground">{model.conclusion.disclaimer}</p>
+        </section> : <DecisionSummary model={model} scenarioKey={focusKey} stale={stale}
+          expectedInput={model.simInputs[focusKey]?.calculated ?? null}
+          onCompare={() => goToStep(6, { focusHeading: true })}
+          onSimulation={() => goToStep(7, { focusHeading: true })}
+          onPilot={() => { const plan = document.getElementById(`${uid}-pilot`); plan?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }); }} />}
+        {focusResult?.status === "ok" && focusResult.kind !== "asis" && <section id={`${uid}-pilot`} tabIndex={-1} className="min-w-0 scroll-mt-24"><PilotPlan
+          key={`${focusKey}:${calc.token}`} model={model} scenarioKey={focusKey}
+          readOnly={!editable || stale} onChange={onPilotChange} /></section>}
         <ProjectToolbar
-          mode={mode}
+          mode={archive ? "readonly" : mode}
+          revision={revision}
           projectId={project.id}
           projectName={project.name}
+          reportScenarioKey={focusKey}
           isDemo={project.isDemo}
           dirty={dirty}
           getSaveInput={mode === "owner" ? getSaveInput : undefined}
@@ -1519,6 +1740,7 @@ export function Workspace({
           savedAtText={stored ? formatCalcDate(stored.results.calculatedAt) : null}
         />
         <ChangeLog entries={journal} guest={guest} />
+        </>}
       </section>
 
       <StepPager active={activeStep} onStep={(n) => goToStep(n, { focusHeading: true })} />
@@ -1539,7 +1761,7 @@ export function Workspace({
 /** Ключ состояния для «есть несохранённые изменения»: параметры и сценарии в каноническом JSON. */
 function stateKey(params: ParamValues, scenarios: readonly ScenarioSpec[]): string {
   try {
-    return stableJson({ params, scenarios });
+    return projectDraftKey(params, scenarios);
   } catch {
     return "";
   }

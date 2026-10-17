@@ -264,9 +264,12 @@ export default async function MethodologyPage() {
         </dl>
       </section>
 
-      <footer className="border-t pt-6">
-        <Link href="/onboarding" className="tap-target font-medium underline underline-offset-4">
+      <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6">
+        <Link href="/demo" className="tap-target font-medium underline underline-offset-4">
           Проверить свой объект →
+        </Link>
+        <Link href="/onboarding" className="tap-target font-medium underline underline-offset-4">
+          Упрощённый расчёт v1 →
         </Link>
       </footer>
     </div>

@@ -4,7 +4,7 @@ import { formatYearsRu, pluralRu } from "@/lib/format/plural";
 import { formatMlnRub, formatPct, formatRub, mlnInText } from "@/lib/format/rub";
 import { BOTTLENECK_LABELS } from "@/lib/sim/export-rows";
 import type { SimSummaryStored } from "@/lib/sim/types";
-import { isViableScenario, pickRecommended } from "@/lib/tz/econ/conclusion";
+import { isViableScenario, pickRecommended, simulationFailure } from "@/lib/tz/econ/conclusion";
 import { interpretBand } from "@/lib/tz/econ/interpret";
 import { DEFAULT_NORMS, type NormValues } from "@/lib/tz/norms";
 import type { Risk, ScenarioOk, ScenarioResult } from "@/lib/tz/types";
@@ -171,9 +171,10 @@ export function scenarioCell(key: ScenarioRowKey, r: ScenarioOk, ctx: CellCtx): 
       return { text: risksSummary(r.risks) };
     case "verdict":
       if (asis) return { text: "База сравнения", muted: true };
-      if (ctx.recommended) return { text: "★ Рекомендуется: наибольший NPV среди окупаемых", tone: "good" };
+      if (simulationFailure(r)) return { text: "Не подтверждена нагрузка; финансовый расчёт — только для сравнения", tone: "bad" };
+      if (ctx.recommended) return { text: "★ Предварительный финансовый выбор", tone: "good" };
       return isViableScenario(r)
-        ? { text: "Окупается за горизонт, но уступает по NPV" }
+        ? { text: "Предварительно окупается за горизонт; сравните NPV и условия применения" }
         : { text: "Не окупается за горизонт расчёта", tone: "bad" };
   }
 }
@@ -246,7 +247,7 @@ export function ScenarioTable({
   /** Подписи параметров объекта — для полей отказа 'param:<ключ>'. */
   paramLabels?: Readonly<Record<string, string>>;
 }) {
-  const recKey = recommendedKey === undefined ? (pickRecommended(results)?.key ?? null) : recommendedKey;
+  const recKey = pickRecommended(recommendedKey === undefined ? results : results.filter((r) => r.key === recommendedKey))?.key ?? null;
   const rowCount = SCENARIO_ROWS.length;
   const colClass = (key: string) => cn(key === recKey && "bg-primary/5");
 
@@ -264,7 +265,7 @@ export function ScenarioTable({
               return (
                 <th key={r.key} scope="col" className={cn(TH, "min-w-48", colClass(r.key))}>
                   {r.key === recKey && (
-                    <span className="mr-1 text-positive" aria-label="Рекомендуемый сценарий">
+                    <span className="mr-1 text-positive" aria-label="Предварительный финансовый выбор">
                       ★
                     </span>
                   )}

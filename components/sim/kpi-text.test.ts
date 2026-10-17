@@ -142,6 +142,8 @@ describe("storedCheck", () => {
 
   it("has nothing to compare for another fleet, seed or peak flow, or no stored result", () => {
     expect(storedCheck(null, demo)).toBeNull();
+    expect(storedCheck({ ...stored, inputKey: undefined }, demo)).toBeNull();
+    expect(storedCheck({ ...stored, inputKey: "old geometry" }, demo)).toBeNull();
     expect(storedCheck({ ...stored, fleet: 9 }, demo)).toBeNull();
     expect(storedCheck({ ...stored, seed: 2 }, demo)).toBeNull();
     // Параметры изменены после сохранения: сверять прогон с другим потоком бессмысленно.

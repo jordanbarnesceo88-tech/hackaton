@@ -1,3 +1,7 @@
+import { expectedSpatialInputFromStored } from "@/lib/tz/model";
+import { DecisionSummary } from "@/components/project/decision-summary";
+import { PilotPlan } from "@/components/project/pilot-plan";
+import { operationsStaffingText } from "@/lib/tz/operations-staffing-text";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { NEEDS_VERIFICATION_LABEL, scenarioItemKey, scenarioItemKeys, statusChipLabel } from "@/components/project/comparison-table";
@@ -45,7 +49,7 @@ import { rangeText } from "@/lib/tz/params/messages";
 import type { ParamSpec, ProjectResults, ScenarioOk, ScenarioResult, SelectionResult } from "@/lib/tz/types";
 import { TZ_MODEL_VERSION } from "@/lib/tz/version";
 import { cn } from "@/lib/utils";
-import { LayoutLegend, WarehouseLayoutSvg, reportLayout } from "./layout-svg";
+import { LayoutLegend, WarehouseLayoutSvg } from "./layout-svg";
 import {
   REPORT_TOP_LEVERS,
   displayUrl,
@@ -87,6 +91,7 @@ export type ProjectReportProps = {
     paramsSource: ParamsSource;
   };
   results: ProjectResults;
+  scenarioKey?: string;
   /** Описания параметров объекта (подписи, единицы, диапазоны, источники значений по умолчанию). */
   defs: readonly ParamSpec[];
   /** Журнал корректировок в порядке записи. */
@@ -108,6 +113,7 @@ export type ProjectReportProps = {
 const SECTION_TITLES = {
   summary: "1. Итоги",
   economics: "2. Сравнение сценариев",
+  pilot: "План пилота и оценочный бюджет",
   equipment: "3. Состав оборудования",
   simulation: "4. Имитация",
   sensitivity: "5. Чувствительность",
@@ -291,7 +297,7 @@ function SummarySection({ results }: { results: ProjectResults }) {
           </ul>
         </>
       )}
-      <Note>★ — рекомендуемый сценарий. Суммы в разделах 1–7 — в млн ₽; в приложениях — в рублях, для точной проверки расчёта. Полное сравнение — в разделе 2.</Note>
+      <Note>★ — предварительный финансовый выбор. Суммы в разделах 1–7 — в млн ₽; в приложениях — в рублях, для точной проверки расчёта. Полное сравнение — в разделе 2.</Note>
     </Section>
   );
 }
@@ -621,7 +627,7 @@ function EquipmentSection({ results }: { results: ProjectResults }) {
                     {it.nOverridden && <div className="text-xs text-caution">задано вами</div>}
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>{formatNum(it.chargers)}</td>
-                  <td className={`${TD} text-right tabular-nums`}>{formatNum(it.operatorPosts)}</td>
+                  <td className={`${TD} text-right tabular-nums`}>{it.operatingStaffScope === "site-allocation" ? "На весь парк" : formatNum(it.operatorPosts)}</td>
                   <td className={`${TD} text-xs`}>{i === 0 ? mlnInText(software) : ""}</td>
                   <td className={`${TD} text-xs`}>
                     <ul className="flex flex-col gap-0.5">
@@ -651,7 +657,7 @@ function EconomicsSection({ results, defs }: { results: ProjectResults; defs: re
   return (
     <Section id="economics" title={SECTION_TITLES.economics}>
       <Note>
-        Текущий процесс и варианты роботизации в одной таблице. ★ — рекомендуемый сценарий: наибольший NPV среди окупаемых
+        Текущий процесс и варианты роботизации в одной таблице. ★ — предварительный финансовый выбор
         (NPV ≥ 0 и дисконтированная окупаемость в пределах горизонта). Строка «Интерпретация» на этот выбор не влияет.
       </Note>
       <ScenarioTable
@@ -683,6 +689,8 @@ function LinesSection({ results }: { results: ProjectResults }) {
       {results.results.map((r) => (
         <div key={r.key} className="flex flex-col gap-3">
           <h3 className="text-base font-semibold">{scenarioTitle(results, r)}</h3>
+          {r.kind !== "asis" && <p className="text-sm leading-relaxed">{operationsStaffingText(results.scenarios.find(spec => spec.key === r.key)?.operationsStaffing)}</p>}
+          {r.status === "ok" && r.operationsStaffing && <p className="text-sm">Дополнительные расходы эксплуатации всего парка: {formatRub(r.operationsStaffing.annualCostRub)}/год. {r.operationsStaffing.fte !== null ? `${formatNum(r.operationsStaffing.posts)} пост.; ${formatNum(r.operationsStaffing.fte, 3)} ставки.` : ""}</p>}
           {r.status !== "ok" ? (
             <p className="text-sm text-destructive">Не рассчитан: {r.refusal.message}</p>
           ) : (
@@ -732,6 +740,7 @@ function CashflowSection({ results }: { results: ProjectResults }) {
       {robots.map((r) => {
         const f = scenarioFinance(results, r);
         const rows = cashflowRows(r);
+        const columns = r.cashflows.some(row => (row.residualRub ?? 0) > 0) ? [...CASHFLOW_COLUMNS, { key: "residualRub" as const, label: "Остаточная стоимость" }] : CASHFLOW_COLUMNS;
         return (
           <div key={r.key} className="flex flex-col gap-2">
             <h3 className="text-base font-semibold">{scenarioTitle(results, r)}</h3>
@@ -747,7 +756,7 @@ function CashflowSection({ results }: { results: ProjectResults }) {
                 <thead className="border-b">
                   <tr>
                     <th scope="col" className={TH}>Год</th>
-                    {CASHFLOW_COLUMNS.map((c) => (
+                    {columns.map((c) => (
                       <th key={c.key} scope="col" className={`${TH} text-right`}>
                         {c.label}
                       </th>
@@ -763,12 +772,12 @@ function CashflowSection({ results }: { results: ProjectResults }) {
                           {c.year}
                           {tail ? "*" : ""}
                         </th>
-                        {CASHFLOW_COLUMNS.map((col) => (
+                        {columns.map((col) => (
                           <td
                             key={col.key}
-                            className={cn(TD, "text-right tabular-nums whitespace-nowrap", c[col.key] < 0 && !tail && "text-destructive")}
+                            className={cn(TD, "text-right tabular-nums whitespace-nowrap", (c[col.key] ?? 0) < 0 && !tail && "text-destructive")}
                           >
-                            {formatRub(c[col.key])}
+                            {formatRub(c[col.key] ?? 0)}
                           </td>
                         ))}
                       </tr>
@@ -885,12 +894,11 @@ function SimSection({ results }: { results: ProjectResults }) {
       )}
       {table.notChecked.length > 0 && <Note>Имитацией не проверялись: {table.notChecked.join(", ")}.</Note>}
       {groups.map((g) => {
-        const layout = reportLayout(results.paramsUsed, g.chargers);
+        const layout = g.layout;
         if (!layout) {
           return (
             <Note key={g.chargers}>
-              Схема для «{g.titles.join("», «")}» не построена: в параметрах объекта не хватает площади активной зоны, ширины
-              проходов или числа ворот.
+              Схема для «{g.titles.join("», «")}» не сохранена в архиве. Текущий алгоритм планировки не запускается при чтении; для новой схемы явно пересчитайте проект или его копию.
             </Note>
           );
         }
@@ -908,7 +916,7 @@ function SimSection({ results }: { results: ProjectResults }) {
             </div>
             <LayoutLegend />
             <Note>
-              Типовая планировка по параметрам объекта: около {fx(layout.widthM, 0)} × {fx(layout.heightM, 0)} м, стеллажных
+              Сохранённая планировка расчёта: около {fx(layout.widthM, 0)} × {fx(layout.heightM, 0)} м, стеллажных
               проходов — {formatNum(layout.rackAislesX.length)}, ворот приёмки — {formatNum(layout.receiving.length)}, отгрузки —{" "}
               {formatNum(layout.shipping.length)}. По этой же схеме посчитано среднее плечо перевозки
               {g.item.routeLoadedM !== null && g.item.routeEmptyM !== null
@@ -1215,14 +1223,23 @@ function ChangesSection({ results, defs, changes }: { results: ProjectResults; d
 
 // ——————————————————————————— Отчёт целиком ———————————————————————————
 
-export function ProjectReport({ project, results, defs, changes, liveDataVersion = null }: ProjectReportProps) {
+export function PilotSection({ results, scenarioKey }: { results: ProjectResults; scenarioKey?: string }) {
+  const key = scenarioKey ?? results.conclusion.recommendedScenarioKey ?? results.results.find(result => result.kind !== "asis")?.key ?? "";
+  return <Section id="pilot" title={SECTION_TITLES.pilot}><PilotPlan model={results} scenarioKey={key} readOnly /></Section>;
+}
+
+export function ProjectReport({ project, results, defs, changes, scenarioKey, liveDataVersion = null }: ProjectReportProps) {
   return (
     <div className="report-print mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
       <Toolbar projectId={project.id} />
       <ReportHeader project={project} results={results} liveDataVersion={liveDataVersion} />
+      {results.modelVersion === TZ_MODEL_VERSION && results.simModelVersion === SIM_MODEL_VERSION
+        ? <DecisionSummary model={results} scenarioKey={scenarioKey} expectedInput={expectedSpatialInputFromStored(results, scenarioKey ?? results.conclusion.recommendedScenarioKey ?? results.results.find(r => r.kind !== "asis")?.key ?? "")} />
+        : <section className="report-block my-4"><h2>Сохранённый вывод модели {results.modelVersion}</h2><p>{results.conclusion.headline}</p><p>Архив не переоценён текущим алгоритмом. Числа и вывод ниже относятся к сохранённой версии.</p></section>}
       <SummarySection results={results} />
       <Contents />
       <EconomicsSection results={results} defs={defs} />
+      <PilotSection results={results} scenarioKey={scenarioKey} />
       <EquipmentSection results={results} />
       <SimSection results={results} />
       <SensitivitySection results={results} />

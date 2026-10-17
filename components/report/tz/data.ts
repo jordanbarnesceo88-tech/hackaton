@@ -66,7 +66,7 @@ export async function loadReportData(db: Db, projectId: string, userId: string):
     loadLiveInputs(db, project.facility),
     getProjectChanges(db, project.id, userId),
   ]);
-  const defs = live.paramDefs.filter((d) => d.facility === project.facility);
+  const defs = (project.results?.runtime?.paramDefs ?? live.paramDefs).filter((d) => d.facility === project.facility);
   const liveDataVersion = project.results ? liveDataVersionFrom(live, project.results) : null;
   return { project, defs, changes: toReportChanges(entries ?? []), liveDataVersion };
 }

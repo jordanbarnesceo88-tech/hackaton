@@ -80,9 +80,11 @@ test("проект склада: создать, скорректировать,
   await page.getByRole("radio", { name: /^Склад/ }).check();
   await page.getByRole("radio", { name: /Демо-данные объекта/ }).check();
   await page.getByRole("button", { name: "Создать проект" }).click();
-  await expect(page).toHaveURL(/\/projects\/(?!new$)[^/?#]+$/, { timeout: 60_000 });
-  const projectUrl = page.url();
+  await expect(page).toHaveURL(url => /^\/projects\/(?!new$)[^/]+$/.test(url.pathname) && url.searchParams.get("edit") === "1", { timeout: 60_000 });
+  const createdUrl = new URL(page.url());
+  const projectUrl = `${createdUrl.origin}${createdUrl.pathname}`;
   await expect(page.locator("#object")).toContainText(name);
+  await page.getByText("Детали расчёта", { exact: true }).click();
   await expect(page.getByText(/Расчёт выполнен за/).first()).toBeVisible();
 
   // 2. Подбор объясняет исключение числами (ТЗ §3.4.3).
@@ -120,13 +122,18 @@ test("проект склада: создать, скорректировать,
   await expectNoHorizontalScroll(page);
 
   // 5. Повторное открытие воспроизводит расчёт по снимку (ТЗ §3.1.5).
-  await page.reload();
+  await page.goto(projectUrl);
+  await expect(page.locator("[data-project-archive=true]")).toBeVisible();
   await openStep(page, "6 Сценарии");
   await expect(scenarioTable(page)).toBeVisible();
   expect(await scenarioCell(page, PURCHASE, "NPV"), "NPV после перезагрузки").toBe(npvBefore);
   expect(await scenarioCell(page, PURCHASE, "Состав оборудования")).toMatch(manualFleet);
 
   // 6. Excel по сохранённому расчёту (ТЗ §3.7.3).
+  // Reopening chooses the default financial focus; select the reviewed purchase again
+  // so the PDF assertion verifies the requested scenario rather than an arbitrary default.
+  await openStep(page, "5 Экономика");
+  await page.locator("#economics").getByRole("tablist", { name: "Сценарий для экономики" }).getByRole("tab", { name: PURCHASE }).click();
   await openStep(page, "8 Отчёт");
   const report = page.locator("#report");
   const [xlsx] = await Promise.all([
@@ -137,7 +144,7 @@ test("проект склада: создать, скорректировать,
 
   // 7. Отчёт для печати в PDF: оговорка и журнал корректировок с правкой числа роботов.
   await report.getByRole("link", { name: "Отчёт (PDF)" }).click();
-  await expect(page).toHaveURL(/\/projects\/[^/]+\/report$/);
+  await expect(page).toHaveURL(url => /\/projects\/[^/]+\/report$/.test(url.pathname) && url.searchParams.get("scenario") === "p1");
   await expect(page.getByText(/предварительная оценка/).first()).toBeVisible();
   const changes = page.locator("#changes");
   await expect(changes.getByRole("heading", { name: "Журнал корректировок" })).toBeVisible();
@@ -151,12 +158,14 @@ test("проект склада: создать, скорректировать,
   await expect(page).not.toHaveURL(projectUrl, { timeout: 30_000 });
   await expect(page).toHaveURL(/\/projects\/(?!new$)[^/?#]+$/);
   await expect(page.locator("#object")).toContainText(`${name} (копия)`);
+  const copyUrl = page.url();
 
   // 9. Удаление копии и исходного проекта (подтверждение принимается).
+  await page.goto(`${copyUrl}?edit=1`);
   await openStep(page, "8 Отчёт");
   await page.locator("#report").getByRole("button", { name: "Удалить проект" }).click();
   await expect(page).toHaveURL(/\/projects$/, { timeout: 30_000 });
-  await page.goto(projectUrl);
+  await page.goto(`${projectUrl}?edit=1`);
   await openStep(page, "8 Отчёт");
   await page.locator("#report").getByRole("button", { name: "Удалить проект" }).click();
   await expect(page).toHaveURL(/\/projects$/, { timeout: 30_000 });

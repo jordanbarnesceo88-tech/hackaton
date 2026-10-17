@@ -19,6 +19,9 @@ import { SimControls, type AcceptFleetControl } from "./sim-controls";
 import { SimKpis } from "./sim-kpis";
 import { SimLegend } from "./sim-legend";
 import { useReducedMotion } from "./use-reduced-motion";
+import { SpatialPreview, type SpatialFinancialAssumptions } from "./spatial-preview";
+import type { SpatialProjectSnapshot, SpatialProjectResult } from "@/lib/sim/spatial-bridge";
+import type { SpatialScenarioProposal } from "@/lib/sim/spatial-proposal";
 import {
   optionValue,
   resolveSelection,
@@ -40,7 +43,7 @@ import {
  *   частям, с отменой и прогрессом; по его итогу показываются последний кадр, вердикт и
  *   показатели. Само ничего не проигрывается: движение начинается только по «▶ Старт»;
  * - проигрывание — отдельный прогон с тем же зерном, который цикл кадров двигает на
- *   speed × 60 × длительность кадра шагов. Движок детерминирован, поэтому проигрывание приходит
+ *   speed × длительность кадра шагов. Движок детерминирован, поэтому проигрывание приходит
  *   к тому же итогу, что и прогон без анимации;
  * - состояние React меняется только в обработчиках событий и в колбэках промисов и кадров, не в
  *   теле эффектов (правила react-hooks v7).
@@ -54,8 +57,11 @@ export type WarehouseSimulationProps = {
   scenarios: SimScenario[];
   /** Ключ сценария, выбранного при открытии. */
   initialKey: string;
+  selectedScenarioKey?: string;
   /** Только чтение: без кнопки «Принять парк по имитации». */
   readOnly?: boolean;
+  /** The form has edits not represented by the calculated simulation input. Unsaved calculated data is valid. */
+  stale?: boolean;
   /**
    * Итог прогона парка по расчёту сценария — для строки «Имитация» в таблице сценариев.
    * Варианты «минимальный» и «по норме» сюда не сообщаются: у них другой парк.
@@ -63,6 +69,9 @@ export type WarehouseSimulationProps = {
   onSummary?: (key: string, summary: SimRunSummary) => void;
   /** «Принять парк по имитации»: записать в сценарий ручной парк M (владелец пишет журнал). */
   onAcceptFleet?: (key: string, n: number) => void;
+  onSpatialResult?: (snapshot: SpatialProjectSnapshot, result: SpatialProjectResult) => void;
+  onSpatialScenario?: (proposal: SpatialScenarioProposal, assumptions: SpatialFinancialAssumptions) => void;
+  onScenarioSelect?: (key: string) => void;
   /** Часы, мс, для длительности прогона и нарезки; по умолчанию `performance.now`. */
   nowFn?: () => number;
   /** Уровень заголовка карточки (по умолчанию h2). */
@@ -97,9 +106,14 @@ function errorText(e: unknown): string {
 export function WarehouseSimulation({
   scenarios,
   initialKey,
+  selectedScenarioKey,
   readOnly = false,
+  stale = false,
   onSummary,
   onAcceptFleet,
+  onSpatialResult,
+  onSpatialScenario,
+  onScenarioSelect,
   nowFn,
   headingAs = "h2",
 }: WarehouseSimulationProps) {
@@ -108,7 +122,8 @@ export function WarehouseSimulation({
 
   // Выбор пользователя; если после пересчёта такого пункта нет — выбор по умолчанию.
   const [picked, setPicked] = useState<string | null>(null);
-  const sel = resolveSelection(scenarios, picked, initialKey);
+  const pickedKey = picked ? resolveSelection(scenarios, picked, initialKey)?.scenario.key : null;
+  const sel = resolveSelection(scenarios, selectedScenarioKey && pickedKey !== selectedScenarioKey ? null : picked, selectedScenarioKey ?? initialKey);
   const scenario = sel?.scenario ?? null;
   const variant = sel?.variant ?? null;
   const selectedValue = sel ? optionValue(sel.scenario.key, sel.variant.id) : null;
@@ -123,7 +138,7 @@ export function WarehouseSimulation({
   const input = useMemo(() => (inputKey ? parseSimInputKey(inputKey) : null), [inputKey]);
 
   const options = useMemo(() => simOptions(scenarios), [scenarios]);
-  const layout = useMemo(() => (input ? buildWarehouseLayout(input.layout) : null), [input]);
+  const layout = useMemo(() => (input ? input.siteLayout ?? buildWarehouseLayout(input.layout) : null), [input]);
 
   // ——— Прогон без анимации ———
   const [run, setRun] = useState<RunRecord | null>(null);
@@ -223,6 +238,8 @@ export function WarehouseSimulation({
     setPlay(null);
     setLive(null);
     setPicked(value);
+    const chosen = resolveSelection(scenarios, value, initialKey);
+    if (chosen) onScenarioSelect?.(chosen.scenario.key);
   }
 
   function handleTick(st: SimEngineState) {
@@ -344,6 +361,27 @@ export function WarehouseSimulation({
           accept={accept}
           onAccept={handleAccept}
         />
+        <SpatialPreview
+          stale={stale}
+          readOnly={readOnly}
+          onResult={onSpatialResult}
+          onCreateScenario={onSpatialScenario}
+          selection={scenario && variant && input ? {
+            scenarioKey: scenario.key,
+            scenarioName: scenario.name,
+            variantId: variant.id,
+            input,
+            ...(variant.provenance ? { provenance: variant.provenance } : {}),
+            ...(assumedUtilPct === undefined ? {} : { assumedUtilPct }),
+          } : null}
+        />
+        {input && (
+          <p className="text-xs text-muted-foreground">
+            ×1 — реальное время, ×2 — ускорение вдвое. Обзор ×480 — ускоренное воспроизведение, не физическая скорость робота.
+            {" "}Скорость по модели: {formatNum(input.robots.speedMps, 2)} м/с без груза,
+            {" "}{formatNum(input.robots.speedMps * input.robots.loadedSpeedFactor, 2)} м/с с грузом.
+          </p>
+        )}
         {done && !canPlay && (
           <p className="text-xs text-muted-foreground">
             Проигрывать нечего: прогон не выполнялся (причина — в вердикте).

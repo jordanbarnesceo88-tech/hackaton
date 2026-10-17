@@ -12,6 +12,20 @@ function fakeClock(stepMs: number): () => number {
 }
 
 describe("runSim", () => {
+  it("синхронный серверный прогон соблюдает бюджет и отмену внутри основного цикла", () => {
+    expect(() => runSimSync(warehouseBaseInput(11), { now: fakeClock(10), budgetMs: 25 })).toThrow(
+      expect.objectContaining({ name: "SimBudgetExceeded" }),
+    );
+    const ac = new AbortController();
+    ac.abort();
+    expect(() => runSimSync(warehouseBaseInput(11), { signal: ac.signal })).toThrow(
+      expect.objectContaining({ name: "AbortError" }),
+    );
+  });
+
+  it("не запускает новый прогон с исчерпанным бюджетом", async () => {
+    await expect(runSim(warehouseBaseInput(11), { now: fakeClock(1), budgetMs: 0 })).rejects.toMatchObject({ name: "SimBudgetExceeded" });
+  });
   it("по частям даёт ту же сводку, что runSimSync (кроме длительности)", async () => {
     const input = warehouseBaseInput(9);
     const sliced = await runSim(input, { now: fakeClock(1), sliceMs: 5 });

@@ -160,11 +160,19 @@ export function humanizeFormula(formula: string | null, defs: readonly ParamSpec
 
 export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset, readOnly = false }: ParamsFormProps) {
   const uid = useId();
-  const sections = groupBySection(defs);
+  const quickKeys = new Set(["activeAreaM2", "inboundPalletsPerDay", "outboundPalletsPerDay", "internalPalletMovesPerDay", "shiftsPerDay", "shiftDurationH", "peakFactor", "forkliftOperatorsCount", "forkliftSalaryRubMonth", "mainAisleWidthM", "rackAisleWidthM", "avgPalletMassKg"]);
+  const quick = defs.length > 12 && defs.every(d => d.facility === "warehouse") ? defs.filter(d => quickKeys.has(d.key)) : [];
+  const quickSet = new Set(quick.map(d => d.key));
+  const sections = groupBySection(defs.filter(d => !quickSet.has(d.key)));
   const counters = paramsCounters(defs, values, baseValues, issues);
   const known = new Set(defs.map((d) => d.key));
   // Замечания без поля в форме — строки файла, которые не сопоставились, лишние ключи API.
   const orphan = issues.filter((i) => !known.has(i.key));
+  const fields = (fields: readonly ParamSpec[], headingId: string) => <div role="group" aria-labelledby={headingId} className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-x-8 gap-y-6">{fields.map(def => <ParamField
+    key={def.key} def={def} value={valueOf(def, values, baseValues)} baseValue={baseOf(def, baseValues)}
+    issue={issueForKey(issues, def.key)} changed={isParamChanged(def, values, baseValues)} formula={humanizeFormula(def.formula, defs)} readOnly={readOnly}
+    onChange={onChange ? value => onChange(def.key, value) : undefined} onReset={onReset ? () => onReset(def.key) : undefined}
+  />)}</div>;
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,6 +194,7 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
         </div>
       )}
 
+      {quick.length > 0 && <section><h3 id={`${uid}-quick`}>Основные условия расчёта</h3><p className="mt-1 text-sm text-muted-foreground">Поток, режим, труд и ограничения для перевозки паллет. Остальные параметры доступны ниже; их текущие значения участвуют в расчёте.</p>{fields(quick, `${uid}-quick`)}</section>}
       {sections.map((s, si) => {
         const headingId = `${uid}-section-${si}`;
         const changedHere = s.defs.filter((d) => isParamChanged(d, values, baseValues)).length;
@@ -194,7 +203,7 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
         ).length;
         return (
           // Раздел сворачивается: у склада больше 50 параметров, а жюри обычно правит два-три.
-          <details key={s.section} open className="group/section">
+          <details key={s.section} open={quick.length === 0 || s.defs.some(d => hasParamError(d, issues))} className="group/section">
             <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 [&::-webkit-details-marker]:hidden">
               <span aria-hidden="true" className="text-muted-foreground transition-transform group-open/section:rotate-90">
                 ▸
@@ -209,26 +218,7 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
             {/* Колонки по ~17rem, сколько поместится: поля стали узкими (ширина по значению),
                 и три колонки на всю ширину оставляли по 200px пустоты в каждой. 1440px — четыре
                 колонки, широкий экран — пять-шесть, телефон — одна. */}
-            <div
-              role="group"
-              aria-labelledby={headingId}
-              className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-x-8 gap-y-6"
-            >
-              {s.defs.map((def) => (
-                <ParamField
-                  key={def.key}
-                  def={def}
-                  value={valueOf(def, values, baseValues)}
-                  baseValue={baseOf(def, baseValues)}
-                  issue={issueForKey(issues, def.key)}
-                  changed={isParamChanged(def, values, baseValues)}
-                  formula={humanizeFormula(def.formula, defs)}
-                  readOnly={readOnly}
-                  onChange={onChange ? (v) => onChange(def.key, v) : undefined}
-                  onReset={onReset ? () => onReset(def.key) : undefined}
-                />
-              ))}
-            </div>
+            {fields(s.defs, headingId)}
           </details>
         );
       })}

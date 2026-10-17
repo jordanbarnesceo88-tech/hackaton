@@ -305,7 +305,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
   "opex:battery": {
     title: "Замена АКБ (в среднем за год)",
     expression:
-      "N × стоимость комплекта АКБ / срок замены; в денежном потоке — фактическая замена в годы, кратные сроку",
+      "N × стоимость комплекта АКБ / срок замены; в денежном потоке — замена по возрасту оборудования, новая техника включает новую АКБ",
     units: "₽/год",
     source: "организатор",
   },
@@ -393,7 +393,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
   batteryYear: {
     title: "Замена АКБ в году t",
     expression:
-      "АКБt = N × стоимость комплекта, если t кратно сроку замены и t < T; OPEXt = OPEX − АКБср + АКБt",
+      "a = t mod срок службы; АКБt = N × стоимость комплекта, если a > 0, a кратно сроку замены и t < T; OPEXt = OPEX − АКБср + АКБt",
     units: "₽",
     source: "организатор",
   },

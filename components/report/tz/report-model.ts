@@ -128,7 +128,7 @@ export function simItemOf(r: ScenarioResult): ItemResult | null {
 }
 
 /** Группа сценариев с одинаковой схемой: планировка зависит только от параметров объекта и числа зарядок. */
-export type LayoutGroup = { chargers: number; titles: string[]; item: ItemResult };
+export type LayoutGroup = { chargers: number; titles: string[]; item: ItemResult; layout: import("@/lib/sim/types").SimLayout | null };
 
 /**
  * Сценарии роботизации, у которых есть позиция для имитации, сгруппированные по числу зарядных
@@ -142,9 +142,10 @@ export function layoutGroups(results: ReportResults): LayoutGroup[] {
     const item = simItemOf(r);
     if (!item) continue;
     const title = scenarioTitle(results, r);
-    const g = groups.find((x) => x.chargers === item.chargers);
+    const layout = results.runtime?.layouts?.[r.key] ?? results.runtime?.simInputs[r.key]?.calculated?.siteLayout ?? results.scenarios.find(s => s.key === r.key)?.siteLayout ?? null;
+    const g = groups.find((x) => x.chargers === item.chargers && JSON.stringify(x.layout) === JSON.stringify(layout));
     if (g) g.titles.push(title);
-    else groups.push({ chargers: item.chargers, titles: [title], item });
+    else groups.push({ chargers: item.chargers, titles: [title], item, layout });
   }
   return groups;
 }

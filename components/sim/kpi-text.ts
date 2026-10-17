@@ -163,7 +163,7 @@ export function storedCheck(
   stored: SimSummaryStored | null | undefined,
   s: SimSummaryStored,
 ): { match: true; text: string } | { match: false; text: string } | null {
-  if (!stored || stored.seed !== s.seed || stored.fleet !== s.fleet) return null;
+  if (!stored || !stored.inputKey || stored.inputKey !== s.inputKey || stored.seed !== s.seed || stored.fleet !== s.fleet) return null;
   if (!(Math.abs(stored.requiredPerH - s.requiredPerH) <= 1e-6 * Math.max(1, Math.abs(s.requiredPerH)))) return null;
   const same =
     stored.simModelVersion === s.simModelVersion &&
