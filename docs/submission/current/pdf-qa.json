@@ -1,20 +1,20 @@
 {
   "documentation": {
-    "sha256": "69863381956bdd72b2bf738f83ff17424590271cfad2948ea429f81ca117ca3e",
-    "pages": 18,
+    "sha256": "aa5a1e7f566cb144d4925f9abb241c4018fc743ba4a647cb2d1ad5dc099d2e22",
+    "pages": 19,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 24613
+    "textChars": 26726
   },
   "presentation": {
-    "sha256": "233c46c386bd8801f8369abe4062cd736a58faef4a0c52d11e111acee1b59c4e",
+    "sha256": "c1d8a7b750583677b0e2457f7fae7f2aa591941b546fc9e9e49d14bb81e3406e",
     "pages": 15,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 7071
+    "textChars": 7034
   },
   "sample-report": {
-    "sha256": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a",
+    "sha256": "ec7079605230f7ab125d2475ef502719e08bcf793953d877a96511a51f902cb2",
     "pages": 31,
     "blankPages": [],
     "outsideBounds": [],

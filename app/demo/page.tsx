@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { BusinessExamples } from "@/components/project/business-examples";
+import { DemoSceneLinks } from "@/components/project/demo-scene-links";
 import { businessExample } from "@/lib/projects/business-examples";
 import { buildBusinessExamplePreview } from "@/lib/projects/business-example-model";
 import type { Metadata } from "next";
@@ -133,6 +134,7 @@ export default async function DemoPage({
       </div>
       {prepared && <details className="max-w-5xl text-sm"><summary className="tap-target cursor-pointer text-primary">На каких данных получен результат</summary><p className="mt-2 leading-relaxed text-muted-foreground">{prepared.example.lesson} {prepared.assumption}</p></details>}
       {facility === "warehouse" && <BusinessExamples active={example?.id} />}
+      <DemoSceneLinks />
       <Workspace
         key={`${facility}:${chosenProduct?.slug ?? example?.id ?? "baseline"}`}
         initialStep={prepared || chosenProduct ? 8 : 1}

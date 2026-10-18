@@ -59,6 +59,7 @@ import type { ParamValue } from "./param-field";
 import { ParamsForm } from "./params-form";
 import { ProjectToolbar, RecalcBar } from "./project-toolbar";
 import { workspaceAreaContext } from "./workspace-area";
+import { DemoSceneLinks } from "./demo-scene-links";
 import { ScenarioDetails, parseItemOverrideField, type ItemOverrideKind } from "./scenario-details";
 import { ScenarioTable } from "./scenario-table";
 import { SelectionPanel } from "./selection-panel";
@@ -1617,6 +1618,7 @@ export function Workspace({
       {/* Шаг 7 — имитация */}
       <section id="simulation" aria-labelledby={`${uid}-h-simulation`} className={sectionClass} hidden={activeStep !== 7}>
         <h2 id={`${uid}-h-simulation`} tabIndex={-1}>{stepHeading(7)}</h2>
+        {project.facility === "warehouse" && <DemoSceneLinks project />}
         {visitedSteps.has(7) && <>
         {archive ? (
           <div className="grid gap-3 text-sm" data-archive-simulation>

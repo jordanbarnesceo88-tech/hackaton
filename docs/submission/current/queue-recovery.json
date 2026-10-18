@@ -1,0 +1,539 @@
+{
+  "run": "queue-recovery-1792338969487",
+  "base": "http://localhost:3086",
+  "scope": "Abrupt real process death on one isolated CREATE; no cancellation API, lease edits or synthetic compute.",
+  "workers": [
+    "alfa-queue-load-20261018-worker-1",
+    "alfa-queue-load-20261018-worker-2",
+    "alfa-queue-load-20261018-worker-3"
+  ],
+  "events": [
+    {
+      "type": "workers-killed",
+      "at": "2026-10-18T15:56:11.840Z"
+    },
+    {
+      "type": "same-workers-restarted",
+      "at": "2026-10-18T15:56:33.302Z"
+    },
+    {
+      "at": "2026-10-18T15:56:33.309Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:33.519Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:33.738Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:33.960Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:34.174Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:34.387Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:34.606Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:34.813Z",
+      "status": "QUEUED",
+      "attempts": 1,
+      "stage": "retry_pending",
+      "diagnosticCode": "WORKER_LOST"
+    },
+    {
+      "at": "2026-10-18T15:56:35.035Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:35.243Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:35.500Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:35.715Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:35.931Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:36.139Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:36.351Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:36.565Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:36.784Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:37.005Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:37.317Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:37.539Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:37.749Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:37.960Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:38.172Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:38.381Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:38.593Z",
+      "status": "RUNNING",
+      "attempts": 2,
+      "stage": "preparing",
+      "diagnosticCode": null
+    },
+    {
+      "at": "2026-10-18T15:56:38.820Z",
+      "status": "SUCCEEDED",
+      "attempts": 2,
+      "stage": "succeeded",
+      "diagnosticCode": null
+    }
+  ],
+  "health": [
+    {
+      "ms": 12.643399999999929,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 8.293099999999868,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 23.378299999999854,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 17.77180000000044,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 108.05149999999958,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 46.56880000000001,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 20.628099999999904,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 59.946100000000115,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 21.164599999999155,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 18.836600000000544,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 18.227899999999863,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 19.449399999999514,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 14.15599999999904,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 25.11199999999917,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 6.684400000000096,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 4.967399999999543,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 8.707300000000032,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 11.318500000001222,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 88.05059999999867,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 20.69220000000132,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 47.74239999999918,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 62.8815999999988,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 104.76519999999982,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 83.02310000000034,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 45.527399999999034,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 15.855200000001787,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 42.24689999999828,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 62.35889999999927,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 51.43609999999899,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 71.53869999999733,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 37.72910000000047,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 19.652500000000146,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 26.09019999999873,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 25.250199999998586,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 7.638599999998405,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 20.462900000002264,
+      "status": 200,
+      "db": true
+    },
+    {
+      "ms": 8.983299999999872,
+      "status": 200,
+      "db": true
+    }
+  ],
+  "pass": true,
+  "imagesBefore": [
+    "/alfa-queue-load-20261018-worker-1 sha256:bbe7c915fff8819f493b6901424661967dac39f9b057135c386a7fa1d099d7bc",
+    "/alfa-queue-load-20261018-worker-2 sha256:bbe7c915fff8819f493b6901424661967dac39f9b057135c386a7fa1d099d7bc",
+    "/alfa-queue-load-20261018-worker-3 sha256:bbe7c915fff8819f493b6901424661967dac39f9b057135c386a7fa1d099d7bc"
+  ],
+  "jobId": "cmve0cgqu008g01lqhwairt12",
+  "firstStartedAt": "2026-10-18T10:56:10.867Z",
+  "beforeKill": {
+    "id": "cmve0cgqu008g01lqhwairt12",
+    "runId": "cmve0cgq8008f01lq7d8u70vg",
+    "ownerId": "027585cf-6b13-4091-8c99-2497f500a75c",
+    "operation": "CREATE",
+    "idempotencyKey": "queue-recovery-1792338969487",
+    "requestHash": "20b3721dab7966e13730b330a9db37e397d59f139b082510f34a179dffdd8499",
+    "status": "RUNNING",
+    "attempts": 1,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T10:56:10.566Z",
+    "leaseUntil": "2026-10-18T10:56:30.890Z",
+    "heartbeatAt": "2026-10-18T10:56:10.890Z",
+    "cancelRequestedAt": null,
+    "stage": "preparing",
+    "progress": null,
+    "diagnosticCode": null,
+    "safeMessage": "Подготовка расчёта",
+    "createdAt": "2026-10-18T10:56:10.566Z",
+    "startedAt": "2026-10-18T10:56:10.867Z",
+    "finishedAt": null,
+    "inputHash": "c1f22583b1b0384a79f1e0aceb13ad49351e5c357602c0cfd5f2e182f12cb48f",
+    "reservedProjectId": "b27bbb59-0819-4c27-835c-6194d548c8e2",
+    "projectId": null,
+    "publicationState": "NONE",
+    "publishedRevision": null,
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
+    "inputBytes": 315189,
+    "hasResult": false
+  },
+  "killedAt": "2026-10-18T15:56:11.840Z",
+  "afterKill": {
+    "id": "cmve0cgqu008g01lqhwairt12",
+    "runId": "cmve0cgq8008f01lq7d8u70vg",
+    "ownerId": "027585cf-6b13-4091-8c99-2497f500a75c",
+    "operation": "CREATE",
+    "idempotencyKey": "queue-recovery-1792338969487",
+    "requestHash": "20b3721dab7966e13730b330a9db37e397d59f139b082510f34a179dffdd8499",
+    "status": "RUNNING",
+    "attempts": 1,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T10:56:10.566Z",
+    "leaseUntil": "2026-10-18T10:56:30.890Z",
+    "heartbeatAt": "2026-10-18T10:56:10.890Z",
+    "cancelRequestedAt": null,
+    "stage": "preparing",
+    "progress": null,
+    "diagnosticCode": null,
+    "safeMessage": "Подготовка расчёта",
+    "createdAt": "2026-10-18T10:56:10.566Z",
+    "startedAt": "2026-10-18T10:56:10.867Z",
+    "finishedAt": null,
+    "inputHash": "c1f22583b1b0384a79f1e0aceb13ad49351e5c357602c0cfd5f2e182f12cb48f",
+    "reservedProjectId": "b27bbb59-0819-4c27-835c-6194d548c8e2",
+    "projectId": null,
+    "publicationState": "NONE",
+    "publishedRevision": null,
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
+    "inputBytes": 315189,
+    "hasResult": false
+  },
+  "leaseClock": {
+    "serverNow": "2026-10-18T15:56:32.255Z",
+    "leaseExpiresAt": "2026-10-18T15:56:30.890Z",
+    "expired": true
+  },
+  "expiredBeforeRestart": {
+    "id": "cmve0cgqu008g01lqhwairt12",
+    "runId": "cmve0cgq8008f01lq7d8u70vg",
+    "ownerId": "027585cf-6b13-4091-8c99-2497f500a75c",
+    "operation": "CREATE",
+    "idempotencyKey": "queue-recovery-1792338969487",
+    "requestHash": "20b3721dab7966e13730b330a9db37e397d59f139b082510f34a179dffdd8499",
+    "status": "RUNNING",
+    "attempts": 1,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T10:56:10.566Z",
+    "leaseUntil": "2026-10-18T10:56:30.890Z",
+    "heartbeatAt": "2026-10-18T10:56:10.890Z",
+    "cancelRequestedAt": null,
+    "stage": "preparing",
+    "progress": null,
+    "diagnosticCode": null,
+    "safeMessage": "Подготовка расчёта",
+    "createdAt": "2026-10-18T10:56:10.566Z",
+    "startedAt": "2026-10-18T10:56:10.867Z",
+    "finishedAt": null,
+    "inputHash": "c1f22583b1b0384a79f1e0aceb13ad49351e5c357602c0cfd5f2e182f12cb48f",
+    "reservedProjectId": "b27bbb59-0819-4c27-835c-6194d548c8e2",
+    "projectId": null,
+    "publicationState": "NONE",
+    "publishedRevision": null,
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
+    "inputBytes": 315189,
+    "hasResult": false
+  },
+  "restartedAt": "2026-10-18T15:56:33.302Z",
+  "afterRecovery": {
+    "id": "cmve0cgqu008g01lqhwairt12",
+    "runId": "cmve0cgq8008f01lq7d8u70vg",
+    "ownerId": "027585cf-6b13-4091-8c99-2497f500a75c",
+    "operation": "CREATE",
+    "idempotencyKey": "queue-recovery-1792338969487",
+    "requestHash": "20b3721dab7966e13730b330a9db37e397d59f139b082510f34a179dffdd8499",
+    "status": "SUCCEEDED",
+    "attempts": 2,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T10:56:34.828Z",
+    "leaseUntil": null,
+    "heartbeatAt": "2026-10-18T10:56:38.609Z",
+    "cancelRequestedAt": null,
+    "stage": "succeeded",
+    "progress": 100,
+    "diagnosticCode": null,
+    "safeMessage": "Расчёт завершён и сохранён в проекте",
+    "createdAt": "2026-10-18T10:56:10.566Z",
+    "startedAt": "2026-10-18T10:56:34.961Z",
+    "finishedAt": "2026-10-18T10:56:38.774Z",
+    "inputHash": "c1f22583b1b0384a79f1e0aceb13ad49351e5c357602c0cfd5f2e182f12cb48f",
+    "reservedProjectId": "b27bbb59-0819-4c27-835c-6194d548c8e2",
+    "projectId": "b27bbb59-0819-4c27-835c-6194d548c8e2",
+    "publicationState": "PUBLISHED",
+    "publishedRevision": 0,
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
+    "inputBytes": 315189,
+    "hasResult": true
+  },
+  "exactlyOneProject": true,
+  "imagesAfter": [
+    "/alfa-queue-load-20261018-worker-1 sha256:bbe7c915fff8819f493b6901424661967dac39f9b057135c386a7fa1d099d7bc",
+    "/alfa-queue-load-20261018-worker-2 sha256:bbe7c915fff8819f493b6901424661967dac39f9b057135c386a7fa1d099d7bc",
+    "/alfa-queue-load-20261018-worker-3 sha256:bbe7c915fff8819f493b6901424661967dac39f9b057135c386a7fa1d099d7bc"
+  ],
+  "finishedAt": "2026-10-18T15:56:38.963Z",
+  "fixtureCleanup": "deleted exact fixture user and cascade rows",
+  "redaction": {
+    "removedKeys": [
+      "leaseToken"
+    ],
+    "scope": "Ephemeral worker lease tokens omitted; job identity, SQL expiry measurement, events and health retained.",
+    "originalReportSha256": "9fff6622bbcd15e892b02cc497006a3ce683d5e2fd990dc625d57ac959f0f393"
+  }
+}

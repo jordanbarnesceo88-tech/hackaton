@@ -1,17 +1,17 @@
 {
-  "capturedAt": "2026-10-18T14:35:50.109Z",
+  "capturedAt": "2026-10-18T15:41:53.265Z",
   "baseUrl": "http://localhost:3085",
   "project": {
     "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-    "revision": 2
+    "revision": 3
   },
   "operation": {
-    "id": "cmvdxh13f000101plss0hkvzk",
+    "id": "cmvdztn2b000a01pd7lfvhy61",
     "kind": "SAVE",
     "status": "SUCCEEDED",
     "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1"
   },
   "submitted": {
     "facility": "warehouse",
@@ -125,7 +125,7 @@
         },
         "oversized": false,
         "bottleneck": "none",
-        "durationMs": 2913.9630739999993,
+        "durationMs": 2821.7835769999947,
         "waitP95Min": 4.55,
         "chargingPct": 5.458333333333333,
         "fleetByNorm": null,
@@ -155,7 +155,7 @@
         },
         "oversized": false,
         "bottleneck": "none",
-        "durationMs": 2913.9630739999993,
+        "durationMs": 2821.7835769999947,
         "waitP95Min": 4.55,
         "chargingPct": 5.458333333333333,
         "fleetByNorm": null,
@@ -42475,7 +42475,7 @@
     },
     "dataVersion": "f4935a60",
     "paramIssues": [],
-    "calculatedAt": "2026-10-18T14:35:49.359Z",
+    "calculatedAt": "2026-10-18T15:41:52.751Z",
     "modelVersion": "tz-1.0.6",
     "simModelVersion": "sim-1.2.0",
     "productSnapshots": {
@@ -42877,14 +42877,14 @@
     }
   },
   "previousCapture": {
-    "capturedAt": "2026-10-18T14:13:02.191Z",
+    "capturedAt": "2026-10-18T14:35:50.109Z",
     "operation": {
-      "id": "cmvdwnqfd000a01p9mstz0jnw",
+      "id": "cmvdxh13f000101plss0hkvzk",
       "kind": "SAVE",
       "status": "SUCCEEDED",
       "publication": "PUBLISHED",
-      "engineRelease": "alfa-robot/sha256:b70613a3bf01f6086c78c7da9ad95ba88dba83bbee8e53b4d62b29d6bb54ae19/alfa-durable-calculation-1"
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
     },
-    "revision": 1
+    "revision": 2
   }
 }

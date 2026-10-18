@@ -4,6 +4,7 @@ import { Accordion, AccordionItem } from "@/components/ui/accordion";
 import { ThemedScreenshot } from "@/components/landing/themed-screenshot";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { cn } from "@/lib/utils";
+import { DemoSceneLinks } from "@/components/project/demo-scene-links";
 import scenariosLight from "@/public/landing/scenarios-light.png";
 import scenariosDark from "@/public/landing/scenarios-dark.png";
 import capexLight from "@/public/landing/capex-light.png";
@@ -100,6 +101,7 @@ export default function Home() {
             Демо-расчёт открывается без входа и ничего не сохраняет. Проект сохраняется с версиями модели и данных
             и выгружается в отчёт и Excel.
           </p>
+          <DemoSceneLinks />
         </div>
         <ThemedScreenshot
           light={scenariosLight}

@@ -59,11 +59,15 @@ test("clean viewer routes, crosslinks, legacy redirect fragments and offline fil
   expect(response?.status()).toBe(200);
   expect(response?.headers()["content-security-policy"]).toMatch(/worker-src[^;]*blob:/);
   await ready(page, "warehouse");
+  await expect(page.locator("#complex-demo-link")).toHaveAttribute("href", "/demo/warehouse?case=complex");
+  await expect(page.locator("#cleaning-demo-link")).toHaveAttribute("href", "/demo/cleaning");
   expect(await page.locator("#demo-link").getAttribute("href")).toBe("/demo/cleaning");
   await testInfo.attach("warehouse-viewer", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
   await page.locator("#demo-link").click();
   await expect(page).toHaveURL(new URL("/demo/cleaning", baseURL).href);
   await ready(page, "cleaning");
+  await expect(page.locator("#complex-demo-link")).toHaveAttribute("href", "/demo/warehouse?case=complex");
+  await expect(page.locator("#cleaning-demo-link")).toHaveAttribute("href", "/demo/cleaning");
   expect(await page.locator("#demo-link").getAttribute("href")).toBe("/demo/warehouse");
   await testInfo.attach("cleaning-viewer", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
   await page.locator("#demo-link").click();
@@ -91,6 +95,8 @@ test("clean viewer routes, crosslinks, legacy redirect fragments and offline fil
 
   await page.goto(pathToFileURL(resolve("public/warehouse-3d.html")).href);
   await ready(page, "warehouse");
+  await expect(page.locator("#complex-demo-link")).toHaveAttribute("href", "./warehouse-3d.html?case=complex");
+  await expect(page.locator("#cleaning-demo-link")).toHaveAttribute("href", "./cleaning-3d.html");
   expect(await page.locator("#demo-link").getAttribute("href")).toBe("./cleaning-3d.html");
   await page.locator("#demo-link").click();
   await ready(page, "cleaning");
@@ -162,6 +168,12 @@ test("guest closed-pod scenario opens its exact server input through the clean 3
   const nonce = new URL(child.url()).hash.slice("#project=".length);
   const origin = await child.evaluate(() => (window as unknown as DemoWindow).warehouseDemo.snapshot().projectOrigin);
   expect(origin).toMatchObject({ requestId: nonce, scenarioKey: "purchase", sourceInput: input });
+  await expect(child.locator("#complex-demo-link")).toHaveAttribute("href", "/demo/warehouse?case=complex");
+  await expect(child.locator("#cleaning-demo-link")).toHaveAttribute("href", "/demo/cleaning");
+  for (const id of ["complex-demo-link", "cleaning-demo-link"]) {
+    await expect(child.locator(`#${id}`)).toHaveAttribute("target", "_blank");
+    await expect(child.locator(`#${id}`)).toHaveAttribute("rel", "noopener noreferrer");
+  }
   await expect.poll(() => page.evaluate(requestId => (window as unknown as DemoWindow).spatialMessages?.some(message => message.fromChild && message.data.requestId === requestId), nonce), { timeout: 120_000 }).toBe(true);
   const message = await page.evaluate(requestId => (window as unknown as DemoWindow).spatialMessages!.find(message => message.fromChild && message.data.requestId === requestId)!.data, nonce);
   const expectedSnapshot = createSpatialProjectSnapshot({ requestId: nonce, scenarioKey: "purchase", scenarioName: results.scenarios.find(s => s.key === "purchase")!.name, variantId: "calculated", input });

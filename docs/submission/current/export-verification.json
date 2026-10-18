@@ -5,7 +5,14 @@
   "project": {
     "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-    "revision": 2
+    "revision": 3
+  },
+  "operation": {
+    "id": "cmvdztn2b000a01pd7lfvhy61",
+    "kind": "SAVE",
+    "status": "SUCCEEDED",
+    "publication": "PUBLISHED",
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1"
   },
   "modelVersion": "tz-1.0.6",
   "spatialVersion": "warehouse-dense-underlift-1.8.0",
@@ -66,13 +73,13 @@
   },
   "sheets": 13,
   "sha256": {
-    "calculation-source.json": "66bc2ad03288e1b2a4c7cc44ad9e6a2b2a61fcffab9c0cd5a4a14ae0420fbc91",
-    "sample-report.xlsx": "971f38c857dfbeb83c26f60a18e38731441da68192f308c4666a53d06f626ed4",
-    "sample-report.csv": "a1c7d39c6b4b385386656d31cf2e051ef1323654d575f57117c50525a2c736ae",
-    "sample-report.pdf": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a",
-    "steady-flow-receipt.json": "7ad01db7d2477e813e17cc0a88f8c9ef7596a28f52a9a2ec8e514c4a4ce84aa2",
-    "peak-overload-receipt.json": "91e22be9b54b2ddfbedb2fcdf3a456eced631059f83f1a42845cd8e7fe423419",
-    "retained-staff-receipt.json": "1c24705b60ec27fe2fd1292a745b55b72218bc0ce8be6c78566f66d6a3d4ce87"
+    "calculation-source.json": "890f04f563a8ebe27bbeb924735872481fb49735d8b49edec1c0589362a74e7f",
+    "sample-report.xlsx": "d92357dd16bbc117ca89982c36ffe56e5c7af9cef8e1179d4a5e033b1047bc84",
+    "sample-report.csv": "d3aef4f503040456e4e3a860b1fee37a44d67fe1ca52255ed3e8d43c327c1720",
+    "sample-report.pdf": "ec7079605230f7ab125d2475ef502719e08bcf793953d877a96511a51f902cb2",
+    "steady-flow-receipt.json": "7ef8b6a22e02cfc2cb7b2ef4ab71debb3e8b041055a20850c2ffad93f8637f40",
+    "peak-overload-receipt.json": "7463a511059a5af17dacad720cfcc8e6fe3873bfc540fb59bf121cb3c9745b00",
+    "retained-staff-receipt.json": "8cfee9b01fa6c0df02e840bd334337f378669a3d39e25fd71d10107c1569107e"
   },
   "findings": []
 }

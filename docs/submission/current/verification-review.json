@@ -5,17 +5,17 @@
     "analytical": "sim-1.2.0",
     "spatial": "warehouse-dense-underlift-1.8.0"
   },
-  "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+  "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
   "unit": {
     "status": "PASS",
     "filesPassed": 180,
     "testsPassed": 1942,
     "testsTotal": 1942,
-    "scope": "Полный прогон 18.10.2026 в 19:33:42, длительность 91,86 с. Проверки относятся к текущим исходникам и fingerprint движка после уточнения метрики пилота; это не натурная валидация."
+    "scope": "Полный прогон 18.10.2026 в 20:36:19, длительность 96,22 с. Текущие исходники после исправления допуска очереди; это не натурная валидация."
   },
   "database": {
-    "statement": "Полный прогон текущего fingerprint на отдельной PostgreSQL: 9 файлов, 150/150 тестов PASS, код выхода 0. Начало 18.10.2026 в 19:32:47, длительность 541,68 с. Проверены публикация, отмена, revision/CAS и поддельные подтверждения; это не нагрузочный тест.",
-    "slideStatement": "PostgreSQL: 9 файлов, 150/150 тестов PASS на текущем fingerprint; изолированный прогон, без утверждения о нагрузочной мощности.",
+    "statement": "Полный изолированный PostgreSQL-прогон текущего d0eb: 9 файлов, 156/156 тестов PASS; 18.10.2026 в 20:36:07, 572,48 с, код выхода 0. Два предупреждения pg client.query не являются ошибками. Нагрузочные серии имеют отдельные отчёты.",
+    "slideStatement": "PostgreSQL: 9 файлов, 156/156 тестов PASS на d0eb; изолированный прогон 20:36:07, 572,48 с. Нагрузка измерена отдельно.",
     "previousEngineFullRun": {
       "filesPassed": 9,
       "testsPassed": 150,
@@ -24,7 +24,7 @@
       "localStart": "2026-10-18 19:02:48",
       "engineRelease": "alfa-robot/sha256:b70613a3bf01f6086c78c7da9ad95ba88dba83bbee8e53b4d62b29d6bb54ae19/alfa-durable-calculation-1"
     },
-    "postFixFullRun": {
+    "previousPostFixFullRun": {
       "filesPassed": 9,
       "testsPassed": 150,
       "testsTotal": 150,
@@ -32,75 +32,97 @@
       "durationSeconds": 541.68,
       "localStart": "2026-10-18 19:32:47",
       "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    "postFixFullRun": {
+      "filesPassed": 9,
+      "testsPassed": 156,
+      "testsTotal": 156,
+      "exitCode": 0,
+      "durationSeconds": 572.48,
+      "localStart": "2026-10-18 20:36:07",
+      "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1"
     }
   },
-  "pilot": "Текущий браузерный тест пилота на fingerprint e937 прошёл за 23,1 с: CALCULATE, SAVE, повторное открытие, отчёт, XLSX и CSV, включая уточнённую p95-метрику. Это проверка планирования и передачи данных, не результат натурного пилота.",
+  "pilot": "Текущий d0eb-тест пилота прошёл за 24,1 с: CALCULATE, SAVE, повторное открытие, отчёт, XLSX/CSV и правильная p95-формулировка. Проверены данные плана, не натурный результат.",
   "sourcePublication": {
     "project": {
       "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
       "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-      "revision": 2
+      "revision": 3
     },
     "operation": {
-      "id": "cmvdxh13f000101plss0hkvzk",
+      "id": "cmvdztn2b000a01pd7lfvhy61",
       "kind": "SAVE",
       "status": "SUCCEEDED",
       "publication": "PUBLISHED",
-      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+      "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1"
     },
-    "scope": "Actual CREATE followed by SAVE revision0→1, then SAVE revision1→2 after final metric text correction. Exported report formats use revision2."
+    "scope": "Actual SAVE revision2→3 after admission change; input, finance and physical summary unchanged; all exports use revision3."
   },
   "sourceChecks": {
     "fullEslint": "PASS: полный заключительный прогон после изменений тестов, 0 ошибок и 0 предупреждений.",
     "fullTypeScriptNoEmit": "PASS: полный заключительный прогон после изменений тестов, код выхода 0.",
-    "workerSmoke": "PASS: actual e937 durable CALCULATE with stored finance/simulation and cleanup."
+    "workerSmoke": "Прежний e937: durable CALCULATE с сохранёнными финансами и имитацией; отдельный текущий d0eb-пруф — реальные 100 CALCULATE и восстановленный CREATE."
   },
-  "browser": "Текущий образец сохранён и выгружен; проектный пространственный повтор выполнен. Дополнительно прошли 4 гостевых/пилотных E2E за 57,6 с и 4 маршрутных E2E за 2,4 мин. Это проверенные пути, а не универсальная проверка интерфейса.",
+  "browser": "Текущий d0eb: 8 E2E за 3,8 мин — гостевой путь, пилот, durable-операции и пересчёт владельца. Проверенный набор путей не является универсальной проверкой интерфейса.",
   "pdfVisual": {
     "status": "PASS",
-    "authorAllCurrentReportPagesPersonallyViewed": true,
-    "authorReportPages": 31,
-    "finalProofPdfSha256": {
-      "presentation": "233c46c386bd8801f8369abe4062cd736a58faef4a0c52d11e111acee1b59c4e",
-      "documentation": "69863381956bdd72b2bf738f83ff17424590271cfad2948ea429f81ca117ca3e",
-      "sample-report": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a"
-    },
-    "independentInitialContentLayout": {
-      "status": "PASS",
-      "pages": 64,
-      "personallyViewedAllContactPages": true,
-      "targetedFullSize": [
-        "documentation14",
-        "documentation17",
-        "documentation18",
-        "report5",
-        "report28"
-      ],
-      "scope": "Independent current 15-slide presentation,18-page documentation and31-page fresh report content/layout inspection; final reprinted proof dates still require targeted review",
-      "sha256": {
-        "presentation": "d76634ca9a5adc5856ca9db836d65b8543ae73071d9404a12005c2468cbd3ec7",
-        "documentation": "17cdfe88c6af71097a35a3a4ee056b9bb828309f70ee453e4ff7f583601ed173",
-        "sample-report": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a"
-      }
-    },
     "pages": {
+      "documentation": 19,
       "presentation": 15,
-      "documentation": 18,
       "sample-report": 31
     },
     "authorAllPagesPersonallyViewed": true,
-    "independentAllInitial64PagesViewed": true,
-    "independentFinalTargetedPages": {
-      "status": "PASS",
-      "pages": [
-        "presentation7",
-        "presentation8",
-        "presentation15",
-        "documentation14"
-      ],
-      "scope": "Personally inspected final updated scene and proof pages against current logs; previous complete64-page content/layout review also applies. No claim of universal whole-product acceptance."
+    "authorContactSheetsViewed": 14,
+    "authorTargetedFullSize": [
+      "documentation15",
+      "presentation15"
+    ],
+    "independentAllPagesPersonallyViewed": true,
+    "independentContactSheetsViewed": 14,
+    "independentTargetedFullSize": [
+      "documentation14",
+      "documentation15",
+      "presentation15",
+      "sample-report5"
+    ],
+    "scope": "Текущие 65 страниц лично просмотрены автором и независимым UX-ревьюером. Дополнительно увеличены таблицы нагрузки, доказательства и критерий пилота. Нет выявленных clipping, наложений или повреждённых таблиц. Это проверка визуальной и содержательной согласованности документов, не промышленная аттестация продукта или новая числовая/нагрузочная проверка.",
+    "finalProofPdfSha256": {
+      "documentation": "aa5a1e7f566cb144d4925f9abb241c4018fc743ba4a647cb2d1ad5dc099d2e22",
+      "presentation": "c1d8a7b750583677b0e2457f7fae7f2aa591941b546fc9e9e49d14bb81e3406e",
+      "sample-report": "ec7079605230f7ab125d2475ef502719e08bcf793953d877a96511a51f902cb2"
     },
-    "rootFinalTargetedReview": "PASS: final presentation15/documentation14 personally viewed and PDF proof text reconciled with current unit/DB evidence."
+    "previousReleaseReviews": {
+      "scope": "Исторические проверки прежних PDF; не подменяют текущий просмотр.",
+      "initial": {
+        "status": "PASS",
+        "pages": 64,
+        "personallyViewedAllContactPages": true,
+        "targetedFullSize": [
+          "documentation14",
+          "documentation17",
+          "documentation18",
+          "report5",
+          "report28"
+        ],
+        "scope": "Independent current 15-slide presentation,18-page documentation and31-page fresh report content/layout inspection; final reprinted proof dates still require targeted review",
+        "sha256": {
+          "presentation": "d76634ca9a5adc5856ca9db836d65b8543ae73071d9404a12005c2468cbd3ec7",
+          "documentation": "17cdfe88c6af71097a35a3a4ee056b9bb828309f70ee453e4ff7f583601ed173",
+          "sample-report": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a"
+        }
+      },
+      "targeted": {
+        "status": "PASS",
+        "pages": [
+          "presentation7",
+          "presentation8",
+          "presentation15",
+          "documentation14"
+        ],
+        "scope": "Personally inspected final updated scene and proof pages against current logs; previous complete64-page content/layout review also applies. No claim of universal whole-product acceptance."
+      }
+    }
   },
   "numbers": {
     "status": "PASS",
@@ -117,19 +139,19 @@
     "sourceProof": "export-verification.json",
     "pdfTextProof": "report-text-verification.json",
     "scope": "Сверены JSON, CSV, cached XLSX и независимая арифметика годовых денежных потоков; 446/446 проверок PASS. Дополнительно 19/19 текстовых проверок PDF. Excel не выполнял полный пересчёт; визуальная приёмка страниц учитывается отдельно.",
-    "finalRevision": 2,
-    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+    "finalRevision": 3,
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
     "pilotCriterionScope": "PDF default unpersisted plan only; this sample has no saved pilotPlan, so CSV/XLSX do not claim pilot-criteria export coverage."
   },
   "externalPublication": "No claim of updated external deployment from a local package.",
-  "load": "Historical 50-user read/form run is not a load test of the current worker queue.",
+  "load": "Текущие две серии по 50 HTTP-клиентов и отдельный реальный kill/restart CREATE описаны в queueLoad; прежняя проверка чтения/форм не подменяет их.",
   "pilotVerification": {
     "status": "PASS",
     "physicalVersion": "warehouse-dense-underlift-1.8.0",
-    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
-    "durationSeconds": 23.1,
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
+    "durationSeconds": 24.1,
     "test": "e2e/pilot-project.spec.ts",
-    "scope": "Current e937 CALCULATE, SAVE, reopen, report, XLSX, CSV and p95 metric assertions; no physical-site measurements"
+    "scope": "Текущий d0eb: CALCULATE, SAVE, повторное открытие, отчёт, XLSX, CSV и p95-критерий; без натурных измерений."
   },
   "additionalBrowserProof": {
     "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
@@ -151,6 +173,186 @@
     "spatialVisual": {
       "status": "PASS",
       "scope": "Root and independent physical critic personally inspected20screens of5diagnostic presets plus4current default N6/C2screens and targeted full/empty/internal/incident/replay cases. This is a model visual/functional check, not measured site capacity or industrial safety certification."
-    }
+    },
+    "scope": "Историческая проверка e937; текущие 8 путей d0eb и нагрузка перечислены отдельно."
+  },
+  "queueLoad": {
+    "scope": "50 разных заранее авторизованных HTTP-клиентов, по одному реальному полнооконному CALCULATE; фиксированный учебный N6/C2. Авторизация исключена из таймера. Клиент и сервер — один локальный Ryzen 9 9950X3D, 32 логических CPU, около 125,6 ГиБ RAM; отдельный контур 3086/55438. Это не 50 браузерных отрисовок и не 50 одновременных CPU-вычислений.",
+    "baseline": {
+      "label": "Исходный e937",
+      "workerProcesses": 1,
+      "pass": false,
+      "accepted": 21,
+      "succeeded": 21,
+      "verified": 21,
+      "admissionMs": {
+        "p50": 11411.4689,
+        "p95": 12713.711800000001,
+        "max": 12815.632500000002
+      },
+      "queueWaitMs": {
+        "p50": 24409,
+        "p95": 44746,
+        "max": 46984
+      },
+      "computeAndStoreMs": {
+        "p50": 2859,
+        "p95": 3103,
+        "max": 3737
+      },
+      "serverCreatedToFinishedMs": {
+        "p50": 27354,
+        "p95": 47543,
+        "max": 49830
+      },
+      "clientObservedEndToEndMs": null,
+      "maxValidLeases": 1,
+      "healthMs": {
+        "p50": 20.53570000000036,
+        "p95": 1836.7716,
+        "max": 2419.468500000001
+      },
+      "pollMs": null,
+      "scope": "Исходный burst не прошёл: 21 ответ 202 и 29 ответов 503/P2034. Метрики очереди и вычисления относятся лишь к 21 принятому заданию; полное клиентское время в этом старом отчёте не измерялось.",
+      "sourceReport": "queue-baseline-e937.json",
+      "sourceReportSha256": "beecbbf60ab8f65e9f9e56d0982f3ace6d98b9abab5c08f5cb1326f645baf752"
+    },
+    "runs": [
+      {
+        "label": "Исправленный",
+        "workerProcesses": 1,
+        "pass": true,
+        "accepted": 50,
+        "succeeded": 50,
+        "verified": 50,
+        "admissionMs": {
+          "p50": 3037.4072000000015,
+          "p95": 4096.2304,
+          "max": 4166.699300000002
+        },
+        "queueWaitMs": {
+          "p50": 73102,
+          "p95": 144030,
+          "max": 150390
+        },
+        "computeAndStoreMs": {
+          "p50": 3077,
+          "p95": 3262,
+          "max": 3952
+        },
+        "serverCreatedToFinishedMs": {
+          "p50": 76239,
+          "p95": 147292,
+          "max": 153448
+        },
+        "clientObservedEndToEndMs": {
+          "p50": 80277.8381,
+          "p95": 152346.2246,
+          "max": 158569.4587
+        },
+        "maxValidLeases": 1,
+        "healthMs": {
+          "p50": 20.238200000007055,
+          "p95": 88.88510000001406,
+          "max": 1389.5379000000012
+        },
+        "pollMs": {
+          "p50": 123.10480000000098,
+          "p95": 192.79339999999866,
+          "max": 274.9444000000003
+        },
+        "scope": "Полностью завершённая серия 50 HTTP-клиентов: 50 SUCCEEDED, 50 сверенных результатов, по одной попытке, без неожиданных 5xx. Точные метрики сохранены в sourceReport.",
+        "sourceReport": "queue-one-worker.json",
+        "sourceReportSha256": "be78e8cc9bc3fb61d950eac0f8e8d81a1b0449944763aa8e62b43dc52c5af542"
+      },
+      {
+        "label": "Исправленный",
+        "workerProcesses": 3,
+        "pass": true,
+        "accepted": 50,
+        "succeeded": 50,
+        "verified": 50,
+        "admissionMs": {
+          "p50": 3169.2225,
+          "p95": 4129.231400000002,
+          "max": 4198.724399999999
+        },
+        "queueWaitMs": {
+          "p50": 38414,
+          "p95": 75307,
+          "max": 78562
+        },
+        "computeAndStoreMs": {
+          "p50": 3297,
+          "p95": 3755,
+          "max": 4514
+        },
+        "serverCreatedToFinishedMs": {
+          "p50": 41448,
+          "p95": 78613,
+          "max": 81619
+        },
+        "clientObservedEndToEndMs": {
+          "p50": 45675.1013,
+          "p95": 82904.72750000001,
+          "max": 85995.4341
+        },
+        "maxValidLeases": 2,
+        "healthMs": {
+          "p50": 19.916599999996834,
+          "p95": 99.14800000000105,
+          "max": 1446.1818999999996
+        },
+        "pollMs": {
+          "p50": 123.25679999999556,
+          "p95": 175.96609999999782,
+          "max": 199.60410000000047
+        },
+        "scope": "Полностью завершённая серия 50 HTTP-клиентов: 3 worker-процесса, максимум 2 действующие lease, 50 SUCCEEDED и 50 сверенных результатов, по одной попытке.",
+        "sourceReport": "queue-three-workers.json",
+        "sourceReportSha256": "9b89f84b0aeea870345326bbdbc6baf2e395b2d7c081625ed2ae1f121216afd2"
+      }
+    ],
+    "recovery": {
+      "status": "PASS",
+      "sourceReport": "queue-recovery.json",
+      "sourceReportSha256": "2aa227559280c2a037156329fdb73cdc88b843083bf1885022e8ea83d1322013",
+      "statement": "Отдельный CREATE восстановлен после настоящего kill всех worker и ожидания истечения lease по часам PostgreSQL. Простой до restart — 21,462 с; 37 ответов health без ошибок. Тот же job/run/inputHash завершён со второй попытки, опубликован ровно один проект. Это один сценарий восстановления, не универсальная проверка отказоустойчивости.",
+      "jobId": "cmve0cgqu008g01lqhwairt12",
+      "leaseClock": {
+        "serverNow": "2026-10-18T15:56:32.255Z",
+        "leaseExpiresAt": "2026-10-18T15:56:30.890Z",
+        "expired": true
+      },
+      "healthCount": 37,
+      "downtimeMs": 21462,
+      "exactlyOneProject": true,
+      "independentSourceReview": "PASS: SQL serverNow is later than leaseExpiresAt; nonempty health, stable job/run/inputHash, attempt 1 to 2 and one publication independently verified."
+    },
+    "statement": "Оба текущих HTTP-burst: 50/50 первых запросов приняты, 50/50 результатов сверены. p95 ожидания клиента: 152,35 с при одном worker и 82,90 с при трёх процессах с cap 2; очередь показана отдельно от вычисления.",
+    "slideStatement": "50 HTTP-клиентов: 50/50 результатов; p95 ожидания клиента 152,35 с с одним worker и 82,90 с с тремя (cap 2). Это не SLA 50 параллельных CPU-расчётов."
+  },
+  "browserVerification": {
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1",
+    "passed": 8,
+    "durationMinutes": 3.8,
+    "scope": "Три гостевых пути, пилот, три durable-пути и пересчёт владельца; фактический последовательный браузерный прогон. Не нагрузка 50 браузеров.",
+    "logSha256": "be05f0fffcae16fef6b1c1910366c66f7168f291afda7a7f6e8a44327073ead7"
+  },
+  "emptyCarrierVerification": {
+    "status": "PASS",
+    "spatialVersion": "warehouse-dense-underlift-1.8.0",
+    "standaloneCases": 6,
+    "projectPopup": true,
+    "scope": "Для каждого текущего кейса найдена завершённая клиентская отгрузка и возврат того же пустого носителя домой; проверены ID, отсутствие коробок у пустого носителя, геометрия, окно робота и перемотка. В проектном popup вход совпал с каноническим входом реального серверного расчёта. Это проверка найденных циклов и отображения; не подтверждение мощности недостаточного парка или каждого кадра всех носителей.",
+    "evidence": "research/alfa-audit/underlift-rebuild-20261018/empty-carriers-all-cases/review.md"
+  },
+  "navigationVerification": {
+    "status": "PASS",
+    "capturedAt": "2026-10-18T15:58:42.258Z",
+    "views": 10,
+    "sourceProjectPreserved": true,
+    "scope": "Лично проверены независимым UX-ревьюером 10 снимков desktop/mobile: главная, шаг имитации, проект, отдельный complex и уборка. Ошибок и горизонтального переполнения нет. Навигационная проверка не подтверждает физическую модель.",
+    "factsSha256": "761261db3d59ea2b5ec553f1b674b67fc042199dbedd4753802a2aa6653999cf"
   }
 }

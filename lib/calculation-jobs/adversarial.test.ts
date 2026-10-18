@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "../db/client";
 import {
@@ -60,6 +61,15 @@ async function projectFixture() {
 }
 
 const unpublished = async () => ({ projectId: null, revision: null, state: "NONE" as const });
+
+/** Interleave actual SQL commits at the preparation boundary, without mocking DB results. */
+function duringPreparation(interleave: (tx: Prisma.TransactionClient, prepare: () => Promise<unknown>) => Promise<unknown>): PrismaClient {
+  return { $transaction: (
+    work: (tx: Prisma.TransactionClient) => Promise<unknown>,
+    options: { isolationLevel?: Prisma.TransactionIsolationLevel; maxWait?: number; timeout?: number },
+  ) => prisma.$transaction(tx => options.isolationLevel === "RepeatableRead"
+    ? interleave(tx, () => work(tx)) : work(tx), options) } as unknown as PrismaClient;
+}
 
 describe("independent durable-calculation failure boundaries", () => {
   it("two concurrent claims never acquire the same job twice", async () => {
@@ -320,6 +330,79 @@ describe("independent durable-calculation failure boundaries", () => {
 
 describe("independent enqueue intent, quota and lost-receipt recovery", () => {
   const request = { operation: "CALCULATE", facility: "warehouse" } as const;
+
+  it("admits a simultaneous 50-owner burst exactly once per key without serializable retry exhaustion", async () => {
+    const actors = Array.from({ length: 50 }, (_, i) => ({ id: randomUUID(), email: `${prefix}burst-${i}@test.local`, passwordHash: "not-a-login" }));
+    await prisma.user.createMany({ data: actors });
+    const keys = actors.map(() => randomUUID());
+    try {
+      // No client retry, worker or fake compute: all fifty calls run the real freeze/admission path.
+      const outcomes = await Promise.allSettled(actors.map((actor, i) => enqueueCalculation(prisma, actor.id, request, keys[i]!)));
+      expect(outcomes.filter(outcome => outcome.status === "rejected").map(outcome => (outcome as PromiseRejectedResult).reason)).toEqual([]);
+      const accepted = outcomes.map(outcome => (outcome as PromiseFulfilledResult<Awaited<ReturnType<typeof enqueueCalculation>>>).value);
+      expect(new Set(accepted.map(job => job.id)).size).toBe(50);
+      expect(await prisma.calculationRun.count({ where: { ownerId: { in: actors.map(actor => actor.id) } } })).toBe(50);
+      const replayed = await Promise.all(actors.map((actor, i) => enqueueCalculation(prisma, actor.id, request, keys[i]!)));
+      expect(replayed.map(job => job.id)).toEqual(accepted.map(job => job.id));
+      expect(await prisma.calculationSubmission.count({ where: { ownerId: { in: actors.map(actor => actor.id) } } })).toBe(50);
+    } finally {
+      await prisma.user.deleteMany({ where: { id: { in: actors.map(actor => actor.id) } } });
+    }
+  }, 60_000);
+
+  it("freezes catalogue and norms from one snapshot even when an admin commits between their reads", async () => {
+    const norm = await prisma.norm.findUniqueOrThrow({ where: { key: "discountRate" } });
+    const product = await prisma.catalogProduct.findFirstOrThrow({ where: {
+      archived: false, level: { in: ["enriched", "examples"] },
+      processes: { some: { process: { facilityTypes: { some: { facilityType: { slug: "warehouse" } } } } } },
+    } });
+    let changed!: () => void;
+    const committed = new Promise<void>(resolve => { changed = resolve; });
+    const db = duringPreparation(async (tx, prepare) => {
+      const originalProducts = tx.catalogProduct.findMany.bind(tx.catalogProduct);
+      const originalNorms = tx.norm.findMany.bind(tx.norm);
+      tx.catalogProduct.findMany = (async (...args: Parameters<typeof originalProducts>) => {
+        const rows = await originalProducts(...args);
+        await prisma.$transaction([
+          prisma.catalogProduct.update({ where: { id: product.id }, data: { name: `${product.name} updated` } }),
+          prisma.norm.update({ where: { key: norm.key }, data: { value: norm.value === 0.2 ? 0.15 : 0.2 } }),
+        ]);
+        changed();
+        return rows;
+      }) as typeof tx.catalogProduct.findMany;
+      tx.norm.findMany = (async (...args: Parameters<typeof originalNorms>) => {
+        await committed;
+        return originalNorms(...args);
+      }) as typeof tx.norm.findMany;
+      return prepare();
+    });
+    try {
+      const accepted = await enqueueCalculation(db, owner, request, randomUUID());
+      const run = await prisma.calculationRun.findUniqueOrThrow({ where: { id: accepted.runId } });
+      const frozen = run.input as unknown as { live: { products: { slug: string; name: string }[]; norms: { discountRate: number } } };
+      expect(frozen.live.products.find(item => item.slug === product.slug)?.name).toBe(product.name);
+      expect(frozen.live.norms.discountRate).toBe(norm.value);
+    } finally {
+      await prisma.$transaction([
+        prisma.catalogProduct.update({ where: { id: product.id }, data: { name: product.name } }),
+        prisma.norm.update({ where: { key: norm.key }, data: { value: norm.value } }),
+      ]);
+    }
+  }, 30_000);
+
+  it.each(["revision", "owner", "demo", "deleted"] as const)("rechecks the current %s after preparation before admitting RECALCULATE", async change => {
+    const project = await projectFixture();
+    const db = duringPreparation(async (_tx, prepare) => {
+      const frozen = await prepare();
+      if (change === "deleted") await prisma.project.delete({ where: { id: project.id } });
+      else await prisma.project.update({ where: { id: project.id }, data: change === "revision"
+        ? { revision: { increment: 1 } } : change === "owner" ? { userId: stranger } : { isDemo: true } });
+      return frozen;
+    });
+    await expect(enqueueCalculation(db, owner, { operation: "RECALCULATE", projectId: project.id, expectedRevision: 0 }, randomUUID()))
+      .rejects.toMatchObject({ status: change === "revision" ? 409 : change === "demo" ? 422 : 404 });
+    expect(await prisma.calculationRun.count({ where: { ownerId: owner } })).toBe(0);
+  }, 30_000);
 
   it("concurrent duplicate requests commit exactly one durable operation", async () => {
     const key = randomUUID();

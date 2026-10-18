@@ -8,6 +8,8 @@
   const projectMode = config.initialCase !== 'sections' && projectHash.has('project');
   const projectRequestId = projectHash.get('project');
   const viewerUrl = kind => location.protocol === 'file:' ? `./${kind}-3d.html` : `/demo/${kind}`;
+  $('complex-demo-link').href = `${viewerUrl('warehouse')}?case=complex`;
+  $('cleaning-demo-link').href = viewerUrl('cleaning');
   $('demo-link').href = viewerUrl(config.initialCase === 'sections' ? 'warehouse' : 'cleaning');
   const numberFormats = new Map();
   const format = (value, digits = 1) => {

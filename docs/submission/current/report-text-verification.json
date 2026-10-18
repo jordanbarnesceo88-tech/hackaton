@@ -1,20 +1,39 @@
 {
   "checks": 19,
+  "passed": [
+    "31 PDF pages",
+    "project revision 3",
+    "actual SAVE job identity",
+    "published SAVE terminal status",
+    "fresh d0eb engine identity",
+    "econ model printed",
+    "base sim model printed",
+    "spatial model printed",
+    "selected fleet and chargers printed",
+    "selected throughput printed",
+    "customer unstarted queue printed",
+    "rounded intake p95 printed",
+    "purchase capexRub PDF/source",
+    "purchase opexYearRub PDF/source",
+    "purchase effectYearRub PDF/source",
+    "purchase npvRub PDF/source",
+    "purchase tcoRub PDF/source",
+    "page 5 exact intake criterion",
+    "PDF unchanged during validation"
+  ],
   "pages": 31,
-  "p95CriterionPage5": "PASS: beginning of processing and bound carrier prefetch",
   "sourceProject": {
     "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-    "revision": 2
+    "revision": 3
   },
   "operation": {
-    "id": "cmvdxh13f000101plss0hkvzk",
+    "id": "cmvdztn2b000a01pd7lfvhy61",
     "kind": "SAVE",
     "status": "SUCCEEDED",
     "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1"
   },
-  "baseSimVersion": "sim-1.2.0",
-  "pdfSha256": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a",
-  "scope": "PDF text extraction only, not visual layout acceptance; no Excel recalculation, DB or simulation"
+  "pdfSha256": "ec7079605230f7ab125d2475ef502719e08bcf793953d877a96511a51f902cb2",
+  "scope": "Read-only PDF text and source identity checks; no visual layout acceptance, spreadsheet recalculation, DB access or simulation"
 }

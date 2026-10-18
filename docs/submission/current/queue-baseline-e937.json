@@ -1,0 +1,2455 @@
+{
+  "run": "queue-load-1792337332815",
+  "startedAt": "2026-10-18T15:28:52.816Z",
+  "base": "http://localhost:3086",
+  "dbPort": 55438,
+  "sourceCommit": "b904b28711e6304d66a7d3cb4f1a976aa7149dfe",
+  "scope": "50 distinct authenticated HTTP users, one simultaneous real full-horizon CALCULATE per user; one deployed worker process. Session setup excluded. No browser-render or 50-CPU-concurrency claim.",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X3D 16-Core Processor          ",
+    "logicalCpu": 32,
+    "ramBytes": 134813700096,
+    "sameHostClient": true
+  },
+  "users": 50,
+  "workerProcesses": 1,
+  "criteria": {
+    "firstPostAccepted": 50,
+    "unexpected5xx": 0,
+    "lostJobs": 0,
+    "maxValidLeases": 2,
+    "allSucceeded": true,
+    "healthError": 0
+  },
+  "requests": [
+    {
+      "index": 0,
+      "ownerId": "351c3566-9bcc-45df-ac8e-08f440dfc507",
+      "idempotencyKey": "queue-load-1792337332815:0",
+      "startSkewMs": 0.1434000000008382,
+      "ms": 419.47769999999946,
+      "status": 202,
+      "jobId": "cmvdzdnil000101lntkqov5ew",
+      "runId": "cmvdzdnhv000001lnpwpvne8r",
+      "lastPollMs": 74.87900000000081,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 1,
+      "ownerId": "2d1e4993-5a27-4a00-8162-aedd5167aa85",
+      "idempotencyKey": "queue-load-1792337332815:1",
+      "startSkewMs": 0.480199999999968,
+      "ms": 11030.747500000001,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 2,
+      "ownerId": "bcafb4b6-ed27-4a9e-bdc0-7ce0ad52bb23",
+      "idempotencyKey": "queue-load-1792337332815:2",
+      "startSkewMs": 0.6229000000002998,
+      "ms": 3681.161100000001,
+      "status": 202,
+      "jobId": "cmvdzdq1g001p01ln12lqbpjz",
+      "runId": "cmvdzdq0o001o01ln1phl0jhq",
+      "lastPollMs": 58.5512000000017,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 3,
+      "ownerId": "c7960599-a6d2-43db-b900-f7e3c14069b7",
+      "idempotencyKey": "queue-load-1792337332815:3",
+      "startSkewMs": 0.728000000000975,
+      "ms": 11082.1282,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 4,
+      "ownerId": "9c3bad81-ab5a-4041-80bf-90b4586e05a2",
+      "idempotencyKey": "queue-load-1792337332815:4",
+      "startSkewMs": 0.8080000000009022,
+      "ms": 11129.0122,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 5,
+      "ownerId": "774890d8-c883-4a7e-ba2f-772a3ee2989a",
+      "idempotencyKey": "queue-load-1792337332815:5",
+      "startSkewMs": 0.8859000000011292,
+      "ms": 11287.9734,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 6,
+      "ownerId": "761971ab-1819-4113-b142-daf51d85d09a",
+      "idempotencyKey": "queue-load-1792337332815:6",
+      "startSkewMs": 1.04529999999977,
+      "ms": 9270.231900000002,
+      "status": 202,
+      "jobId": "cmvdzducy004p01ln2eswzrac",
+      "runId": "cmvdzducp004o01ln9pmbnxop",
+      "lastPollMs": 39.85480000000098,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 7,
+      "ownerId": "8563ab25-b727-42f9-992c-103f9478b6e6",
+      "idempotencyKey": "queue-load-1792337332815:7",
+      "startSkewMs": 1.1619000000009692,
+      "ms": 11178.0236,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 8,
+      "ownerId": "4adb1d89-78af-4973-b37d-f86d2286e61b",
+      "idempotencyKey": "queue-load-1792337332815:8",
+      "startSkewMs": 1.2538999999997031,
+      "ms": 6686.946900000001,
+      "status": 202,
+      "jobId": "cmvdzdsd8003d01lnxnuwvmt7",
+      "runId": "cmvdzdscz003c01lndbmpk4t6",
+      "lastPollMs": 53.67250000000058,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 9,
+      "ownerId": "105c7b6c-e71a-4dbb-83dc-17f46124c7c2",
+      "idempotencyKey": "queue-load-1792337332815:9",
+      "startSkewMs": 1.494300000000294,
+      "ms": 11237.027999999998,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 10,
+      "ownerId": "56941818-fd20-41fc-9273-b0382b0aa7ea",
+      "idempotencyKey": "queue-load-1792337332815:10",
+      "startSkewMs": 1.6579000000001543,
+      "ms": 1149.3630000000012,
+      "status": 202,
+      "jobId": "cmvdzdo3g000d01lnmp8kv176",
+      "runId": "cmvdzdo37000c01lnh5e970jx",
+      "lastPollMs": 89.19189999999799,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 11,
+      "ownerId": "2479c624-08aa-4411-93ef-4ff838ce4b0a",
+      "idempotencyKey": "queue-load-1792337332815:11",
+      "startSkewMs": 1.7545000000009168,
+      "ms": 11411.4689,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 12,
+      "ownerId": "792bc47b-c5a1-4db4-9dc8-b86e5e7c1a8f",
+      "idempotencyKey": "queue-load-1792337332815:12",
+      "startSkewMs": 1.814700000000812,
+      "ms": 4288.789199999999,
+      "status": 202,
+      "jobId": "cmvdzdqim002101lnusli3syv",
+      "runId": "cmvdzdqie002001ln2jnqwupl",
+      "lastPollMs": 46.64839999999822,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 13,
+      "ownerId": "64d5afbc-5b09-45e9-a7d0-70216c3f0ab6",
+      "idempotencyKey": "queue-load-1792337332815:13",
+      "startSkewMs": 1.8859000000011292,
+      "ms": 1760.6669999999995,
+      "status": 202,
+      "jobId": "cmvdzdoke000p01lnb74vllt5",
+      "runId": "cmvdzdok6000o01lnrt72pyhm",
+      "lastPollMs": 76.59730000000127,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 14,
+      "ownerId": "d8ab286a-0b6e-41e3-8919-68261692fa50",
+      "idempotencyKey": "queue-load-1792337332815:14",
+      "startSkewMs": 1.9508999999998196,
+      "ms": 11727.596200000002,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 15,
+      "ownerId": "4bcb2a98-02fc-4a69-82c7-8abcde88d888",
+      "idempotencyKey": "queue-load-1792337332815:15",
+      "startSkewMs": 2.012300000000323,
+      "ms": 9811.597300000001,
+      "status": 202,
+      "jobId": "cmvdzdus3005101lnwmtke8q8",
+      "runId": "cmvdzduru005001lnu3ptxlhm",
+      "lastPollMs": 35.07010000000446,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 16,
+      "ownerId": "5232bfcd-da47-4591-ba61-c006e93a7596",
+      "idempotencyKey": "queue-load-1792337332815:16",
+      "startSkewMs": 2.062900000000809,
+      "ms": 4904.7438999999995,
+      "status": 202,
+      "jobId": "cmvdzdqzr002d01ln4gh55g5c",
+      "runId": "cmvdzdqzj002c01lnlsrsx9wr",
+      "lastPollMs": 99.63570000000618,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 17,
+      "ownerId": "76252347-c114-4cb3-85d4-951fd1ccb92b",
+      "idempotencyKey": "queue-load-1792337332815:17",
+      "startSkewMs": 2.115400000000591,
+      "ms": 11826.031500000001,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 18,
+      "ownerId": "2b0790a4-1995-4140-b186-c77e52fd3331",
+      "idempotencyKey": "queue-load-1792337332815:18",
+      "startSkewMs": 2.167699999999968,
+      "ms": 11568.354599999999,
+      "status": 202,
+      "jobId": "cmvdzdw4s006101ln2i71yjwo",
+      "runId": "cmvdzdw4j006001ln0yk34fof",
+      "lastPollMs": 28.775399999998626,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 19,
+      "ownerId": "7998a4c0-7c34-4ec5-b5dc-f84c7b0d084a",
+      "idempotencyKey": "queue-load-1792337332815:19",
+      "startSkewMs": 2.7092000000011467,
+      "ms": 11461.4402,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 20,
+      "ownerId": "8842d4ac-025b-4a4c-b873-7223d78037fe",
+      "idempotencyKey": "queue-load-1792337332815:20",
+      "startSkewMs": 2.846400000000358,
+      "ms": 11511.700499999999,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 21,
+      "ownerId": "744a1508-0176-4cce-b6e4-5567311b4cb9",
+      "idempotencyKey": "queue-load-1792337332815:21",
+      "startSkewMs": 2.930900000001202,
+      "ms": 11626.641799999998,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 22,
+      "ownerId": "148636c6-4922-410f-bf5d-f7003a4e35bd",
+      "idempotencyKey": "queue-load-1792337332815:22",
+      "startSkewMs": 3.0028000000002066,
+      "ms": 11676.426800000001,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 23,
+      "ownerId": "bc2f4db6-1f3b-4a4c-860e-19c2b3f6810d",
+      "idempotencyKey": "queue-load-1792337332815:23",
+      "startSkewMs": 3.058100000000195,
+      "ms": 7368.087200000002,
+      "status": 202,
+      "jobId": "cmvdzdsw3003p01lnh6ajzndx",
+      "runId": "cmvdzdsvu003o01lnmf2evbkh",
+      "lastPollMs": 46.839899999999034,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 24,
+      "ownerId": "7e415e96-27fd-4cbe-824d-ed665adf65d7",
+      "idempotencyKey": "queue-load-1792337332815:24",
+      "startSkewMs": 3.1194000000014057,
+      "ms": 11774.8688,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 25,
+      "ownerId": "f72a21b9-0ad2-4bd6-be6d-0d1e07d05d9d",
+      "idempotencyKey": "queue-load-1792337332815:25",
+      "startSkewMs": 3.1754000000000815,
+      "ms": 2433.2009,
+      "status": 202,
+      "jobId": "cmvdzdp1s001101ln0h8t0btp",
+      "runId": "cmvdzdp1k001001lnua63o63z",
+      "lastPollMs": 73.41979999999967,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 26,
+      "ownerId": "dbe3e53d-7962-41fa-8c89-5428361c3e5e",
+      "idempotencyKey": "queue-load-1792337332815:26",
+      "startSkewMs": 3.2309000000004744,
+      "ms": 12188.225900000001,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 27,
+      "ownerId": "e11104e1-51f4-473a-ac2a-534874273459",
+      "idempotencyKey": "queue-load-1792337332815:27",
+      "startSkewMs": 3.297500000000582,
+      "ms": 8028.818700000002,
+      "status": 202,
+      "jobId": "cmvdzdtej004101lna9ejhlfc",
+      "runId": "cmvdzdte9004001lnytmg6mg3",
+      "lastPollMs": 42.24799999999959,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 28,
+      "ownerId": "4c56ac55-c9f4-4178-af85-3e4f0cdf1717",
+      "idempotencyKey": "queue-load-1792337332815:28",
+      "startSkewMs": 3.3674000000009983,
+      "ms": 11872.597699999998,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 29,
+      "ownerId": "79e960ee-4edd-4bd9-bdd7-2e6503f74fee",
+      "idempotencyKey": "queue-load-1792337332815:29",
+      "startSkewMs": 3.4714999999996508,
+      "ms": 12030.6272,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 30,
+      "ownerId": "16a04a52-53f3-47bb-af48-e092c9b29d49",
+      "idempotencyKey": "queue-load-1792337332815:30",
+      "startSkewMs": 3.569900000000416,
+      "ms": 11977.275399999999,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 31,
+      "ownerId": "2039b97e-e9e7-47ac-9d4f-e070524c238e",
+      "idempotencyKey": "queue-load-1792337332815:31",
+      "startSkewMs": 3.678200000000288,
+      "ms": 12079.318599999999,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 32,
+      "ownerId": "538b0985-3560-41bf-8d97-bd44748a2195",
+      "idempotencyKey": "queue-load-1792337332815:32",
+      "startSkewMs": 3.7687000000005355,
+      "ms": 12135.3929,
+      "status": 202,
+      "jobId": "cmvdzdwko006d01ln5xu7d3w4",
+      "runId": "cmvdzdwkg006c01lnjzdw02es",
+      "lastPollMs": 25.87699999999313,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 33,
+      "ownerId": "fdfa3172-96c1-4498-a430-8169571f00cf",
+      "idempotencyKey": "queue-load-1792337332815:33",
+      "startSkewMs": 3.8294999999998254,
+      "ms": 12590.4972,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 34,
+      "ownerId": "75c5d455-0ec8-4cd7-94de-ea914da57689",
+      "idempotencyKey": "queue-load-1792337332815:34",
+      "startSkewMs": 3.8990000000012515,
+      "ms": 10975.6383,
+      "status": 202,
+      "jobId": "cmvdzdvo8005p01lngoahx01w",
+      "runId": "cmvdzdvo0005o01lnbtev1jd9",
+      "lastPollMs": 35.1707000000024,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 35,
+      "ownerId": "1ee7d143-ae09-48ff-a093-1109387c9766",
+      "idempotencyKey": "queue-load-1792337332815:35",
+      "startSkewMs": 3.9561000000012427,
+      "ms": 12660.505799999999,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 36,
+      "ownerId": "e8b9e3c2-667b-4fa1-b746-9beae44f9a39",
+      "idempotencyKey": "queue-load-1792337332815:36",
+      "startSkewMs": 4.0130000000008295,
+      "ms": 6065.9231,
+      "status": 202,
+      "jobId": "cmvdzdrw0003101ln8strsdp2",
+      "runId": "cmvdzdrvs003001ln1g41z7lt",
+      "lastPollMs": 74.78949999999895,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 37,
+      "ownerId": "ab552ef1-595a-4c00-ae17-7870fa4d530b",
+      "idempotencyKey": "queue-load-1792337332815:37",
+      "startSkewMs": 4.079600000000937,
+      "ms": 3059.981099999999,
+      "status": 202,
+      "jobId": "cmvdzdpka001d01ln6szlooya",
+      "runId": "cmvdzdpiz001c01lni05hvrtn",
+      "lastPollMs": 101.79550000000017,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 38,
+      "ownerId": "30acec14-cfbb-491d-8f8c-c7a0208cada7",
+      "idempotencyKey": "queue-load-1792337332815:38",
+      "startSkewMs": 4.144000000000233,
+      "ms": 12337.211000000001,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 39,
+      "ownerId": "1e5cbe72-9309-46b8-b7ad-e1cdd270fa84",
+      "idempotencyKey": "queue-load-1792337332815:39",
+      "startSkewMs": 4.1965000000000146,
+      "ms": 12611.303500000002,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 40,
+      "ownerId": "81fd87a6-2574-4df0-9cb7-29e7dd1de849",
+      "idempotencyKey": "queue-load-1792337332815:40",
+      "startSkewMs": 4.250900000000911,
+      "ms": 12388.862399999998,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 41,
+      "ownerId": "9c33a0fe-99e4-4b44-b64e-429eef6aa855",
+      "idempotencyKey": "queue-load-1792337332815:41",
+      "startSkewMs": 4.294799999999668,
+      "ms": 12815.632500000002,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 42,
+      "ownerId": "5649bce5-269c-45c7-9062-998db9b3e256",
+      "idempotencyKey": "queue-load-1792337332815:42",
+      "startSkewMs": 4.341099999999642,
+      "ms": 12440.627800000002,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 43,
+      "ownerId": "f6c37746-abaa-4ac3-ad6b-b9b59f3423d0",
+      "idempotencyKey": "queue-load-1792337332815:43",
+      "startSkewMs": 4.38720000000103,
+      "ms": 5483.587600000001,
+      "status": 202,
+      "jobId": "cmvdzdrfu002p01ln2gny48t8",
+      "runId": "cmvdzdrfn002o01lndnllrfdg",
+      "lastPollMs": 57.776200000000244,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 44,
+      "ownerId": "2a092abc-f5f4-455f-8166-7e566ae74798",
+      "idempotencyKey": "queue-load-1792337332815:44",
+      "startSkewMs": 4.93920000000071,
+      "ms": 12238.704499999998,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 45,
+      "ownerId": "8a37c8b4-2e75-4317-a2b2-47594e27f9ee",
+      "idempotencyKey": "queue-load-1792337332815:45",
+      "startSkewMs": 5.028599999999642,
+      "ms": 12713.711800000001,
+      "status": 202,
+      "jobId": "cmvdzdx0r006p01ln628z67zq",
+      "runId": "cmvdzdx0j006o01lnsz2z3xwk",
+      "lastPollMs": 24.394800000009127,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 46,
+      "ownerId": "f256728e-25b6-4888-9914-bef847097e31",
+      "idempotencyKey": "queue-load-1792337332815:46",
+      "startSkewMs": 5.082300000000032,
+      "ms": 12765.656299999999,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 47,
+      "ownerId": "dcca25eb-eedf-467b-9578-93214427789d",
+      "idempotencyKey": "queue-load-1792337332815:47",
+      "startSkewMs": 5.130199999999604,
+      "ms": 10400.4582,
+      "status": 202,
+      "jobId": "cmvdzdv8h005d01lnq2msq8ga",
+      "runId": "cmvdzdv89005c01lnlxwuktji",
+      "lastPollMs": 26.5283999999956,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    {
+      "index": 48,
+      "ownerId": "d68f26b3-61a1-4418-adb1-81f78277b9d6",
+      "idempotencyKey": "queue-load-1792337332815:48",
+      "startSkewMs": 5.18710000000101,
+      "ms": 12286.243299999998,
+      "status": 503,
+      "error": "Не удалось выполнить операцию с расчётом. Повторите отправку с тем же ключом: это не создаст дубликат"
+    },
+    {
+      "index": 49,
+      "ownerId": "78d68105-8c38-4e0a-bad5-aea0a3127d41",
+      "idempotencyKey": "queue-load-1792337332815:49",
+      "startSkewMs": 5.246000000001004,
+      "ms": 8652.077000000001,
+      "status": 202,
+      "jobId": "cmvdzdtvt004d01lnabosciki",
+      "runId": "cmvdzdtvl004c01ln55f553rf",
+      "lastPollMs": 101.57009999999718,
+      "resultVerified": true,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "cmvdzdnil000101lntkqov5ew",
+      "jobId": "cmvdzdnil000101lntkqov5ew",
+      "runId": "cmvdzdnhv000001lnpwpvne8r",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:06.381Z",
+      "startedAt": "2026-10-18T15:29:07.144Z",
+      "finishedAt": "2026-10-18T15:29:10.881Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdnil000101lntkqov5ew/result"
+    },
+    {
+      "id": "cmvdzdoke000p01lnb74vllt5",
+      "jobId": "cmvdzdoke000p01lnb74vllt5",
+      "runId": "cmvdzdok6000o01lnrt72pyhm",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:07.742Z",
+      "startedAt": "2026-10-18T15:29:14.027Z",
+      "finishedAt": "2026-10-18T15:29:17.060Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdoke000p01lnb74vllt5/result"
+    },
+    {
+      "id": "cmvdzdo3g000d01lnmp8kv176",
+      "jobId": "cmvdzdo3g000d01lnmp8kv176",
+      "runId": "cmvdzdo37000c01lnh5e970jx",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:07.132Z",
+      "startedAt": "2026-10-18T15:29:10.895Z",
+      "finishedAt": "2026-10-18T15:29:13.998Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdo3g000d01lnmp8kv176/result"
+    },
+    {
+      "id": "cmvdzdp1s001101ln0h8t0btp",
+      "jobId": "cmvdzdp1s001101ln0h8t0btp",
+      "runId": "cmvdzdp1k001001lnua63o63z",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:08.368Z",
+      "startedAt": "2026-10-18T15:29:17.075Z",
+      "finishedAt": "2026-10-18T15:29:19.983Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdp1s001101ln0h8t0btp/result"
+    },
+    {
+      "id": "cmvdzdpka001d01ln6szlooya",
+      "jobId": "cmvdzdpka001d01ln6szlooya",
+      "runId": "cmvdzdpiz001c01lni05hvrtn",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:09.034Z",
+      "startedAt": "2026-10-18T15:29:20.008Z",
+      "finishedAt": "2026-10-18T15:29:22.814Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdpka001d01ln6szlooya/result"
+    },
+    {
+      "id": "cmvdzdq1g001p01ln12lqbpjz",
+      "jobId": "cmvdzdq1g001p01ln12lqbpjz",
+      "runId": "cmvdzdq0o001o01ln1phl0jhq",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:09.652Z",
+      "startedAt": "2026-10-18T15:29:22.836Z",
+      "finishedAt": "2026-10-18T15:29:25.555Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdq1g001p01ln12lqbpjz/result"
+    },
+    {
+      "id": "cmvdzdqim002101lnusli3syv",
+      "jobId": "cmvdzdqim002101lnusli3syv",
+      "runId": "cmvdzdqie002001ln2jnqwupl",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:10.270Z",
+      "startedAt": "2026-10-18T15:29:25.569Z",
+      "finishedAt": "2026-10-18T15:29:28.498Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdqim002101lnusli3syv/result"
+    },
+    {
+      "id": "cmvdzdqzr002d01ln4gh55g5c",
+      "jobId": "cmvdzdqzr002d01ln4gh55g5c",
+      "runId": "cmvdzdqzj002c01lnlsrsx9wr",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:10.887Z",
+      "startedAt": "2026-10-18T15:29:28.513Z",
+      "finishedAt": "2026-10-18T15:29:31.410Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdqzr002d01ln4gh55g5c/result"
+    },
+    {
+      "id": "cmvdzdrfu002p01ln2gny48t8",
+      "jobId": "cmvdzdrfu002p01ln2gny48t8",
+      "runId": "cmvdzdrfn002o01lndnllrfdg",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:11.466Z",
+      "startedAt": "2026-10-18T15:29:31.437Z",
+      "finishedAt": "2026-10-18T15:29:34.249Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdrfu002p01ln2gny48t8/result"
+    },
+    {
+      "id": "cmvdzdrw0003101ln8strsdp2",
+      "jobId": "cmvdzdrw0003101ln8strsdp2",
+      "runId": "cmvdzdrvs003001ln1g41z7lt",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:12.048Z",
+      "startedAt": "2026-10-18T15:29:34.268Z",
+      "finishedAt": "2026-10-18T15:29:37.064Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdrw0003101ln8strsdp2/result"
+    },
+    {
+      "id": "cmvdzdsd8003d01lnxnuwvmt7",
+      "jobId": "cmvdzdsd8003d01lnxnuwvmt7",
+      "runId": "cmvdzdscz003c01lndbmpk4t6",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:12.668Z",
+      "startedAt": "2026-10-18T15:29:37.077Z",
+      "finishedAt": "2026-10-18T15:29:40.022Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdsd8003d01lnxnuwvmt7/result"
+    },
+    {
+      "id": "cmvdzdsw3003p01lnh6ajzndx",
+      "jobId": "cmvdzdsw3003p01lnh6ajzndx",
+      "runId": "cmvdzdsvu003o01lnmf2evbkh",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:13.347Z",
+      "startedAt": "2026-10-18T15:29:40.035Z",
+      "finishedAt": "2026-10-18T15:29:42.797Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdsw3003p01lnh6ajzndx/result"
+    },
+    {
+      "id": "cmvdzdtej004101lna9ejhlfc",
+      "jobId": "cmvdzdtej004101lna9ejhlfc",
+      "runId": "cmvdzdte9004001lnytmg6mg3",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:14.011Z",
+      "startedAt": "2026-10-18T15:29:42.814Z",
+      "finishedAt": "2026-10-18T15:29:45.571Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdtej004101lna9ejhlfc/result"
+    },
+    {
+      "id": "cmvdzdtvt004d01lnabosciki",
+      "jobId": "cmvdzdtvt004d01lnabosciki",
+      "runId": "cmvdzdtvl004c01ln55f553rf",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:14.633Z",
+      "startedAt": "2026-10-18T15:29:45.585Z",
+      "finishedAt": "2026-10-18T15:29:48.386Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdtvt004d01lnabosciki/result"
+    },
+    {
+      "id": "cmvdzducy004p01ln2eswzrac",
+      "jobId": "cmvdzducy004p01ln2eswzrac",
+      "runId": "cmvdzducp004o01ln9pmbnxop",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:15.250Z",
+      "startedAt": "2026-10-18T15:29:48.399Z",
+      "finishedAt": "2026-10-18T15:29:51.286Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzducy004p01ln2eswzrac/result"
+    },
+    {
+      "id": "cmvdzdus3005101lnwmtke8q8",
+      "jobId": "cmvdzdus3005101lnwmtke8q8",
+      "runId": "cmvdzduru005001lnu3ptxlhm",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:15.795Z",
+      "startedAt": "2026-10-18T15:29:51.330Z",
+      "finishedAt": "2026-10-18T15:29:54.287Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdus3005101lnwmtke8q8/result"
+    },
+    {
+      "id": "cmvdzdv8h005d01lnq2msq8ga",
+      "jobId": "cmvdzdv8h005d01lnq2msq8ga",
+      "runId": "cmvdzdv89005c01lnlxwuktji",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:16.385Z",
+      "startedAt": "2026-10-18T15:29:54.302Z",
+      "finishedAt": "2026-10-18T15:29:57.035Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdv8h005d01lnq2msq8ga/result"
+    },
+    {
+      "id": "cmvdzdvo8005p01lngoahx01w",
+      "jobId": "cmvdzdvo8005p01lngoahx01w",
+      "runId": "cmvdzdvo0005o01lnbtev1jd9",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:16.952Z",
+      "startedAt": "2026-10-18T15:29:57.048Z",
+      "finishedAt": "2026-10-18T15:29:59.979Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdvo8005p01lngoahx01w/result"
+    },
+    {
+      "id": "cmvdzdw4s006101ln2i71yjwo",
+      "jobId": "cmvdzdw4s006101ln2i71yjwo",
+      "runId": "cmvdzdw4j006001ln0yk34fof",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:17.548Z",
+      "startedAt": "2026-10-18T15:29:59.993Z",
+      "finishedAt": "2026-10-18T15:30:02.852Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdw4s006101ln2i71yjwo/result"
+    },
+    {
+      "id": "cmvdzdwko006d01ln5xu7d3w4",
+      "jobId": "cmvdzdwko006d01ln5xu7d3w4",
+      "runId": "cmvdzdwkg006c01lnjzdw02es",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:18.120Z",
+      "startedAt": "2026-10-18T15:30:02.866Z",
+      "finishedAt": "2026-10-18T15:30:05.663Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdwko006d01ln5xu7d3w4/result"
+    },
+    {
+      "id": "cmvdzdx0r006p01ln628z67zq",
+      "jobId": "cmvdzdx0r006p01ln628z67zq",
+      "runId": "cmvdzdx0j006o01lnsz2z3xwk",
+      "operation": "CALCULATE",
+      "projectId": null,
+      "reservedProjectId": null,
+      "status": "SUCCEEDED",
+      "stage": "succeeded",
+      "progress": 100,
+      "attempts": 1,
+      "safeMessage": "Расчёт завершён",
+      "publicationState": "NONE",
+      "publishedRevision": null,
+      "createdAt": "2026-10-18T15:29:18.699Z",
+      "startedAt": "2026-10-18T15:30:05.683Z",
+      "finishedAt": "2026-10-18T15:30:08.529Z",
+      "diagnosticCode": null,
+      "cancelRequestedAt": null,
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+      "resultUrl": "/api/v1/calculation-jobs/cmvdzdx0r006p01ln628z67zq/result"
+    }
+  ],
+  "health": [
+    {
+      "at": "2026-10-18T15:29:06.074Z",
+      "ms": 85.12700000000041,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:09.533Z",
+      "ms": 2419.468500000001,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:12.511Z",
+      "ms": 1967.3235999999997,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:15.366Z",
+      "ms": 1836.7716,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:17.767Z",
+      "ms": 1387.3156000000017,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:18.804Z",
+      "ms": 20.689699999998993,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:19.837Z",
+      "ms": 19.804999999996653,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:20.953Z",
+      "ms": 6.4935999999979686,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:21.967Z",
+      "ms": 5.460699999999633,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:23.004Z",
+      "ms": 20.630300000000716,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:24.037Z",
+      "ms": 20.836200000001554,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:25.116Z",
+      "ms": 24.520000000000437,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:26.148Z",
+      "ms": 19.226199999997334,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:27.181Z",
+      "ms": 23.67450000000099,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:28.210Z",
+      "ms": 20.53570000000036,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:29.255Z",
+      "ms": 21.866599999993923,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:30.281Z",
+      "ms": 19.03059999999823,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:31.316Z",
+      "ms": 20.318200000001525,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:32.347Z",
+      "ms": 20.222500000003492,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:33.429Z",
+      "ms": 19.210500000001048,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:34.462Z",
+      "ms": 20.605499999997846,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:35.492Z",
+      "ms": 19.96860000000015,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:36.520Z",
+      "ms": 21.003700000001118,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:37.613Z",
+      "ms": 68.7589999999982,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:38.627Z",
+      "ms": 5.437200000000303,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:39.666Z",
+      "ms": 22.799800000000687,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:40.690Z",
+      "ms": 20.622199999997974,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:41.741Z",
+      "ms": 18.68529999999737,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:42.776Z",
+      "ms": 19.058300000004238,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:43.805Z",
+      "ms": 21.152600000001257,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:44.829Z",
+      "ms": 20.82610000000568,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:45.863Z",
+      "ms": 17.016800000004878,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:46.901Z",
+      "ms": 19.225100000003295,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:47.929Z",
+      "ms": 19.98530000000028,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:48.957Z",
+      "ms": 20.23460000000341,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:50.055Z",
+      "ms": 39.11420000000362,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:51.082Z",
+      "ms": 20.77429999999731,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:52.105Z",
+      "ms": 19.215799999998126,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:53.132Z",
+      "ms": 20.821900000002643,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:54.217Z",
+      "ms": 43.314400000002934,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:55.249Z",
+      "ms": 20.69550000000163,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:56.284Z",
+      "ms": 20.482600000003004,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:57.316Z",
+      "ms": 20.33559999999852,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:58.397Z",
+      "ms": 34.93039999999746,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:29:59.432Z",
+      "ms": 19.269699999989825,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:00.456Z",
+      "ms": 20.12029999999504,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:01.483Z",
+      "ms": 19.240499999999884,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:02.511Z",
+      "ms": 17.504300000000512,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:03.557Z",
+      "ms": 20.613400000002002,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:04.582Z",
+      "ms": 20.794599999993807,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:05.614Z",
+      "ms": 19.83399999998801,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:06.670Z",
+      "ms": 18.185599999997066,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:07.689Z",
+      "ms": 5.174800000007963,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:08.720Z",
+      "ms": 20.211799999990035,
+      "status": 200,
+      "db": true
+    },
+    {
+      "at": "2026-10-18T15:30:09.748Z",
+      "ms": 22.902000000001863,
+      "status": 200,
+      "db": true
+    }
+  ],
+  "monitor": [
+    {
+      "at": "2026-10-18T15:29:06.107Z",
+      "states": []
+    },
+    {
+      "at": "2026-10-18T15:29:09.534Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 4,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:12.513Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 8,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 1,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:15.367Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 12,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 2,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:17.769Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 15,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 3,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:18.805Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 17,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 3,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:19.838Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 17,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 3,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:20.955Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 16,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 4,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:21.969Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 16,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 4,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:23.006Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 15,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 5,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:24.039Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 15,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 5,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:25.118Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 15,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 5,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:26.149Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 14,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 6,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:27.184Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 14,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 6,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:28.212Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 14,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 6,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:29.257Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 13,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 7,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:30.282Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 13,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 7,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:31.318Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 13,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 7,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:32.348Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 12,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 8,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:33.431Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 12,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 8,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:34.464Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 11,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 9,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:35.494Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 11,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 9,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:36.522Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 11,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 9,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:37.614Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 10,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 10,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:38.629Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 10,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 10,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:39.668Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 10,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 10,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:40.691Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 9,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 11,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:41.742Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 9,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 11,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:42.777Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 9,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 11,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:43.806Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 8,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 12,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:44.830Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 8,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 12,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:45.864Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 7,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 13,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:46.902Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 7,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 13,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:47.931Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 7,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 13,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:48.959Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 6,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 14,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:50.057Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 6,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 14,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:51.083Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 6,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 14,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:52.106Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 5,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 15,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:53.134Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 5,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 15,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:54.218Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 5,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 15,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:55.250Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 4,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 16,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:56.285Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 4,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 16,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:57.317Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 3,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 17,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:58.407Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 3,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 17,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:29:59.433Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "QUEUED",
+          "n": 3,
+          "valid": 0
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 17,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:00.457Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 18,
+          "valid": 0
+        },
+        {
+          "status": "QUEUED",
+          "n": 2,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:01.484Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 18,
+          "valid": 0
+        },
+        {
+          "status": "QUEUED",
+          "n": 2,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:02.526Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 18,
+          "valid": 0
+        },
+        {
+          "status": "QUEUED",
+          "n": 2,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:03.559Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 19,
+          "valid": 0
+        },
+        {
+          "status": "QUEUED",
+          "n": 1,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:04.583Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 19,
+          "valid": 0
+        },
+        {
+          "status": "QUEUED",
+          "n": 1,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:05.615Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 19,
+          "valid": 0
+        },
+        {
+          "status": "QUEUED",
+          "n": 1,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:06.672Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 20,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:07.690Z",
+      "states": [
+        {
+          "status": "RUNNING",
+          "n": 1,
+          "valid": 1
+        },
+        {
+          "status": "SUCCEEDED",
+          "n": 20,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:08.721Z",
+      "states": [
+        {
+          "status": "SUCCEEDED",
+          "n": 21,
+          "valid": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-18T15:30:09.750Z",
+      "states": [
+        {
+          "status": "SUCCEEDED",
+          "n": 21,
+          "valid": 0
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "authenticatedUsers": 50,
+  "setupFinishedAt": "2026-10-18T15:29:05.988Z",
+  "burstAt": "2026-10-18T15:29:05.989Z",
+  "accepted": 21,
+  "admissionMs": {
+    "p50": 11411.4689,
+    "p95": 12713.711800000001,
+    "max": 12815.632500000002
+  },
+  "unfinished": [],
+  "persisted": {
+    "jobs": 21,
+    "runs": 21
+  },
+  "summary": {
+    "accepted": 21,
+    "succeeded": 21,
+    "verified": 21,
+    "statuses": {
+      "SUCCEEDED": 21
+    },
+    "queueWaitMs": {
+      "p50": 24409,
+      "p95": 44746,
+      "max": 46984
+    },
+    "computeAndStoreMs": {
+      "p50": 2859,
+      "p95": 3103,
+      "max": 3737
+    },
+    "endToEndMs": {
+      "p50": 27354,
+      "p95": 47543,
+      "max": 49830
+    },
+    "healthMs": {
+      "p50": 20.53570000000036,
+      "p95": 1836.7716,
+      "max": 2419.468500000001
+    },
+    "healthErrors": 0,
+    "maxValidLeases": 1
+  },
+  "pass": false,
+  "finishedAt": "2026-10-18T15:30:10.445Z",
+  "fixtureCleanup": "deleted exact 50 owned fixture users and cascade rows"
+}

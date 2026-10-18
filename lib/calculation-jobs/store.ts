@@ -70,7 +70,7 @@ export async function assertQueueCapacity(tx: Tx, ownerId: string): Promise<void
   if (ownedHistory >= 200 || totalHistory >= 2000) throw new JobHistoryFull();
 }
 
-/** Caller captures and validates the server snapshot in this same short transaction. */
+/** Caller freezes a coherent server snapshot before entering this admission transaction. */
 export async function enqueueWithinTransaction(tx: Tx, input: EnqueuePrepared): Promise<JobReceipt> {
   await lockEnqueueAdmission(tx);
   const existing = await findIdempotent(tx, input.ownerId, input.idempotencyKey, input.requestHash);

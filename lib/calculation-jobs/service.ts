@@ -146,6 +146,22 @@ export async function enqueueCalculation(db: PrismaClient, ownerId: string, raw:
   }
   const request = intentOf(raw);
   const requestHash = digest(request);
+  // Freeze all catalogue/project reads at one MVCC snapshot, without holding the global
+  // admission lock. A waiter must not carry that old snapshot into quota admission.
+  const prepared = await db.$transaction(async tx => {
+    await tx.$executeRaw`SET TRANSACTION READ ONLY`;
+    const existing = await findIdempotent(tx, ownerId, idempotencyKey, requestHash);
+    if (existing) return { existing };
+    await assertQueueCapacity(tx, ownerId);
+    const payload = await prepareFrozenInput(tx, ownerId, request);
+    if (Buffer.byteLength(stableJson(payload), "utf8") > 16 * 1024 * 1024) {
+      throw new CalculationRequestError(413, "Полный снимок расчёта превышает 16 МиБ — сократите число сценариев или разделите проект");
+    }
+    return { payload };
+  }, { isolationLevel: "RepeatableRead", maxWait: 10_000, timeout: 15_000 });
+  if (prepared.existing) return prepared.existing;
+  const payload = prepared.payload;
+  const inputHash = digest(payload);
   for (let attempt = 0; ; attempt++) {
     try {
       return await db.$transaction(async tx => {
@@ -153,19 +169,29 @@ export async function enqueueCalculation(db: PrismaClient, ownerId: string, raw:
         const existing = await findIdempotent(tx, ownerId, idempotencyKey, requestHash);
         if (existing) return existing;
         await assertQueueCapacity(tx, ownerId);
-        const payload = await prepareFrozenInput(tx, ownerId, request);
-        // Bound retained, server-expanded inputs too; never silently truncate a snapshot.
-        if (Buffer.byteLength(stableJson(payload), "utf8") > 16 * 1024 * 1024) {
-          throw new CalculationRequestError(413, "Полный снимок расчёта превышает 16 МиБ — сократите число сценариев или разделите проект");
+        // Match account deletion/publication order before taking a project lock or FK.
+        const owners = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "User" WHERE id = ${ownerId} FOR KEY SHARE`;
+        if (!owners.length) throw new CalculationRequestError(401, "Войдите в аккаунт");
+        if (payload.publication?.projectId) {
+          // Preparation may have raced a save/delete; keep this head stable until enqueue.
+          const projects = await tx.$queryRaw<{ revision: number; isDemo: boolean }[]>`
+            SELECT revision, "isDemo" FROM "Project"
+            WHERE id = ${payload.publication.projectId} AND "userId" = ${ownerId} FOR SHARE`;
+          const project = projects[0];
+          if (!project) throw new CalculationRequestError(404, "Проект не найден");
+          if (project.isDemo) throw new CalculationRequestError(422, "Демонстрационный проект доступен только для чтения — создайте копию");
+          if (project.revision !== payload.publication.expectedRevision) {
+            throw new CalculationRequestError(409, new ProjectRevisionConflict().message);
+          }
         }
         return enqueueWithinTransaction(tx, { ownerId, operation: request.operation, idempotencyKey, requestHash,
-          inputHash: digest(payload), payload: payload as unknown as Prisma.InputJsonValue,
+          inputHash, payload: payload as unknown as Prisma.InputJsonValue,
           projectId: payload.publication?.projectId, baseRevision: payload.publication?.expectedRevision,
           reservedProjectId: payload.publication?.reservedProjectId, engineRelease: engineRelease() });
-      }, { isolationLevel: "Serializable", maxWait: 10_000, timeout: 15_000 });
+      }, { isolationLevel: "ReadCommitted", maxWait: 10_000, timeout: 15_000 });
     } catch (error) {
       const code = isPlainObject(error) ? error.code : (error as { code?: unknown } | null)?.code;
-      // Serializable also protects quota predicates when a waiter's snapshot predates the winner.
+      // Retry only the short admission; keep the already validated snapshot immutable.
       if (attempt < 4 && (code === "P2034" || code === "P2002")) {
         await delay((attempt + 1) * 5);
         continue;
