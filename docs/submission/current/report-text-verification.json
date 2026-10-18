@@ -1,0 +1,20 @@
+{
+  "checks": 19,
+  "pages": 31,
+  "p95CriterionPage5": "PASS: beginning of processing and bound carrier prefetch",
+  "sourceProject": {
+    "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 2
+  },
+  "operation": {
+    "id": "cmvdxh13f000101plss0hkvzk",
+    "kind": "SAVE",
+    "status": "SUCCEEDED",
+    "publication": "PUBLISHED",
+    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+  },
+  "baseSimVersion": "sim-1.2.0",
+  "pdfSha256": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a",
+  "scope": "PDF text extraction only, not visual layout acceptance; no Excel recalculation, DB or simulation"
+}

@@ -28,6 +28,8 @@ describe("pilot scope and budget", () => {
     expect(budget.unknowns).toContain("Доставка и обратная логистика");
     expect(budget.totalRub).toBeNull(); expect(budget.reserveRub).toBeNull();
     expect(budget.criteria[0]).toContain("не перенесена");
+    expect(budget.criteria[1]).toContain("до начала обработки");
+    expect(budget.criteria[1]).toContain("связанной подачи носителя");
     expect(budget.warning).toContain("полный сценарий");
     expect(m).toEqual(before);
   });

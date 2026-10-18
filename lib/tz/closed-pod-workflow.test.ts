@@ -32,7 +32,7 @@ describe("per-item versioned transport workflow", () => {
     expect(purchase.items[0]!.thrCycle).toBeCloseTo(13.5623948278);
     expect(model.simInputs.purchase!.calculated!.transportWorkflow).toBe("closed-pod-1");
     expect(model.simInputs.purchase!.byNorm).toBeNull();
-    expect(model.modelVersion).toBe("tz-1.0.5");
+    expect(model.modelVersion).toBe("tz-1.0.6");
   });
 
   it("keeps fork/tug cycle geometry and two-operation timing unchanged in mixed scenarios", () => {

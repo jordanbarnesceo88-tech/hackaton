@@ -71,6 +71,46 @@ const ctx = fixtureContext(20);
 const specs = fixtureSpecs(FIXTURE_H1500);
 const results = computeScenarios(ctx, specs);
 
+describe("scenario-specific TCO periods", () => {
+  it("renders each scenario's resolved .1/.2 payback thresholds instead of global3/5", () => {
+    const overridden = specs.map(s => s.key === "p1" ? { ...s, normOverrides: { paybackBandFastYears: 0.1, paybackBandSlowYears: 0.2 } } : s);
+    const computed = computeScenarios(ctx, overridden);
+    expect(ok(computed, "p1").band).toBe("slow");
+    const html = text(renderToStaticMarkup(createElement(ScenarioTable, { results: computed,
+      scenarioNormOverrides: Object.fromEntries(overridden.map(s => [s.key, s.normOverrides])) })));
+    expect(html).toContain("долгая окупаемость (более 0,2 года)");
+    expect(html).toContain(interpretBandForOriginal());
+  });
+  it("does not label mixed periods with the selected scenario's horizon", () => {
+    const short = { ...ok(results, "p1"), tcoYears: 3 };
+    const long = { ...ok(results, "r1"), tcoYears: 7 };
+    const html = text(renderToStaticMarkup(createElement(ScenarioTable, { results: [short, long], tcoYears: 3 })));
+    expect(html).toContain("TCO за период сценария");
+    expect(html).toContain("Периоды TCO различаются");
+    expect(html).toContain("За 3 года");
+    expect(html).toContain("За 7 лет");
+    expect(html).not.toContain("TCO за 3 года");
+    expect(scenarioCell("tcoDelta", long, { recommended: false, bands: DEFAULT_NORMS }).note).toBe("К базе за те же 7 лет");
+  });
+});
+
+function interpretBandForOriginal(): string {
+  return scenarioCell("band", ok(results, "r1"), { recommended: false, bands: DEFAULT_NORMS }).text;
+}
+
+describe("explicit internal-storage vacancy assumption", () => {
+  const rows = NORM_DEFS.map(def => ({ ...def }));
+  it("offers a percentage override when internal moves apply, and retains an existing override in read-only mode", () => {
+    const ordinary = renderToStaticMarkup(createElement(NormsPanel, { rows, onOverride: () => {} }));
+    const internal = renderToStaticMarkup(createElement(NormsPanel, { rows, onOverride: () => {}, storageTransfers: true }));
+    const saved = renderToStaticMarkup(createElement(NormsPanel, { rows, overrides: { simStorageVacancyShare: 0.2 }, readOnly: true }));
+    expect(internal).toContain("Явное допущение о свободных местах");
+    expect(internal).toContain("диапазон 0–90 %");
+    expect(ordinary).not.toContain("Явное допущение о свободных местах");
+    expect(text(saved)).toContain("20 %");
+  });
+});
+
 /** Сценарии с отказом: услуга Carrier P без ставки RaaS. */
 const refusedSpecs: ScenarioSpec[] = [
   ...specs,

@@ -1,0 +1,384 @@
+{
+  "scope": "Structural content mapping, not a claim of complete requirement acceptance; pages and independent review checked after rendering",
+  "versions": {
+    "economics": "tz-1.0.6",
+    "analytical": "sim-1.2.0",
+    "spatial": "warehouse-dense-underlift-1.8.0"
+  },
+  "structure": {
+    "presentationSlides": 15,
+    "documentationChapters": 17,
+    "presentationContents": [
+      {
+        "index": 1,
+        "title": "От идеи роботизации к решению"
+      },
+      {
+        "index": 2,
+        "title": "Одних паспортных цифр недостаточно"
+      },
+      {
+        "index": 3,
+        "title": "Один путь для руководителя и инженера"
+      },
+      {
+        "index": 4,
+        "title": "Откуда берутся данные и балл"
+      },
+      {
+        "index": 5,
+        "title": "Как результат проходит через систему"
+      },
+      {
+        "index": 6,
+        "title": "Два независимых основания доверия"
+      },
+      {
+        "index": 7,
+        "title": "Перевозится весь мобильный стеллаж"
+      },
+      {
+        "index": 8,
+        "title": "Модель можно разобрать во времени"
+      },
+      {
+        "index": 9,
+        "title": "Найден проверяемый подходящий вариант"
+      },
+      {
+        "index": 10,
+        "title": "Почему результаты сценариев различаются"
+      },
+      {
+        "index": 11,
+        "title": "Пилот - часть результата"
+      },
+      {
+        "index": 12,
+        "title": "Результат можно сохранить и защитить"
+      },
+      {
+        "index": 13,
+        "title": "Границы заявлены открыто"
+      },
+      {
+        "index": 14,
+        "title": "Что развиваем после проверки"
+      },
+      {
+        "index": 15,
+        "title": "Что подтверждено перед показом"
+      }
+    ],
+    "documentationContents": [
+      {
+        "index": 1,
+        "title": "Платформа оценки роботизации"
+      },
+      {
+        "index": 2,
+        "title": "Для кого и какой результат"
+      },
+      {
+        "index": 3,
+        "title": "Каталог, данные и подбор"
+      },
+      {
+        "index": 4,
+        "title": "Деньги и физика отвечают на разные вопросы"
+      },
+      {
+        "index": 5,
+        "title": "Покупка, услуга и допущения"
+      },
+      {
+        "index": 6,
+        "title": "Полный транспортный цикл"
+      },
+      {
+        "index": 7,
+        "title": "Как читать результат имитации"
+      },
+      {
+        "index": 8,
+        "title": "Три воспроизводимых примера"
+      },
+      {
+        "index": 9,
+        "title": "От расчёта к пилоту"
+      },
+      {
+        "index": 10,
+        "title": "Сервер, очередь и целостность"
+      },
+      {
+        "index": 11,
+        "title": "Структура данных и API"
+      },
+      {
+        "index": 12,
+        "title": "Интерфейсы и администрирование"
+      },
+      {
+        "index": 13,
+        "title": "Воспроизведение и ограничения"
+      },
+      {
+        "index": 14,
+        "title": "Проверки и границы доказательств"
+      },
+      {
+        "index": 15,
+        "title": "Источники и внешние библиотеки"
+      },
+      {
+        "index": 16,
+        "title": "Руководства и изменение данных"
+      },
+      {
+        "index": 17,
+        "title": "План развития и критерии перехода"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "clause": "5.3",
+      "artifact": "presentation.pdf",
+      "sections": [
+        "Одних паспортных цифр недостаточно",
+        "Один путь для руководителя и инженера",
+        "Откуда берутся данные и балл",
+        "Как результат проходит через систему",
+        "Два независимых основания доверия",
+        "Перевозится весь мобильный стеллаж",
+        "Модель можно разобрать во времени",
+        "Границы заявлены открыто",
+        "Что развиваем после проверки"
+      ],
+      "renderedSections": [
+        {
+          "section": "Одних паспортных цифр недостаточно",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "section": "Один путь для руководителя и инженера",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "section": "Откуда берутся данные и балл",
+          "pages": [
+            4
+          ]
+        },
+        {
+          "section": "Как результат проходит через систему",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "section": "Два независимых основания доверия",
+          "pages": [
+            6
+          ]
+        },
+        {
+          "section": "Перевозится весь мобильный стеллаж",
+          "pages": [
+            7
+          ]
+        },
+        {
+          "section": "Модель можно разобрать во времени",
+          "pages": [
+            8
+          ]
+        },
+        {
+          "section": "Границы заявлены открыто",
+          "pages": [
+            13
+          ]
+        },
+        {
+          "section": "Что развиваем после проверки",
+          "pages": [
+            14
+          ]
+        }
+      ]
+    },
+    {
+      "clause": "5.4–5.7",
+      "artifact": "documentation.pdf",
+      "sections": [
+        "Для кого и какой результат",
+        "Три воспроизводимых примера"
+      ],
+      "scope": "Repository DEMO-SCRIPT.md documents the full organizer-data journey and three-facility minimum. Current package examples are explicitly modified educational inputs; this mapping does not invent an E2E acceptance run.",
+      "renderedSections": [
+        {
+          "section": "Для кого и какой результат",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "section": "Три воспроизводимых примера",
+          "pages": [
+            8
+          ]
+        }
+      ]
+    },
+    {
+      "clause": "6.1–6.3",
+      "artifact": "documentation.pdf",
+      "sections": [
+        "Для кого и какой результат",
+        "Сервер, очередь и целостность",
+        "Структура данных и API",
+        "Интерфейсы и администрирование",
+        "Воспроизведение и ограничения"
+      ],
+      "renderedSections": [
+        {
+          "section": "Для кого и какой результат",
+          "pages": [
+            2
+          ]
+        },
+        {
+          "section": "Сервер, очередь и целостность",
+          "pages": [
+            10
+          ]
+        },
+        {
+          "section": "Структура данных и API",
+          "pages": [
+            11
+          ]
+        },
+        {
+          "section": "Интерфейсы и администрирование",
+          "pages": [
+            12
+          ]
+        },
+        {
+          "section": "Воспроизведение и ограничения",
+          "pages": [
+            13
+          ]
+        }
+      ]
+    },
+    {
+      "clause": "6.4–6.5",
+      "artifact": "documentation.pdf",
+      "sections": [
+        "Каталог, данные и подбор",
+        "Деньги и физика отвечают на разные вопросы",
+        "Покупка, услуга и допущения",
+        "Полный транспортный цикл"
+      ],
+      "appendix": "sample-report.pdf: saved calculation trace and formula registry",
+      "renderedSections": [
+        {
+          "section": "Каталог, данные и подбор",
+          "pages": [
+            3
+          ]
+        },
+        {
+          "section": "Деньги и физика отвечают на разные вопросы",
+          "pages": [
+            4
+          ]
+        },
+        {
+          "section": "Покупка, услуга и допущения",
+          "pages": [
+            5
+          ]
+        },
+        {
+          "section": "Полный транспортный цикл",
+          "pages": [
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "clause": "6.6–6.7",
+      "artifact": "documentation.pdf",
+      "sections": [
+        "Руководства и изменение данных"
+      ],
+      "renderedSections": [
+        {
+          "section": "Руководства и изменение данных",
+          "pages": [
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "clause": "6.8",
+      "artifact": "documentation.pdf",
+      "sections": [
+        "Источники и внешние библиотеки"
+      ],
+      "explicit": "Clickable library/vendor source URLs and linked repository provenance",
+      "renderedSections": [
+        {
+          "section": "Источники и внешние библиотеки",
+          "pages": [
+            15
+          ]
+        }
+      ]
+    },
+    {
+      "clause": "6.9–6.10",
+      "artifact": "documentation.pdf",
+      "sections": [
+        "План развития и критерии перехода",
+        "Воспроизведение и ограничения",
+        "Три воспроизводимых примера"
+      ],
+      "renderedSections": [
+        {
+          "section": "План развития и критерии перехода",
+          "pages": [
+            18
+          ]
+        },
+        {
+          "section": "Воспроизведение и ограничения",
+          "pages": [
+            13
+          ]
+        },
+        {
+          "section": "Три воспроизводимых примера",
+          "pages": [
+            8
+          ]
+        }
+      ]
+    }
+  ],
+  "renderedContentPresence": {
+    "scope": "Text heading presence and actual PDF pages only; not a substitute for semantic or visual acceptance",
+    "missing": []
+  }
+}

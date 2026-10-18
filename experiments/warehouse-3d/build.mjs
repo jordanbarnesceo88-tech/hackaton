@@ -44,7 +44,7 @@ const financeControls = await readFile(path.join(dir, 'finance-controls.js'), 'u
 const html = template.replace('</style>', () => `${panelCss}\n${incidentCss}\n.field select,.field textarea{width:100%;min-width:0;min-height:38px;padding:7px 9px;border:1px solid #aebfc0;border-radius:4px;background:#fcfdfd;font:inherit;color:inherit}.field textarea:focus-visible{outline:3px solid #ce8d27;outline-offset:3px}#finance-form details{margin:16px 0;padding:12px 0;border-block:1px solid var(--line)}#finance-form details summary{cursor:pointer;font-weight:600}#finance-form details>.note{display:block;margin-block:12px}\n</style>`).replace('<!-- VENDOR_SCRIPTS -->', () => `<!-- Three.js r128 license:\n${license}\n-->\n${sources.join('\n')}`).replace('/* CORE_BUNDLE */', () => inline(core.outputFiles[0].text)).replace('/* SCENE_CODE */', () => inline(scene)).replace('/* APP_CODE */', () => `${inline(detail)}\n${inline(history)}\n${inline(panel)}\n${inline(incidents)}\n${inline(assessment)}\n${inline(comparison)}\n${inline(financeControls)}\nwindow.RobotReferencePhotos=${JSON.stringify(photos)};\n${inline(app)}`);
 // Validate both domains before touching either published artifact.
 const outputs = [];
-for (const [name, initialCase] of [['warehouse-3d.html', 'complex'], ['cleaning-3d.html', 'sections']]) {
+for (const [name, initialCase] of [['warehouse-3d.html', 'steady-flow'], ['cleaning-3d.html', 'sections']]) {
   const output = normalizeGeneratedHtml(html.replace('"initialCase":null', `"initialCase":"${initialCase}"`));
   validateOutput(output, initialCase);
   const out = path.join(repo, 'public', name);

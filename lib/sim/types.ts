@@ -15,7 +15,7 @@
  * данных» вместо молчаливой подмены результата. Повышается при любом изменении логики
  * движка, которое меняет числа сводки.
  */
-export const SIM_MODEL_VERSION = "sim-1.1.0" as const;
+export const SIM_MODEL_VERSION = "sim-1.2.0" as const;
 
 /**
  * Параметры объекта, из которых строится планировка. Это подмножество параметров склада
@@ -136,7 +136,7 @@ export type SimInput = {
    * Поток заданий: сначала `warmupMin` минут на среднем потоке, затем `peakMin` минут на
    * пиковом. Метрики считаются только по пиковому окну.
    */
-  demand: { avgPerH: number; peakPerH: number; warmupMin: number; peakMin: number };
+  demand: { avgPerH: number; peakPerH: number; warmupMin: number; peakMin: number; mix?: import("./demand-mix").DemandMix; storageVacancyShare?: number };
   /** Масса перевозимой единицы, кг (средняя масса паллеты объекта); null — не проверяется. */
   loadMassKg: number | null;
   /** Пороги вердикта из нормативов simServedShareMin, simP95WaitMaxMin, simOversizedIdleShare. */
@@ -166,7 +166,7 @@ export type RobotPhase =
  * или продукт имитацией не моделируется (например, стационарная система), и это сказано
  * прямо, а не выдаётся за подтверждение.
  */
-export type SimVerdict = "CONFIRMED" | "NOT_CONFIRMED" | "NOT_SUPPORTED";
+export type SimVerdict = "CONFIRMED" | "NOT_CONFIRMED" | "NOT_SUPPORTED" | "NOT_EVALUATED";
 
 /**
  * Что ограничивает пропускную способность: парк, точки приёмки/отгрузки, зарядка или
@@ -209,6 +209,11 @@ export type SimSummaryStored = {
   /** 95-й перцентиль ожидания задания, мин. */
   waitP95Min: number;
   verdict: SimVerdict;
+  /** Missing in historical archives. Zero observed peak tasks cannot validate capacity. */
+  observedPeakTasks?: number;
+  assessmentReason?: string;
+  demandMix?: import("./demand-mix").DemandMix;
+  storageVacancyShare?: number;
   bottleneck: SimBottleneck;
   /** Простой не ниже порога simOversizedIdleShare — парк избыточен. */
   oversized: boolean;

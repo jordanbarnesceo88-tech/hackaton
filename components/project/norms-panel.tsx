@@ -11,9 +11,10 @@ import { SourceBadge, safeHttpUrl } from "./source-badge";
  * источники и допущения видны; §3.2.5 — источник каждого норматива). Таблица: Параметр |
  * Значение | Ед. | Источник | Обоснование.
  *
- * Пять нормативов можно переопределить на уровне сценария (ScenarioSpec.normOverrides):
+ * Основные нормативы можно переопределить на уровне сценария (ScenarioSpec.normOverrides):
  * загрузка, резерв парка, доступность, ставка дисконтирования и доля автоматизируемого труда.
- * Все пять — доли, поэтому они редактируются в процентах: «авто: 77,5 %», ввод «80» — это
+ * Для внутренних складских перемещений также задаётся начальная доля свободных мест.
+ * Все эти значения — доли, поэтому они редактируются в процентах: «авто: 77,5 %», ввод «80» — это
  * 80 %, подсказка «диапазон 70–85 %» в тех же единицах. Значение вне границ норматива (тех же,
  * что применяет движок в resolveNorms) не принимается: поле показывает допустимый диапазон,
  * и в журнал не попадает число, которого пользователь не вводил.
@@ -29,6 +30,7 @@ export const SCENARIO_NORM_KEYS = [
   "availability",
   "discountRate",
   "laborShareAutomatable",
+  "simStorageVacancyShare",
 ] as const satisfies readonly NormKey[];
 
 export type ScenarioNormKey = (typeof SCENARIO_NORM_KEYS)[number];
@@ -153,6 +155,7 @@ export function NormsPanel({
   readOnly = false,
   print = false,
   scenarioName,
+  storageTransfers = false,
 }: {
   rows: readonly NormPanelRow[];
   /** Переопределения выбранного сценария (ScenarioSpec.normOverrides). */
@@ -164,6 +167,8 @@ export function NormsPanel({
   print?: boolean;
   /** Сценарий, к которому относятся переопределения. */
   scenarioName?: string;
+  /** Applicable only when this warehouse scenario includes customer storage→storage transfers. */
+  storageTransfers?: boolean;
 }) {
   const byKey = new Map(rows.map((r) => [r.key, r]));
   const editable = !print && !readOnly && onOverride !== undefined;
@@ -183,7 +188,7 @@ export function NormsPanel({
             корректировок.
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(editable ? SCENARIO_NORM_KEYS : setKeys).map((key) => {
+            {(editable ? SCENARIO_NORM_KEYS.filter(key => key !== "simStorageVacancyShare" || storageTransfers || overrides?.[key] !== undefined) : setKeys).map((key) => {
               const def = normDef(key);
               const auto = byKey.get(key)?.value ?? DEFAULT_NORMS[key];
               const share = isShareUnit(def.unit);
@@ -198,7 +203,7 @@ export function NormsPanel({
                   value={overrides?.[key]}
                   range={[def.min, def.max]}
                   readOnly={!editable}
-                  hint={range}
+                  hint={key === "simStorageVacancyShare" ? `${range}. Явное допущение о свободных местах до начала внутренних перемещений; не измерение склада. Число свободных мест округляется вниз.` : range}
                   onChange={editable ? (v, reason) => onOverride?.(key, v, reason) : undefined}
                 />
               );

@@ -24,8 +24,8 @@ export default function NotFound() {
         <Link href="/" className={buttonVariants({ size: "lg" })}>
           На главную
         </Link>
-        <Link href="/analyses" className={buttonVariants({ variant: "outline", size: "lg" })}>
-          Мои расчёты
+        <Link href="/projects" className={buttonVariants({ variant: "outline", size: "lg" })}>
+          Мои проекты
         </Link>
       </div>
     </div>

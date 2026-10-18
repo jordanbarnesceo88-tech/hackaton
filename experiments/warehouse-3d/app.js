@@ -37,7 +37,7 @@
   const isRack = () => !isCleaning() && carrier().kind === 'mobile-rack';
   const liftStages = { approach: 'Подъезд к носителю', 'dock-under': 'Заезд под стеллаж', 'close-gap': 'Подвод платформы до контакта', lift: 'Подъём стеллажа', extract: 'Извлечение стеллажа из ряда', retreat: 'Безопасный отход задним ходом', carry: 'Перевозка стеллажа', lower: 'Опускание на опоры', retract: 'Опускание платформы', exit: 'Выезд из-под стеллажа' };
   const phaseLabel = (phase, underlift) => (!['incidentStop', 'trafficWait', 'parking'].includes(phase) && liftStages[underlift?.stage]) || liftStages[phase] || phaseLabels[phase] || phase;
-  const taskKind = task => task.operation === 'return-pod' ? 'Возврат носителя' : task.operation === 'prefetch-pod' ? 'Подача носителя' : ['putaway','inbound'].includes(task.kind) ? 'Размещение' : ['retrieval','outbound'].includes(task.kind) ? 'Отбор' : task.kind;
+  const taskKind = task => task.operation === 'return-pod' ? 'Возврат носителя' : task.operation === 'prefetch-pod' ? 'Подача носителя' : task.kind === 'internal' ? 'Клиентское перемещение: хранение → хранение' : ['putaway','inbound'].includes(task.kind) ? 'Размещение' : ['retrieval','outbound'].includes(task.kind) ? 'Отбор' : task.kind;
   const taskScope = task => task.countsTowardDemand === false || task.id < 0 ? 'Внутренний рейс' : 'Заявка';
   const customerDone = robot => robot.customerTasksDone ?? robot.tasksDone ?? 0;
   const robotName = id => `${isCleaning() ? 'CL' : 'AMR'}-${String(id + 1).padStart(2, '0')}`;

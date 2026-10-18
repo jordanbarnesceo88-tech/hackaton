@@ -6,6 +6,7 @@ into the deliverable. A human must inspect the contact sheets and key pages.
 from pathlib import Path
 import argparse
 import json
+import hashlib
 import fitz
 from PIL import Image, ImageOps, ImageDraw
 
@@ -18,7 +19,7 @@ output.mkdir(parents=True, exist_ok=True)
 result = {}
 for name in ["documentation", "presentation", "sample-report"]:
     document = fitz.open(root / f"{name}.pdf")
-    facts = {"pages": len(document), "blankPages": [], "outsideBounds": [],
+    facts = {"sha256": hashlib.sha256((root / f"{name}.pdf").read_bytes()).hexdigest(), "pages": len(document), "blankPages": [], "outsideBounds": [],
              "textChars": sum(len(page.get_text()) for page in document)}
     for index, page in enumerate(document):
         if len(page.get_text().strip()) < 20:
@@ -44,6 +45,26 @@ for name in ["documentation", "presentation", "sample-report"]:
         canvas.save(output / f"{name}-contact-{start//count+1}.png")
     result[name] = facts
 (root / "pdf-qa.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+coverage_path = root / "content-coverage.json"
+if coverage_path.exists():
+    coverage = json.loads(coverage_path.read_text(encoding="utf-8"))
+    normalize = lambda text: "".join(text.lower().split())
+    missing = []
+    for requirement in coverage["requirements"]:
+        pdf = fitz.open(root / requirement["artifact"])
+        texts = [normalize(page.get_text()) for page in pdf]
+        matches = []
+        for title in requirement.get("sections", []):
+            pages = [index + 1 for index, text in enumerate(texts) if normalize(title) in text]
+            matches.append({"section": title, "pages": pages})
+            if not pages:
+                missing.append({"clause": requirement["clause"], "section": title})
+        requirement["renderedSections"] = matches
+        pdf.close()
+    coverage["renderedContentPresence"] = {"scope": "Text heading presence and actual PDF pages only; not a substitute for semantic or visual acceptance", "missing": missing}
+    coverage_path.write_text(json.dumps(coverage, ensure_ascii=False, indent=2), encoding="utf-8")
+    if missing:
+        raise SystemExit(f"Missing mandatory content headings: {missing}")
 print(json.dumps(result))
 if any(facts["blankPages"] or facts["outsideBounds"] for facts in result.values()):
     raise SystemExit(1)

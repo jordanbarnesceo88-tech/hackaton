@@ -114,8 +114,8 @@ describe("one selected technical-economic decision", () => {
     stored.summary.achievedPerH = stored.summary.requiredPerH + 1;
     stored.summary.queueEnd = 0; stored.summary.waitP95Min = input.thresholds.p95WaitMaxMin + 1;
     const wait = buildDecision(m, "p1", input);
-    expect(wait.headline).toBe("Заданный выпуск достигнут; превышено ожидание назначения");
-    expect(wait.nextAction).toContain("Ожидание назначения p95:");
+    expect(wait.headline).toBe("Заданный выпуск достигнут; превышено ожидание до начала обработки");
+    expect(wait.nextAction).toContain("Ожидание до начала обработки p95:");
     expect(wait.spatial.partialFacts).toHaveLength(2);
     expect(wait.nextAction).not.toContain("Парк не выполняет");
     stored.summary.waitP95Min = input.thresholds.p95WaitMaxMin;
@@ -123,7 +123,7 @@ describe("one selected technical-economic decision", () => {
     const queue = buildDecision(m, "p1", input);
     expect(queue.headline).toBe("Заданный выпуск достигнут; превышена допустимая очередь");
     expect(queue.nextAction).toContain("Очередь в конце: 100 при пределе");
-    expect(queue.nextAction).not.toContain("Ожидание назначения p95:");
+    expect(queue.nextAction).not.toContain("Ожидание до начала обработки p95:");
   });
 
   it("does not invent a missing SLA or energy metric when a PARTIAL receipt has no failed visible threshold", () => {

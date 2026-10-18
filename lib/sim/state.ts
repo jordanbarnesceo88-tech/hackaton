@@ -23,7 +23,9 @@ export type SimTask = {
   /** Goods inventory is not validated by dispatch; this flags an inconsistent content request. */
   contentsAvailabilityUnverified?: boolean;
   /** inbound — ворота приёмки → место хранения; outbound — место хранения → ворота отгрузки. */
-  kind: "inbound" | "outbound";
+  kind: "inbound" | "outbound" | "internal";
+  /** Storage destination is selected uniformly from physically vacant, unreserved locations. */
+  storageDestinationDraw?: number;
   /** Индекс точки погрузки в `SimEngineState.points`; −1 — место хранения (без очереди). */
   fromPoint: number;
   fromX: number;
@@ -139,6 +141,8 @@ export interface SimEngineState extends SimState {
   /** Optional physical closed-pool execution counters; external task IDs remain creation ordered. */
   physicalDoneCount?: number;
   nextDemandTaskId?: number;
+  /** Persistent carrier homes, updated after a customer storage-to-storage relocation. */
+  storageCarriers?: { podId: string; x: number; y: number }[];
   /** Ворота приёмки, затем ворота отгрузки, затем зарядные станции. */
   points: SimPointState[];
   acc: SimAccumulators;

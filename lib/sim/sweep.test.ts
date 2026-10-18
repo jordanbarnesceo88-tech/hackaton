@@ -70,10 +70,9 @@ describe("перебор парка", () => {
   });
 
   it("верхняя граница не выше защитного предела SIM_LIMITS.maxRobots", () => {
-    // Нулевой спрос и минутное окно: любой парк подтверждён, прогоны дешёвые. Без ограничения
-    // середина диапазона (5·10⁸ роботов) дала бы NOT_SUPPORTED и увела поиск вправо — в null.
+    // No observed work cannot establish a minimum; the defensive cap still bounds the scan.
     const idle = warehouseBaseInput(1, { demand: { avgPerH: 0, peakPerH: 0, warmupMin: 0, peakMin: 1 } });
-    expect(minStableFleet(idle, { min: 1, max: 1e9 })).toBe(1);
+    expect(minStableFleet(idle, { min: 1, max: 1e9 })).toBeNull();
     expect(minStableFleet(idle, { min: SIM_LIMITS.maxRobots + 1, max: 1e9 })).toBeNull();
   });
 

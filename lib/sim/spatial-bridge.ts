@@ -2,6 +2,7 @@ import { validateProjectSiteLayout } from "./site-layout";
 import type { SimProvenance } from "./adapter";
 import { simInputIdentity } from "./identity";
 import type { SimInput } from "./types";
+import { validDemandMix } from "./demand-mix";
 
 export { SPATIAL_MODEL_VERSION } from "./spatial-version";
 
@@ -71,6 +72,8 @@ export function parseSpatialProjectSnapshot(value: unknown): SpatialProjectSnaps
   if (!finite(robots.handlingSec) || robots.handlingSec < 0) throw new Error("Неверное время обработки");
   for (const field of ["autonomyH", "chargeMin", "payloadKg"]) if (robots[field] !== null && (!finite(robots[field]) || Number(robots[field]) <= 0)) throw new Error("Неверные характеристики робота");
   for (const field of ["avgPerH", "peakPerH", "warmupMin", "peakMin"]) if (!finite(demand[field]) || Number(demand[field]) < 0) throw new Error("Неверное окно или нагрузка проекта");
+  if (demand.mix !== undefined && !validDemandMix(demand.mix)) throw new Error("Доли приёмки, отгрузки и внутренних перемещений должны быть неотрицательными и давать сумму 1");
+  if (demand.storageVacancyShare !== undefined && (!finite(demand.storageVacancyShare) || demand.storageVacancyShare < 0 || demand.storageVacancyShare > 0.9)) throw new Error("Начальная доля свободных мест должна быть от 0 до 0,9");
   if (input.loadMassKg !== null && (!finite(input.loadMassKg) || input.loadMassKg < 0)) throw new Error("Неверная масса груза");
   if (![charge.startSoc, charge.stopSoc].every(n => finite(n) && n >= 0 && n <= 1) || Number(charge.startSoc) >= Number(charge.stopSoc)) throw new Error("Неверные пороги зарядки");
   if (![thresholds.servedShareMin, thresholds.oversizedIdleShare].every(n => finite(n) && n >= 0 && n <= 1) || !finite(thresholds.p95WaitMaxMin) || thresholds.p95WaitMaxMin < 0) throw new Error("Неверные критерии проверки");

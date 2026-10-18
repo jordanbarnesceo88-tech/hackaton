@@ -24,7 +24,7 @@
     const carrierContents = carrierId && inventory ? inventory.pods[inventory.podIndex[carrierId]]?.contents ?? null : null;
     const internal = robot.task?.countsTowardDemand === false || robot.task?.id < 0;
     const operation = robot.task?.operation;
-    const operationLabel = operation === 'return-pod' ? 'Возврат носителя' : operation === 'prefetch-pod' ? 'Подача носителя' : 'Перевозка';
+    const operationLabel = operation === 'return-pod' ? 'Возврат носителя' : operation === 'prefetch-pod' ? 'Подача носителя' : robot.task?.kind === 'internal' ? 'Хранение → хранение' : 'Перевозка';
     const parentTaskId = robot.task?.parentTaskId ?? null;
     let label = rack && robot.task ? `${internal ? 'Внутренний рейс' : 'Заявка'} #${robot.task.id} · ${operationLabel} · ${carrierId || '—'}${parentTaskId == null ? '' : ` · для #${parentTaskId}`}` : robot.task ? `${['inbound', 'putaway'].includes(robot.task.kind) ? 'Размещение' : ['outbound', 'retrieval'].includes(robot.task.kind) ? 'Отбор' : 'Задание'} #${robot.task.id}` : 'Без задания';
     if (cleaning && robot.zoneIndex != null) {
@@ -38,7 +38,7 @@
     return { phase, taskId, zoneId, label, ...(rack ? { carrierId: carrierId ?? null, carrierContents, contentsAvailabilityUnverified: robot.task?.contentsAvailabilityUnverified ?? false, underliftStage: robot.underlift?.stage ?? null, operation: operation ?? null, countsTowardDemand: !internal, parentTaskId } : {}), loaded: robot.underlift ? robot.underlift.podLiftM > 1e-8 && robot.underlift.contact : Boolean(robot.loaded), incidentId: robot.incident?.id ?? null, reason: phase === 'incidentStop' ? robot.incident.label : robot.safety?.reason ?? null };
   }
 
-  const keyOf = value => JSON.stringify([value.phase, value.taskId, value.zoneId, value.loaded, value.underliftStage, value.carrierId, value.carrierContents]);
+  const keyOf = value => JSON.stringify([value.phase, value.taskId, value.zoneId, value.loaded, value.underliftStage, value.carrierId, value.carrierContents, value.reason, value.incidentId]);
 
   /**
    * robotId null/omitted: one replay for every robot. A numeric id returns one row.

@@ -437,7 +437,7 @@ const SCHEMAS: Record<string, Schema> = {
     chargerBudgetSource: str("Основание ручной оценки зарядок"),
     contingencyPct: num("Резерв бюджета, %", { minimum: 0, maximum: 100 }),
     targetThroughputPerH: orNull(num("Целевой поток именно участка пилота; не мощность полного парка", { exclusiveMinimum: 0, maximum: 1000000 })),
-    maxP95WaitMin: num("Критерий p95 ожидания назначения, мин", { minimum: 0, maximum: 1440 }),
+    maxP95WaitMin: num("Критерий p95 ожидания до начала обработки, мин; для стеллажей включает ожидание связанной подачи носителя", { minimum: 0, maximum: 1440 }),
     maxInterventionsPerShift: int("Допуск ручных вмешательств за смену", { minimum: 0, maximum: 10000 }),
     readiness: arr(str("Ключ проверки подготовки участка", { enum: ["sitePlan", "power", "connectivity", "access", "baseline", "responsibility", "safety"] }), "Отмеченные проверки; сами по себе не подтверждают работоспособность", { uniqueItems: true, maxItems: 7 }),
     notes: str("Примечание к участку, до 4000 символов", { maxLength: 4000 }),

@@ -49,6 +49,8 @@ export function endQueueLimit(peakPerH: number): number {
 
 /** Что нужно правилу вердикта. */
 export type VerdictInputs = {
+  /** Zero observed customer arrivals means insufficient exposure, not a capacity failure. */
+  observedPeakTasks?: number;
   /** Доля заданий окна, взятых в работу к концу окна, 0–1. */
   servedShare: number;
   /** Длина очереди заданий в конце окна. */
@@ -77,7 +79,8 @@ export type VerdictInputs = {
 export function verdict(
   s: VerdictInputs,
   thresholds: SimInput["thresholds"],
-): { verdict: "CONFIRMED" | "NOT_CONFIRMED"; oversized: boolean } {
+): { verdict: "CONFIRMED" | "NOT_CONFIRMED" | "NOT_EVALUATED"; oversized: boolean } {
+  if (s.observedPeakTasks === 0) return { verdict: "NOT_EVALUATED", oversized: false };
   const ok =
     s.servedShare >= thresholds.servedShareMin &&
     s.queueEnd <= endQueueLimit(s.requiredPerH) &&
@@ -285,9 +288,12 @@ export function summarize(state: SimEngineState, meta: SimSummaryMeta = {}): Sim
   } else if (s.precheck === "payload") {
     v = "NOT_CONFIRMED";
     bottleneck = "payload";
+  } else if (arrivedPeak === 0) {
+    v = "NOT_EVALUATED";
+    bottleneck = "none";
   } else {
     const judged = verdict(
-      { servedShare, queueEnd, waitP95Min, requiredPerH: input.demand.peakPerH, idlePct: shares.idlePct, socFloorHit },
+      { observedPeakTasks: arrivedPeak, servedShare, queueEnd, waitP95Min, requiredPerH: input.demand.peakPerH, idlePct: shares.idlePct, socFloorHit },
       input.thresholds,
     );
     v = judged.verdict;
@@ -324,6 +330,10 @@ export function summarize(state: SimEngineState, meta: SimSummaryMeta = {}): Sim
     queueMax: acc.queueMax,
     waitP95Min,
     verdict: v,
+    observedPeakTasks: arrivedPeak,
+    ...(input.demand.mix ? { demandMix: { ...input.demand.mix } } : {}),
+    ...(input.demand.storageVacancyShare !== undefined ? { storageVacancyShare: input.demand.storageVacancyShare } : {}),
+    ...(v === "NOT_EVALUATED" ? { assessmentReason: "В пиковом окне не поступило клиентских заданий. Выполнение нагрузки не проверено; увеличьте окно или выполните нагруженный прогон." } : {}),
     bottleneck,
     oversized,
     minStableFleet: null,
@@ -369,6 +379,10 @@ export function toStored(summary: SimSummaryStored): SimSummaryStored {
     queueMax: summary.queueMax,
     waitP95Min: summary.waitP95Min,
     verdict: summary.verdict,
+    ...(summary.observedPeakTasks !== undefined ? { observedPeakTasks: summary.observedPeakTasks } : {}),
+    ...(summary.assessmentReason ? { assessmentReason: summary.assessmentReason } : {}),
+    ...(summary.demandMix ? { demandMix: { ...summary.demandMix } } : {}),
+    ...(summary.storageVacancyShare !== undefined ? { storageVacancyShare: summary.storageVacancyShare } : {}),
     bottleneck: summary.bottleneck,
     oversized: summary.oversized,
     minStableFleet: summary.minStableFleet,

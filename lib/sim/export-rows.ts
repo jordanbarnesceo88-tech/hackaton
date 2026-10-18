@@ -21,6 +21,7 @@ export const VERDICT_LABELS: Readonly<Record<SimVerdict, string>> = {
   CONFIRMED: "Расчёт подтверждён имитацией",
   NOT_CONFIRMED: "Не подтверждён",
   NOT_SUPPORTED: "Имитация для этого класса не поддерживается",
+  NOT_EVALUATED: "Нагрузка не оценена",
 };
 
 /**
@@ -64,9 +65,15 @@ export function simSummaryRows(summary: SimSummaryStored): SimRow[] {
     ["Ожидание p95, мин", measured(s.waitP95Min)],
     ["Узкое место", BOTTLENECK_LABELS[s.bottleneck]],
     ["Вердикт", verdictText],
+    ...(s.observedPeakTasks !== undefined ? [["Наблюдалось клиентских заданий в пике", s.observedPeakTasks] as SimRow] : []),
+    ...(s.assessmentReason ? [["Основание оценки", s.assessmentReason] as SimRow] : []),
+    ["Состав потока: приёмка / отгрузка / внутренние", s.demandMix
+      ? `${round1(s.demandMix.inbound * 100)} / ${round1(s.demandMix.outbound * 100)} / ${round1(s.demandMix.internal * 100)} %`
+      : "Исторический вход: 50 / 50 / 0 %"],
+    ...(s.storageVacancyShare !== undefined ? [["Начальная доля свободных мест (допущение)", s.storageVacancyShare] as SimRow] : []),
     ["Роботов в прогоне", s.fleet],
     ["Загрузка в расчёте, %", round1(s.assumedUtilPct)],
-    ["Обслужено заданий пика, %", measured(s.servedShare * 100)],
+    ["Обслужено заданий пика, %", s.verdict === "NOT_EVALUATED" ? "нет поступивших клиентских заданий" : measured(s.servedShare * 100)],
     ["Минимальный устойчивый парк", s.minStableFleet ?? "не определён"],
     ["Парк по паспортной норме", s.fleetByNorm ?? "нет нормы"],
     [

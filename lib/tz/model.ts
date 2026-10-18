@@ -5,6 +5,7 @@ import { cycleThroughputPerH, expectedLegsM, type ExpectedLegs } from "../sim/an
 import { expectedClosedPodCycleS, expectedClosedPodLegsM } from "../sim/closed-pod-cycle";
 import { buildClosedPodLayout, prepareClosedPodSource } from "../sim/underlift-layout";
 import { underliftCycleHandlingS } from "../sim/underlift-timing";
+import { demandMixFromParams, LEGACY_DEMAND_MIX, type DemandMix } from "../sim/demand-mix";
 import { validateProjectSiteLayout } from "../sim/site-layout";
 import { BOTTLENECK_LABELS } from "../sim/export-rows";
 import { simSummaryMatchesInput } from "../sim/identity";
@@ -314,15 +315,15 @@ function layoutOf(params: ParamValues, labels: Readonly<Record<string, string>>)
 // Rebuilding financial rows must not repeat the same dense all-pairs kernel.
 // Only immutable distance values are cached; caller-owned plans are never retained or returned.
 const closedLegKernels = new Map<string, ExpectedLegs>();
-function closedLegKernel(params: SimLayoutParams, source?: SimLayout): ExpectedLegs {
-  const key = stableJson({ recipe: "closed-pod-1", params, source });
+function closedLegKernel(params: SimLayoutParams, source?: SimLayout, mix: Readonly<DemandMix> = LEGACY_DEMAND_MIX): ExpectedLegs {
+  const key = stableJson({ recipe: "closed-pod-1", params, source, mix });
   const cached = closedLegKernels.get(key);
   if (cached) {
     closedLegKernels.delete(key); closedLegKernels.set(key, cached);
     return { ...cached };
   }
   const prepared = source ? prepareClosedPodSource(source) : buildClosedPodLayout(params);
-  const legs = expectedClosedPodLegsM(prepared.layout, prepared.config.docks);
+  const legs = expectedClosedPodLegsM(prepared.layout, prepared.config.docks, mix);
   closedLegKernels.set(key, { ...legs });
   if (closedLegKernels.size > 8) closedLegKernels.delete(closedLegKernels.keys().next().value!);
   return legs;
@@ -351,11 +352,12 @@ function cyclesOf(
       speedMps: v,
       loadedSpeedFactor: norms.loadedSpeedFactor,
       handlingSec: h,
+      ...(usedLegs.physicalLegsPerCustomer !== undefined ? { physicalLegsPerCustomer: usedLegs.physicalLegsPerCustomer } : {}),
     };
     const seconds = closed ? expectedClosedPodCycleS(cycleInput) : null;
     const thr = closed ? seconds === null ? null : 3600 / seconds : cycleThroughputPerH(cycleInput);
     out[p.slug] = thr === null ? null : { thrPerH: thr, ...usedLegs,
-      ...(closed ? { workflow: "closed-pod-1" as const, handlingS: underliftCycleHandlingS(h, v) } : {}) };
+      ...(closed ? { workflow: "closed-pod-1" as const, handlingS: underliftCycleHandlingS(h, v) * (usedLegs.physicalLegsPerCustomer ?? 2) / 2 } : {}) };
   }
   return out;
 }
@@ -424,6 +426,8 @@ function simRisks(ctx: ScenarioContext, spec: ScenarioSpec, result: ScenarioOk, 
   if (!(Math.abs(sim.requiredPerH - item.peakPerHour) <= tol)) return [];
   const unit = unitShort(ctx.processes[item.process]?.throughputUnit ?? "ед./ч");
   const robots = (n: number) => `${n} ${pluralRu(n, ["робот", "робота", "роботов"])}`;
+  if (sim.verdict === "NOT_EVALUATED") return [{ code: "SIM_NOT_EVALUATED", severity: "high",
+    text: sim.assessmentReason ?? "В пиковом окне не наблюдались клиентские задания; выполнение нагрузки не оценено" }];
   if (sim.verdict === "NOT_CONFIRMED") {
     const min = sim.minStableFleet !== null ? `; минимальный устойчивый парк по имитации — ${robots(sim.minStableFleet)}` : "";
     return [
@@ -817,13 +821,17 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
 
   const layoutCheck = isWarehouseLike(facility) ? layoutOf(paramsUsed, paramLabels) : null;
   const layout = layoutCheck?.ok ? buildWarehouseLayout(layoutCheck.params) : null;
-  const legs = layout ? expectedLegsM(layout) : null;
+  const mixFor = (params: ParamValues): Readonly<DemandMix> => {
+    try { return demandMixFromParams(params); } catch { return LEGACY_DEMAND_MIX; }
+  };
+  const mix = mixFor(paramsUsed);
+  const legs = layout ? expectedLegsM(layout, mix) : null;
   // A separate per-item recipe keeps fork/tug and mixed-scenario layouts unchanged.
   let closedPodLegs: ExpectedLegs | null | undefined;
   let closedPodProblem: string | null = null;
   if (facility === "warehouse" && layoutCheck?.ok && products.some(p => p.mobile && p.handlingClass === "jacking")) {
     try {
-      closedPodLegs = closedLegKernel(layoutCheck.params);
+      closedPodLegs = closedLegKernel(layoutCheck.params, undefined, mix);
     } catch (error) {
       closedPodLegs = null;
       closedPodProblem = error instanceof Error ? error.message : "Не удалось построить подстеллажный цикл";
@@ -844,13 +852,17 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
     paramBounds: boundsOf(defs),
     paramLabels,
   };
-  const explicitLegs = new WeakMap<SimLayout, ExpectedLegs>();
-  const explicitClosedLegs = new WeakMap<SimLayout, ExpectedLegs>();
+  const explicitLegs = new WeakMap<SimLayout, Map<string, ExpectedLegs>>();
+  const explicitClosedLegs = new WeakMap<SimLayout, Map<string, ExpectedLegs>>();
   ctx.cycleForSpec = (spec, scenarioNorms, currentParams) => {
+    const currentMix = mixFor(currentParams), mixKey = stableJson(currentMix);
     const closed = facility === "warehouse" && spec.items.some(item => productsBySlug[item.productSlug]?.mobile && productsBySlug[item.productSlug]?.handlingClass === "jacking");
     if (!spec.siteLayout) {
       if (closed && closedPodProblem) refuse("invalid_inputs", closedPodProblem, ["param:activeAreaM2"]);
-      return closed ? cyclesOf(products, legs, scenarioNorms, closedPodLegs) : ctx.cycle;
+      const currentLegs = stableJson(currentMix) === stableJson(mix) ? legs : layout ? expectedLegsM(layout, currentMix) : null;
+      const currentClosed = stableJson(currentMix) === stableJson(mix) ? closedPodLegs
+        : closed && layoutCheck?.ok ? closedLegKernel(layoutCheck.params, undefined, currentMix) : undefined;
+      return cyclesOf(products, currentLegs, scenarioNorms, closed ? currentClosed : undefined);
     }
     if (facility !== "warehouse") refuse("invalid_inputs", "Явная складская планировка поддерживается только для склада", ["scenario:siteLayout"]);
     const site = spec.siteLayout;
@@ -858,21 +870,23 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
       receivingDocksCount: toNumber(currentParams.receivingDocksCount) ?? NaN, shippingDocksCount: toNumber(currentParams.shippingDocksCount) ?? NaN,
       chargers: site.chargers?.length ?? -1 });
     if (issues.length) refuse("invalid_inputs", issues.join("; "), ["scenario:siteLayout"]);
-    let scenarioLegs = explicitLegs.get(site);
+    let scenarioLegs = explicitLegs.get(site)?.get(mixKey);
     if (!scenarioLegs) {
-      try { scenarioLegs = expectedLegsM(site); }
+      try { scenarioLegs = expectedLegsM(site, currentMix); }
       catch { refuse("invalid_inputs", "Явная планировка не даёт связных маршрутов между точками работы", ["scenario:siteLayout"]); }
-      explicitLegs.set(site, scenarioLegs);
+      const cache = explicitLegs.get(site) ?? new Map<string, ExpectedLegs>();
+      cache.set(mixKey, scenarioLegs); explicitLegs.set(site, cache);
     }
     let podLegs: ExpectedLegs | undefined;
     if (closed) {
-      podLegs = explicitClosedLegs.get(site);
+      podLegs = explicitClosedLegs.get(site)?.get(mixKey);
       if (!podLegs) {
         try {
           if (!layoutCheck?.ok) refuse("invalid_inputs", "Не заданы параметры геометрии объекта", ["param:activeAreaM2"]);
-          podLegs = closedLegKernel(layoutCheck.params, site);
+          podLegs = closedLegKernel(layoutCheck.params, site, currentMix);
         } catch (error) { refuse("invalid_inputs", error instanceof Error ? error.message : "План не поддерживает подстеллажный цикл", ["scenario:siteLayout"]); }
-        explicitClosedLegs.set(site, podLegs);
+        const cache = explicitClosedLegs.get(site) ?? new Map<string, ExpectedLegs>();
+        cache.set(mixKey, podLegs); explicitClosedLegs.set(site, cache);
       }
     }
     return cyclesOf(products, scenarioLegs, scenarioNorms, podLegs);
@@ -916,7 +930,7 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
           const measurement = evidence.assessment.status === "NOT_EVALUATED"
             ? "Поток, очередь и ожидание не оценены"
             : `Достигнуто ${fx(evidence.summary.achievedPerH, 1)} из ${fx(evidence.summary.requiredPerH, 1)} ед./ч, очередь ${evidence.summary.queueEnd}`;
-          extra.push({ code: "SIM_NOT_CONFIRMED", severity: "high", text: `Проверка 3D: ${evidence.assessment.status} — ${evidence.assessment.headline}. ${measurement}; финансовый расчёт показан только для сравнения` });
+          extra.push({ code: evidence.assessment.status === "NOT_EVALUATED" ? "SIM_NOT_EVALUATED" : "SIM_NOT_CONFIRMED", severity: "high", text: `Проверка 3D: ${evidence.assessment.status} — ${evidence.assessment.headline}. ${measurement}; финансовый расчёт показан только для сравнения` });
         }
       }
       return extra.length > 0 ? { ...r, risks: sortRisks([...r.risks, ...extra]) } : r;

@@ -3,6 +3,7 @@ import { rackRects, type Rect } from "../../components/sim/scene-model";
 import { productForCalcFromSeed } from "../../lib/catalog/product-for-calc";
 import { CATALOG } from "../../lib/data/organizer/catalog";
 import { baseValuesFor, paramSpecsFor } from "../../lib/data/organizer/params";
+import { businessExampleInputs } from "../../lib/projects/business-examples";
 import { createSim, isDone, stepSim } from "../../lib/sim/engine";
 import { buildWarehouseLayout } from "../../lib/sim/layout";
 import type { SimRunSummary } from "../../lib/sim/metrics";
@@ -31,9 +32,10 @@ export { createSpatialProjectSnapshot } from "../../lib/sim/spatial-bridge";
 export { calculateSpatialFinance } from "./finance";
 
 export const DEMO_CASES = [
+  { id: "steady-flow", title: "Регулярный поток", description: "6 роботов и 2 зарядки на 5 000 м². Тот же учебный объект, что в расчёте экономики; выполнение нагрузки проверяется заново." },
   { id: "complex", title: "Склад с отделениями", description: "L-планировка: стены, дверные проезды, зоны мобильных стеллажей, комплектация, экспедиция и зарядная зона." },
   { id: "baseline", title: "Расчётный парк", description: "Базовые параметры склада организатора; парк подобран автоматически." },
-  { id: "capacity-reserve", title: "Парк с резервом", description: "14 роботов на том же потоке: проверьте выполнение задачи и сравните с расчётным парком." },
+  { id: "capacity-reserve", title: "Парк из 14 роботов", description: "14 роботов на базовом потоке: сравните выполненную работу и ограничения с расчётным парком." },
   { id: "insufficient", title: "Недостаточный парк", description: "Тот же склад и поток, но только 3 робота." },
   { id: "increased-flow", title: "Повышенный пик", description: "11 роботов при пиковом коэффициенте 2,5 вместо 1,5." },
   { id: "sections", title: "Уборка по секциям · эксперимент", description: "Дополнительный сценарий уборки; не заменяет складской расчёт команды." },
@@ -86,7 +88,7 @@ function validateOverrides(overrides: DemoOverrides): void {
   }
 }
 
-type WarehouseCaseId = "complex" | "baseline" | "capacity-reserve" | "insufficient" | "increased-flow";
+type WarehouseCaseId = "steady-flow" | "complex" | "baseline" | "capacity-reserve" | "insufficient" | "increased-flow";
 type SectionModel = ReturnType<typeof calculateSectionCase>;
 /** Recheck the chosen N/C on its canonical financial source before attaching a financial result. */
 export function recheckSpatialFinanceInput(model: DemoModel): DemoModel {
@@ -120,20 +122,22 @@ export function calculateCase(id: string, overrides: DemoOverrides = {}): DemoMo
   if (!preset) throw new Error(`Неизвестный сценарий: ${id}`);
   validateOverrides(overrides);
   if (!product) throw new Error("В каталоге отсутствует Ronavi H1500");
-  const params = baseValuesFor("warehouse");
+  const example = id === "steady-flow" ? businessExampleInputs("steady-flow", baseValuesFor("warehouse"), products) : null;
+  const params = example?.params ?? baseValuesFor("warehouse");
   params.peakFactor = overrides.peakFactor ?? (id === "increased-flow" ? 2.5 : params.peakFactor ?? 1.5);
   if (overrides.areaM2 !== undefined) {
     params.activeAreaM2 = overrides.areaM2;
     // Organizer baseline describes the active area as 50% of the total area.
     params.totalAreaM2 = 2 * overrides.areaM2;
   }
-  const fleet = overrides.fleet ?? (id === "capacity-reserve" ? 14 : id === "insufficient" ? 3 : id === "increased-flow" || id === "complex" ? 11 : undefined);
+  const fleet = overrides.fleet ?? (id === "steady-flow" ? 6 : id === "capacity-reserve" ? 14 : id === "insufficient" ? 3 : id === "increased-flow" || id === "complex" ? 11 : undefined);
   const item = { process: "pallet-transport", productSlug: product.slug, ...(fleet === undefined ? {} : { quantityOverride: fleet }) };
-  const scenarios: ScenarioSpec[] = [
+  const scenarios: ScenarioSpec[] = example?.scenarios ?? [
     { key: "asis", name: "Как есть", kind: "asis", items: [] },
     { key: "purchase", name: "Покупка", kind: "purchase", items: [{ ...item }] },
     { key: "raas", name: "RaaS", kind: "raas", items: [{ ...item }] },
   ];
+  if (example && overrides.fleet !== undefined) for (const scenario of scenarios) for (const selected of scenario.items) selected.quantityOverride = overrides.fleet;
   if (id === "complex") {
     const site = complexSite(Number(params.activeAreaM2), chargersNeeded(fleet!, product, resolveNorms()).count, true);
     params.receivingDocksCount = site.receiving.length;
@@ -155,6 +159,7 @@ export function calculateCase(id: string, overrides: DemoOverrides = {}): DemoMo
   let input = calculatedInput;
   const financialSourceInput = structuredClone(input);
   const preparedInput = prepareWarehouseTraffic(input);
+  if (example) preparedInput.demoIncidents = { ...preparedInput.demoIncidents!, enabled: false, schedule: [] };
   input = preparedInput;
   const layout = input.siteLayout ?? buildWarehouseLayout(input.layout);
   const terminal = createPlayback(input);
@@ -175,9 +180,9 @@ export function calculateCase(id: string, overrides: DemoOverrides = {}): DemoMo
     sources,
     assumptions: [
       carrierSpec(input).sourceNote,
-      "Демонстрация на снимке каталога и базовых параметрах организатора, а не измерения реального объекта. Вердикт модели не доказывает окупаемость или успешность пилота.",
-      ...(id === "capacity-reserve" ? ["Парк 14 выбран для проверки резерва на базовой нагрузке этого примера. Результат пересчитывается движком, а не задаётся вручную. Это проверяемый вариант, не утверждение о минимальном парке или гарантированной мощности любого объекта."] : []),
-      "Инциденты привода, локализации, связи и контроллера АКБ заданы расписанием демо. Подтверждение, диагностика и восстановление выполняются автоматически в модели, не означают фактический ремонт или отправку операторских команд. При критическом инциденте робот и его операции остановлены, задание удерживается, корпус остаётся препятствием. Предупреждение АКБ не означает низкий SOC и не останавливает работу.",
+      ...(example ? [example.assumption, "Учебные отказы в регулярном потоке отключены, как в исходном расчёте. Для разбора отказов выберите другой складской сценарий."] : ["Демонстрация на снимке каталога и базовых параметрах организатора, а не измерения реального объекта. Вердикт модели не доказывает окупаемость или успешность пилота."]),
+      ...(id === "capacity-reserve" ? ["Парк 14 — фиксированный вариант сравнения на базовой нагрузке, а не резерв относительно текущего расчётного парка. Результат пересчитывается движком и не гарантирует выполнение нагрузки."] : []),
+      ...(!example ? ["Инциденты привода, локализации, связи и контроллера АКБ заданы расписанием демо. Подтверждение, диагностика и восстановление выполняются автоматически в модели, не означают фактический ремонт или отправку операторских команд. При критическом инциденте робот и его операции остановлены, задание удерживается, корпус остаётся препятствием. Предупреждение АКБ не означает низкий SOC и не останавливает работу."] : []),
       "Исходный поток разделён 50/50 на приёмку и отгрузку и учитывается в паллетных заказах. Перед приёмкой тот же стеллаж физически подаётся с домашнего места, после отгрузки возвращается туда. Эти внутренние рейсы имеют отдельные задания и расходуют время и энергию, но не увеличивают число клиентских заказов. Один фиксированный seed воспроизводит нагрузку и исполнение.",
       "areaM2 — площадь активной зоны; общая площадь принята вдвое больше по базовому допущению организатора. Зарядные станции определяет текущий расчёт экономики.",
       "Ставка RaaS Ronavi — опубликованная ставка «от» для компании, а не подтверждённое предложение на H1500. Перед закупкой нужны договор, состав услуг и актуальные цены.",

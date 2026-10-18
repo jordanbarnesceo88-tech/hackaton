@@ -142,6 +142,7 @@ describe("NORM_DEFS: правила происхождения (ТЗ §3.5.1 —
       simServedShareMin: 0.97,
       simP95WaitMaxMin: 10,
       simOversizedIdleShare: 0.4,
+      simStorageVacancyShare: 0.1,
       simWarmupMin: 15,
       simPeakMin: 120,
       chargeStartSoc: 0.2,

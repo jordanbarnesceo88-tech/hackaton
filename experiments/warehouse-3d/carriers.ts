@@ -6,6 +6,7 @@ export { prepareUnderliftLayout, validateUnderliftConfig } from "../../lib/sim/u
 export type { Dock, UnderliftConfig } from "../../lib/sim/underlift-layout";
 import { orientedBounds, podBounds, rectangleGap, cardinalHeading, ROBOT_LENGTH_M, ROBOT_WIDTH_M } from "./pod-collision";
 import { route, routeLengthM, positionAlong } from "../../lib/sim/routing";
+import { demandMixOf, initialVacantStorageCount } from "../../lib/sim/demand-mix";
 
 export const POD_RADIUS_M = 0.9;
 export const POD_SPACING_M = 1.95;
@@ -14,11 +15,11 @@ export type CarrierContents = "full" | "empty";
 export type CarrierSpec = { kind: "pallet" | "mobile-rack"; lengthM: number; widthM: number; heightM: number; baseClearanceM: number; liftHeightM: number; levels: number; label: string; rateUnit: string; sourceNote: string };
 export const MOBILE_RACK_SPEC: CarrierSpec = {
   kind: "mobile-rack", lengthM: 1.4, widthM: 1, heightM: 2.2, baseClearanceM: 0.44, liftHeightM: 0.06, levels: 5, label: "Мобильный стеллаж", rateUnit: "пал./ч",
-  sourceNote: "Пять ярусов и подстеллажный подхват — по референсу. Габариты 1,4 × 1,0 × 2,2 м, основание 0,44 м, платформа 0,38 м и подъём 0,06 м — проектные допущения. Постоянный парк стеллажей возвращается на свои места: перед приёмкой выполняется подача, после отгрузки — возврат. Дополнительные рейсы участвуют в физике и загрузке, но не считаются новыми паллетными заказами. Начальное заполнение принято полным; после отгрузки стеллаж пуст, при приёмке заполняется в ходе обслуживания. Наличие товара для следующего заказа и складское пополнение не моделируются: состояние содержимого не подтверждает товарный запас. Учёт исходного потока и экономики остаётся в паллетах, без пересчёта в стеллажи/ч.",
+  sourceNote: "Пять ярусов и подстеллажный подхват — по референсу. Габариты 1,4 × 1,0 × 2,2 м, основание 0,44 м, платформа 0,38 м и подъём 0,06 м — проектные допущения. Идентификатор стеллажа постоянен. Перед приёмкой выполняется подача, после отгрузки — возврат к текущему домашнему месту; эти служебные рейсы не считаются новыми клиентскими заказами. Клиентский внутренний перенос хранение → хранение выполняется одним рейсом и меняет домашнее место того же носителя. Содержимое существующих носителей изначально принято полным; доля свободных мест задаётся отдельно явным допущением входа. После отгрузки стеллаж пуст, при приёмке заполняется в ходе обслуживания. Товарный запас и складское пополнение не моделируются. Учёт потока и экономики остаётся в паллетах, без пересчёта в стеллажи/ч.",
 };
 export type CarrierInput = SimInput & { loadCarrier?: CarrierSpec; demoUnderlift?: UnderliftConfig };
 export type RackCarrier = { id: string; home: { x: number; y: number }; taskId: number | null; robotId: number | null; reservedForTaskId: number | null; spec: CarrierSpec; contents: CarrierContents; inventoryNotModelled: true; x: number; y: number; heading: number; phase: "parked" | "pickup" | "loading" | "carrying" | "unloading" | "delivered"; liftM: number; visible: boolean };
-export type UnderliftState = SimEngineState & { demoUnderlift?: { pods: RackCarrier[]; docks: Dock[]; nextInternalId: number; podIndex: Record<string,number>; homeIndex: Record<string,number>; revision:number; stockRevision:number; cacheAtS:number; cacheRevision:number; feasibility:Record<number,boolean> } };
+export type UnderliftState = SimEngineState & { demoUnderlift?: { pods: RackCarrier[]; docks: Dock[]; nextInternalId: number; podIndex: Record<string,number>; homeIndex: Record<string,number>; revision:number; stockRevision:number; cacheAtS:number; cacheRevision:number; feasibility:Record<number,boolean>; vacantHomes?: {x:number;y:number}[]; targetReservations?: Record<string,number>; initialVacancies?: number } };
 const same = (a: {x:number;y:number}, b: {x:number;y:number}) => Math.hypot(a.x-b.x,a.y-b.y) < 1e-7;
 const pointKey=(p:{x:number;y:number})=>`${p.x};${p.y}`;
 const clamp = (v: number) => Math.max(0,Math.min(1,v));
@@ -35,9 +36,13 @@ export function carrierPose(robot: {phase:string;loaded:boolean;underlift?:SimRo
 
 export function initUnderlift(state: UnderliftState, config: UnderliftConfig): void {
   validateUnderliftConfig(state.layout,config);
-  const spec=carrierSpec(state.input), pods=state.layout.slots.map((home,i)=>{const dock=config.docks.find(d=>same(d,home))!;return {id:`pod-home-${i+1}`,home:{...home},taskId:null,robotId:null,reservedForTaskId:null,spec:{...spec},contents:"full" as const,inventoryNotModelled:true as const,...home,heading:dock.heading,phase:"parked" as const,liftM:0,visible:true};});
+  const vacancyCount=initialVacantStorageCount(state.layout.slots.length,state.input.demand);
+  const vacantIndices=new Set(Array.from({length:vacancyCount},(_,i)=>Math.floor((i+1)*state.layout.slots.length/vacancyCount)-1));
+  const vacantHomes=state.layout.slots.filter((_,i)=>vacantIndices.has(i)).map(p=>({...p}));
+  const spec=carrierSpec(state.input), pods=state.layout.slots.flatMap((home,i)=>{if(vacantIndices.has(i))return [];const dock=config.docks.find(d=>same(d,home))!;return [{id:`pod-home-${i+1}`,home:{...home},taskId:null,robotId:null,reservedForTaskId:null,spec:{...spec},contents:"full" as const,inventoryNotModelled:true as const,...home,heading:dock.heading,phase:"parked" as const,liftM:0,visible:true}];});
   if(pods.some(p=>state.robots.some(r=>rectangleGap(orientedBounds(p,1.4,1,p.heading),orientedBounds(r,ROBOT_LENGTH_M,ROBOT_WIDTH_M,0))<.15-1e-8)))throw new Error("Парковка робота пересекает место постоянного стеллажа");
-  state.demoUnderlift={pods,docks:structuredClone(config.docks),nextInternalId:-1,podIndex:Object.fromEntries(pods.map((p,i)=>[p.id,i])),homeIndex:Object.fromEntries(pods.map((p,i)=>[pointKey(p.home),i])),revision:0,stockRevision:0,cacheAtS:-1,cacheRevision:-1,feasibility:{}}; state.nextDemandTaskId=0;state.physicalDoneCount=0;
+  state.demoUnderlift={pods,docks:structuredClone(config.docks),nextInternalId:-1,podIndex:Object.fromEntries(pods.map((p,i)=>[p.id,i])),homeIndex:Object.fromEntries(pods.map((p,i)=>[pointKey(p.home),i])),revision:0,stockRevision:0,cacheAtS:-1,cacheRevision:-1,feasibility:{},vacantHomes,targetReservations:{},initialVacancies:vacancyCount}; state.nextDemandTaskId=0;state.physicalDoneCount=0;
+  if(demandMixOf(state.input.demand).internal>0)state.storageCarriers=pods.map(p=>({podId:p.id,...p.home}));
 }
 const dockIndexes = new WeakMap<Dock[], Map<string, Dock>>();
 export function dockOf(state: UnderliftState, point: { x: number; y: number }, toleranceM = 1e-7): Dock {
@@ -67,8 +72,25 @@ function evaluateUnderliftAssignment(state:UnderliftState,robot:SimRobot,task:Si
   let pod=podOf(state,task);
   if(task.countsTowardDemand!==false) {
     const home=task.kind==="inbound"?{x:task.toX,y:task.toY}:{x:task.fromX,y:task.fromY};
-    pod=runtime.pods[runtime.homeIndex[pointKey(home)]!]; if(!pod||pod.robotId!==null||(pod.reservedForTaskId!==null&&pod.reservedForTaskId!==task.id))return false;
+    pod??=runtime.pods[runtime.homeIndex[pointKey(home)]!]; if(!pod||pod.robotId!==null||(pod.reservedForTaskId!==null&&pod.reservedForTaskId!==task.id))return false;
+    if(state.storageCarriers){
+      if(task.kind==="inbound"){task.toX=pod.home.x;task.toY=pod.home.y;}
+      else {task.fromX=pod.home.x;task.fromY=pod.home.y;}
+      task.podId=pod.id;
+    }
     task.operation="transport";task.countsTowardDemand=true;
+    if(task.kind==="internal"){
+      if(!same(pod,pod.home))return false;
+      const reservations=runtime.targetReservations??={},vacancies=runtime.vacantHomes??[];
+      let target=vacancies.find(p=>reservations[pointKey(p)]===task.id);
+      if(!target){
+        const available=vacancies.filter(p=>reservations[pointKey(p)]===undefined);
+        if(!available.length)return false;
+        target=available[Math.min(available.length-1,Math.floor((task.storageDestinationDraw??0)*available.length))]!;
+        reservations[pointKey(target)]=task.id;pod.reservedForTaskId=task.id;task.podId=pod.id;runtime.revision++;
+      }
+      task.toX=target.x;task.toY=target.y;
+    }
     if(task.kind==="inbound"&&same(pod,pod.home)&&pod.reservedForTaskId===null) {pod.reservedForTaskId=task.id;task.podId=pod.id;internalTask(state,pod,task,"prefetch-pod");runtime.revision++;return false;}
     if(task.kind==="inbound"&&!same(pod,{x:task.fromX,y:task.fromY}))return false;
     if(task.kind==="outbound"&&!same(pod,pod.home))return false;
@@ -85,7 +107,7 @@ export function assignUnderlift(state:UnderliftState,robot:SimRobot,task:SimTask
   const home=task.kind==="inbound"?{x:task.toX,y:task.toY}:{x:task.fromX,y:task.fromY};
   const pod=podOf(state,task)??state.demoUnderlift.pods[state.demoUnderlift.homeIndex[pointKey(home)]!];if(!pod)throw new Error("Назначение без физического стеллажа");
   // Goods availability is diagnostic only; the existing demand/dispatch model is unchanged.
-  task.contentsAvailabilityUnverified = task.operation === "prefetch-pod" && pod.contents === "full" || task.countsTowardDemand !== false && task.kind === "outbound" && pod.contents === "empty";
+  task.contentsAvailabilityUnverified = task.operation === "prefetch-pod" && pod.contents === "full" || task.countsTowardDemand !== false && (task.kind === "outbound" || task.kind === "internal") && pod.contents === "empty";
   state.demoUnderlift.revision++;
   task.podId=pod.id;pod.reservedForTaskId=task.parentTaskId??task.id;pod.robotId=robot.id;pod.taskId=task.id;pod.phase="pickup";
   robot.underlift={podId:pod.id,stage:"approach",progress:0,platformTopM:PLATFORM_REST_M,podLiftM:0,contactGapM:pod.spec.baseClearanceM-PLATFORM_REST_M,contact:false,headingRad:pod.heading,entryOffsetM:2};
@@ -122,6 +144,17 @@ export function syncUnderlift(state:UnderliftState,before:Map<number,SimTask>):v
     }
     const completed=before.get(robot.id);if(!completed||completed.doneS===null||task?.id===completed.id)continue;
     const pod=podOf(state,completed)!;pod.robotId=null;pod.taskId=null;pod.liftM=0;pod.phase=same(pod,pod.home)?"parked":"delivered";robot.underlift=undefined;
+    if(completed.countsTowardDemand!==false&&completed.kind==="internal"){
+      const oldHome={...pod.home},newHome={x:completed.toX,y:completed.toY};
+      delete state.demoUnderlift.homeIndex[pointKey(oldHome)];
+      pod.home=newHome;pod.phase="parked";
+      state.demoUnderlift.homeIndex[pointKey(newHome)]=state.demoUnderlift.podIndex[pod.id]!;
+      state.demoUnderlift.vacantHomes=state.demoUnderlift.vacantHomes!.filter(p=>!same(p,newHome));
+      state.demoUnderlift.vacantHomes.push(oldHome);
+      delete state.demoUnderlift.targetReservations![pointKey(newHome)];
+      const carrier=state.storageCarriers!.find(p=>p.podId===pod.id)!;carrier.x=newHome.x;carrier.y=newHome.y;
+      state.demoUnderlift.stockRevision++;
+    }
     if(completed.operation==="prefetch-pod")continue;
     if(completed.countsTowardDemand!==false&&completed.kind==="outbound")internalTask(state,pod,completed,"return-pod");else pod.reservedForTaskId=null;
   }

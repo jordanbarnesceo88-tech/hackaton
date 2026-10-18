@@ -1,6 +1,6 @@
 import { formatYearsRu } from "../../format/plural";
 import type { Conclusion, Risk, ScenarioOk, ScenarioResult, ScenarioSpec } from "../types";
-import { FACILITY_PARAM_KEYS, HORIZON_MAX_YEARS, HORIZON_SCAN, optNum, type ScenarioContext } from "./context";
+import { FACILITY_PARAM_KEYS, HORIZON_MAX_YEARS, HORIZON_SCAN, normsForSpec, optNum, type ScenarioContext } from "./context";
 import { computeScenariosCore } from "./core";
 import { interpretBand } from "./interpret";
 import { sortRisks } from "./risks";
@@ -37,7 +37,7 @@ export function isViableScenario(r: ScenarioOk): boolean {
 
 /** Этот риск добавляется сборщиком модели только для актуальной проверки данного входа. */
 export function simulationFailure(r: ScenarioOk): Risk | undefined {
-  return r.risks.find((risk) => risk.code === "SIM_NOT_CONFIRMED" || risk.code === "SPATIAL_STALE");
+  return r.risks.find((risk) => risk.code === "SIM_NOT_CONFIRMED" || risk.code === "SPATIAL_STALE" || risk.code === "SIM_NOT_EVALUATED");
 }
 
 /** Рекомендуемый сценарий: наибольший NPV среди жизнеспособных, при равенстве — меньший CAPEX. */
@@ -275,10 +275,14 @@ export function buildConclusion(
         ? `Сценарии роботизации не рассчитаны: ${firstRefused.refusal.message}`
         : "Нет сценариев роботизации для сравнения: добавьте сценарий покупки или услуги";
   } else if (rec) {
-    const band = interpretBand(rec.paybackYears, ctx.norms);
+    const recSpec = specs?.find((spec) => spec.key === rec.key);
+    const band = interpretBand(rec.paybackYears, normsForSpec(ctx, recSpec ?? {}));
     const pb = rec.paybackYears !== null ? formatYearsRu(rec.paybackYears) : "—";
     headline = `Предварительный финансовый выбор: ${rec.name}. NPV ${mrub(rec.npvRub ?? 0)} за ${yearsNom(H)}, окупаемость ${pb} — ${band.text}.`;
     bullets.push("Финансовый выбор не подтверждает эксплуатационную пригодность: проверьте нагрузку и условия объекта; успешная имитация относится только к условиям модели.");
+  } else if (robots.some((r) => isViableScenario(r) && r.risks.some(risk => risk.code === "SIM_NOT_EVALUATED")) &&
+    !robots.some(r => isViableScenario(r) && r.risks.some(risk => risk.code === "SIM_NOT_CONFIRMED"))) {
+    headline = "Рекомендации нет: выполнение нагрузки не оценено, актуального подтверждения нет. Проверьте причину отсутствия оценки; при недостаточной нагрузке увеличьте окно или выполните нагруженный прогон. Финансовые показатели оставлены для сравнения.";
   } else if (robots.some((r) => isViableScenario(r) && simulationFailure(r))) {
     headline = "Рекомендации нет: экономически окупаемые варианты не подтвердили заданную нагрузку; измените парк или условия и повторите проверку. Финансовые показатели оставлены для сравнения.";
   } else {
@@ -288,7 +292,11 @@ export function buildConclusion(
 
   // TCO: лидер по стоимости владения, если он не совпадает с рекомендацией.
   const oks = results.filter((r): r is ScenarioOk => r.status === "ok");
-  const tcoWinner = oks.reduce<ScenarioOk | null>((a, r) => (!a || r.tcoRub < a.tcoRub ? r : a), null);
+  const sameTcoHorizon = new Set(oks.map((r) => r.tcoYears)).size <= 1;
+  const tcoWinner = sameTcoHorizon ? oks.reduce<ScenarioOk | null>((a, r) => (!a || r.tcoRub < a.tcoRub ? r : a), null) : null;
+  if (!sameTcoHorizon) {
+    bullets.push(`TCO рассчитана за разные периоды и напрямую не сравнивается: ${oks.map((r) => `${q(r.name)} — ${mrub(r.tcoRub)} за ${yearsNom(r.tcoYears)}`).join("; ")}`);
+  }
   if (tcoWinner) {
     if (rec && tcoWinner.key !== rec.key) {
       bullets.push(

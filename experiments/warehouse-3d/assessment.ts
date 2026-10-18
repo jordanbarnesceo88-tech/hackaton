@@ -74,7 +74,7 @@ export function assessWarehouse(state: SimEngineState & { demoTraffic?: TrafficC
       Math.abs(pod.liftM - lift.podLiftM) > 1e-8 ||
       (lift.podLiftM > 1e-8 && (!lift.contact || Math.abs(gap) > 1e-8));
   });
-  const inventoryValid = Boolean(inventory && inventory.pods.length === state.layout.slots.length &&
+  const inventoryValid = Boolean(inventory && inventory.pods.length + (inventory.initialVacancies ?? 0) === state.layout.slots.length &&
     new Set(inventory.pods.map(p => p.id)).size === inventory.pods.length &&
     new Set(inventory.pods.map(p => `${p.home.x},${p.home.y}`)).size === inventory.pods.length &&
     !invalidPods.length && !invalidContacts.length);

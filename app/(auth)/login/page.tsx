@@ -2,13 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { buttonVariants } from "@/components/ui/button";
+import { guestDraftAuthDestination, guestDraftNonce, guestDraftRoute } from "@/lib/projects/guest-draft";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; guestDraft?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, guestDraft } = await searchParams;
+  const nonce = guestDraftNonce(guestDraft);
   async function login(formData: FormData) {
     "use server";
     try {
@@ -17,21 +19,24 @@ export default async function LoginPage({
         password: String(formData.get("password") ?? ""),
         // Вошедший продолжает работу, а не читает первый экран: путь жюри по ТЗ §5.4 начинается
         // со списка проектов («Проекты» → «Новый проект»). Регистрация ведёт туда же.
-        redirectTo: "/projects",
+        redirectTo: guestDraftAuthDestination(formData.get("guestDraft")),
       });
     } catch (e) {
       // next-auth throws a redirect on success; re-throw those.
       if (e && typeof e === "object" && "digest" in e && String((e as { digest: string }).digest).startsWith("NEXT_REDIRECT")) {
         throw e;
       }
-      redirect("/login?error=1");
+      const retry = guestDraftRoute("/login", formData.get("guestDraft"));
+      redirect(`${retry}${retry.includes("?") ? "&" : "?"}error=1`);
     }
   }
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-4 py-16">
       <h1>Вход</h1>
+      {nonce && <p className="text-sm text-muted-foreground">Продолжите в этой вкладке: после входа можно создать проект из гостевых параметров, сценариев и плана пилота. Сам вход ничего не сохраняет.</p>}
       {error && <p className="text-sm text-destructive">Неверный email или пароль</p>}
       <form action={login} className="flex flex-col gap-3">
+        {nonce && <input type="hidden" name="guestDraft" value={nonce} />}
         {/* A placeholder is not a label (WCAG 2.2 SC 3.3.2 / 1.3.1): it disappears the moment
             the field has content, and screen readers may not announce it as the field's name. */}
         <label htmlFor="email" className="text-sm font-medium">Email</label>
@@ -45,7 +50,7 @@ export default async function LoginPage({
         </button>
       </form>
       <p className="text-sm text-muted-foreground">
-        Нет аккаунта? <Link href="/signup" className="tap-target underline">Регистрация</Link>
+        Нет аккаунта? <Link href={guestDraftRoute("/signup", nonce)} className="tap-target underline">Регистрация</Link>
       </p>
     </div>
   );

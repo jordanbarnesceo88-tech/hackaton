@@ -1,20 +1,23 @@
 {
   "documentation": {
-    "pages": 13,
+    "sha256": "69863381956bdd72b2bf738f83ff17424590271cfad2948ea429f81ca117ca3e",
+    "pages": 18,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 15354
+    "textChars": 24613
   },
   "presentation": {
-    "pages": 12,
+    "sha256": "233c46c386bd8801f8369abe4062cd736a58faef4a0c52d11e111acee1b59c4e",
+    "pages": 15,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 4703
+    "textChars": 7071
   },
   "sample-report": {
+    "sha256": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a",
     "pages": 31,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 97741
+    "textChars": 99349
   }
 }

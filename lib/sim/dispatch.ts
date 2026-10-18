@@ -1,5 +1,6 @@
 import { route, routeLengthBetween, routeLengthM } from "./routing";
 import type { SimEngineState, SimRobot, SimTask } from "./state";
+import { initialVacantStorageCount } from "./demand-mix";
 
 /** Optional experiment admission policy; absent in the production calculation. Null task means charging. */
 export type SimDispatchGate = ((state: SimEngineState, robot: SimRobot, task: SimTask | null) => boolean) & {
@@ -103,6 +104,7 @@ export function assignTasks(s: SimEngineState, dispatchGate?: SimDispatchGate): 
     let bestIdx = -1;
     for (const [queueIndex, taskIndex] of candidates.entries()) {
       const candidate = s.tasks[taskIndex]!;
+      if (candidate.kind === "internal" && candidate.countsTowardDemand !== false && initialVacantStorageCount(s.layout.slots.length, s.input.demand) === 0) continue;
       let bestLen = Infinity;
       for (let i = 0; i < idle.length; i++) {
         const r = idle[i]!;

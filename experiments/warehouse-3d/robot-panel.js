@@ -30,7 +30,7 @@
     const rack=()=>!cleaning()&&carrier().kind==='mobile-rack';
     const liftStages={approach:'Подъезд к носителю','dock-under':'Заезд под стеллаж','close-gap':'Подвод платформы до контакта',lift:'Подъём стеллажа',extract:'Извлечение стеллажа из ряда',retreat:'Безопасный отход задним ходом',carry:'Перевозка стеллажа',lower:'Опускание на опоры',retract:'Опускание платформы',exit:'Выезд из-под стеллажа'};
     const phaseLabel=(phase,stage)=>(!['incidentStop','trafficWait','parking'].includes(phase)&&liftStages[stage])||liftStages[phase]||phases[phase]||phase;
-    const taskKind=t=>t.operation==='return-pod'?'Возврат носителя':t.operation==='prefetch-pod'?'Подача носителя':['inbound','putaway'].includes(t.kind)?'Размещение':'Отбор';
+    const taskKind=t=>t.operation==='return-pod'?'Возврат носителя':t.operation==='prefetch-pod'?'Подача носителя':t.kind==='internal'?'Хранение → хранение':['inbound','putaway'].includes(t.kind)?'Размещение':'Отбор';
     const taskScope=t=>t.countsTowardDemand===false||t.id<0?'Внутренний рейс':'Заявка';
     const carrierContext=s=>rack()&&s.taskId!=null?`Стеллаж ${s.carrierId||'—'} · ${num(carrier().lengthM,2)} × ${num(carrier().widthM,2)} × ${num(carrier().heightM,2)} м · ${carrier().levels} полки · ${s.carrierContents === 'empty' ? 'пустой' : 'с грузом'}`:'';
     const name=id=>`${cleaning()?'CL':'AMR'}-${String(id+1).padStart(2,'0')}`;

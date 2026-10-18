@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { paramSpecsFor } from "../data/organizer/params";
-import { resultsFromInputs } from "../projects/recalc";
+import { resultsFromInputs, resultsFromInputsAsync } from "../projects/recalc";
 import { FIXTURE_H1500, fixtureSpecs, WAREHOUSE_BASE_PARAMS } from "../tz/econ/fixtures";
 import { buildProjectModel } from "../tz/model";
 import { resolveNorms } from "../tz/norms";
@@ -28,6 +28,21 @@ function setup(fleet = 1) {
 afterEach(() => vi.restoreAllMocks());
 
 describe("server spatial receipts", () => {
+  it("preserves a closed-pod zero-exposure NOT_EVALUATED through sync and async replay and domain decisions", async () => {
+    const params={...WAREHOUSE_BASE_PARAMS,activeAreaM2:1000,inboundPalletsPerDay:1,outboundPalletsPerDay:0,internalPalletMovesPerDay:0};
+    const scenarios=fixtureSpecs().map(s=>({...s,items:s.items.map(item=>({...item,quantityOverride:1}))}));
+    for(const compute of [resultsFromInputs,resultsFromInputsAsync]){
+      const computed=await compute(live,{facility:"warehouse",params,scenarios});
+      const summary=computed.results.sim.p1!;
+      expect(summary).toMatchObject({verdict:"NOT_EVALUATED",observedPeakTasks:0,achievedPerH:0,minStableFleet:null});
+      expect(summary.assessmentReason).toContain("увеличьте окно");
+      expect(computed.results.scenarios[1]!.spatialEvidence!.assessment.status).toBe("NOT_EVALUATED");
+      expect(computed.results.results[1]!.risks.some(r=>r.code==="SIM_NOT_EVALUATED")).toBe(true);
+      expect(computed.results.results[1]!.risks.some(r=>r.code==="SIM_NOT_CONFIRMED")).toBe(false);
+      expect(computed.results.conclusion.recommendedScenarioKey).toBeNull();
+      expect(computed.results.conclusion.headline).toContain("нагрузки не оценено");
+    }
+  },15_000);
   it("shares one 45-second deadline across distinct async spatial inputs", async () => {
     const model = build(setup().specs);
     model.simInputs.r1!.calculated = { ...model.simInputs.r1!.calculated!, seed: model.simInputs.p1!.calculated!.seed + 1 };

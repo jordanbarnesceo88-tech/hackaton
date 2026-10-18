@@ -4,12 +4,15 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { CreateProjectState } from "@/lib/projects/action-types";
-import { submitCalculation } from "@/lib/calculation-jobs/client";
+import { isPendingJob, readCalculation, submitCalculation } from "@/lib/calculation-jobs/client";
+import type { JobReceipt } from "@/lib/calculation-jobs/types";
 import type { CalculationRequest } from "@/lib/calculation-jobs/service";
 import { stableJson } from "@/lib/tz/version";
 import type { ParamValues } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
 import { ImportForm } from "./import-form";
+import Link from "next/link";
+import { consumePublishedGuestDraft, guestDraftJobRoute, loadGuestDraft, readGuestDraftCreate, removeGuestDraft, setGuestDraftCreate, type GuestDraftInput } from "@/lib/projects/guest-draft";
 
 /**
  * Форма «Новый проект» (ТЗ §2.2 шаг 1 — выбор объекта, шаг 2 — параметры вручную или из
@@ -63,7 +66,7 @@ export function acceptedCreateJobId(request: CalculationRequest, previous: { inp
   return previous?.inputKey === stableJson(request) ? previous.id : null;
 }
 
-export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacility?: string }) {
+export function NewProjectForm({ defaultFacility = "warehouse", guestDraftNonce = null }: { defaultFacility?: string; guestDraftNonce?: string | null }) {
   const router = useRouter();
   const mounted = useRef(true);
   const accepted = useRef<{ inputKey: string; id: string } | null>(null);
@@ -72,27 +75,81 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
   const objectId = useId();
   const facilityLabelId = useId();
   const sourceLabelId = useId();
+  const [guestDraft, setGuestDraft] = useState<GuestDraftInput | null>(null);
+  const [guestDraftError, setGuestDraftError] = useState<string | null>(null);
+  const [existingJob, setExistingJob] = useState<JobReceipt | null>(null);
+  const [checkingJob, setCheckingJob] = useState(!!guestDraftNonce);
+  const [name, setName] = useState("");
+  const [objectName, setObjectName] = useState("");
+  useEffect(() => {
+    if (!guestDraftNonce) return;
+    let active = true;
+    // The server has no tab storage; read it after client hydration, not during SSR.
+    queueMicrotask(async () => {
+      if (!active) return;
+      try {
+        setGuestDraft(loadGuestDraft(guestDraftNonce));
+        const create = readGuestDraftCreate(window.sessionStorage, window.name, guestDraftNonce);
+        if (create) { setName(create.name); setObjectName(create.objectName); }
+        if (create?.jobId) {
+          const actual = await readCalculation(create.jobId);
+          if (!active) return;
+          if (actual.operation !== "CREATE") throw new Error("Черновик связан с другой операцией. Проверьте список расчётов.");
+          if (consumePublishedGuestDraft(window.sessionStorage, window.name, guestDraftNonce, actual)) {
+            router.replace(`/projects/${encodeURIComponent(actual.projectId!)}?edit=1`);
+            return;
+          }
+          setExistingJob(actual);
+        }
+      }
+      catch (e) { if (active) setGuestDraftError(e instanceof Error ? e.message : "Не удалось прочитать гостевой черновик. Вернитесь к демо и повторите перенос."); }
+      finally { if (active) setCheckingJob(false); }
+    });
+    return () => { active = false; };
+  }, [guestDraftNonce, router]);
   const [state, formAction, pending] = useActionState(
     async (_prev: CreateProjectState, formData: FormData): Promise<CreateProjectState> => {
       try {
+        const transferred = guestDraftNonce ? loadGuestDraft(guestDraftNonce) : null;
+        const previousCreate = guestDraftNonce ? readGuestDraftCreate(window.sessionStorage, window.name, guestDraftNonce) : null;
+        if (guestDraftNonce && previousCreate?.jobId) {
+          const actual = await readCalculation(previousCreate.jobId);
+          if (actual.operation !== "CREATE") throw new Error("Черновик связан с другой операцией. Проверьте список расчётов.");
+          if (consumePublishedGuestDraft(window.sessionStorage, window.name, guestDraftNonce, actual)) {
+            if (mounted.current) router.push(`/projects/${encodeURIComponent(actual.projectId!)}?edit=1`);
+            return { error: null };
+          }
+          if (isPendingJob(actual)) {
+            if (mounted.current) router.push(guestDraftJobRoute(actual.id, guestDraftNonce));
+            return { error: null };
+          }
+          if (actual.status !== "FAILED" && actual.status !== "CANCELLED") throw new Error("Операция завершена без публикации проекта. Проверьте её результат перед новым созданием.");
+        }
         const selectedSource = String(formData.get("source") ?? "demo");
         const paramsJson = String(formData.get("paramsJson") ?? "");
         if (selectedSource === "upload" && !paramsJson) return { error: "Сначала проверьте файл и примените значения" };
         const request: CalculationRequest = { operation: "CREATE", name: String(formData.get("name") ?? ""),
-          objectName: String(formData.get("objectName") ?? ""), facility: String(formData.get("facility") ?? "warehouse"),
-          ...(selectedSource === "upload" ? { params: JSON.parse(paramsJson) } : {}),
-          paramsSource: { kind: selectedSource === "upload" ? "upload" : selectedSource === "manual" ? "manual" : "demo",
+          objectName: String(formData.get("objectName") ?? ""), facility: transferred?.facility ?? String(formData.get("facility") ?? "warehouse"),
+          ...(transferred ? { params: transferred.params, scenarios: transferred.scenarios } : selectedSource === "upload" ? { params: JSON.parse(paramsJson) } : {}),
+          paramsSource: { kind: transferred ? "manual" : selectedSource === "upload" ? "upload" : selectedSource === "manual" ? "manual" : "demo",
             ...(selectedSource === "upload" ? { fileName: String(formData.get("fileName") ?? "") } : {}) },
         };
-        const previousId = acceptedCreateJobId(request, accepted.current);
+        const previousId = !guestDraftNonce ? acceptedCreateJobId(request, accepted.current) : null;
         if (previousId) {
           if (mounted.current) router.push(`/calculation-jobs/${encodeURIComponent(previousId)}?open=1`);
           return { error: null };
         }
-        const job = await submitCalculation(request, "create-project");
+        const create = { name: request.name, objectName: request.objectName ?? "", ...(previousCreate?.jobId ? { jobId: previousCreate.jobId } : {}) };
+        if (guestDraftNonce) setGuestDraftCreate(window.sessionStorage, window.name, guestDraftNonce, create);
+        // A failed/cancelled attempt gets a distinct retry scope; refresh/lost ack reuses that scope.
+        const job = await submitCalculation(request, guestDraftNonce ? `create-guest:${guestDraftNonce}:${previousCreate?.jobId ?? "initial"}` : "create-project");
         accepted.current = { inputKey: stableJson(request), id: job.id };
+        if (guestDraftNonce) {
+          setExistingJob(job);
+          setGuestDraftCreate(window.sessionStorage, window.name, guestDraftNonce, { ...create, jobId: job.id });
+        }
         // Keep the retry key until the acknowledged job page is actually opened.
-        if (mounted.current) router.push(`/calculation-jobs/${encodeURIComponent(job.id)}?open=1`);
+        if (mounted.current) router.push(guestDraftNonce ? guestDraftJobRoute(job.id, guestDraftNonce) : `/calculation-jobs/${encodeURIComponent(job.id)}?open=1`);
         return { error: null };
       } catch (e) {
         return { error: e instanceof Error ? e.message : "Не удалось отправить расчёт. Повторите с теми же данными" };
@@ -100,8 +157,6 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
     },
     INITIAL,
   );
-  const [name, setName] = useState("");
-  const [objectName, setObjectName] = useState("");
   const [facility, setFacility] = useState(
     FACILITY_OPTIONS.some((f) => f.slug === defaultFacility) ? defaultFacility : "warehouse",
   );
@@ -114,6 +169,21 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
 
   return (
     <form action={formAction} className="flex flex-col gap-6" noValidate>
+      {guestDraftNonce && <section className="grid gap-2 rounded border border-border p-4" aria-label="Гостевой черновик">
+        <h2 className="text-lg">Продолжить гостевой расчёт</h2>
+        {guestDraftError ? <div className="grid gap-2"><p role="alert" className="text-destructive">{guestDraftError}</p><Button type="button" variant="outline" className="justify-self-start" onClick={() => window.location.reload()}>Повторно проверить черновик и операцию</Button></div> : guestDraft ? <>
+          <p>Объект: {FACILITY_OPTIONS.find(f => f.slug === guestDraft.facility)?.label}. Перенесены параметры, {guestDraft.scenarios.length} сценария и заданные планы пилота.</p>
+          <ul className="list-inside list-disc text-sm">{guestDraft.scenarios.map(s => <li key={s.key}>{s.name}{s.pilotPlan ? " · с планом пилота" : ""}</li>)}</ul>
+          <p className="text-sm text-muted-foreground">Задайте название и нажмите «Создать проект». Сервер проверит эти входы и выполнит новый расчёт; гостевые результаты и подтверждения имитации не переносятся. До отправки проект не сохраняется.</p>
+        </> : <p role="status">Читаем черновик этой вкладки…</p>}
+        {existingJob && <p role="status" className="text-sm">{isPendingJob(existingJob) ? "Этот черновик уже принят в расчёт; повторное создание не требуется." : "Предыдущий расчёт завершился без сохранения проекта. Входы сохранены: можно явно повторить создание."} <Link href={guestDraftJobRoute(existingJob.id, guestDraftNonce)} className="tap-target underline">Открыть принятую операцию</Link></p>}
+        <Link href="/calculation-jobs" className="tap-target text-sm underline">Проверить список операций</Link>
+        <Button type="button" variant="ghost" className="justify-self-start" onClick={() => {
+          try { removeGuestDraft(window.sessionStorage, guestDraftNonce); router.push("/projects/new"); }
+          catch { setGuestDraftError("Не удалось удалить черновик из хранилища вкладки. Разрешите доступ и повторите."); }
+        }}>Отказаться от черновика и начать новый проект</Button>
+        {existingJob && isPendingJob(existingJob) && <p className="text-xs text-muted-foreground">Отказ от локального черновика не отменяет принятую операцию. Отменить её можно на странице расчёта.</p>}
+      </section>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label htmlFor={nameId} className="text-sm font-medium">
@@ -150,7 +220,7 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      {!guestDraftNonce && <div className="flex flex-col gap-2">
         <p id={facilityLabelId} className="text-sm font-medium">
           Тип объекта
         </p>
@@ -181,9 +251,9 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
             );
           })}
         </div>
-      </div>
+      </div>}
 
-      <fieldset className="flex flex-col gap-2">
+      {!guestDraftNonce && <fieldset className="flex flex-col gap-2">
         <legend id={sourceLabelId} className="mb-2 text-sm font-medium">
           Источник параметров объекта
         </legend>
@@ -221,7 +291,7 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
         )}
         <input type="hidden" name="paramsJson" value={upload ? JSON.stringify(upload.values) : ""} />
         <input type="hidden" name="fileName" value={upload ? upload.fileName : ""} />
-      </fieldset>
+      </fieldset>}
 
       <div className="flex flex-col gap-2">
         <p role="alert" aria-live="assertive" className="text-sm text-destructive [&:empty]:hidden">
@@ -240,8 +310,8 @@ export function NewProjectForm({ defaultFacility = "warehouse" }: { defaultFacil
           </ul>
         )}
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="lg" disabled={pending || uploadMissing}>
-            {pending ? "Отправляем расчёт…" : "Создать проект"}
+          <Button type="submit" size="lg" disabled={pending || uploadMissing || checkingJob || (!!guestDraftNonce && (!guestDraft || !!guestDraftError))}>
+            {pending ? "Отправляем расчёт…" : existingJob && isPendingJob(existingJob) ? "Открыть принятый расчёт" : existingJob ? "Повторить создание проекта" : "Создать проект"}
           </Button>
           <p className="text-xs text-muted-foreground">
             {pending

@@ -129,10 +129,11 @@ function simText(sim: SimSummaryStored | null | undefined, unit: string): string
   return "не поддерживается";
 }
 
-function verdictShort(v: "CONFIRMED" | "NOT_CONFIRMED" | "NOT_SUPPORTED" | null | undefined): string {
+function verdictShort(v: "CONFIRMED" | "NOT_CONFIRMED" | "NOT_SUPPORTED" | "NOT_EVALUATED" | null | undefined): string {
   if (v === "CONFIRMED") return "подтверждён";
   if (v === "NOT_CONFIRMED") return "не подтверждён";
   if (v === "NOT_SUPPORTED") return "не поддерживается";
+  if (v === "NOT_EVALUATED") return "нагрузка не оценена";
   return DASH;
 }
 

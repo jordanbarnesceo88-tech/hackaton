@@ -30,7 +30,7 @@ describe("warehouse visualization uses the production calculation and engine", (
     return state;
   };
   it.each(["baseline","insufficient","increased-flow"] as const)("preset %s uses the intended fleet and original demand units",id=>{
-    const model=fixture(id);expect(DEMO_CASES[0].id).toBe("complex");expect(model.input.robots.count).toBe(id==="insufficient"?3:id==="baseline"?19:11);
+    const model=fixture(id);expect(DEMO_CASES[0].id).toBe("steady-flow");expect(model.input.robots.count).toBe(id==="insufficient"?3:id==="baseline"?19:11);
     if(id!=="baseline")expect(model.summary.verdict).toBe("NOT_CONFIRMED");
     if(id==="increased-flow")expect(model.summary.requiredPerH).toBeGreaterThan(129.54545454545453);
     expect(model.finance).toBeNull();expect(model.financeUnavailableReason).toContain("защитные остановки");expect(model.summary.minStableFleet).toBeNull();

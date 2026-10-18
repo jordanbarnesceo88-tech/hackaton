@@ -72,7 +72,7 @@ test("owner recalculation uses the worker, preserves newer edits and does not pu
     await expect(page.getByRole("link", { name: "Есть несохранённые изменения — сохраните проект (шаг 8)" })).toBeVisible();
     const calculated = await (await page.request.get(`/api/v1/calculation-jobs/${jobIds.at(-1)}/result`)).json();
     expect(calculated.results.scenarios.find((s: { key: string }) => s.key === "purchase").spatialEvidence).toMatchObject({
-      simModelVersion: SPATIAL_MODEL_VERSION, assessment: { terminal: true }, summary: { fleet: 5 },
+      simModelVersion: SPATIAL_MODEL_VERSION, assessment: { terminal: true }, summary: { fleet: 6 },
     });
     const after = await db.project.findUniqueOrThrow({ where: { id: projectId }, select: { revision: true, params: true, results: true } });
     expect(after).toEqual(before);

@@ -8,8 +8,9 @@ import { cancelCalculation, forgetSubmission, isPendingJob, readCalculationResul
 import { operationLabels, stageLabels, statusLabels } from "@/lib/calculation-jobs/labels";
 import type { JobReceipt } from "@/lib/calculation-jobs/types";
 import { formatRub } from "@/lib/format/rub";
+import { consumePublishedGuestDraft, guestDraftRoute } from "@/lib/projects/guest-draft";
 
-export function CalculationJobView({ initial, autoOpen = false }: { initial: JobReceipt; autoOpen?: boolean }) {
+export function CalculationJobView({ initial, autoOpen = false, guestDraft = null }: { initial: JobReceipt; autoOpen?: boolean; guestDraft?: string | null }) {
   const router = useRouter();
   const [job, setJob] = useState(initial);
   const [result, setResult] = useState<JobResult | null>(null);
@@ -27,6 +28,11 @@ export function CalculationJobView({ initial, autoOpen = false }: { initial: Job
         const final = await waitForCalculation(initial.id, setJob, controller.signal);
         if (controller.signal.aborted) return;
         if (final.status === "SUCCEEDED") {
+          if (guestDraft && final.operation === "CREATE" && final.publicationState === "PUBLISHED") {
+            // final comes from the authenticated owned-job API; query/local state is never proof.
+            try { consumePublishedGuestDraft(window.sessionStorage, window.name, guestDraft, final); }
+            catch { /* Expired/other-tab/blocked local storage cannot invalidate the published project. */ }
+          }
           if (autoOpen && final.operation === "CREATE" && final.publicationState === "PUBLISHED" && final.projectId) {
             router.replace(`/projects/${final.projectId}?edit=1`);
             return;
@@ -39,7 +45,7 @@ export function CalculationJobView({ initial, autoOpen = false }: { initial: Job
       }
     })();
     return () => controller.abort();
-  }, [initial.id, initial.operation, autoOpen, router, watch]);
+  }, [initial.id, initial.operation, autoOpen, router, watch, guestDraft]);
 
   async function cancel() {
     setBusy(true); setError("");
@@ -91,6 +97,10 @@ export function CalculationJobView({ initial, autoOpen = false }: { initial: Job
         {job.operation === "SAVE" && <Button variant="outline" disabled={submittedBusy} onClick={exportSubmitted}>{submittedBusy ? "Читаем параметры…" : "Скачать отправленные параметры"}</Button>}
       </div>
       {job.operation === "SAVE" && <p className="text-sm text-muted-foreground">Отправленные параметры и сценарии доступны даже после отмены или ошибки расчёта. JSON сохраняет ваш ввод для сравнения и восстановления; он не изменяет текущую версию проекта.</p>}
+      {guestDraft && job.operation === "CREATE" && job.publicationState !== "PUBLISHED" && <div className="grid gap-2 text-sm">
+        <p>Гостевые параметры, сценарии и план пилота остаются в исходной вкладке до успешного создания проекта, явного отказа или истечения 30 минут. Ошибка и отмена задания не удаляют черновик.</p>
+        <Link href={guestDraftRoute("/projects/new", guestDraft)} className="tap-target justify-self-start underline">Вернуться к гостевому черновику</Link>
+      </div>}
     </section>
     {job.status === "SUCCEEDED" && !result && !error && <p role="status" className="text-sm text-muted-foreground">Читаем сохранённый результат…</p>}
     {result?.results && <section className="grid gap-4" aria-label="Сохранённый результат">

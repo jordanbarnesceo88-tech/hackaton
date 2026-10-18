@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { logoutAction } from "@/lib/auth/actions";
 import { isAdminSession } from "@/lib/auth/guards";
 import { cn } from "@/lib/utils";
+import { AuthHandoffLink } from "./auth-handoff-link";
 
 /**
  * Шапка сайта — верхняя панель (не боковая: пробовали rail в этой ветке, владелец решил
@@ -123,14 +124,14 @@ export async function SiteHeader() {
         </span>
       ) : (
         <div className="flex shrink-0 items-center gap-1">
-          <Link href="/login" className={TAB_CLASS}>
+          <AuthHandoffLink href="/login" className={TAB_CLASS}>
             <LogIn size={16} aria-hidden={true} />
             <span className="sr-only sm:not-sr-only">Войти</span>
-          </Link>
-          <Link href="/signup" className={TAB_CLASS}>
+          </AuthHandoffLink>
+          <AuthHandoffLink href="/signup" className={TAB_CLASS}>
             <UserPlus size={16} aria-hidden={true} />
             <span className="sr-only sm:not-sr-only">Регистрация</span>
-          </Link>
+          </AuthHandoffLink>
         </div>
       )}
     </header>

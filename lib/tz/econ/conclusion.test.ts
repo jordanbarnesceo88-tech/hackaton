@@ -6,6 +6,7 @@ import { FIXTURE_CARRIER_P, FIXTURE_H1500, fixtureContext, fixtureSpecs } from "
 import { MODEL_LIMITATIONS } from "./limitations";
 import { scenarioRisks } from "./risks";
 import { computeScenarios } from "./scenario";
+import { validateScenarioSpecs } from "../../projects/validate";
 
 /** Вывод и риски (ТЗ §3.5.7): число, риски и интерпретация, а не жёсткий порог. */
 
@@ -16,6 +17,39 @@ function ok(results: ScenarioResult[], key: string): ScenarioOk {
 }
 
 const codes = (r: ScenarioResult) => r.risks.map((x) => x.code);
+
+describe("scenario-specific financial interpretation", () => {
+  it("uses the recommended scenario's payback thresholds in the headline without changing the financial winner", () => {
+    const ctx = fixtureContext(20), specs = fixtureSpecs();
+    const baseline = buildConclusion(computeScenarios(ctx, specs), ctx, specs);
+    specs[2]!.normOverrides = { paybackBandFastYears: 0.1, paybackBandSlowYears: 0.2 };
+    expect(validateScenarioSpecs(specs, "warehouse", Object.keys(ctx.products), Object.keys(ctx.processes)).ok).toBe(true);
+    const rows = computeScenarios(ctx, specs), result = ok(rows, "r1");
+    const conclusion = buildConclusion(rows, ctx, specs);
+    expect(result.band).toBe("slow");
+    expect(conclusion.recommendedScenarioKey).toBe(baseline.recommendedScenarioKey);
+    expect(conclusion.headline).toContain("долгая окупаемость (более 0,2 года)");
+    expect(conclusion.headline).not.toContain("быстрая окупаемость");
+    expect(baseline.headline).toContain("быстрая окупаемость");
+  });
+
+  it("does not call unlike TCO periods comparable or label a ten-year sum as five-year costs", () => {
+    const ctx = fixtureContext(20), specs = fixtureSpecs();
+    const baseline = buildConclusion(computeScenarios(ctx, specs), ctx, specs);
+    specs[2]!.normOverrides = { tcoMinYears: 10 };
+    expect(validateScenarioSpecs(specs, "warehouse", Object.keys(ctx.products), Object.keys(ctx.processes)).ok).toBe(true);
+    const rows = computeScenarios(ctx, specs), conclusion = buildConclusion(rows, ctx, specs);
+    expect(ok(rows, "p1").tcoYears).toBe(5);
+    expect(ok(rows, "r1").tcoYears).toBe(10);
+    const tcoNote = conclusion.bullets.find(text => text.startsWith("TCO рассчитана за разные периоды"));
+    expect(tcoNote).toContain("напрямую не сравнивается");
+    expect(tcoNote).toMatch(/Покупка[^;]+за 5 лет/);
+    expect(tcoNote).toMatch(/Услуга[^;]+за 10 лет/);
+    expect(conclusion.bullets.some(text => text.startsWith("По TCO") || text.startsWith("Наименьшая TCO"))).toBe(false);
+    expect(conclusion.recommendedScenarioKey).toBe(baseline.recommendedScenarioKey);
+    expect(baseline.bullets.some(text => text.startsWith("По TCO за 5 лет"))).toBe(true);
+  });
+});
 
 describe("вывод по эталону", () => {
   const ctx = fixtureContext(20);

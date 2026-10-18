@@ -5,6 +5,7 @@ import { SIM_LIMITS, chargeThresholdsValid, expectedTasks } from "./engine";
 import { LAYOUT_ASSUMPTIONS, LAYOUT_LIMITS } from "./layout";
 import { SIM_MODEL_VERSION, type SimInput, type SimLayout } from "./types";
 import { validateProjectSiteLayout } from "./site-layout";
+import { demandMixFromParams, LEGACY_DEMAND_MIX } from "./demand-mix";
 
 /**
  * Адаптер: параметры проекта + снимок продукта + парк из расчёта экономики → вход имитации.
@@ -268,11 +269,18 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
     over("norm.chargeStartSoc", "Пороги ухода на зарядку и возврата (доли: 0 ≤ ухода < возврата ≤ 1)");
     tooBig.push("norm.chargeStopSoc");
   }
+  const hasFlowVolumes = ["inboundPalletsPerDay", "outboundPalletsPerDay", "internalPalletMovesPerDay"].some(key => params[key] !== undefined);
+  let mix;
+  try { mix = hasFlowVolumes ? demandMixFromParams(params) : { ...LEGACY_DEMAND_MIX }; }
+  catch (error) { return { ok: false, missing: ["inboundPalletsPerDay", "outboundPalletsPerDay", "internalPalletMovesPerDay"], reason: "missing_inputs",
+    message: error instanceof Error ? error.message : "Не задан состав потока" }; }
   const demand = {
     avgPerH: args.avgPerH,
     peakPerH: args.peakPerH,
     warmupMin: norms.simWarmupMin,
     peakMin: norms.simPeakMin,
+    ...(hasFlowVolumes ? { mix } : {}),
+    ...(mix.internal > 0 ? { storageVacancyShare: norms.simStorageVacancyShare } : {}),
   };
   if (expectedTasks(demand) > SIM_LIMITS.maxExpectedTasks) {
     over("peakPerH", `Пиковый поток заданий (за прогон не больше ${SIM_LIMITS.maxExpectedTasks} заданий)`);
@@ -324,8 +332,11 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
   }
 
   const provenance: SimProvenance[] = [];
+  provenance.push({ field: "calc:demandMix", label: "Приёмка / отгрузка / внутренние клиентские перемещения", value: `${mix.inbound * 100} / ${mix.outbound * 100} / ${mix.internal * 100}`, unit: "%", origin: hasFlowVolumes ? "derived" : "choice",
+    note: hasFlowVolumes ? "Доли рассчитаны из трёх суточных объёмов. Клиентские внутренние перемещения идут между местами хранения; служебные подачи и возвраты носителя не увеличивают клиентский поток." : "Исторический вход без отдельных объёмов: сохранено прежнее допущение 50/50 приёмки и отгрузки, без внутренних клиентских перемещений." });
+  if(mix.internal>0)provenance.push({field:"norm:simStorageVacancyShare",label:"Начальная доля свободных мест",value:norms.simStorageVacancyShare,unit:"доля",origin:"estimate",note:normDef("simStorageVacancyShare").basis});
   if (args.transportWorkflow === "closed-pod-1") provenance.push({ field: "calc:transportWorkflow", label: "Цикл подстеллажной перевозки", value: "closed-pod-1", unit: null, origin: "choice",
-    note: "Один клиентский заказ: перевозка и обязательная подача/возврат того же стеллажа. Два физических рейса, два подхвата и две постановки; минимум 6 с на обслуживание, медленный обратный выезд может увеличить время постановки. Исходный спрос остаётся в паллетах. Порожнее перемещение — аналитическое ожидание независимых точек, фактические потери проверяются в 3D." });
+    note: "Приёмка/отгрузка: перевозка и обязательная подача/возврат того же стеллажа, два физических рейса и четыре обслуживания. Внутренний клиентский перенос: один рейс хранение → свободное место хранения, два обслуживания, новый адрес того же носителя. Минимум 6 с на обслуживание; медленный обратный выезд может увеличить время постановки. Порожнее перемещение — аналитическое ожидание независимых точек, фактические потери проверяются в 3D." });
   if (args.siteLayout) provenance.push({ field: "scenario:siteLayout", label: "Явная планировка сценария", value: "Общий план для цикла, имитации и экономики", unit: null, origin: "user", note: "Площадь, ворота, зарядки и граф маршрутов проверены; типовая планировка не подставлялась" });
 
   for (const key of Object.keys(PARAM_FIELDS) as ParamField[]) {

@@ -49,12 +49,14 @@ export function waitText(s: SimSummaryStored): string {
 
 /** «Очередь заданий: макс. 4, ожидание p95 0,8 мин». */
 export function queueText(s: SimSummaryStored): string {
+  if (s.verdict === "NOT_EVALUATED") return "Очередь и ожидание: не оценены — нет поступивших клиентских заданий";
   if (!simWasRun(s)) return `Очередь заданий: ${NO_RUN_VALUE}`;
   return `Очередь заданий: макс. ${s.queueMax}, ожидание p95 ${formatNum(s.waitP95Min, 1)} мин`;
 }
 
 /** «Узкое место: нет | парк роботов | точки приёмки и отгрузки | зарядные станции | грузоподъёмность». */
 export function bottleneckText(s: SimSummaryStored): string {
+  if (s.verdict === "NOT_EVALUATED") return "Узкое место: не оценено — нет наблюдавшейся нагрузки";
   return `Узкое место: ${BOTTLENECK_LABELS[s.bottleneck]}`;
 }
 
@@ -78,6 +80,7 @@ export type VerdictTone = "confirmed" | "oversized" | "not-confirmed" | "not-sup
 export function verdictBadge(s: SimSummaryStored): { tone: VerdictTone; text: string } {
   const m = s.minStableFleet;
   if (s.verdict === "NOT_SUPPORTED") return { tone: "not-supported", text: VERDICT_LABELS.NOT_SUPPORTED };
+  if (s.verdict === "NOT_EVALUATED") return { tone: "not-supported", text: s.assessmentReason ?? VERDICT_LABELS.NOT_EVALUATED };
   if (s.verdict === "NOT_CONFIRMED") {
     if (s.bottleneck === "payload") {
       return {
@@ -102,7 +105,8 @@ export function verdictBadge(s: SimSummaryStored): { tone: VerdictTone; text: st
  * показатели — по пройденной части окна.
  */
 export function withFinalVerdict<T extends SimSummaryStored>(partial: T, final: SimSummaryStored): T {
-  return { ...partial, verdict: final.verdict, bottleneck: final.bottleneck, oversized: final.oversized };
+  return { ...partial, verdict: final.verdict, bottleneck: final.bottleneck, oversized: final.oversized,
+    observedPeakTasks: final.observedPeakTasks, assessmentReason: final.assessmentReason };
 }
 
 /** «11 роботов». */

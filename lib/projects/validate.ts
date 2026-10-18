@@ -114,7 +114,7 @@ const INPUT_SHAPE: InputShape = {
   seed: null, loadMassKg: null, transportWorkflow: null,
   layout: { activeAreaM2: null, mainAisleWidthM: null, rackAisleWidthM: null, receivingDocksCount: null, shippingDocksCount: null, chargers: null },
   robots: { count: null, speedMps: null, loadedSpeedFactor: null, handlingSec: null, autonomyH: null, chargeMin: null, payloadKg: null },
-  demand: { avgPerH: null, peakPerH: null, warmupMin: null, peakMin: null },
+  demand: { avgPerH: null, peakPerH: null, warmupMin: null, peakMin: null, mix: { inbound: null, outbound: null, internal: null }, storageVacancyShare: null },
   thresholds: { servedShareMin: null, p95WaitMaxMin: null, oversizedIdleShare: null },
   charge: { startSoc: null, stopSoc: null },
   siteLayout: {

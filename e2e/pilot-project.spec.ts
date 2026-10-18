@@ -103,7 +103,7 @@ test("pilot inputs survive real CALCULATE, SAVE, reopening, report, XLSX and CSV
     await expect(pilot).toContainText(notes);
     for (const work of works) await expect(pilot).toContainText(work.source);
     await expect(pilot).toContainText("17 операций/ч");
-    await expect(pilot).toContainText("p95 ожидания до назначения ≤ 3 мин.");
+    await expect(pilot).toContainText("p95 ожидания до начала обработки ≤ 3 мин; для стеллажей включает ожидание связанной подачи носителя.");
     await expect(pilot).toContainText("Ручных вмешательств за смену ≤ 2");
     const report = page.locator("#report");
     const [xlsx] = await Promise.all([page.waitForEvent("download"), report.getByRole("link", { name: "Excel", exact: true }).click()]);
@@ -120,7 +120,7 @@ test("pilot inputs survive real CALCULATE, SAVE, reopening, report, XLSX and CSV
     expect(workbookRows.find(row => row[1] === "Известная часть сметы пилота")?.[2]).toBe(subtotal);
     expect(workbookRows.find(row => row[1] === "Полный бюджет пилота")?.[2]).toBeCloseTo(subtotal * 1.12, 2);
     expect(JSON.stringify(workbookRows)).toContain(notes);
-    expect(JSON.stringify(workbookRows)).toContain("p95 ожидания до назначения ≤ 3 мин.");
+    expect(JSON.stringify(workbookRows)).toContain("p95 ожидания до начала обработки ≤ 3 мин; для стеллажей включает ожидание связанной подачи носителя.");
     const [csv] = await Promise.all([page.waitForEvent("download"), report.getByRole("link", { name: "CSV", exact: true }).click()]);
     const csvRows = parseCsv(decodeText(await readFile((await csv.path())!)));
     for (const work of works) {
@@ -139,7 +139,7 @@ test("pilot inputs survive real CALCULATE, SAVE, reopening, report, XLSX and CSV
     for (const work of works) await expect(printedPilot).toContainText(work.source);
     await expect(printedPilot).toContainText(notes);
     await expect(printedPilot).toContainText("17 операций/ч");
-    await expect(printedPilot).toContainText("p95 ожидания до назначения ≤ 3 мин.");
+    await expect(printedPilot).toContainText("p95 ожидания до начала обработки ≤ 3 мин; для стеллажей включает ожидание связанной подачи носителя.");
     await testInfo.attach("pilot-server-persistence", { body: JSON.stringify({ projectId, jobIds, revision: saved.revision, expectedPlan, workbookRows }), contentType: "application/json" });
   } finally {
     if (projectId) await db.project.deleteMany({ where: { id: projectId, name: { startsWith: "e2e-pilot-" } } });

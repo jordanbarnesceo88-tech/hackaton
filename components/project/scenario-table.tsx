@@ -6,8 +6,8 @@ import { BOTTLENECK_LABELS } from "@/lib/sim/export-rows";
 import type { SimSummaryStored } from "@/lib/sim/types";
 import { isViableScenario, pickRecommended, simulationFailure } from "@/lib/tz/econ/conclusion";
 import { interpretBand } from "@/lib/tz/econ/interpret";
-import { DEFAULT_NORMS, type NormValues } from "@/lib/tz/norms";
-import type { Risk, ScenarioOk, ScenarioResult } from "@/lib/tz/types";
+import { DEFAULT_NORMS, resolveNorms, type NormValues } from "@/lib/tz/norms";
+import type { Risk, ScenarioOk, ScenarioResult, ScenarioSpec } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
 import { RefusalNote } from "./refusal-note";
 
@@ -49,8 +49,8 @@ export type ScenarioRowKey = (typeof SCENARIO_ROWS)[number]["key"];
 export const RAAS_ROI_NOTE = "ROI неинформативен при малом CAPEX — сравнивайте NPV и TCO";
 
 /** Подпись строки; для TCO — с горизонтом и согласованием («за 5 лет», «за 21 год»). */
-export function scenarioRowLabel(key: ScenarioRowKey, tcoYears: number): string {
-  if (key === "tco") return `TCO за ${tcoYears} ${pluralRu(tcoYears, ["год", "года", "лет"])}`;
+export function scenarioRowLabel(key: ScenarioRowKey, tcoYears: number | null): string {
+  if (key === "tco") return tcoYears === null ? "TCO за период сценария" : `TCO за ${tcoYears} ${pluralRu(tcoYears, ["год", "года", "лет"])}`;
   return SCENARIO_ROWS.find((r) => r.key === key)?.label ?? key;
 }
 
@@ -161,10 +161,10 @@ export function scenarioCell(key: ScenarioRowKey, r: ScenarioOk, ctx: CellCtx): 
         ? { text: "не окупается за горизонт", tone: "bad" }
         : { text: formatYearsRu(r.discountedPaybackYears) };
     case "tco":
-      return { text: money(r.tcoRub) };
+      return { text: money(r.tcoRub), note: `За ${r.tcoYears} ${pluralRu(r.tcoYears, ["год", "года", "лет"])}` };
     case "tcoDelta":
       if (asis) return { text: "база сравнения", muted: true };
-      return { text: signedRub(r.tcoDeltaVsAsIsRub, money), tone: r.tcoDeltaVsAsIsRub < 0 ? "good" : "bad" };
+      return { text: signedRub(r.tcoDeltaVsAsIsRub, money), note: `К базе за те же ${r.tcoYears} ${pluralRu(r.tcoYears, ["год", "года", "лет"])}`, tone: r.tcoDeltaVsAsIsRub < 0 ? "good" : "bad" };
     case "sim":
       return { text: simCellText(ctx.sim), muted: !ctx.sim };
     case "risks":
@@ -221,9 +221,9 @@ function RisksCell({ risks, print, mln = false }: { risks: readonly Risk[]; prin
 export function ScenarioTable({
   results,
   sim = {},
-  tcoYears,
   recommendedKey,
   norms = DEFAULT_NORMS,
+  scenarioNormOverrides = {},
   print = false,
   readOnly = false,
   mln = false,
@@ -233,11 +233,12 @@ export function ScenarioTable({
   /** Сводки имитации по ключу сценария; null или нет ключа — имитацией не проверялся. */
   sim?: Readonly<Record<string, SimSummaryStored | null>>;
   /** Горизонт TCO, лет (T = max(H, минимальный горизонт TCO)). */
-  tcoYears: number;
+  tcoYears?: number;
   /** Рекомендуемый сценарий из вывода (Conclusion.recommendedScenarioKey); не передан — то же правило здесь. */
   recommendedKey?: string | null;
   /** Нормативы — границы интервалов окупаемости для строки «Интерпретация». */
   norms?: Pick<NormValues, "paybackBandFastYears" | "paybackBandSlowYears">;
+  scenarioNormOverrides?: Readonly<Record<string, ScenarioSpec["normOverrides"]>>;
   /** Вариант для отчёта: без раскрывающихся элементов. */
   print?: boolean;
   /** Только чтение (гость, чужой снимок): отказ не зовёт к кнопкам исправления. */
@@ -250,9 +251,12 @@ export function ScenarioTable({
   const recKey = pickRecommended(recommendedKey === undefined ? results : results.filter((r) => r.key === recommendedKey))?.key ?? null;
   const rowCount = SCENARIO_ROWS.length;
   const colClass = (key: string) => cn(key === recKey && "bg-primary/5");
+  const periods = new Set(results.filter((r): r is ScenarioOk => r.status === "ok").map(r => r.tcoYears));
+  const commonTcoYears = periods.size === 1 ? [...periods][0]! : null;
 
   return (
     <div className="data-table-wrap">
+      {periods.size > 1 && <p className="pb-3 text-sm text-muted-foreground">Периоды TCO различаются и указаны в каждой ячейке. Абсолютные суммы за разные сроки напрямую несопоставимы; изменение TCO каждого сценария рассчитано к базе за его срок.</p>}
       <table className="print-table w-full border-collapse text-sm">
         <caption className="sr-only">Сравнение сценариев: показатели по столбцам сценариев</caption>
         <thead className="border-b border-border">
@@ -284,7 +288,7 @@ export function ScenarioTable({
           {SCENARIO_ROWS.map((row, ri) => (
             <tr key={row.key}>
               <th scope="row" className={`${TD} text-left font-normal text-muted-foreground whitespace-nowrap`}>
-                {scenarioRowLabel(row.key, tcoYears)}
+                {scenarioRowLabel(row.key, commonTcoYears)}
               </th>
               {results.map((r) => {
                 if (r.status === "refused") {
@@ -301,7 +305,8 @@ export function ScenarioTable({
                     </td>
                   );
                 }
-                const c = scenarioCell(row.key, r, { sim: sim[r.key], recommended: r.key === recKey, bands: norms, money: mln ? formatMlnRub : undefined });
+                const bands = resolveNorms(undefined, { ...norms, ...scenarioNormOverrides[r.key] });
+                const c = scenarioCell(row.key, r, { sim: sim[r.key], recommended: r.key === recKey, bands, money: mln ? formatMlnRub : undefined });
                 return (
                   <td
                     key={r.key}

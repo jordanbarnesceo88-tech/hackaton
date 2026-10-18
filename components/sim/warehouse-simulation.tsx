@@ -122,6 +122,7 @@ export function WarehouseSimulation({
           : fresh ? evidence.assessment.headline
           : analytical ? analytical.verdict === "CONFIRMED" ? "Серверная аналитическая 2D-модель: критерии текущего входа выполнены."
             : analytical.verdict === "NOT_CONFIRMED" ? "Серверная аналитическая 2D-модель не подтвердила заданную нагрузку."
+            : analytical.verdict === "NOT_EVALUATED" ? analytical.assessmentReason ?? "Нагрузка не оценена: в пиковом окне не наблюдались клиентские задания."
             : "Серверная аналитическая 2D-модель не поддерживает этот вход."
           : input ? spatial ? "Актуальная пространственная проверка этого входа отсутствует. Выполните расчёт сценария."
             : "Актуальная серверная 2D-сводка этого входа отсутствует. Пересчитайте сценарий."
@@ -131,13 +132,17 @@ export function WarehouseSimulation({
           <div><dt className="text-xs text-muted-foreground">Ещё не начата обработка</dt><dd className="m-0 font-semibold">{formatNum(evidence.summary.queueEnd)} заявок</dd></div>
           <div><dt className="text-xs text-muted-foreground">Ожидание до начала обработки p95</dt><dd className="m-0 font-semibold">{formatNum(evidence.summary.waitP95Min, 1)} мин</dd></div>
         </dl>}
-        {analytical && simWasRun(analytical) && <dl className="grid gap-x-5 gap-y-3 border-y border-border py-3 tabular-nums sm:grid-cols-3" aria-label="Результат аналитической проверки">
+        {analytical && analytical.verdict !== "NOT_EVALUATED" && simWasRun(analytical) && <dl className="grid gap-x-5 gap-y-3 border-y border-border py-3 tabular-nums sm:grid-cols-3" aria-label="Результат аналитической проверки">
           <div><dt className="text-xs text-muted-foreground">Достигнуто / требуется</dt><dd className="m-0 font-semibold">{formatNum(analytical.achievedPerH, 1)} / {formatNum(analytical.requiredPerH, 1)} пал./ч</dd></div>
           <div><dt className="text-xs text-muted-foreground">Максимальная очередь заданий</dt><dd className="m-0 font-semibold">{formatNum(analytical.queueMax)} заявок</dd></div>
           <div><dt className="text-xs text-muted-foreground">Ожидание назначения p95</dt><dd className="m-0 font-semibold">{formatNum(analytical.waitP95Min, 1)} мин</dd></div>
         </dl>}
       </div>
       {input && <p className="text-xs text-muted-foreground">Парк: {input.robots.count} · зарядок: {input.layout.chargers}. Окно: {formatNum(input.demand.peakMin)} мин после {formatNum(input.demand.warmupMin)} мин прогрева; seed {input.seed}.{fresh ? ` Модель ${evidence.simModelVersion}.` : analytical ? ` Модель ${analytical.simModelVersion}.` : ""} {spatial ? "Начало обработки включает подачу носителя для конкретной заявки; завершённые доставки учитываются отдельно." : "Результат относится к аналитическому циклу одиночной перевозки выбранного транспортного процесса."}</p>}
+      {input && <p className="text-xs text-muted-foreground">{input.demand.mix
+        ? `Клиентский поток: приёмка ${formatNum(input.demand.mix.inbound*100,1)} %, отгрузка ${formatNum(input.demand.mix.outbound*100,1)} %, хранение → хранение ${formatNum(input.demand.mix.internal*100,1)} %.`
+        : "Исторический вход: смесь 50/50 приёмки и отгрузки, без внутренних клиентских перемещений."}
+        {input.demand.mix && input.demand.mix.internal>0 ? ` Начальная доля свободных мест — явное допущение ${formatNum((input.demand.storageVacancyShare??0)*100,1)} %. Свободное место выбирается и резервируется при назначении; после переноса домашний адрес того же носителя меняется. Товарный запас не моделируется.` : ""}</p>}
       {spatial && <SpatialPreview stale={stale} readOnly={readOnly} onResult={onSpatialResult} onCreateScenario={onSpatialScenario}
         selection={scenario && variant && input ? { scenarioKey: scenario.key, scenarioName: scenario.name, variantId: "calculated", input,
           ...(variant.provenance ? { provenance: variant.provenance } : {}),

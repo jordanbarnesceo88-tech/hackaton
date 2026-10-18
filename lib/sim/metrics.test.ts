@@ -24,6 +24,9 @@ describe("endQueueLimit", () => {
 });
 
 describe("verdict", () => {
+  it("does not turn zero observed demand into confirmed or oversized capacity", () => {
+    expect(verdict({ ...OK, observedPeakTasks: 0 }, TH)).toEqual({ verdict: "NOT_EVALUATED", oversized: false });
+  });
   it("подтверждён при выполнении всех порогов, включая равенство на границе", () => {
     expect(verdict(OK, TH)).toEqual({ verdict: "CONFIRMED", oversized: false });
     expect(verdict({ ...OK, servedShare: 0.97, waitP95Min: 10, queueEnd: 6 }, TH).verdict).toBe("CONFIRMED");
@@ -152,6 +155,7 @@ describe("summarize и toStored", () => {
         "bottleneck",
         "oversized",
         "minStableFleet",
+        "observedPeakTasks",
         "fleetByNorm",
         "verdictByNorm",
         "durationMs",

@@ -1,0 +1,78 @@
+{
+  "checks": 446,
+  "excelRecalculated": false,
+  "scope": "ExcelJS read-only cached values; independently recomputed NPV/TCO/effect/payback/ROI from exported cashflow inputs, no full spreadsheet recalculation, no simulation or database access",
+  "project": {
+    "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 2
+  },
+  "modelVersion": "tz-1.0.6",
+  "spatialVersion": "warehouse-dense-underlift-1.8.0",
+  "finance": [
+    {
+      "key": "asis",
+      "capex": 0,
+      "opex": 37497600,
+      "effect": 0,
+      "npv": null,
+      "tco": 187488000
+    },
+    {
+      "key": "purchase",
+      "capex": 22605000,
+      "opex": 30214319.27045109,
+      "effect": 7283280.729548909,
+      "npv": 4079992.1238097674,
+      "tco": 173271596.35225546
+    },
+    {
+      "key": "raas",
+      "capex": 1540000,
+      "opex": 34723319.27045109,
+      "effect": 2774280.729548909,
+      "npv": 8460661.152502242,
+      "tco": 175156596.35225546
+    }
+  ],
+  "receipts": {
+    "steady-flow": {
+      "status": "OK",
+      "fleet": 6,
+      "requiredPerH": 51.81818181818181,
+      "achievedPerH": 52,
+      "queueEnd": 2,
+      "waitP95Min": 4.55,
+      "npv": 4079992.1238097674
+    },
+    "peak-overload": {
+      "status": "PARTIAL",
+      "fleet": 6,
+      "requiredPerH": 103.63636363636363,
+      "achievedPerH": 50.5,
+      "queueEnd": 121,
+      "waitP95Min": 61.45,
+      "npv": -21055151.573009025
+    },
+    "retained-staff": {
+      "status": "OK",
+      "fleet": 6,
+      "requiredPerH": 51.81818181818181,
+      "achievedPerH": 52,
+      "queueEnd": 2,
+      "waitP95Min": 4.55,
+      "npv": -60125974.53558995
+    }
+  },
+  "sheets": 13,
+  "sha256": {
+    "calculation-source.json": "66bc2ad03288e1b2a4c7cc44ad9e6a2b2a61fcffab9c0cd5a4a14ae0420fbc91",
+    "sample-report.xlsx": "971f38c857dfbeb83c26f60a18e38731441da68192f308c4666a53d06f626ed4",
+    "sample-report.csv": "a1c7d39c6b4b385386656d31cf2e051ef1323654d575f57117c50525a2c736ae",
+    "sample-report.pdf": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a",
+    "steady-flow-receipt.json": "7ad01db7d2477e813e17cc0a88f8c9ef7596a28f52a9a2ec8e514c4a4ce84aa2",
+    "peak-overload-receipt.json": "91e22be9b54b2ddfbedb2fcdf3a456eced631059f83f1a42845cd8e7fe423419",
+    "retained-staff-receipt.json": "1c24705b60ec27fe2fd1292a745b55b72218bc0ce8be6c78566f66d6a3d4ce87"
+  },
+  "findings": []
+}

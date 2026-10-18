@@ -34,7 +34,7 @@ import { buildProjectModel, storedPartOf, type BuildProjectModelInput, type Proj
 import { normDef, type NormKey, type NormValues } from "@/lib/tz/norms";
 import { sameParamValue } from "@/lib/tz/params/schema";
 import { validateParamValues } from "@/lib/tz/params/validate";
-import { processDef, type ProcessDef } from "@/lib/tz/processes";
+import { isFacilitySlug, processDef, type ProcessDef } from "@/lib/tz/processes";
 import { timed } from "@/lib/tz/timing";
 import type {
   ParamSpec,
@@ -58,6 +58,7 @@ import { NormsPanel, type NormPanelRow, type ScenarioNormKey } from "./norms-pan
 import type { ParamValue } from "./param-field";
 import { ParamsForm } from "./params-form";
 import { ProjectToolbar, RecalcBar } from "./project-toolbar";
+import { workspaceAreaContext } from "./workspace-area";
 import { ScenarioDetails, parseItemOverrideField, type ItemOverrideKind } from "./scenario-details";
 import { ScenarioTable } from "./scenario-table";
 import { SelectionPanel } from "./selection-panel";
@@ -1193,6 +1194,7 @@ export function Workspace({
   const statusText = !calculationReady ? "Предварительные данные: серверный расчёт текущих условий ещё не завершён" : calcStatusText(calc.ms, model);
   const simText = !calculationReady ? null : simStatusText(calc);
   const focusInput = model.simInputs[focusKey]?.calculated;
+  const contextArea = workspaceAreaContext(project.facility, model.paramsUsed, focusInput?.layout.activeAreaM2);
   const archivedLayout = model.runtime?.layouts?.[focusKey] ?? model.layout;
   // Only visited content mounts; section anchors/headings always exist. Visited children stay mounted.
   // Ритм шага: заголовок с вводной — одна группа, дальше блоки шага через 40px; внутри блока
@@ -1248,7 +1250,7 @@ export function Workspace({
         <div className="workspace-context" aria-label="Текущие условия расчёта">
           <dl>
             <div><dt>Сценарий</dt><dd>{focusResult?.name ?? "Не выбран"}</dd></div>
-            <div><dt>Активная зона</dt><dd>{formatNum(focusInput?.layout.activeAreaM2 ?? (Number(model.paramsUsed.activeAreaM2) || 0), 0)} м²</dd></div>
+            <div><dt>{contextArea.label}</dt><dd>{contextArea.areaM2 === null ? "Не задана" : `${formatNum(contextArea.areaM2, 0)} м²`}</dd></div>
             {focusInput && <><div><dt>Роботы / зарядки</dt><dd>{focusInput.robots.count} / {focusInput.layout.chargers}</dd></div>
             <div><dt>Требуемый поток</dt><dd>{formatNum(focusInput.demand.peakPerH, 1)} пал./ч</dd></div></>}
           </dl>
@@ -1484,6 +1486,7 @@ export function Workspace({
               />
               <NormsPanel
                 rows={rows}
+                storageTransfers={project.facility === "warehouse" && (focusInput?.demand.mix?.internal ?? Number(model.paramsUsed.internalPalletMovesPerDay)) > 0}
                 overrides={focusSpec?.normOverrides}
                 onOverride={
                   editable && focusResult.kind !== "asis"
@@ -1527,6 +1530,7 @@ export function Workspace({
           tcoYears={tcoYears}
           recommendedKey={recommendedKey}
           norms={model.normsUsed}
+          scenarioNormOverrides={Object.fromEntries(model.scenarios.map(s => [s.key, s.normOverrides]))}
           readOnly={!editable}
           paramLabels={paramLabels}
         />
@@ -1690,6 +1694,7 @@ export function Workspace({
           getSaveInput={mode === "owner" ? getSaveInput : undefined}
           onSaved={onSaved}
           getCsv={guest && calculationReady && !stale ? getCsv : undefined}
+          getGuestDraft={guest && isFacilitySlug(project.facility) ? () => ({ facility: project.facility as "warehouse" | "airport" | "medical", params, scenarios }) : undefined}
           savedAtText={stored ? formatCalcDate(stored.results.calculatedAt) : null}
         />
         <ChangeLog entries={journal} guest={guest} />

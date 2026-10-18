@@ -1,5 +1,6 @@
 import { routeLengthBetween } from "./routing";
 import type { SimLayout } from "./types";
+import { LEGACY_DEMAND_MIX, type DemandMix } from "./demand-mix";
 
 /**
  * Аналитическое среднее плечо и производительность робота по циклу на планировке объекта.
@@ -11,7 +12,7 @@ import type { SimLayout } from "./types";
  */
 
 /** Среднее плечо цикла, м: с грузом и порожнее. */
-export type ExpectedLegs = { loadedM: number; emptyM: number };
+export type ExpectedLegs = { loadedM: number; emptyM: number; physicalLegsPerCustomer?: number };
 
 type Pt = { x: number; y: number };
 
@@ -102,13 +103,18 @@ function avgSlotToSlot(layout: SimLayout): number {
  * Средние считаются по всем парам, без выборки (пары мест хранения — через разложение по
  * проходам, см. `avgSlotToSlot`), поэтому результат точный и детерминированный.
  */
-export function expectedLegsM(layout: SimLayout): ExpectedLegs {
+export function expectedLegsM(layout: SimLayout, mix: Readonly<DemandMix> = LEGACY_DEMAND_MIX): ExpectedLegs {
   const R = layout.receiving;
   const S = layout.shipping;
   const K = layout.slots;
-  const loadedM = 0.5 * avgRoute(layout, R, K) + 0.5 * avgRoute(layout, K, S);
+  const { inbound: a, outbound: b, internal: c } = mix;
+  const kk = avgSlotToSlot(layout);
+  const internalLoaded = K.length > 1 ? kk * K.length / (K.length - 1) : 0;
+  const loadedM = a * avgRoute(layout, R, K) + b * avgRoute(layout, K, S) + c * internalLoaded;
   const emptyM =
-    0.25 * (avgRoute(layout, K, R) + avgSlotToSlot(layout) + avgRoute(layout, S, R) + avgRoute(layout, S, K));
+    mix.inbound === 0.5 && mix.outbound === 0.5 && mix.internal === 0
+      ? 0.25 * (avgRoute(layout, K, R) + kk + avgRoute(layout, S, R) + avgRoute(layout, S, K))
+      : a * (a + c) * avgRoute(layout, K, R) + (b + c) * (a + c) * kk + a * b * avgRoute(layout, S, R) + (b + c) * b * avgRoute(layout, S, K);
   return { loadedM, emptyM };
 }
 

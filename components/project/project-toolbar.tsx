@@ -14,6 +14,7 @@ import { projectInputSizeIssue } from "@/lib/projects/payload-limit";
 import { useDurableCalculation } from "./use-durable-calculation";
 import { CalculationJobStatus } from "./calculation-job-status";
 import { formatCalcDate } from "@/lib/report/tz/rows";
+import { guestDraftRoute, storeGuestDraft, type GuestDraftInput } from "@/lib/projects/guest-draft";
 
 /**
  * Панель действий рабочей области (ТЗ §2.2 шаг 8 — сохранение и отчёт; §3.1.3 — копирование и
@@ -193,6 +194,7 @@ export type ProjectToolbarProps = {
   onSaved?: (result: Extract<SaveProjectResult, { ok: true }>, input: SaveProjectInput) => void;
   /** Гостевой CSV: текст файла (с BOM) и имя. */
   getCsv?: () => { csv: string; fileName: string };
+  getGuestDraft?: () => GuestDraftInput;
   /** Момент последнего сохранения (ISO) — строка «Сохранённая версия: …». */
   savedAtText?: string | null;
 };
@@ -210,6 +212,7 @@ export function ProjectToolbar({
   getSaveInput,
   onSaved,
   getCsv,
+  getGuestDraft,
   savedAtText,
 }: ProjectToolbarProps) {
   const hintId = useId();
@@ -276,13 +279,19 @@ export function ProjectToolbar({
           <Button type="button" variant="outline" onClick={downloadCsv} disabled={!getCsv}>
             CSV
           </Button>
-          <Link href="/login" className={buttonVariants({ variant: "default" })}>
+          <Button type="button" disabled={!getGuestDraft} onClick={() => {
+            try {
+              if (!getGuestDraft) return;
+              const nonce = storeGuestDraft(getGuestDraft());
+              window.location.assign(guestDraftRoute("/login", nonce));
+            } catch (e) { setCsvNote(e instanceof Error ? e.message : "Не удалось перенести черновик. Разрешите хранилище вкладки и повторите."); }
+          }}>
             Войти, чтобы сохранить проект
-          </Link>
+          </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Гостевой расчёт не сохраняется: CSV собирается из того, что на экране. Сохранение проекта, отчёт для печати
-          (PDF) и Excel — после входа.
+          В этой вкладке на 30 минут сохранятся параметры, сценарии и план пилота. После входа подтвердите создание проекта:
+          сервер заново проверит ввод и выполнит расчёт. CSV доступен по текущему результату; PDF и Excel — из сохранённого проекта.
         </p>
         <p role="status" aria-live="polite" className="text-xs text-muted-foreground [&:empty]:hidden">
           {csvNote ?? ""}

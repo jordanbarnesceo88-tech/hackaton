@@ -1,63 +1,156 @@
 {
-  "scope": "Local current submission; documentary, source/export and browser proofs only. No global claim that every requirement or deployment is complete.",
+  "scope": "Local current release. Source, calculation, export and page checks have separate boundaries; no blanket acceptance of every requirement or deployment.",
+  "versions": {
+    "economics": "tz-1.0.6",
+    "analytical": "sim-1.2.0",
+    "spatial": "warehouse-dense-underlift-1.8.0"
+  },
+  "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+  "unit": {
+    "status": "PASS",
+    "filesPassed": 180,
+    "testsPassed": 1942,
+    "testsTotal": 1942,
+    "scope": "Полный прогон 18.10.2026 в 19:33:42, длительность 91,86 с. Проверки относятся к текущим исходникам и fingerprint движка после уточнения метрики пилота; это не натурная валидация."
+  },
   "database": {
-    "statement": "Полный повторный прогон на изолированной PostgreSQL: 9 файлов, 150/150 тестов PASS, код выхода 0. Проверены в том числе публикация, отмена, конфликты редакций и отбрасывание поддельного подтверждения; это не нагрузочный тест.",
-    "slideStatement": "PostgreSQL: 9 файлов, 150/150 тестов PASS; публикация, отмена, конфликты редакций и проверка поддельных подтверждений.",
+    "statement": "Полный прогон текущего fingerprint на отдельной PostgreSQL: 9 файлов, 150/150 тестов PASS, код выхода 0. Начало 18.10.2026 в 19:32:47, длительность 541,68 с. Проверены публикация, отмена, revision/CAS и поддельные подтверждения; это не нагрузочный тест.",
+    "slideStatement": "PostgreSQL: 9 файлов, 150/150 тестов PASS на текущем fingerprint; изолированный прогон, без утверждения о нагрузочной мощности.",
+    "previousEngineFullRun": {
+      "filesPassed": 9,
+      "testsPassed": 150,
+      "testsTotal": 150,
+      "durationSeconds": 526.68,
+      "localStart": "2026-10-18 19:02:48",
+      "engineRelease": "alfa-robot/sha256:b70613a3bf01f6086c78c7da9ad95ba88dba83bbee8e53b4d62b29d6bb54ae19/alfa-durable-calculation-1"
+    },
     "postFixFullRun": {
       "filesPassed": 9,
       "testsPassed": 150,
       "testsTotal": 150,
       "exitCode": 0,
-      "durationSeconds": 506.05,
-      "localStart": "2026-10-18 18:03:43",
-      "localEnd": "2026-10-18 18:12:09",
-      "isolatedDatabasePort": 55434,
-      "engineRelease": "alfa-robot/sha256:3766b27f13a6d739a8af0a1afbf21fecd5f2bcd0d75e1bf2be7f0bd80dfb2d89/alfa-durable-calculation-1",
-      "warnings": "Two pg client.query deprecation warnings; no errors"
-    },
-    "history": "Earlier full run 144/146; outdated raw-scenario equality test contract corrected. A later historical test-driver null diagnostic was not reproduced and is not described as a production-worker fix."
+      "durationSeconds": 541.68,
+      "localStart": "2026-10-18 19:32:47",
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    }
   },
+  "pilot": "Текущий браузерный тест пилота на fingerprint e937 прошёл за 23,1 с: CALCULATE, SAVE, повторное открытие, отчёт, XLSX и CSV, включая уточнённую p95-метрику. Это проверка планирования и передачи данных, не результат натурного пилота.",
+  "sourcePublication": {
+    "project": {
+      "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
+      "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+      "revision": 2
+    },
+    "operation": {
+      "id": "cmvdxh13f000101plss0hkvzk",
+      "kind": "SAVE",
+      "status": "SUCCEEDED",
+      "publication": "PUBLISHED",
+      "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1"
+    },
+    "scope": "Actual CREATE followed by SAVE revision0→1, then SAVE revision1→2 after final metric text correction. Exported report formats use revision2."
+  },
+  "sourceChecks": {
+    "fullEslint": "PASS: полный заключительный прогон после изменений тестов, 0 ошибок и 0 предупреждений.",
+    "fullTypeScriptNoEmit": "PASS: полный заключительный прогон после изменений тестов, код выхода 0.",
+    "workerSmoke": "PASS: actual e937 durable CALCULATE with stored finance/simulation and cleanup."
+  },
+  "browser": "Текущий образец сохранён и выгружен; проектный пространственный повтор выполнен. Дополнительно прошли 4 гостевых/пилотных E2E за 57,6 с и 4 маршрутных E2E за 2,4 мин. Это проверенные пути, а не универсальная проверка интерфейса.",
   "pdfVisual": {
+    "status": "PASS",
+    "authorAllCurrentReportPagesPersonallyViewed": true,
+    "authorReportPages": 31,
+    "finalProofPdfSha256": {
+      "presentation": "233c46c386bd8801f8369abe4062cd736a58faef4a0c52d11e111acee1b59c4e",
+      "documentation": "69863381956bdd72b2bf738f83ff17424590271cfad2948ea429f81ca117ca3e",
+      "sample-report": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a"
+    },
+    "independentInitialContentLayout": {
+      "status": "PASS",
+      "pages": 64,
+      "personallyViewedAllContactPages": true,
+      "targetedFullSize": [
+        "documentation14",
+        "documentation17",
+        "documentation18",
+        "report5",
+        "report28"
+      ],
+      "scope": "Independent current 15-slide presentation,18-page documentation and31-page fresh report content/layout inspection; final reprinted proof dates still require targeted review",
+      "sha256": {
+        "presentation": "d76634ca9a5adc5856ca9db836d65b8543ae73071d9404a12005c2468cbd3ec7",
+        "documentation": "17cdfe88c6af71097a35a3a4ee056b9bb828309f70ee453e4ff7f583601ed173",
+        "sample-report": "e6a541bf86c409f45831425eabe71d02efbe2f365d177feebc5b53c4790c9d9a"
+      }
+    },
     "pages": {
-      "presentation": 12,
-      "documentation": 13,
+      "presentation": 15,
+      "documentation": 18,
       "sample-report": 31
     },
     "authorAllPagesPersonallyViewed": true,
-    "independentAllInitial56PagesViewed": true,
-    "independentPresentation5and6Documentation8and13": "PASS after correction",
-    "independentFinalReport10and24and28": "PASS; final report pages 10,11,24,28,29 personally viewed, 31 pages outsideBounds0",
-    "automatedBounds": "56 pages, zero blank pages and zero text blocks outside page bounds",
-    "independentProofPagesAfterDb150": "PASS: final presentation page 12 and documentation page 13 personally viewed; exact current PDF SHA checked; no layout defects",
-    "finalProofPdfSha256": {
-      "presentation": "9bf28b0ec68cef310936769196f5e8736ac8673e1df73485b16584b6a44c7047",
-      "documentation": "d85ea44b572ff31f4ca2b3c8b0cae59e268d7fbbad008ff8262b6b1b1f157383",
-      "sample-report": "adb5c89fdcdc13749d46ed5b67c01f54bb4bacd82b29d4a35f8a8633f8a1a0b8"
-    }
+    "independentAllInitial64PagesViewed": true,
+    "independentFinalTargetedPages": {
+      "status": "PASS",
+      "pages": [
+        "presentation7",
+        "presentation8",
+        "presentation15",
+        "documentation14"
+      ],
+      "scope": "Personally inspected final updated scene and proof pages against current logs; previous complete64-page content/layout review also applies. No claim of universal whole-product acceptance."
+    },
+    "rootFinalTargetedReview": "PASS: final presentation15/documentation14 personally viewed and PDF proof text reconciled with current unit/DB evidence."
   },
   "numbers": {
-    "independentExportChecks": 445,
-    "scope": "Final actual SAVE revision 1: JSON/CSV/cached XLSX 445/445 PASS, PDF numeric/version text 19/19 PASS; 31-page PDF SHA checked; physical summary and purchase NPV unchanged",
+    "status": "PASS",
     "qualifiedFleet": 6,
     "qualifiedChargers": 2,
-    "physicalVersion": "warehouse-dense-underlift-1.7.2",
-    "achievedPerH": 52,
-    "requiredPerH": 51.81818181818181,
+    "fleet": 6,
     "queueEnd": 2,
     "waitP95Min": 4.55,
+    "achievedPerH": 52,
+    "requiredPerH": 51.81818181818181,
     "purchaseNpvRub": 4079992.1238097674,
+    "independentExportChecks": 446,
     "independentPdfTextChecks": 19,
-    "finalRevision": 1,
-    "excelRecalculation": "Not performed by Excel; cached workbook values independently reconciled with annual cashflow arithmetic and source JSON"
+    "sourceProof": "export-verification.json",
+    "pdfTextProof": "report-text-verification.json",
+    "scope": "Сверены JSON, CSV, cached XLSX и независимая арифметика годовых денежных потоков; 446/446 проверок PASS. Дополнительно 19/19 текстовых проверок PDF. Excel не выполнял полный пересчёт; визуальная приёмка страниц учитывается отдельно.",
+    "finalRevision": 2,
+    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+    "pilotCriterionScope": "PDF default unpersisted plan only; this sample has no saved pilotPlan, so CSV/XLSX do not claim pilot-criteria export coverage."
   },
-  "pilot": "Actual numeric/persistence/export test on spatial 1.7.1; not claimed repeated on 1.7.2",
-  "sourcePublication": "Actual CREATE, followed by actual SAVE; same persistent project revision 0 to 1; generated exports use revision 1",
-  "externalPublication": "Not performed or certified by this package",
-  "sourceChecks": {
-    "fullEslint": "PASS: 0 errors and 0 warnings",
-    "fullTypeScriptNoEmit": "PASS: exit 0",
-    "current3dBundles": "PASS: both current generated bundles checked",
-    "snapshotReadRegression": "PASS: 2 targeted tests",
-    "unit": "Earlier full source run: 173 files / 1903 tests PASS; not relabelled as a new full rerun"
+  "externalPublication": "No claim of updated external deployment from a local package.",
+  "load": "Historical 50-user read/form run is not a load test of the current worker queue.",
+  "pilotVerification": {
+    "status": "PASS",
+    "physicalVersion": "warehouse-dense-underlift-1.8.0",
+    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+    "durationSeconds": 23.1,
+    "test": "e2e/pilot-project.spec.ts",
+    "scope": "Current e937 CALCULATE, SAVE, reopen, report, XLSX, CSV and p95 metric assertions; no physical-site measurements"
+  },
+  "additionalBrowserProof": {
+    "engineRelease": "alfa-robot/sha256:e93778fe5fba04d607f294d191f401a01aa6ffef8500454fd92440f541df1413/alfa-durable-calculation-1",
+    "guestAndPilot": {
+      "passed": 4,
+      "durationSeconds": 57.6,
+      "scope": "Salary/scenario/pilot/auth handoff; cancellation/back/refresh/retry; actual unique-account signup without automatic CREATE; current persisted pilot/export criteria."
+    },
+    "routes": {
+      "passed": 4,
+      "durationMinutes": 2.4,
+      "scope": "Actual current facility routes and canonical project bridge"
+    },
+    "landing": {
+      "screenshots": 8,
+      "independentPersonallyViewed": true,
+      "scope": "Actual desktop/mobile light/dark composed landing screenshots; no universal responsive or accessibility certification"
+    },
+    "spatialVisual": {
+      "status": "PASS",
+      "scope": "Root and independent physical critic personally inspected20screens of5diagnostic presets plus4current default N6/C2screens and targeted full/empty/internal/incident/replay cases. This is a model visual/functional check, not measured site capacity or industrial safety certification."
+    }
   }
 }

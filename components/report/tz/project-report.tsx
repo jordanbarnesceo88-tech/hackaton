@@ -667,6 +667,7 @@ function EconomicsSection({ results, defs }: { results: ProjectResults; defs: re
         tcoYears={tcoYears}
         recommendedKey={results.conclusion.recommendedScenarioKey}
         norms={norms}
+        scenarioNormOverrides={Object.fromEntries(results.scenarios.map(s => [s.key, s.normOverrides]))}
         paramLabels={paramLabels}
         print
         readOnly

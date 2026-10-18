@@ -120,7 +120,11 @@ export function frameOf(state: SimEngineState) {
   return {
     tS: state.tS, endS: state.endS, warmupS: state.warmupS, robots,
     carriers: frameCarriers(state as UnderliftState),
-    inventory: { goodsInventoryModelled: false, totalPods: (state as UnderliftState).demoUnderlift?.pods.length ?? 0, parkedPods: (state as UnderliftState).demoUnderlift?.pods.filter(p => p.phase === "parked").length ?? 0, internalPending: state.tasks.filter(t => t.countsTowardDemand === false && t.startS === null).length, internalActive: state.robots.filter(r => r.task?.countsTowardDemand === false).length, physicalTasksDone: state.physicalDoneCount ?? state.doneCount },
+    inventory: { goodsInventoryModelled: false, totalPods: (state as UnderliftState).demoUnderlift?.pods.length ?? 0, parkedPods: (state as UnderliftState).demoUnderlift?.pods.filter(p => p.phase === "parked").length ?? 0, internalPending: state.tasks.filter(t => t.countsTowardDemand === false && t.startS === null).length, internalActive: state.robots.filter(r => r.task?.countsTowardDemand === false).length, physicalTasksDone: state.physicalDoneCount ?? state.doneCount,
+      customerStoragePending: state.tasks.filter(t => t.kind === "internal" && t.countsTowardDemand !== false && t.startS === null).length,
+      customerStorageActive: state.robots.filter(r => r.task?.kind === "internal" && r.task.countsTowardDemand !== false).length,
+      vacantStorageLocations: (state as UnderliftState).demoUnderlift?.vacantHomes?.length ?? 0,
+      initialStorageVacancyShare: state.input.demand.storageVacancyShare ?? 0 },
     // Observation time is distinct from the interpolated display clock.
     provenance: { source: "simulation" as const, observedAtS: state.tS, stepS: 1, coordinateFrame: "site-metres" as const, positionSource: "model" as const, routeSource: "planned" as const },
     points: state.points.map(({ id, x, y, kind, holder, queue }) => ({ id, x, y, kind, busy: holder !== null, holder, queue: [...queue] })),

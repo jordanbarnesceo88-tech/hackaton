@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/client";
 import { hashPassword, passwordByteLength, MAX_PASSWORD_BYTES } from "@/lib/auth/password";
 import { rateLimit, clientIp } from "@/lib/auth/rate-limit";
 import { signIn, signOut } from "@/auth";
+import { guestDraftAuthDestination } from "@/lib/projects/guest-draft";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -61,7 +62,7 @@ export async function signUpAction(
   // Туда же, куда ведёт вход: «Мои проекты» — начало пути по ТЗ §5.4 («создать проект»).
   // Прежде регистрация вела в /onboarding — мастер модели v1, которая в путь жюри не входит,
   // и только что зарегистрированный человек оказывался не в той модели, что после входа.
-  await signIn("credentials", { email, password, redirectTo: "/projects" });
+  await signIn("credentials", { email, password, redirectTo: guestDraftAuthDestination(formData.get("guestDraft")) });
   return { error: null };
 }
 

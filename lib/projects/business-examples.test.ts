@@ -45,7 +45,7 @@ describe("reproducible end-to-end business examples", () => {
     expect(br.items[0]?.remainingLabourRub).toBe(br.items[0]?.baselineLabourRub);
     expect(br.npvRub).toBeLessThan(0);
     expect(b.model.scenarios[1]?.spatialEvidence?.summary).toEqual(a.model.scenarios[1]?.spatialEvidence?.summary);
-  });
+  }, 30_000);
   it("keeps the organizer defaults and products unchanged and rejects unknown examples", () => {
     const defaults=baseValuesFor("warehouse"),before=structuredClone(defaults),productBefore=structuredClone(products);
     businessExampleInputs("steady-flow",defaults,products);

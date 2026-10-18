@@ -132,7 +132,7 @@ describe("cooperative server calculation", () => {
     const actual = await resultsFromInputsAsync(live, input, { spatialBudgetMs: 0 });
     expect(actual.results.scenarios.filter(s=>s.spatialEvidence).every(s=>s.spatialEvidence!.assessment.status === "NOT_EVALUATED")).toBe(true);
     expect(actual.results.conclusion.recommendedScenarioKey).not.toBe("p1");
-    expect(actual.results.results.find(r=>r.key==="p1")!.risks.some(r=>r.code==="SIM_NOT_CONFIRMED")).toBe(true);
+    expect(actual.results.results.find(r=>r.key==="p1")!.risks.some(r=>r.code==="SIM_NOT_EVALUATED")).toBe(true);
   });
 
   it("admits only two calculations and releases every slot after error and abort", async () => {

@@ -75,12 +75,15 @@ export function minStableFleet(
   const hi = Math.min(SIM_LIMITS.maxRobots, Math.floor(range.max));
   const budgetMs = opts.budgetMs ?? 60_000;
   const t0 = opts.now ? opts.now() : 0;
-  return firstTrue(lo, hi, (n) => {
+  for (let n = lo; n <= hi; n++) {
     if (opts.signal?.aborted) throw abortError();
     const left = opts.now ? budgetMs - (opts.now() - t0) : budgetMs;
     if (!(left > 0)) throw budgetError(budgetMs);
-    return runSimSync(withFleet(input, n), { now: opts.now, budgetMs: left, signal: opts.signal }).verdict === "CONFIRMED";
-  });
+    const summary = runSimSync(withFleet(input, n), { now: opts.now, budgetMs: left, signal: opts.signal });
+    if (summary.verdict === "NOT_EVALUATED") return null;
+    if (summary.verdict === "CONFIRMED") return n;
+  }
+  return null;
 }
 
 /** Async server equivalent: same ascending prefix, yielding within every candidate run. */
@@ -91,6 +94,7 @@ export async function minStableFleetAsync(input: SimInput, range: { min: number;
     // Even short candidate runs must not form an uninterrupted chain of resolved microtasks.
     await opts.yieldFn?.();
     const summary = await runSim(withFleet(input, n), { ...opts, budgetMs: Math.max(0, deadline - opts.now()) });
+    if (summary.verdict === "NOT_EVALUATED") return null;
     if (summary.verdict === "CONFIRMED") return n;
   }
   return null;

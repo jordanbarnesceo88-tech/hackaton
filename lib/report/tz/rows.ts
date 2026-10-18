@@ -278,6 +278,7 @@ export function simCellText(s: SimSummaryStored | null | undefined): string {
   if (!s) return "—";
   if (s.verdict === "CONFIRMED") return s.oversized ? "✓ подтверждено (парк избыточен)" : "✓ подтверждено";
   if (s.verdict === "NOT_CONFIRMED") return `✗ не подтверждено: ${BOTTLENECK_LABELS[s.bottleneck]}`;
+  if (s.verdict === "NOT_EVALUATED") return s.assessmentReason ?? "Нагрузка не оценена: нет наблюдавшихся клиентских заданий";
   return "—";
 }
 
@@ -294,6 +295,7 @@ export function risksCellText(r: ScenarioResult): string {
 export function verdictCellText(r: ScenarioResult, recommendedKey: string | null): string {
   if (r.status === "refused") return "Не рассчитан";
   if (r.kind === "asis") return "База сравнения";
+  if (r.risks.some(risk => risk.code === "SIM_NOT_EVALUATED")) return "Нагрузка не оценена; финансовый расчёт — только для сравнения";
   if (simulationFailure(r)) return "Не подтверждена нагрузка; финансовый расчёт — только для сравнения";
   if (recommendedKey !== null && r.key === recommendedKey && isViableScenario(r)) return "★ Предварительный финансовый выбор";
   return isViableScenario(r) ? "Предварительно окупается (NPV ≥ 0); сравните условия применения" : "Не окупается за горизонт расчёта";

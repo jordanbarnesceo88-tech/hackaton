@@ -7,6 +7,7 @@ import { validateSiteLayout } from "./site-layout";
 import { queueLength } from "./state";
 import type { SimEngineState, SimPointState, SimPrecheck, SimRobot, SimTask } from "./state";
 import type { SimInput } from "./types";
+import { demandMixOf, validDemandMix } from "./demand-mix";
 
 /** Optional caller-owned motion reservation. Omitted by the production calculation. */
 export type SimMovementGate = (state: SimEngineState, robot: SimRobot, nextDistM: number) => boolean | number;
@@ -104,7 +105,9 @@ function precheckOf(input: SimInput, count: number, chargeModelled: boolean): Si
     // Пустое пиковое окно подтвердило бы что угодно: заданий нет — «всё обслужено».
     Number.isFinite(d.peakMin) &&
     Math.round(d.peakMin * 60) > 0 &&
-    !(expectedTasks(d) > SIM_LIMITS.maxExpectedTasks);
+    !(expectedTasks(d) > SIM_LIMITS.maxExpectedTasks) &&
+    (d.mix === undefined || validDemandMix(d.mix)) &&
+    (d.storageVacancyShare === undefined || Number.isFinite(d.storageVacancyShare) && d.storageVacancyShare >= 0 && d.storageVacancyShare <= 0.9);
   if (
     count < 1 ||
     count > SIM_LIMITS.maxRobots ||
@@ -137,7 +140,8 @@ export function createSim(input: SimInput): SimEngineState {
   const endS = warmupS + Math.round(nonNegative(input.demand.peakMin) * 60);
   const count = requestedFleet(input);
   const chargeModelled = isPositive(input.robots.autonomyH) && isPositive(input.robots.chargeMin);
-  const precheck = invalidSite ? "invalid" : precheckOf(input, count, chargeModelled);
+  const precheck = invalidSite || demandMixOf(input.demand).internal > 0 && layout.slots.length < 2
+    ? "invalid" : precheckOf(input, count, chargeModelled);
 
   const points: SimPointState[] = [...layout.receiving, ...layout.shipping, ...layout.chargers].map((p) => ({
     ...p,
@@ -210,15 +214,17 @@ function bucketOf(s: SimEngineState, t: number): number {
   return Math.floor((t - s.warmupS) / BUCKET_S);
 }
 
-/** Новое задание: вид 50/50, место хранения и ворота — равномерно (три розыгрыша всегда). */
+/** Three draws preserve legacy balanced seeds; new inputs carry the customer's actual mix. */
 function addTask(s: SimEngineState, rand: () => number, t: number, inWin: boolean): void {
   const { slots, receiving, shipping } = s.layout;
-  const inbound = rand() < 0.5;
-  const slot = slots[Math.floor(rand() * slots.length)]!;
+  const mix = demandMixOf(s.input.demand), kindDraw = rand();
+  const kind = kindDraw < mix.inbound ? "inbound" : kindDraw < mix.inbound + mix.outbound ? "outbound" : "internal";
+  const homes = s.storageCarriers ?? slots;
+  const slotIndex = Math.floor(rand() * homes.length), slot = homes[slotIndex]!;
   const dockDraw = rand();
   let task: SimTask;
   const taskId = s.nextDemandTaskId === undefined ? s.tasks.length : s.nextDemandTaskId++;
-  if (inbound) {
+  if (kind === "inbound") {
     const di = Math.floor(dockDraw * receiving.length);
     const dock = s.points[di]!;
     task = {
@@ -234,7 +240,7 @@ function addTask(s: SimEngineState, rand: () => number, t: number, inWin: boolea
       startS: null,
       doneS: null,
     };
-  } else {
+  } else if (kind === "outbound") {
     const di = receiving.length + Math.floor(dockDraw * shipping.length);
     const dock = s.points[di]!;
     task = {
@@ -250,7 +256,15 @@ function addTask(s: SimEngineState, rand: () => number, t: number, inWin: boolea
       startS: null,
       doneS: null,
     };
+  } else {
+    const sourceIndex = slots.findIndex(p => p.x === slot.x && p.y === slot.y);
+    const targetIndex = Math.floor(dockDraw * (slots.length - 1));
+    const target = slots[targetIndex >= sourceIndex ? targetIndex + 1 : targetIndex]!;
+    task = { id: taskId, kind: "internal", fromPoint: -1, fromX: slot.x, fromY: slot.y,
+      toPoint: -1, toX: target.x, toY: target.y, storageDestinationDraw: dockDraw,
+      arrivalS: t, startS: null, doneS: null };
   }
+  if ("podId" in slot && typeof slot.podId === "string") task.podId = slot.podId;
   s.tasks.push(task);
   if (inWin) {
     const b = bucketOf(s, t);

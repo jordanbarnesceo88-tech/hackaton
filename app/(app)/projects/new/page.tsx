@@ -3,7 +3,9 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { NewProjectForm } from "@/components/project/new-project-form";
 import { stepHeading } from "@/components/project/step-nav";
-import { requireUser } from "@/lib/auth/guards";
+import { getSessionUser } from "@/lib/auth/guards";
+import { redirect } from "next/navigation";
+import { guestDraftNonce, guestDraftRoute } from "@/lib/projects/guest-draft";
 import { isFacilitySlug } from "@/lib/tz/processes";
 
 export const metadata: Metadata = { title: "Новый проект — Платформа оценки роботизации" };
@@ -18,8 +20,9 @@ export default async function NewProjectPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await connection();
-  await requireUser();
   const sp = await searchParams;
+  const nonce = guestDraftNonce(sp.guestDraft);
+  if (!await getSessionUser()) redirect(guestDraftRoute("/login", nonce));
   const facility = typeof sp.facility === "string" && isFacilitySlug(sp.facility) ? sp.facility : "warehouse";
 
   return (
@@ -34,7 +37,10 @@ export default async function NewProjectPage({
           рабочей области проекта. Расчёт выполняется на сервере: можно закрыть страницу и вернуться к результату позже.
         </p>
       </div>
-      <NewProjectForm defaultFacility={facility} />
+      {sp.guestDraft !== undefined && !nonce ? <section className="grid gap-3 rounded border border-border p-4">
+        <p role="alert">Ссылка на гостевой черновик некорректна. Вернитесь к демо в исходной вкладке и повторите вход из расчёта.</p>
+        <Link href="/projects/new" className="tap-target underline">Создать проект без черновика</Link>
+      </section> : <NewProjectForm key={nonce ?? "new"} defaultFacility={facility} guestDraftNonce={nonce} />}
       <p className="border-t pt-4 text-sm text-muted-foreground">
         <Link href="/projects" className="tap-target underline underline-offset-2 hover:text-foreground">
           К списку проектов

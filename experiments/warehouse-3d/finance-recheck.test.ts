@@ -43,7 +43,12 @@ describe("chosen fleet to canonical finance verification", () => {
     expect(purchase.npvRub).toBeGreaterThan(0);
     expect(evidence.sourceInputKey).toBe(simInputIdentity(input));
     expect(results.sim.purchase).toMatchObject({ fleet: 6, verdict: "CONFIRMED", achievedPerH: evidence.summary.achievedPerH });
-  });
+    const standalone = calculateCase("steady-flow");
+    expect(simInputIdentity(standalone.financialSourceInput!)).toBe(evidence.sourceInputKey);
+    expect(standalone.input).toMatchObject({ demoIncidents: { enabled: false }, layout: { chargers: 2 } });
+    expect(standalone.assessment.status).toBe(evidence.assessment.status);
+    expect(standalone.summary).toMatchObject(evidence.summary);
+  }, 30_000);
 
   it("rechecks a comparison candidate before using its N/C in the shared financial engine", async () => {
     // This identity/recheck test needs a terminal run, not the full capacity proof above.

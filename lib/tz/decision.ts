@@ -35,7 +35,7 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   const excessiveQueue = measured !== null && measured.queueEnd > endQueueLimit(measured.requiredPerH);
   if (measured) {
     partialFacts.push(`Завершённые перевозки: ${formatNum(measured.achievedPerH, 1)} из ${formatNum(measured.requiredPerH, 1)} пал./ч.`);
-    if (excessiveWait) partialFacts.push(`Ожидание назначения p95: ${formatNum(measured.waitP95Min, 2)} мин при пределе ${formatNum(evidence!.input.thresholds.p95WaitMaxMin, 2)} мин.`);
+    if (excessiveWait) partialFacts.push(`Ожидание до начала обработки p95: ${formatNum(measured.waitP95Min, 2)} мин при пределе ${formatNum(evidence!.input.thresholds.p95WaitMaxMin, 2)} мин.`);
     if (excessiveQueue) partialFacts.push(`Очередь в конце: ${formatNum(measured.queueEnd, 0)} при пределе ${formatNum(endQueueLimit(measured.requiredPerH), 2)}.`);
   }
   const spatialState = !evidence ? "none" : fresh ? "fresh" : stale || evidenceStale || expectedInput ? "stale" : "unverified";
@@ -97,7 +97,7 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
     status = "partial";
     headline = insufficientOutput ? "Измеренный выпуск ниже заданного потока"
       : excessiveWait && excessiveQueue ? "Заданный выпуск достигнут; превышены ожидание и очередь"
-      : excessiveWait ? "Заданный выпуск достигнут; превышено ожидание назначения"
+      : excessiveWait ? "Заданный выпуск достигнут; превышено ожидание до начала обработки"
       : excessiveQueue ? "Заданный выпуск достигнут; превышена допустимая очередь"
       : "Часть критериев пространственной модели не выполнена";
     nextAction = [...partialFacts, ...(!insufficientOutput && !excessiveWait && !excessiveQueue ? [evidence.assessment.headline] : []),
@@ -105,7 +105,8 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   } else if (!verified) {
     status = "unverified"; headline = verificationKind === "analytical" ? "Финансы рассчитаны; актуальная аналитическая проверка нагрузки отсутствует"
       : spatialState === "stale" ? "Финансы рассчитаны; пространственная проверка устарела" : "Финансы рассчитаны; выполнение нагрузки в 3D ещё не подтверждено";
-    nextAction = verificationKind === "analytical" ? "Повторите серверный расчёт текущих условий и проверьте итог аналитической 2D-имитации в шаге 7."
+    nextAction = verificationKind === "analytical" ? analytical?.assessmentReason ?? "Повторите серверный расчёт текущих условий и проверьте итог аналитической 2D-имитации в шаге 7."
+      : fresh && evidence?.assessment.status === "NOT_EVALUATED" ? simSummary?.assessmentReason ?? evidence.assessment.headline
       : "Проверьте текущий сценарий в 3D с тем же парком, зарядками и нагрузкой.";
   } else if (ok.risks.some(r => r.code === "SIM_NOT_CONFIRMED")) {
     status = "partial"; headline = "Проверки нагрузки расходятся — требуется разбор";

@@ -5,7 +5,7 @@ import { warehouseBaseInput } from "../../lib/sim/fixtures";
 import { prepareWarehouseTraffic } from "./traffic";
 import "./robot-history.js";
 
-type Interval = { startS: number; endS: number; phase: string; taskId: number | null; zoneId: string | null; label: string; loaded: boolean; carrierId?: string | null; carrierContents?: "full" | "empty" | null; underliftStage?: string; countsTowardDemand?: boolean; parentTaskId?: number | null };
+type Interval = { startS: number; endS: number; phase: string; taskId: number | null; zoneId: string | null; label: string; loaded: boolean; carrierId?: string | null; carrierContents?: "full" | "empty" | null; underliftStage?: string; countsTowardDemand?: boolean; parentTaskId?: number | null; reason?: string | null; incidentId?: string | null };
 type Args = { Core: unknown; input: unknown; caseId?: string; robotId?: number | null; kind?: string; signal?: AbortSignal; onProgress?: (pct: number) => void };
 const history = (globalThis as unknown as { createRobotWorkHistory(args: Args): Promise<{ robotId?: number; intervals?: Interval[]; robots?: { robotId: number; intervals: Interval[] }[]; endS: number }> }).createRobotWorkHistory;
 
@@ -19,6 +19,24 @@ function warehouseHistoryInput(minutes: number) {
 }
 
 describe("robot work history", () => {
+  it("splits an otherwise unchanged interval when its wait reason or incident changes", async () => {
+    type SampleState = { tS: number; robots: { id: number; phase: string; safety: { blocked: boolean; reason: string }; incident: { id: string; active: boolean; haltsRobot: boolean } }[] };
+    const engine = {
+      createPlayback: () => ({ tS: 0, robots: [{ id: 0, phase: "toPickup", safety: { blocked: true, reason: "Уступает роботу 3" }, incident: { id: "first", active: false, haltsRobot: false } }] }),
+      stepPlayback(state: SampleState) {
+        state.tS++;
+        if (state.tS === 1) state.robots[0]!.safety.reason = "Перестроен маршрут";
+        if (state.tS === 2) state.robots[0]!.incident.id = "second";
+      },
+      isPlaybackDone: (state: SampleState) => state.tS >= 3,
+    };
+    const result = await history({ Core: engine, input: {}, robotId: 0 });
+    expect(result.intervals!.map(({ startS, endS, phase, reason, incidentId }) => ({ startS, endS, phase, reason, incidentId }))).toEqual([
+      { startS: 0, endS: 1, phase: "trafficWait", reason: "Уступает роботу 3", incidentId: "first" },
+      { startS: 1, endS: 2, phase: "trafficWait", reason: "Перестроен маршрут", incidentId: "first" },
+      { startS: 2, endS: 3, phase: "trafficWait", reason: "Перестроен маршрут", incidentId: "second" },
+    ]);
+  });
   it("records canonical content changes separately from lifting and preserves interval boundaries", async () => {
     const engine = {
       carrierSpec: () => ({ kind: "mobile-rack" }),

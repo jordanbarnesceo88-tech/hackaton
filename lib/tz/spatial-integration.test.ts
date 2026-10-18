@@ -93,7 +93,7 @@ describe("свежесть и сохранение полного доказат
   it.each(["PARTIAL", "FAIL", "NOT_EVALUATED"] as const)("актуальный %s запрещает рекомендацию", status => {
     const model = project(withEvidence(evidence(status)));
     const result = ok(model.results);
-    expect(result.risks.some(r => r.code === "SIM_NOT_CONFIRMED")).toBe(true);
+    expect(result.risks.some(r => r.code === (status === "NOT_EVALUATED" ? "SIM_NOT_EVALUATED" : "SIM_NOT_CONFIRMED"))).toBe(true);
     expect(pickRecommended([result])).toBeNull();
     expect(model.conclusion.recommendedScenarioKey).not.toBe("p1");
   });
@@ -179,7 +179,7 @@ describe("свежесть и сохранение полного доказат
     expect(result.npvRub).toBe(ok(before.results).npvRub);
     expect(result.cashflows).toEqual(ok(before.results).cashflows);
     expect(pickRecommended([result])).toBeNull();
-    const risk = result.risks.find(r => r.code === "SIM_NOT_CONFIRMED")!;
+    const risk = result.risks.find(r => r.code === "SIM_NOT_EVALUATED")!;
     expect(risk.text).toContain("Поток, очередь и ожидание не оценены");
     const decision = buildDecision(storedPartOf(model), "p1", model.simInputs.p1!.calculated);
     expect(decision.status).toBe("unverified");

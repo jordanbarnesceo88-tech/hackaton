@@ -87,7 +87,7 @@ describe("разложение времени", () => {
     }
   });
 
-  it("нулевой спрос — простой 100 %, ничего не поступило, вердикт подтверждён (парк избыточен)", () => {
+  it("нулевой спрос не подтверждает парк: нагрузка не оценена", () => {
     const s = runSimSync(
       warehouseBaseInput(5, {
         robots: { ...H1500_ROBOT, count: 5, autonomyH: null, chargeMin: null },
@@ -97,8 +97,9 @@ describe("разложение времени", () => {
     expect(s.shares.idlePct).toBe(100);
     expect(s.arrivedPeak).toBe(0);
     expect(s.achievedPerH).toBe(0);
-    expect(s.verdict).toBe("CONFIRMED");
-    expect(s.oversized).toBe(true);
+    expect(s.verdict).toBe("NOT_EVALUATED");
+    expect(s.oversized).toBe(false);
+    expect(s.assessmentReason).toContain("не поступило клиентских заданий");
   });
 });
 

@@ -16,7 +16,8 @@ type ReplayReceipt = { evidence: SpatialEvidence; summary: SimRunSummary };
 
 function replaySummary(result: ReturnType<typeof calculateProjectPreview>, sourceInputKey: string, durationMs: number): SimRunSummary {
   return { ...result.summary, inputKey: sourceInputKey, simModelVersion: SPATIAL_MODEL_VERSION, durationMs,
-    verdict: result.assessment.status === "OK" ? "CONFIRMED" : "NOT_CONFIRMED",
+    verdict: result.assessment.status === "OK" ? "CONFIRMED" : result.assessment.status === "NOT_EVALUATED" ? "NOT_EVALUATED" : "NOT_CONFIRMED",
+    ...(result.assessment.status === "NOT_EVALUATED" ? { assessmentReason: result.summary.assessmentReason ?? result.assessment.headline } : {}),
     minStableFleet: null, fleetByNorm: null, verdictByNorm: null };
 }
 
