@@ -16,6 +16,12 @@ import type { OpPoint, RobotPhase, SimLayout, SimState } from "./types";
 /** Задание на перемещение паллеты. */
 export type SimTask = {
   id: number;
+  operation?: "transport" | "prefetch-pod" | "return-pod";
+  countsTowardDemand?: boolean;
+  parentTaskId?: number;
+  podId?: string;
+  /** Goods inventory is not validated by dispatch; this flags an inconsistent content request. */
+  contentsAvailabilityUnverified?: boolean;
   /** inbound — ворота приёмки → место хранения; outbound — место хранения → ворота отгрузки. */
   kind: "inbound" | "outbound";
   /** Индекс точки погрузки в `SimEngineState.points`; −1 — место хранения (без очереди). */
@@ -54,6 +60,13 @@ export type SimRobot = {
   timerS: number;
   /** Точка (индекс в `points`), у которой робот стоит в очереди или работает; −1 — нет. */
   pointIdx: number;
+  underlift?: {
+    podId: string; stage: "approach" | "dock-under" | "close-gap" | "lift" | "extract" | "retreat" | "carry" | "lower" | "retract" | "exit";
+    progress: number; platformTopM: number; podLiftM: number; contactGapM: number; contact: boolean; headingRad: number;
+    entryOffsetM?: number; extractionUntilM?: number; handlingTotalS?: number; routeStage?: "pickup" | "drop" | "exit";
+    /** A real straight reverse recovery, ending at a checked full-turn clearance point. */
+    retreatUntilM?: number;
+  };
 };
 
 /** Точка операции в прогоне: занятость одним роботом и очередь FIFO. */
@@ -123,6 +136,9 @@ export interface SimEngineState extends SimState {
   dispatchQueue?: { indices: number[]; enqueuedThrough: number };
   /** Завершено заданий с начала прогона. */
   doneCount: number;
+  /** Optional physical closed-pool execution counters; external task IDs remain creation ordered. */
+  physicalDoneCount?: number;
+  nextDemandTaskId?: number;
   /** Ворота приёмки, затем ворота отгрузки, затем зарядные станции. */
   points: SimPointState[];
   acc: SimAccumulators;

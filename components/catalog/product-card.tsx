@@ -292,7 +292,7 @@ export function DataQualitySummary({ product }: { product: Detail }) {
  * подписями кнопок, которые e2e v1 ищут строго (список — в плане, раздел «Страницы и UX»).
  */
 export function demoLinkText(facilitySlug: string, facilityName: string): string {
-  return facilitySlug === "warehouse" ? "Открыть в демо-расчёте склада" : `Открыть демо для объекта «${facilityName}»`;
+  return facilitySlug === "warehouse" ? "Общий демо-расчёт склада" : `Общий демо-расчёт: ${facilityName}`;
 }
 
 /**
@@ -301,13 +301,16 @@ export function demoLinkText(facilitySlug: string, facilityName: string): string
  */
 export function DemoLinks({ product }: { product: Detail }) {
   const part = selectionParticipation(product);
-  if (!part.ok) {
-    return <p className="text-sm text-muted-foreground">В подбор демо-расчёта продукт не входит: {part.reason}.</p>;
-  }
   const facilities = product.facilityTypes.filter((f) => ["warehouse", "airport", "medical"].includes(f.slug));
-  if (facilities.length === 0) return null;
+  const exact = part.ok && facilities.some(f => f.slug === "warehouse") && product.processes.some(p => processDef(p.slug)?.calcSupported && processDef(p.slug)?.facilityTypes.includes("warehouse"));
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid min-w-0 gap-3">
+      {exact ? <div><Link href={`/demo?facility=warehouse&product=${encodeURIComponent(product.slug)}`} prefetch={false}
+        aria-label={`Рассчитать ${product.name}: покупка и RaaS`}
+        className={buttonVariants({ size: "lg" })}>Рассчитать это решение</Link>
+        <p className="mt-2 text-xs text-muted-foreground">Покупка и RaaS для выбранного продукта. Применимость к базовым условиям проверяется перед расчётом; другой робот не подставляется.</p></div>
+        : <p className="text-sm text-muted-foreground">{!part.ok ? `В подбор демо-расчёта продукт не входит: ${part.reason}.` : "Расчёт экономики этого продукта для его процессов пока не поддерживается. Общий демо-расчёт не переносит выбор этого решения."}</p>}
+      <div className="flex flex-wrap gap-2">
       {facilities.map((f) => (
         <Link
           key={f.slug}
@@ -318,6 +321,7 @@ export function DemoLinks({ product }: { product: Detail }) {
           {demoLinkText(f.slug, f.name)}
         </Link>
       ))}
+      </div>
     </div>
   );
 }

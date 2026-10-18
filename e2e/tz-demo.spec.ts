@@ -32,15 +32,15 @@ async function expectNoHorizontalScroll(page: Page) {
   expect(scrollWidth, "страница шире окна 1366 px — появилась горизонтальная прокрутка").toBeLessThanOrEqual(clientWidth);
 }
 
-test("демо склада: сценарии в одной таблице, статус расчёта, имитация и PNG", async ({ page }) => {
-  // Имитация в браузере прогоняет все сценарии и подбирает минимальный парк (бюджет 60 с).
+test("демо склада: реальные серверные сценарии и единая пространственная проверка", async ({ page }) => {
   test.setTimeout(150_000);
-  await page.goto("/demo");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Демо-расчёт");
+  await page.goto("/demo?example=steady-flow");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Регулярный поток");
 
   // Шаг 6: базовый сценарий, покупка и услуга — столбцы одной таблицы (ТЗ §2.2 шаг 6, §3.5.5).
   await openStep(page, "6 Сценарии");
   const scenarios = page.locator("#scenarios").getByRole("table", { name: /Сравнение сценариев/ });
+  await expect(scenarios).toBeVisible({ timeout: 90_000 });
   for (const name of ["Как есть", "Покупка — Ronavi H1500", "Услуга (RaaS) — Ronavi H1500"]) {
     await expect(scenarios.getByRole("columnheader", { name }), `столбец «${name}»`).toBeVisible();
   }
@@ -49,40 +49,15 @@ test("демо склада: сценарии в одной таблице, ст
   await expect(page.getByText(/Расчёт выполнен за/).first()).toBeVisible();
   await expectNoHorizontalScroll(page);
 
-  // Шаг 7: имитация подтверждает расчётный парк (ТЗ §3.6.2).
+  // Closed-pod has one spatial receipt; the single-leg diagnostic cannot confirm this workflow.
   await openStep(page, "7 Имитация");
   const sim = page.locator("#simulation");
-  await expect(sim.getByText("Расчёт подтверждён имитацией").filter({ visible: true }).first()).toBeVisible({
-    timeout: 20_000,
-  });
-
-  // Парк по паспортной норме организатора на этой планировке не справляется — это находка,
-  // которую имитация должна показать, а не спрятать.
-  const select = sim.getByLabel("Сценарий и парк");
-  const labels = (await select.locator("option:not([disabled])").allTextContents()).map((s) => s.trim());
-  const byNorm =
-    labels.find((l) => l.includes("Ronavi H1500") && l.includes("по паспортной норме")) ??
-    labels.find((l) => l.includes("по паспортной норме"));
-  expect(byNorm, `нет варианта «по паспортной норме» среди: ${labels.join(" | ")}`).toBeDefined();
-  await select.selectOption({ label: byNorm ?? "" });
-  await expect(sim.getByText(/^Не подтверждён/).filter({ visible: true }).first()).toBeVisible({ timeout: 20_000 });
-
-  // Управление (ТЗ §3.6.3): «▶ Старт» запускает проигрывание — часы модели идут.
-  const clock = sim.getByText(/^Время имитации:/).filter({ visible: true }).first();
-  await expect(clock).toBeVisible();
-  const before = (await clock.innerText()).trim();
-  await sim.getByRole("button", { name: "▶ Старт" }).click();
-  await expect(clock).not.toHaveText(before, { timeout: 5_000 });
-  const moving = (await clock.innerText()).trim();
-  await expect(clock, "часы имитации остановились после старта").not.toHaveText(moving, { timeout: 5_000 });
-  await sim.getByRole("button", { name: "❚❚ Стоп" }).click();
-
-  // Выгрузка кадра имитации (ТЗ §3.7.4).
-  const [download] = await Promise.all([
-    page.waitForEvent("download"),
-    sim.getByRole("button", { name: "Скачать PNG" }).click(),
-  ]);
-  expect(download.suggestedFilename()).toMatch(/\.png$/);
+  await expect(sim.getByRole("definition").first()).toBeVisible();
+  await expect(sim.getByRole("button", { name: "Проверить этот вариант в 3D ↗", exact: true })).toBeEnabled();
+  await sim.getByText("Упрощённая аналитическая проверка", { exact: true }).click();
+  await expect(sim).toContainText("обязательную подачу и возврат стеллажей");
+  await expect(sim.getByRole("button", { name: "▶ Старт", exact: true })).toHaveCount(0);
+  await expectNoHorizontalScroll(page);
 });
 
 for (const facility of ["airport", "medical"] as const) {

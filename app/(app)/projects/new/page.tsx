@@ -24,6 +24,7 @@ export default async function NewProjectPage({
 
   return (
     <div className="surface-data flex max-w-5xl flex-col gap-6 py-10">
+      {sp.legacy === "1" && <p className="rounded border border-border p-3 text-sm" role="status">Прежний мастер v1 заменён текущим проектом. Старые операции, занятость и денежные параметры не перенесены: у моделей разные входы. Проверьте тип объекта и задайте условия нового проекта.</p>}
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium text-muted-foreground">{stepHeading(1)}</p>
         <h1>Новый проект</h1>

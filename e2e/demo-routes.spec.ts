@@ -92,13 +92,36 @@ test("clean viewer routes, crosslinks, legacy redirect fragments and offline fil
   expect(errors).toEqual([]);
 });
 
+test("warehouse case URL selects its scenario and explicit switching preserves other URL state", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  observeErrors(page, errors);
+  await page.goto("/demo/warehouse?case=baseline&flag=1#history");
+  await ready(page, "warehouse");
+  await expect(page.locator('[data-case="baseline"]')).toHaveAttribute("aria-pressed", "true");
+  expect(new URL(page.url()).searchParams.get("case")).toBe("baseline");
+
+  await page.locator('[data-case="complex"]').click();
+  await expect(page.locator('[data-case="complex"]')).toHaveAttribute("aria-pressed", "true");
+  await ready(page, "warehouse");
+  const switched = new URL(page.url());
+  expect(switched.searchParams.get("case")).toBe("complex");
+  expect(switched.searchParams.get("flag")).toBe("1");
+  expect(switched.hash).toBe("#history");
+  await page.reload();
+  await ready(page, "warehouse");
+  await expect(page.locator('[data-case="complex"]')).toHaveAttribute("aria-pressed", "true");
+  expect(errors).toEqual([]);
+});
+
 test("guest product opens its exact scenario through the clean 3D popup route", async ({ page, baseURL }) => {
   test.setTimeout(180_000);
   if (!baseURL) throw new Error("Viewer popup requires Playwright baseURL");
   const errors: string[] = [];
   observeErrors(page, errors);
   await page.goto("/demo");
-  await expect(page.getByText("гостевой расчёт: модель считается в браузере, ничего не сохраняется", { exact: false })).toBeVisible();
+  await expect(page.getByText("гостевой расчёт: модель и нагрузку проверяет сервер, проект не сохраняется", { exact: false })).toBeVisible();
+  await expect(page.locator("[data-guest-calculation]")).toHaveAttribute("data-guest-calculation", "ready", { timeout: 120_000 });
   expect((await page.request.post("/api/v1/calculate", { data: { facility: "warehouse" } })).status()).toBe(404);
   await page.getByRole("navigation", { name: "Шаги расчёта" }).getByRole("link", { name: /^7 / }).click();
   const open = page.getByRole("button", { name: "Проверить этот вариант в 3D ↗", exact: true });

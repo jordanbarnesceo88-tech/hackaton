@@ -36,44 +36,48 @@ export async function copyProjectAction(projectId: string): Promise<ProjectActio
   const id = projectIdOf(projectId);
   if (!id) return fail("not_found", MESSAGES.notFound);
 
-  let copyId: string;
+  let copyId: string | null;
   try {
-    const src = await prisma.project.findFirst({ where: { id, userId }, include: { scenarios: true } });
-    if (!src) return fail("not_found", MESSAGES.notFound);
-    const suffix = " (копия)";
-    const room = PROJECT_NAME_MAX - suffix.length;
-    const base = src.name.length > room ? `${src.name.slice(0, room - 1).trimEnd()}…` : src.name;
-    const copy = await prisma.project.create({
-      data: {
-        userId,
-        name: `${base}${suffix}`,
-        objectName: src.objectName,
-        facilityTypeSlug: src.facilityTypeSlug,
-        params: (src.params ?? {}) as Prisma.InputJsonValue,
-        paramsSource: (src.paramsSource ?? {}) as Prisma.InputJsonValue,
-        ...(src.results !== null ? { results: src.results as Prisma.InputJsonValue } : {}),
-        modelVersion: src.modelVersion,
-        dataVersion: src.dataVersion,
-        calculatedAt: src.calculatedAt,
-        copiedFromId: src.id,
-        isDemo: false,
-        scenarios: {
-          create: src.scenarios.map((s) => ({
-            key: s.key,
-            name: s.name,
-            kind: s.kind,
-            order: s.order,
-            spec: s.spec as Prisma.InputJsonValue,
-          })),
+    copyId = await prisma.$transaction(async tx => {
+      // Prisma may load relations in separate queries; keep the whole source at one revision.
+      const src = await tx.project.findFirst({ where: { id, userId }, include: { scenarios: true } });
+      if (!src) return null;
+      const suffix = " (копия)";
+      const room = PROJECT_NAME_MAX - suffix.length;
+      const base = src.name.length > room ? `${src.name.slice(0, room - 1).trimEnd()}…` : src.name;
+      const copy = await tx.project.create({
+        data: {
+          userId,
+          name: `${base}${suffix}`,
+          objectName: src.objectName,
+          facilityTypeSlug: src.facilityTypeSlug,
+          params: (src.params ?? {}) as Prisma.InputJsonValue,
+          paramsSource: (src.paramsSource ?? {}) as Prisma.InputJsonValue,
+          ...(src.results !== null ? { results: src.results as Prisma.InputJsonValue } : {}),
+          modelVersion: src.modelVersion,
+          dataVersion: src.dataVersion,
+          calculatedAt: src.calculatedAt,
+          copiedFromId: src.id,
+          isDemo: false,
+          scenarios: {
+            create: src.scenarios.map((s) => ({
+              key: s.key,
+              name: s.name,
+              kind: s.kind,
+              order: s.order,
+              spec: s.spec as Prisma.InputJsonValue,
+            })),
+          },
         },
-      },
-      select: { id: true },
-    });
-    copyId = copy.id;
+        select: { id: true },
+      });
+      return copy.id;
+      }, { isolationLevel: "RepeatableRead" });
   } catch (e) {
     console.error("copyProjectAction: не удалось скопировать проект", e);
     return fail("error", writeErrorMessage(e, "Не удалось скопировать проект, попробуйте ещё раз"));
   }
+  if (!copyId) return fail("not_found", MESSAGES.notFound);
   revalidatePath("/projects");
   redirect(`/projects/${copyId}`);
 }

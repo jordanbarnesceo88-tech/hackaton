@@ -21,7 +21,7 @@ import { fx } from "./text";
  */
 
 /** Средние плечи перевозки по планировке объекта и производительность по циклу, ед./ч. */
-export type CycleInfo = { thrPerH: number; loadedM: number; emptyM: number };
+export type CycleInfo = { thrPerH: number; loadedM: number; emptyM: number; workflow?: "closed-pod-1"; handlingS?: number };
 
 /**
  * Всё, что нужно для расчёта сценариев объекта:

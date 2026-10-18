@@ -10,8 +10,9 @@ async function expectUniqueRoutes(scene: Locator) {
 
 test("сцена переиспользует маршруты, останавливает пунктир и соблюдает явную тему", async ({ page }) => {
   test.setTimeout(150_000);
-  await page.goto("/demo#simulation");
+  await page.goto("/demo?product=dikom-dmr-carrier-p#simulation");
   const sim = page.locator("#simulation");
+  await sim.getByText("Упрощённая аналитическая проверка", { exact: true }).click();
   const scene = sim.locator('svg.iso-root[role="img"]');
   await expect(sim.getByRole("button", { name: "▶ Старт" })).toBeEnabled({ timeout: 60_000 });
   await expectUniqueRoutes(scene);
@@ -53,8 +54,9 @@ test("сцена переиспользует маршруты, останавл
 });
 
 test("×1 показывает реальное время, быстрый обзор назван отдельно", async ({ page }) => {
-  await page.goto("/demo#simulation");
+  await page.goto("/demo?product=dikom-dmr-carrier-p#simulation");
   const sim = page.locator("#simulation");
+  await sim.getByText("Упрощённая аналитическая проверка", { exact: true }).click();
   const clock = sim.locator('svg[role="img"] text.iso-hud-clock');
   await expect(sim.getByRole("button", { name: "▶ Старт" })).toBeEnabled({ timeout: 60_000 });
   await expect(sim.getByRole("button", { name: "×1", exact: true })).toHaveAttribute("aria-pressed", "true");

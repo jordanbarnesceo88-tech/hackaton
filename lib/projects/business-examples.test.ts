@@ -6,6 +6,7 @@ import { resolveNorms } from "../tz/norms";
 import { buildDecision } from "../tz/decision";
 import { buildBusinessExampleOffline as buildBusinessExample } from "./business-example-offline";
 import { businessExample, businessExampleInputs } from "./business-examples";
+import { resultsFromInputs } from "./recalc";
 
 const products = CATALOG.map(productForCalcFromSeed);
 const live = { paramDefs: paramSpecsFor("warehouse"), products, norms: resolveNorms(), paramDefsFrom: "code" as const };
@@ -16,13 +17,24 @@ describe("reproducible end-to-end business examples", () => {
     expect(d.spatial.state).toBe("fresh"); expect(d.spatial.evidence?.assessment.status).toBe("OK");
     expect(d.finance?.npvRub).toBeGreaterThan(0); expect(d.finance?.effectYearRub).toBeGreaterThan(0);
     expect(d.status).toBe("suitable");
-    expect(d.processes[0]).toMatchObject({ n: 5, chargers: 2 });
+    expect(d.processes[0]).toMatchObject({ n: 6, chargers: 2 });
   });
-  it("does not recommend full implementation from positive NPV when the peak is not handled", () => {
+  it("does not recommend full implementation when the doubled peak is not handled", () => {
     const model = buildBusinessExample(live, "peak-overload").model;
     const d = buildDecision(model, "purchase", model.simInputs.purchase?.calculated);
-    expect(d.finance?.npvRub).toBeGreaterThan(0);
+    expect(d.finance?.npvRub).toBeLessThan(0);
     expect(d.spatial.evidence?.assessment.status).toBe("PARTIAL"); expect(d.status).toBe("partial");
+    expect(model.conclusion.recommendedScenarioKey).toBeNull();
+  });
+  it("keeps the previous five-robot case as a physical counterexample despite positive NPV", () => {
+    const input = businessExampleInputs("steady-flow", baseValuesFor("warehouse"), products);
+    input.scenarios.forEach(spec => spec.items.forEach(item => { item.quantityOverride = 5; }));
+    const { model } = resultsFromInputs(live, { facility: "warehouse", params: input.params, scenarios: input.scenarios });
+    const decision = buildDecision(model, "purchase", model.simInputs.purchase?.calculated);
+    expect(decision.finance?.npvRub).toBeGreaterThan(0);
+    expect(decision.spatial.evidence?.assessment.status).toBe("PARTIAL");
+    expect(decision.spatial.evidence!.summary.achievedPerH).toBeLessThan(decision.spatial.evidence!.summary.requiredPerH);
+    expect(decision.status).toBe("partial");
     expect(model.conclusion.recommendedScenarioKey).toBeNull();
   });
   it("retains the same physical work but no payroll savings if staff stays", () => {

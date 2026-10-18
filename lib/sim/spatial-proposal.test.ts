@@ -56,7 +56,9 @@ describe("spatial fleet proposal boundary", () => {
     proposal.candidate.input.siteLayout = { widthM: 100, heightM: 100, receiving: [], shipping: [], chargers: [], zones: [], crossAislesY: [], rackAislesX: [], slots: [] };
     proposal.candidate.inputKey = simInputIdentity(proposal.candidate.input);
     proposal.result.sourceInputKey = proposal.candidate.inputKey;
-    expect(() => parseSpatialScenarioProposal(proposal, original)).toThrow(/Исходный план должен содержать/);
+    const before = structuredClone(proposal);
+    expect(() => parseSpatialScenarioProposal(proposal, original)).toThrow(/Исходный план/);
+    expect(proposal).toEqual(before);
   });
 
   it("rejects stale tickets, foreign scenarios, source keys and metadata spoofing", () => {

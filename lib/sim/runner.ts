@@ -20,6 +20,7 @@ export type RunSyncOptions = Omit<SimSummaryMeta, "durationMs"> & {
 
 /** Прогон до конца за один вызов. Детерминирован: одинаковый вход — одинаковая сводка. */
 export function runSimSync(input: SimInput, opts: RunSyncOptions = {}): SimRunSummary {
+  assertAnalyticalWorkflow(input);
   const t0 = opts.now ? opts.now() : 0;
   const budgetMs = opts.budgetMs ?? 60_000;
   const check = () => {
@@ -80,6 +81,7 @@ function budgetError(budgetMs: number): Error {
  * (кроме `durationMs`): нарезка на части не меняет последовательность шагов.
  */
 export async function runSimState(input: SimInput, opts: RunOptions): Promise<{ state: SimEngineState; summary: SimRunSummary; durationMs: number }> {
+  assertAnalyticalWorkflow(input);
   const budgetMs = opts.budgetMs ?? 60_000;
   const sliceMs = opts.sliceMs ?? 10;
   const yieldFn = opts.yieldFn ?? (() => Promise.resolve());
@@ -121,6 +123,11 @@ export async function runSimState(input: SimInput, opts: RunOptions): Promise<{ 
     durationMs,
   });
   return { state, summary, durationMs };
+}
+
+/** This runner has no persistent carrier inventory or mandatory return/prefetch operations. */
+export function assertAnalyticalWorkflow(input: SimInput): void {
+  if (input.transportWorkflow === "closed-pod-1") throw new Error("Однорейсовая аналитическая имитация не поддерживает возврат и подачу стеллажей; используйте пространственную проверку этого входа");
 }
 
 export async function runSim(input: SimInput, opts: RunOptions): Promise<SimRunSummary> {

@@ -47,7 +47,7 @@ function fingerprint(value: unknown): string {
   return `fnv1a32-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 function taskTrace(tasks: SimTask[]): WorkloadTask[] {
-  return tasks.map(({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY }) => ({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY }));
+  return tasks.filter(task => task.countsTowardDemand !== false).map(({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY }) => ({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY }));
 }
 function summaryOf(context: ComparisonContext): ComparisonContextSummary {
   const { contextKey, workloadTraceKey, workloadCount, chargerCount, admissionCap, parkingCapacity, eligibleMinFleet, faultMode } = context;

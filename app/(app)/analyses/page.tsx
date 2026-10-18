@@ -9,9 +9,10 @@ export default async function AnalysesPage() {
   const analyses = await getSavedAnalyses(session.user.id);
   return (
     <div className="surface-prose flex flex-col gap-4 py-12">
-      <h1>Мои расчёты</h1>
+      <h1>Архив расчётов v1</h1>
+      <p className="text-sm text-muted-foreground">Исторические входы прежней модели доступны для просмотра без изменения и сохранения. Отчёт повторно считает их по текущим данным v1 и явно показывает расхождение с сохранённым результатом. Для новой проверки используйте <Link href="/projects/new" className="underline">текущий проект</Link>.</p>
       {analyses.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Пока нет сохранённых расчётов.</p>
+        <p className="text-sm text-muted-foreground">В архиве v1 нет сохранённых расчётов.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {analyses.map((a) => (
@@ -21,11 +22,8 @@ export default async function AnalysesPage() {
                 {new Date(a.createdAt).toLocaleDateString("ru-RU")}
               </span>
               <span className="flex gap-3">
-                <Link href={`/calculate/${a.solutionId}?analysis=${a.id}`} className="underline">
-                  Открыть
-                </Link>
                 <Link href={`/report/${a.id}`} className="underline">
-                  Отчёт
+                  Просмотреть архивный отчёт
                 </Link>
               </span>
             </li>

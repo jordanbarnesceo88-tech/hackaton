@@ -2,6 +2,87 @@ import type { Prisma } from "@prisma/client";
 import { normDef, isNormKey } from "../tz/norms";
 import type { ProjectModel } from "../tz/model";
 import type { ParamSpec, PendingChange, ScenarioSpec } from "../tz/types";
+import type { ParamValues } from "../tz/types";
+import { stableJson } from "../tz/version";
+import { processDef } from "../tz/processes";
+
+export type ProjectAuditInput = { name?: string; params: ParamValues; scenarios: readonly ScenarioSpec[] };
+
+/** Receipts are generated observations, not edits to the customer's persisted input. */
+function auditScenario(spec: ScenarioSpec): Omit<ScenarioSpec, "spatialEvidence"> {
+  const { spatialEvidence: _receipt, ...input } = spec;
+  void _receipt;
+  return input;
+}
+
+/** Server facts only. A client may explain a real change, but cannot invent its values or existence. */
+export function projectAuditDiff(
+  before: ProjectAuditInput,
+  after: ProjectAuditInput,
+  annotations: readonly PendingChange[] = [],
+  paramDefs: readonly ParamSpec[] = [],
+): PendingChange[] {
+  const reasons = new Map<string, string>();
+  for (const note of annotations) if (note.reason?.trim()) reasons.set(`${note.scenarioKey ?? ""}\0${note.field}`, note.reason.trim());
+  const out: PendingChange[] = [], units = new Map(paramDefs.map(def => [def.key, def.unit]));
+  const value = (v: unknown): unknown => v === undefined ? null : JSON.parse(JSON.stringify(v));
+  const add = (field: string, old: unknown, next: unknown, scenarioKey?: string, unit?: string) => {
+    const a = value(old), b = value(next);
+    if (stableJson(a) === stableJson(b)) return;
+    const reason = reasons.get(`${scenarioKey ?? ""}\0${field}`);
+    out.push({ field, old: a, new: b, auto: null,
+      ...(scenarioKey !== undefined ? { scenarioKey } : {}), ...(unit ? { unit } : {}), ...(reason ? { reason } : {}) });
+  };
+  add("project:name", before.name, after.name);
+  for (const key of new Set([...Object.keys(before.params), ...Object.keys(after.params)])) {
+    add(`param:${key}`, before.params[key], after.params[key], undefined, units.get(key) ?? undefined);
+  }
+  const previous = new Map(before.scenarios.map(spec => [spec.key, spec]));
+  const current = new Map(after.scenarios.map(spec => [spec.key, spec]));
+  const reordered = stableJson(before.scenarios.filter(s => current.has(s.key)).map(s => s.key)) !==
+    stableJson(after.scenarios.filter(s => previous.has(s.key)).map(s => s.key));
+  for (const spec of before.scenarios) if (!current.has(spec.key)) add("scenario:remove", auditScenario(spec), null, spec.key);
+  for (const [index, spec] of after.scenarios.entries()) {
+    const old = previous.get(spec.key), key = spec.key;
+    if (!old) { add("scenario:add", null, auditScenario(spec), key); continue; }
+    if (reordered) add("scenario:order", before.scenarios.findIndex(s => s.key === key), index, key);
+    add("scenario:name", old.name, spec.name, key);
+    add("scenario:kind", old.kind, spec.kind, key);
+    for (const norm of new Set([...Object.keys(old.normOverrides ?? {}), ...Object.keys(spec.normOverrides ?? {})])) {
+      const k = norm as keyof NonNullable<ScenarioSpec["normOverrides"]>;
+      add(`norm:${norm}`, old.normOverrides?.[k], spec.normOverrides?.[k], key, isNormKey(norm) ? normDef(norm).unit : undefined);
+    }
+    const scenarioFields = { pilotPlan: "pilot", terminalResidualRub: "residual", operationsStaffing: "staffing",
+      cashRealizationShare: "cashShare", siteLayout: "site", simSeed: "seed" } as const;
+    for (const [property, field] of Object.entries(scenarioFields)) {
+      const p = property as keyof typeof scenarioFields;
+      add(`scenario:${field}`, old[p], spec[p], key, field === "residual" ? "₽" : undefined);
+    }
+    const oldItems = new Map(old.items.map(item => [item.process, item]));
+    const newItems = new Map(spec.items.map(item => [item.process, item]));
+    const itemsReordered = stableJson(old.items.filter(i => newItems.has(i.process)).map(i => i.process)) !==
+      stableJson(spec.items.filter(i => oldItems.has(i.process)).map(i => i.process));
+    for (const item of old.items) if (!newItems.has(item.process)) add(`item:${item.process}:remove`, item, null, key);
+    for (const [itemIndex, item] of spec.items.entries()) {
+      const prior = oldItems.get(item.process), process = item.process;
+      if (!prior) { add(`item:${process}:add`, null, item, key); continue; }
+      if (itemsReordered) add(`item:${process}:order`, old.items.findIndex(i => i.process === process), itemIndex, key);
+      const fields = { productSlug: "product", quantityOverride: "quantity", chargersOverride: "chargers",
+        automationCoverageOverride: "coverage", priceRubOverride: "price", throughputPerHOverride: "throughput",
+        serviceRubYearOverride: "service", raasRubMonthOverride: "raasRate", raasFromEstimate: "raasEstimate", costPackage: "package" } as const;
+      for (const [property, field] of Object.entries(fields)) {
+        const p = property as keyof typeof fields;
+        const unit = field === "quantity" || field === "chargers" ? "шт." : field === "price" ? "₽" : field === "service" ? "₽/год"
+          : field === "raasRate" ? "₽/мес" : field === "throughput" ? processDef(process)?.throughputUnit : undefined;
+        add(`item:${process}:${field}`, prior[p], item[p], key, unit);
+      }
+      const manual = (it: typeof item) => it.manuallyAdded === undefined && it.manualReason === undefined ? null
+        : { manuallyAdded: it.manuallyAdded ?? false, manualReason: it.manualReason ?? null };
+      add(`item:${process}:manual`, manual(prior), manual(item), key);
+    }
+  }
+  return out;
+}
 
 /**
  * Журнал корректировок проекта (ТЗ §3.5.4: «автоматически рассчитанные значения доступны для
@@ -148,6 +229,13 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   raasRate: "Ставка RaaS в месяц за робота",
   manual: "Решение добавлено вручную",
   package: "Комплектация и границы платежей",
+  product: "Выбранное решение",
+  chargers: "Число зарядных станций",
+  coverage: "Оценочная доля годовой нагрузки",
+  raasEstimate: "Ставка RaaS принята по оценке",
+  add: "Позиция добавлена",
+  remove: "Позиция удалена",
+  order: "Порядок позиции",
 };
 
 /**
@@ -162,6 +250,11 @@ export function changeFieldLabel(
 ): string {
   if (field === "scenario:add") return "Сценарий добавлен";
   if (field === "scenario:remove") return "Сценарий удалён";
+  if (field === "project:name") return "Название проекта";
+  const scenarioLabels: Record<string, string> = { name: "Название сценария", kind: "Способ внедрения", order: "Порядок сценария",
+    pilot: "План и смета пилота", residual: "Чистая остаточная стоимость", cashShare: "Доля денежной реализации эффекта",
+    site: "Исходная планировка сценария", seed: "Зерно имитации" };
+  if (field.startsWith("scenario:") && scenarioLabels[field.slice(9)]) return scenarioLabels[field.slice(9)]!;
   if (field === "scenario:staffing") return "Организация и дополнительные расходы эксплуатации";
   if (field.startsWith("param:")) {
     const key = field.slice("param:".length);

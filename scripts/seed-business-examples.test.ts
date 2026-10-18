@@ -5,12 +5,27 @@ import { productForCalcFromSeed } from "../lib/catalog/product-for-calc";
 import { paramSpecsFor } from "../lib/data/organizer/params";
 import { resolveNorms } from "../lib/tz/norms";
 import { BUSINESS_EXAMPLES } from "../lib/projects/business-examples";
+import type { LiveInputs } from "../lib/projects/recalc";
+import type { BusinessExampleId } from "../lib/projects/business-examples";
 
 vi.mock("../lib/projects/recalc", async importOriginal => ({
   ...await importOriginal<typeof import("../lib/projects/recalc")>(),
   loadLiveInputs: async () => ({ paramDefs: paramSpecsFor("warehouse"), products: CATALOG.map(productForCalcFromSeed), norms: resolveNorms(), paramDefsFrom: "code" }),
 }));
+vi.mock("../lib/projects/business-example-offline", async importOriginal => {
+  const actual = await importOriginal<typeof import("../lib/projects/business-example-offline")>();
+  const completed = new Map<BusinessExampleId, ReturnType<typeof actual.buildBusinessExampleOffline>>();
+  return { ...actual, buildBusinessExampleOffline: (live: LiveInputs, id: BusinessExampleId) => {
+    if (!completed.has(id)) completed.set(id, actual.buildBusinessExampleOffline(live, id));
+    return structuredClone(completed.get(id)!);
+  } };
+});
 const { seedBusinessExamples } = await import("./seed-business-examples");
+const { buildBusinessExampleOffline } = await import("../lib/projects/business-example-offline");
+const live: LiveInputs = { paramDefs: paramSpecsFor("warehouse"), products: CATALOG.map(productForCalcFromSeed), norms: resolveNorms(), paramDefsFrom: "code" };
+// Persistence tests reuse genuine completed calculations, not fabricated metrics.
+// Warm once outside each test; every consumer receives an isolated clone.
+for (const example of BUSINESS_EXAMPLES) buildBusinessExampleOffline(live, example.id);
 
 function database(existing: { userId: string; isDemo: boolean; results?: unknown } | null) {
   const project = {
@@ -28,6 +43,11 @@ function database(existing: { userId: string; isDemo: boolean; results?: unknown
 }
 
 describe("prepared public demo seed", () => {
+  it("isolates the genuine completed result for every persistence attempt", () => {
+    const first = buildBusinessExampleOffline(live, "steady-flow"), before = structuredClone(first);
+    first.results.scenarios[1]!.spatialEvidence!.summary.achievedPerH = -1;
+    expect(buildBusinessExampleOffline(live, "steady-flow")).toEqual(before);
+  });
   it("persists all three completed examples, with public owner and demonstration flags", async () => {
     const { db, project, transaction } = database(null);
     await seedBusinessExamples(db);

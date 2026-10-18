@@ -8,7 +8,7 @@ import { Workspace } from "@/components/project/workspace";
 import { requireUser } from "@/lib/auth/guards";
 import { getNormRows, getProcessesFor, type NormRow } from "@/lib/catalog/queries";
 import { prisma } from "@/lib/db/client";
-import { getProject, getProjectChanges, type ProjectChangeEntry, type ProjectRecord } from "@/lib/projects/queries";
+import { getOwnedProjectSnapshot, type ProjectChangeEntry, type ProjectRecord } from "@/lib/projects/queries";
 import { liveDataVersionFrom, loadLiveInputs, reproduceModel, type LiveInputs } from "@/lib/projects/recalc";
 import { formatCalcDate } from "@/lib/report/tz/rows";
 import { withSnapshotProducts, type ProjectModel } from "@/lib/tz/model";
@@ -96,14 +96,14 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   await connection();
   const user = await requireUser();
   const { projectId } = await params;
-  const project = await getProject(prisma, projectId, user.userId);
-  if (!project) notFound();
+  const snapshot = await getOwnedProjectSnapshot(prisma, projectId, user.userId);
+  if (!snapshot) notFound();
+  const { project, changes } = snapshot;
 
-  const [live, normRows, dbProcesses, changes] = await Promise.all([
+  const [live, normRows, dbProcesses] = await Promise.all([
     loadLiveInputs(prisma, project.facility),
     getNormRows(prisma),
     getProcessesFor(prisma, project.facility),
-    getProjectChanges(prisma, project.id, user.userId),
   ]);
   const facilityLabel = FACILITY_LABELS[project.facility] ?? project.facility;
   const defs = (project.results?.runtime?.paramDefs ?? live.paramDefs).filter((d) => d.facility === project.facility);

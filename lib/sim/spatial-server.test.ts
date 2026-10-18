@@ -8,7 +8,10 @@ import type { ScenarioSpec, SpatialEvidence } from "../tz/types";
 import * as preview from "../../experiments/warehouse-3d/project-input";
 import { simInputIdentity } from "./identity";
 import { SPATIAL_MODEL_VERSION } from "./spatial-bridge";
-import { recheckProjectSpatialEvidence } from "./spatial-server";
+import { checkExecution, type CooperativeOptions } from "./cooperative";
+import type { SimInput } from "./types";
+import type { SimRunSummary } from "./metrics";
+import { recheckProjectSpatialEvidence, recheckProjectSpatialEvidenceAsync } from "./spatial-server";
 
 const live = { paramDefs: paramSpecsFor("warehouse"), products: [FIXTURE_H1500], norms: resolveNorms(), paramDefsFrom: "code" as const };
 function build(scenarios: ScenarioSpec[]) {
@@ -25,6 +28,42 @@ function setup(fleet = 1) {
 afterEach(() => vi.restoreAllMocks());
 
 describe("server spatial receipts", () => {
+  it("shares one 45-second deadline across distinct async spatial inputs", async () => {
+    const model = build(setup().specs);
+    model.simInputs.r1!.calculated = { ...model.simInputs.r1!.calculated!, seed: model.simInputs.p1!.calculated!.seed + 1 };
+    let clock = 1000;
+    const deadlines: number[] = [], seeds: number[] = [];
+    vi.spyOn(preview, "calculateProjectPreviewAsync").mockImplementation(async (value, options: CooperativeOptions = {}) => {
+      const input = (value as { input: SimInput }).input;
+      deadlines.push(options.deadline!); seeds.push(input.seed);
+      clock += deadlines.length === 1 ? 30_000 : 16_000;
+      checkExecution(options);
+      return { input, assessment: { status: "PARTIAL", terminal: true, headline: "Measured fixture" },
+        summary: { fleet: input.robots.count, requiredPerH: input.demand.peakPerH, achievedPerH: 1, queueEnd: 1, waitP95Min: 1 } } as Awaited<ReturnType<typeof preview.calculateProjectPreviewAsync>>;
+    });
+    const checked = await recheckProjectSpatialEvidenceAsync(model, { now: () => clock, deadline: 100_000 });
+    expect(new Set(seeds).size).toBe(2);
+    expect(deadlines).toEqual([46_000, 46_000]);
+    expect(checked[1]!.spatialEvidence!.assessment.status).toBe("PARTIAL");
+    expect(checked[2]!.spatialEvidence!.assessment.status).toBe("NOT_EVALUATED");
+    expect(checked[2]!.spatialEvidence!.summary.achievedPerH).toBe(0);
+  });
+
+  it("clips the async spatial allowance to the remaining outer deadline and propagates its expiry", async () => {
+    const model = build(setup().specs);
+    model.simInputs.r1!.calculated = { ...model.simInputs.r1!.calculated!, seed: model.simInputs.p1!.calculated!.seed + 1 };
+    let clock = 50_000;
+    const deadlines: number[] = [];
+    vi.spyOn(preview, "calculateProjectPreviewAsync").mockImplementation(async (_value, options: CooperativeOptions = {}) => {
+      deadlines.push(options.deadline!);
+      clock += 10_001;
+      checkExecution(options);
+      throw new Error("Expired execution must not produce a receipt");
+    });
+    await expect(recheckProjectSpatialEvidenceAsync(model, { now: () => clock, deadline: 60_000 })).rejects.toMatchObject({ name: "SimBudgetExceeded" });
+    expect(deadlines).toEqual([60_000]);
+  });
+
   it("replays the SERVER input, replaces a forged OK and caches identical purchase/RaaS inputs", () => {
     const { specs, input } = setup();
     for (const spec of specs) if (spec.spatialEvidence) {
@@ -32,7 +71,12 @@ describe("server spatial receipts", () => {
       spec.spatialEvidence.sourceInputKey = simInputIdentity(spec.spatialEvidence.input);
     }
     const before = structuredClone(specs), spy = vi.spyOn(preview, "calculateProjectPreview");
-    const checked = recheckProjectSpatialEvidence(build(specs), { now: () => 0 });
+    const measured: SimRunSummary[] = [];
+    const checked = recheckProjectSpatialEvidence(build(specs), { now: () => 0, onSummary: (key, summary) => {
+      measured.push(structuredClone(summary));
+      expect(summary.scenarioKey).toBe(key);
+      summary.achievedPerH = -999; // A consumer must not corrupt the cached RaaS receipt.
+    } });
     expect(spy).toHaveBeenCalledTimes(1);
     const evidence = checked[1]!.spatialEvidence!;
     expect(evidence.input).toEqual(input);
@@ -43,6 +87,14 @@ describe("server spatial receipts", () => {
     expect(evidence.summary.achievedPerH).toBeGreaterThan(0);
     expect(evidence.summary.achievedPerH).toBeLessThan(999999);
     expect(checked[2]!.spatialEvidence).toEqual(evidence);
+    expect(measured.map(summary => summary.scenarioKey)).toEqual(["p1", "r1"]);
+    expect(measured[0]).toMatchObject({
+      inputKey: simInputIdentity(input), simModelVersion: SPATIAL_MODEL_VERSION,
+      achievedPerH: evidence.summary.achievedPerH, verdict: "NOT_CONFIRMED", minStableFleet: null,
+    });
+    expect(measured[1]!.servedShare).toBe(measured[0]!.servedShare);
+    expect(measured[1]!.achievedPerH).toBe(measured[0]!.achievedPerH);
+    expect(measured[0]!.servedShare).toBe(spy.mock.results[0]!.value.summary.servedShare);
     expect(specs).toEqual(before);
     expect(checked[1]!.cashRealizationShare).toBe(0);
     expect(checked[1]!.items[0]!.automationCoverageOverride).toBe(0.4);
@@ -73,7 +125,9 @@ describe("server spatial receipts", () => {
     const unsupported = recheckProjectSpatialEvidence(build(specs), { now: () => 0 });
     expect(unsupported[1]!.spatialEvidence!.assessment.status).toBe("NOT_EVALUATED");
     expect(unsupported[1]!.spatialEvidence!.assessment.headline).toContain("60");
-    const zero = recheckProjectSpatialEvidence(build(setup().specs), { budgetMs: 0, now: () => 0 });
+    const skippedSummary = vi.fn();
+    const zero = recheckProjectSpatialEvidence(build(setup().specs), { budgetMs: 0, now: () => 0, onSummary: skippedSummary });
+    expect(skippedSummary).not.toHaveBeenCalled();
     expect(zero.filter(s => s.spatialEvidence).every(s => s.spatialEvidence!.assessment.status === "NOT_EVALUATED")).toBe(true);
     expect(zero[1]!.spatialEvidence!.summary.achievedPerH).toBe(0);
     let time = 0;

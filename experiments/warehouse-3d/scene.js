@@ -1,6 +1,49 @@
 (function () {
   'use strict';
 
+  // Shared metre-scale exterior for both viewers; the shelf dimensions are scenario assumptions.
+  window.warehouseCarrierParts = function (spec) {
+    if (spec.kind !== 'mobile-rack') spec = window.WarehouseDemoCore.carrierSpec();
+    const parts = [], add = (mat, x, y, z, w, h, d, detail = false, role = 'frame') => parts.push({ mat, x, y, z, w, h, d, detail, role });
+    const L = spec.lengthM, D = spec.widthM, H = spec.heightM, C = spec.baseClearanceM;
+    const post = 0.045, px = L / 2 - 0.04, pz = D / 2 - 0.04;
+    for (const x of [-px, px]) for (const z of [-pz, pz]) {
+      add('carrierSteel', x, H / 2, z, post, H, post, false, 'leg');
+      add('carrierSteel', x, 0.008, z, 0.08, 0.016, 0.08, false, 'foot');
+      for (let y = C + 0.08; y < H - 0.04; y += 0.13) add('carrierHole', x, y, z + Math.sign(z) * 0.0235, 0.009, 0.022, 0.002, true);
+    }
+    // The entire underside is open to .44m; the lifting plate contacts this face.
+    for (const z of [-pz, pz]) add('carrierSteel', 0, C + 0.035, z, L - 0.04, 0.07, 0.045, false, 'base-support');
+    for (const x of [-px, px]) add('carrierSteel', x, C + 0.035, 0, 0.045, 0.07, D - 0.04, false, 'base-support');
+    add('carrierSteel', 0, C + 0.02, 0, 0.92, 0.04, 0.56, false, 'contact-face');
+    const firstTop = C + 0.07, pitch = (H - firstTop - 0.28) / Math.max(1, spec.levels - 1);
+    for (let level = 0; level < spec.levels; level++) {
+      const y = firstTop - 0.012 + level * pitch, sideHeight = Math.min(pitch - 0.055, 0.31, H - y - 0.055);
+      add('carrierTray', 0, y, 0, L - 0.035, 0.024, D - 0.035, false, 'shelf-tray');
+      for (const z of [-pz, pz]) {
+        if (level > 0) add('carrierSteel', 0, y - 0.006, z, L - 0.04, 0.036, 0.027);
+        add('carrierHole', 0, y + 0.105, z, L - 0.06, 0.022, 0.019);
+        add('carrierLabel', -L * 0.3, y - 0.007, z + Math.sign(z) * 0.015, 0.105, 0.025, 0.002, true);
+      }
+      for (const x of [-px, px]) {
+        add('carrierPanel', x, y + sideHeight / 2 + 0.035, 0, 0.014, sideHeight, D - 0.07);
+        add('carrierSteel', x, y + sideHeight + 0.035, 0, 0.024, 0.016, D - 0.04);
+      }
+      const boxW = (L - 0.16) / 3, boxD = (D - 0.13) / 2;
+      for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++) {
+        if (level === spec.levels - 1 && row === 1 && col === 2) continue;
+        const x = (col - 1) * (boxW + 0.018), z = (row - 0.5) * (boxD + 0.018);
+        const h = Math.min(pitch - 0.075, 0.20 + ((level + row + col) % 3) * 0.028), bottom = y + 0.012;
+        add((level + row + col) % 3 ? 'load' : 'loadLight', x, bottom + h / 2, z, boxW, h, boxD, false, 'carton');
+        add('carrierTape', x, bottom + h + 0.001, z, 0.032, 0.002, boxD + 0.002, true, 'cargo-detail');
+        add('carrierTape', x, bottom + h / 2, z + boxD / 2 + 0.001, 0.032, h, 0.002, true, 'cargo-detail');
+        add('carrierLabel', x + boxW * 0.22, bottom + h * 0.55, z + boxD / 2 + 0.002, boxW * 0.28, h * 0.37, 0.002, true, 'cargo-detail');
+      }
+    }
+    for (const z of [-pz, pz]) add('carrierSteel', 0, H - 0.015, z, L, 0.03, 0.025);
+    return parts;
+  };
+
   // Rendering only: coordinates, routes and operational states belong to the simulation.
   window.createWarehouseScene = function ({ container, onSelect, onInspect }) {
     if (!container) throw new Error('Для 3D-сцены нужен контейнер');
@@ -10,7 +53,7 @@
     let disposed = false, lost = false, raf = 0, model = null;
     let root = null, rackGroup = null, robotsGroup = null, routesGroup = null;
     let width = 1, height = 1, W = 1, H = 1, fitSpan = 10, view = 'iso', layer = 'all', slice = null;
-    let selected = null, transition = null, robotParts = [], robotCapacity = 0;
+    let selected = null, transition = null, robotParts = [], robotCapacity = 0, carrierParts = [], carrierCapacity = 0, carrierSpec = null;
     let quality = 'balanced', followId = null, dirty = true, rendering = false, pendingFrame = null, frameKey = '';
     let lastDrawAt = 0, effectiveDpr = 1, detailGroup = null, architectureGroup = null, queueLabels = [];
     let hasViewport = false, pendingReset = false;
@@ -20,7 +63,8 @@
     let taskRobotId = null, hovered = null;
     const renderTimes = [], renderStamps = [];
     const stats = { renderCount: 0, renderRequests: 0, drawCalls: 0, triangles: 0, frameTimeMs: 0, instances: 0 };
-    const records = new Map(), routes = new Map(), points = new Map(), previous = new Map(), robotLabels = new Map(), sections = new Map(), frameRobots = new Map(), taskEndpoints = new Map(), incidentLabels = new Map(), frameIncidents = new Map();
+    const records = new Map(), routes = new Map(), points = new Map(), previous = new Map(), robotLabels = new Map(), sections = new Map(), frameRobots = new Map(), taskEndpoints = new Map(), incidentLabels = new Map(), frameIncidents = new Map(), carrierTransforms = new Map();
+    let carrierRecordKey = '';
     let labels = [], pickables = [], modelGeometry = new Set();
     let renderer, scene, camera, controls, composer, normalTarget, normalMaterial, edgePass, fxaa;
     let selectionBox, selectionGeometry, selectionMaterial;
@@ -28,7 +72,8 @@
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finite = (n, fallback) => Number.isFinite(Number(n)) ? Number(n) : fallback;
     const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-    const fmt = (n) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(n);
+    const numberFormat = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
+    const fmt = (n) => numberFormat.format(n);
     const addNode = (node) => { container.appendChild(node); ownNodes.push(node); return node; };
     const listen = (node, event, fn, opts) => {
       node.addEventListener(event, fn, opts);
@@ -117,6 +162,8 @@
       load: toon(0xc7b798), loadLight: toon(0xd0c8b7), point: toon(0x91afac), busy: toon(WARN), charger: toon(0x526e71), marking: toon(0xede7d4),
       lift: toon(0x58676a), led: toon(0x36d1cc, { emissive: new T.Color(0x083733) }), dockLight: toon(0xb7d9ce, { emissive: new T.Color(0x25453b) }),
       cleaner: toon(0xe0e7e5), cleanerAccent: toon(TEAL), screen: toon(0x1f3439), brush: toon(0x36575a), emergency: toon(0xb7493e),
+      ronavi: toon(0xe5ce27), carrierSteel: toon(0x697a7d), carrierPanel: toon(0xb9c3c3), carrierTray: toon(0x8a989a),
+      carrierHole: toon(0x303b3d), carrierTape: toon(0xc8b888), carrierLabel: toon(0xe7e6dc),
     };
     const boxGeo = new T.BoxGeometry(1, 1, 1), wheelGeo = new T.CylinderGeometry(0.115, 0.115, 0.08, 12);
     wheelGeo.rotateX(Math.PI / 2);
@@ -305,6 +352,17 @@
       });
       batch(walls, mats.wall, architectureGroup); batch(bases, mats.wallBase, architectureGroup);
       batch(frames, mats.dark, architectureGroup); batch(doorLights, mats.dockLight, architectureGroup);
+      const fixedObstacles = [];
+      (layout.obstacles || []).filter(o => o.kind !== 'packing-table').forEach((r, i) => {
+        const w = finite(r.w, 0), d = finite(r.h, 0), h = finite(r.heightM, carrierSpec.heightM);
+        if (!(w > 0 && d > 0 && h > 0)) return;
+        const rec = record('obstacle:' + (r.id || i), r.label || 'Неподвижное препятствие ' + (i + 1), 'obstacle', new T.Vector3(r.x + w / 2, h / 2, r.y + d / 2), new T.Vector3(w, h, d), {
+          Основание: 'Неподвижное препятствие из входной планировки; его точный напольный габарит участвует в маршрутизации',
+          Размер: fmt(w) + ' × ' + fmt(d) + ' м', Высота: fmt(h) + ' м' + (Number.isFinite(r.heightM) ? '' : ' — допущение отображения'),
+        });
+        fixedObstacles.push({ x: rec.center.x, y: h / 2, z: rec.center.z, w, h, d, rec });
+      });
+      const fixedMesh = batch(fixedObstacles, mats.rack, architectureGroup); if (fixedMesh) fixedMesh.userData.componentRole = 'fixed-obstacle';
       const worktops = [], legs = [], parcels = [];
       (layout.obstacles || []).filter((o) => o.kind === 'packing-table').forEach((r, i) => {
         const h = finite(r.heightM, 0.9), w = finite(r.w, 1), d = finite(r.h, 1);
@@ -376,12 +434,10 @@
         const material = new T.MeshBasicMaterial({ color: pickup ? WARN : TEAL, transparent: true, opacity: 0.2, depthWrite: false }); modelGeometry.add(material);
         const group = new T.Group(); root.add(group);
         const pad = mesh(boxGeo, material, group, rec); pad.scale.set(1.9, 0.025, 1.9); pad.layers.set(1); pad.castShadow = pad.receiveShadow = false;
-        const pallet = new T.Group(); group.add(pallet);
-        for (const z of [-0.28, 0, 0.28]) { const slat = mesh(boxGeo, mats.pallet, pallet); slat.scale.set(1.2, 0.09, 0.2); slat.position.set(0, 0.4, z); slat.castShadow = false; }
         const item = label(rec, '', 0.45, 'task');
         Object.assign(item.el.style, { color: pickup ? '#765016' : '#086c72', background: '#f3f6edee', border: '1px solid ' + (pickup ? '#ae762e' : '#078c91'), padding: '4px 7px', maxWidth: '230px' });
         group.visible = false; item.disabled = true;
-        pad.visible = false; taskEndpoints.set(side, { rec, group, pad, pallet, item });
+        pad.visible = false; taskEndpoints.set(side, { rec, group, pad, item });
       }
     }
     function updateTaskEndpoints() {
@@ -398,8 +454,7 @@
         const text = (pickup ? 'A · Погрузка' : 'B · Выгрузка') + ' #' + task.id + (active ? ' ← текущий этап' : '');
         if (entry.item.el.textContent !== text) entry.item.el.textContent = text;
         entry.rec.name = (pickup ? 'Погрузка' : 'Выгрузка') + ' · задание #' + task.id;
-        entry.rec.details = { Задание: '#' + task.id, Робот: 'AMR-' + String(Number(robot.id) + 1).padStart(2, '0'), Операция: pickup ? 'Погрузка' : 'Выгрузка', Положение: fmt(point.x) + '; ' + fmt(point.y) + ' м', Основание: 'Конец задания из имитации; путь показан отдельно по проходам', Геометрия: 'Площадка и паллета условные. Высота передачи и запасы отдельно не моделируются' };
-        entry.pallet.visible = pickup && (robot.phase === 'toPickup' || robot.phase === 'waitPoint' && !robot.loaded);
+        entry.rec.details = { Задание: '#' + task.id, Робот: 'AMR-' + String(Number(robot.id) + 1).padStart(2, '0'), Операция: pickup ? 'Погрузка' : 'Выгрузка', Положение: fmt(point.x) + '; ' + fmt(point.y) + ' м', Носитель: carrierSpec.label, Основание: 'Конец задания из имитации; путь показан отдельно по проходам', Геометрия: carrierSpec.sourceNote };
       });
     }
     function updateSections(list) {
@@ -468,8 +523,10 @@
       modelGeometry.forEach((g) => g.dispose()); modelGeometry.clear();
       routes.forEach((r) => r.geometry.dispose()); routes.clear();
       labels.forEach((l) => { l.el.remove(); l.leader?.remove(); }); labels = [];
-      records.clear(); points.clear(); previous.clear(); robotLabels.clear(); incidentLabels.clear(); frameIncidents.clear(); sections.clear(); frameRobots.clear(); taskEndpoints.clear(); taskRobotId = null; pickables = []; robotParts = []; robotCapacity = 0; brushMesh = safetyMesh = null; hovered = null; hoverInfo.hidden = true;
+      records.clear(); points.clear(); previous.clear(); robotLabels.clear(); incidentLabels.clear(); frameIncidents.clear(); sections.clear(); frameRobots.clear(); taskEndpoints.clear(); taskRobotId = null; pickables = []; robotParts = []; robotCapacity = 0; carrierParts = []; carrierCapacity = 0; brushMesh = safetyMesh = null; hovered = null; hoverInfo.hidden = true;
       delete stats.coverageVersion; delete stats.coveredCells; delete stats.coverageCells;
+      delete stats.carrierCount;
+      carrierTransforms.clear(); carrierRecordKey = '';
       queueLabels = []; pendingFrame = null; frameKey = ''; followId = null; stats.instances = 0;
       root = null;
       selected = null; selectionBox.visible = false; selectedRoute.visible = halo.visible = false;
@@ -478,6 +535,8 @@
       if (disposed) return;
       clearModel(); model = next;
       cleaning = next?.kind === 'cleaning';
+      carrierSpec = window.WarehouseDemoCore.carrierSpec(next?.input);
+      if (carrierSpec.kind !== 'mobile-rack') carrierSpec = window.WarehouseDemoCore.carrierSpec();
       if (!next || !next.layout) { say('Нет планировки для 3D. Укажите данные объекта.'); invalidate(); return; }
       W = finite(next.layout.widthM, 0); H = finite(next.layout.heightM, 0);
       if (!(W > 0 && H > 0)) { say('В планировке отсутствуют корректные размеры в метрах.'); invalidate(); return; }
@@ -488,63 +547,43 @@
       const shape = new T.Shape();
       footprint.forEach((p, i) => { if (i) shape.lineTo(p.x, -p.y); else shape.moveTo(p.x, -p.y); }); shape.closePath();
       const slab = ownGeometry(new T.ExtrudeGeometry(shape, { depth: 0.25, bevelEnabled: false, curveSegments: 1 })); slab.rotateX(-Math.PI / 2);
-      const floor = mesh(slab, mats.floor, root); floor.position.y = -0.27;
+      const floor = mesh(slab, mats.floor, root); floor.position.y = -0.25;
       const zoneColors = { receiving: 0xc7d4cb, storage: 0xd5ddda, packing: 0xd6ccb9, shipping: 0xbcced0, charging: 0xd8cbb3 };
       const rooms = next.layout.compartments && next.layout.compartments.length ? next.layout.compartments : next.layout.zones || [];
       rooms.forEach((z) => {
         const w = finite(z.w, 0), h = finite(z.h, 0);
         if (!(w > 0 && h > 0)) return;
-      const rec = record('zone:' + (z.id || z.kind), z.label || z.kind, 'zone', new T.Vector3(z.x + w / 2, 0.03, z.y + h / 2), new T.Vector3(w, 0.1, h), {
+      const rec = record('zone:' + (z.id || z.kind), z.label || z.kind, 'zone', new T.Vector3(z.x + w / 2, -0.001, z.y + h / 2), new T.Vector3(w, 0.002, h), {
           Площадь: fmt(w * h) + ' м²', Размер: fmt(w) + ' × ' + fmt(h) + ' м', Тип: 'Типовая функциональная зона',
         });
         const material = toon(zoneColors[z.kind] || 0xd5ddda);
+        material.polygonOffset = true; material.polygonOffsetFactor = -1; material.polygonOffsetUnits = -1;
         // These small per-model zone materials are released on rebuild as well.
         modelGeometry.add({ dispose() { material.dispose(); persistent.delete(material); } });
         const plane = mesh(boxGeo, material, root, rec);
         rec.floorMaterial = material; rec.floorColor = material.color.clone();
-        plane.position.copy(rec.center); plane.scale.set(w, 0.04, h);
+        plane.position.copy(rec.center); plane.scale.set(w, 0.002, h); plane.castShadow = false;
         if (!cleaning) label(rec, rec.name, 0.25, 'zone');
       });
       floorLines();
       buildArchitecture(next.layout);
       if (cleaning) buildSections(next.sections || next.layout.sections || []);
       else buildTaskEndpoints();
-      const posts = [], shelves = [], palletWood = [], goods = [], goodsLight = [], braces = [];
+      const storageLines = [];
       (next.racks || []).forEach((r, index) => {
         const rw = finite(r.w, 0), rd = finite(r.h, finite(r.d, 0));
         if (!(rw > 0 && rd > 0)) return;
         const x = finite(r.x, 0), z = next.racksYDown ? H - finite(r.y, 0) - rd : finite(r.y, 0);
-        const rh = clamp(finite(r.height, finite(r.heightM, 4.2)), 0.5, 18);
-        const rec = record('rack:' + index, 'Стеллажный ряд ' + (index + 1), 'rack', new T.Vector3(x + rw / 2, rh / 2, z + rd / 2), new T.Vector3(rw, rh, rd), {
-          Размер: fmt(rw) + ' × ' + fmt(rd) + ' м', Высота: fmt(rh) + ' м — условная визуализация',
-          Конструкция: 'Обобщённая геометрия; уровни и опоры не спецификация производителя',
+        const fixed = (next.layout.obstacles || []).some(o => o.kind === 'rack' && Math.abs(o.x - x) < 0.001 && Math.abs(o.y - z) < 0.001 && Math.abs(o.w - rw) < 0.001 && Math.abs(o.h - rd) < 0.001);
+        const rec = record('rack:' + index, (fixed ? 'Неподвижная зона хранения ' : 'Зона мобильных стеллажей ') + (index + 1), 'rack', new T.Vector3(x + rw / 2, 0.06, z + rd / 2), new T.Vector3(rw, 0.04, rd), {
+          Размер: fmt(rw) + ' × ' + fmt(rd) + ' м',
+          Конструкция: fixed ? 'Реальное неподвижное препятствие входной планировки показано отдельным объёмом' : 'Напольная разметка зоны хранения; каждый отдельный стеллаж показан по состоянию модели',
         });
-        const n = Math.max(1, Math.ceil(rd / 4));
-        for (let i = 0; i <= n; i++) for (const side of [0.06, Math.max(0.06, rw - 0.06)]) {
-          posts.push({ x: x + side, y: rh / 2, z: z + rd * i / n, w: 0.09, h: rh, d: 0.09, rec });
-        }
-        for (let level = 0; level < 3; level++) {
-          const sy = 0.3 + level * (rh - 0.7) / 3;
-          shelves.push({ x: x + rw / 2, y: sy, z: z + rd / 2, w: rw, h: 0.1, d: rd, rec });
-          for (let bay = 0; bay < n; bay++) {
-            if ((index + bay + level) % 5 === 0) continue;
-            const cz = z + (bay + 0.5) * rd / n;
-            const pw = Math.min(1.2, rw - 0.2), pd = Math.min(0.9, rd / n - 0.2);
-            if (!(pw > 0 && pd > 0)) continue;
-            palletWood.push({ x: x + rw / 2, y: sy + 0.15, z: cz, w: pw, h: 0.16, d: pd, rec });
-            const load = { x: x + rw / 2, y: sy + 0.23 + 0.4, z: cz, w: pw * 0.94, h: 0.8, d: pd * 0.94, rec };
-            ((bay + index) % 3 ? goods : goodsLight).push(load);
-          }
-        }
-        braces.push({ x: x + rw / 2, y: rh - 0.12, z: z + 0.06, w: rw, h: 0.1, d: 0.12, rec }, { x: x + rw / 2, y: rh - 0.12, z: z + rd - 0.06, w: rw, h: 0.1, d: 0.12, rec });
-        rec.details.Заполнение = 'Условные паллеты на стеллажах: визуальная иллюстрация, не учёт запасов и не задания модели';
-        if (index % 2 === 0) {
-          const item = label(rec, 'S' + String(index + 1).padStart(2, '0'), rh + 0.3, 'rack');
-          item.minZoom = 1.8;
-        }
+        for (const dz of [0, rd]) storageLines.push({ x: x + rw / 2, y: 0.065, z: z + dz, w: rw, h: 0.012, d: 0.055, rec });
+        for (const dx of [0, rw]) storageLines.push({ x: x + dx, y: 0.065, z: z + rd / 2, w: 0.055, h: 0.012, d: rd, rec });
+        if (index % 2 === 0) { const item = label(rec, 'S' + String(index + 1).padStart(2, '0'), 0.16, 'rack'); item.minZoom = 2.4; }
       });
-      batch(posts, mats.rack, rackGroup); batch(shelves, mats.shelf, rackGroup);
-      batch(braces, mats.dark, rackGroup); batch(palletWood, mats.pallet, detailGroup); batch(goods, mats.load, detailGroup); batch(goodsLight, mats.loadLight, detailGroup);
+      batch(storageLines, mats.marking, rackGroup);
       const basePoints = [...(next.layout.receiving || []), ...(next.layout.shipping || []), ...(next.layout.chargers || [])];
       basePoints.forEach(addPoint);
       fitSpan = Math.max(W, H) * 1.16;
@@ -560,12 +599,15 @@
       if (!root || points.has(String(p.id)) || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
       const charging = p.kind === 'charger' || p.kind === 'charging';
       const name = (charging ? 'Зарядка ' : p.kind === 'shipping' ? 'Отгрузка ' : 'Приёмка ') + p.id;
-      const rec = record('point:' + p.id, name, 'point', new T.Vector3(p.x, 0.5, p.y), new T.Vector3(1.7, 1, 1.7), { Тип: charging ? 'Зарядная точка' : 'Операционная точка', Занятость: 'Нет данных кадра', Очередь: 'Нет данных кадра' });
+      const pw = charging ? 1.35 : carrierSpec.lengthM + 0.32, pd = charging ? 1.15 : carrierSpec.widthM + 0.32;
+      const rec = record('point:' + p.id, name, 'point', new T.Vector3(p.x, 0.08, p.y), new T.Vector3(pw, 0.08, pd), { Тип: charging ? 'Зарядная точка' : 'Позиция целого мобильного стеллажа', Занятость: 'Нет данных кадра', Очередь: 'Нет данных кадра' });
       const group = new T.Group(); root.add(group);
-      const pad = mesh(boxGeo, mats.point, group, rec); pad.position.set(p.x, 0.08, p.y); pad.scale.set(1.7, 0.12, 1.7);
-      if (charging) { const cabinet = mesh(boxGeo, mats.charger, group, rec); cabinet.scale.set(0.42, 0.9, 0.4); cabinet.position.set(p.x, 0.5, p.y + 0.65); }
-      const lamp = mesh(boxGeo, mats.charger, group, rec); lamp.scale.set(0.16, 0.16, 0.16); lamp.position.set(p.x, 1.03, p.y + 0.65); lamp.castShadow = false;
-      const entry = { rec, pad, lamp, charging, group, label: label(rec, String(p.id), 1.2, 'point') };
+      const pad = mesh(boxGeo, mats.point, group, rec); pad.position.set(p.x, 0.0005, p.y); pad.scale.set(pw, 0.001, pd); pad.castShadow = false;
+      const perimeter = ownGeometry(new T.BufferGeometry().setFromPoints([[-pw / 2, -pd / 2], [pw / 2, -pd / 2], [pw / 2, pd / 2], [-pw / 2, pd / 2]].map(([x, z]) => new T.Vector3(p.x + x, 0.002, p.y + z))));
+      const outline = new T.LineLoop(perimeter, lineMat); group.add(outline);
+      if (charging) { const cabinet = mesh(boxGeo, mats.charger, group, rec); cabinet.scale.set(0.42, 0.65, 0.18); cabinet.position.set(p.x, 0.325, p.y + pd / 2 + 0.1); cabinet.userData.componentRole = 'charger-cabinet'; }
+      const lamp = mesh(boxGeo, mats.charger, group, rec); lamp.scale.set(0.18, 0.001, 0.045); lamp.position.set(p.x + pw / 2 - 0.14, 0.002, p.y + pd / 2 - 0.1); lamp.castShadow = false;
+      const entry = { rec, pad, lamp, charging, group, label: label(rec, String(p.id), 0.22, 'point') };
       points.set(String(p.id), entry);
     }
     function ensureRobots(count) {
@@ -602,26 +644,25 @@
         [brushGeo, mats.lift, -0.1, 0.876, 0.17, 0.23, 0.45, 0.23, false],
         [brushGeo, mats.emergency, -0.1, 0.891, 0.17, 0.17, 0.8, 0.17, false],
       ] : [
-        [bodyGeo, mats.dark, 0, 0.17, 0, 1.14, 0.22, 0.78, false],
-        [bodyGeo, mats.robot, 0, 0.3, 0, 1.16, 0.22, 0.8, false],
-        [boxGeo, mats.dark, 0.575, 0.28, 0, 0.03, 0.1, 0.44, false],
-        [boxGeo, mats.led, 0.59, 0.34, 0, 0.025, 0.025, 0.34, false],
-        [wheelGeo, mats.tire, -0.36, 0.12, -0.38, 1, 1, 1, false],
-        [wheelGeo, mats.tire, 0.36, 0.12, -0.38, 1, 1, 1, false],
-        [wheelGeo, mats.tire, -0.36, 0.12, 0.38, 1, 1, 1, false],
-        [wheelGeo, mats.tire, 0.36, 0.12, 0.38, 1, 1, 1, false],
-        [boxGeo, mats.lift, 0, 0.44, 0, 0.92, 0.06, 0.65, false, true],
-        [boxGeo, mats.pallet, 0, 0.55, 0, 1.2, 0.13, 0.8, true, true],
-        [boxGeo, mats.pallet, 0, 0.48, -0.28, 1.1, 0.07, 0.09, true, true],
-        [boxGeo, mats.pallet, 0, 0.48, 0.28, 1.1, 0.07, 0.09, true, true],
-        [boxGeo, mats.load, 0, 0.91, 0, 1.06, 0.58, 0.72, true, true],
+        [bodyGeo, mats.tire, 0, 0.077, 0, 1.024, 0.095, 0.642, false],
+        [bodyGeo, mats.ronavi, 0, 0.15, 0, 1.018, 0.14, 0.638, false],
+        [bodyGeo, mats.dark, 0, 0.296, 0, 1.044, 0.142, 0.654, false],
+        [boxGeo, mats.dark, 0.511, 0.178, 0, 0.015, 0.06, 0.15, false],
+        [boxGeo, mats.led, 0.524, 0.258, 0, 0.005, 0.012, 0.584, false],
+        [boxGeo, mats.led, 0, 0.258, 0.328, 0.97, 0.012, 0.005, false],
+        [boxGeo, mats.led, 0, 0.258, -0.328, 0.97, 0.012, 0.005, false],
+        [wheelGeo, mats.tire, 0.02, 0.086, -0.27, 0.72, 0.72, 0.72, false],
+        [wheelGeo, mats.tire, 0.02, 0.086, 0.27, 0.72, 0.72, 0.72, false],
+        [boxGeo, mats.lift, 0, 0.374, 0, 0.92, 0.012, 0.56, false, true],
+        ...[-0.32, 0.32].flatMap(x => [-0.19, 0.19].map(z => [boxGeo, mats.lift, x, 0.31, z, 0.036, 0.14, 0.036, false, false, 'jack-rod'])),
       ];
-      components.forEach(([geo, mat, x, y, z, w, h, d, loaded, lift]) => {
+      components.forEach(([geo, mat, x, y, z, w, h, d, loaded, lift, role]) => {
         const m = new T.InstancedMesh(geo, mat, robotCapacity);
+        m.userData.componentRole = role || (lift ? 'platform-face' : cleaning ? 'cleaner-body' : 'robot-body');
         m.instanceMatrix.setUsage(T.DynamicDrawUsage); m.castShadow = false; m.receiveShadow = true;
         m.count = 0; m.frustumCulled = false;
         robotsGroup.add(m); pickables.push(m);
-        robotParts.push({ mesh: m, x, y, z, w, h, d, loaded, lift });
+        robotParts.push({ mesh: m, x, y, z, w, h, d, loaded, lift, role });
       });
       if (cleaning) {
         brushMesh = new T.InstancedMesh(boxGeo, swathMaterial, robotCapacity); brushMesh.layers.set(1); brushMesh.frustumCulled = false;
@@ -630,6 +671,117 @@
     }
     function pathPoints(path) {
       return (Array.isArray(path) ? path : []).map((p) => Array.isArray(p) ? { x: p[0], y: p[1] } : p).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+    }
+    function updateCarriers(list) {
+      if (cleaning) return;
+      const carriers = (list || []).filter((c) => c.visible !== false && Number.isFinite(c.x) && Number.isFinite(c.y));
+      stats.carrierCount = carriers.length;
+      if (carriers.length > carrierCapacity) {
+        const old = new Set(carrierParts.map((p) => p.mesh));
+        old.forEach((m) => { root.remove(m); m.dispose?.(); }); pickables = pickables.filter((p) => !old.has(p));
+        carrierParts = []; carrierCapacity = Math.max(16, carriers.length);
+        carrierTransforms.clear(); carrierRecordKey = '';
+        const groups = new Map();
+        const pieces = window.warehouseCarrierParts(carrierSpec);
+        const levels = pieces.filter(p => p.role === 'shelf-tray');
+        const bands = levels.map((tray, i) => {
+          const boxes = pieces.filter(p => p.role === 'carton' && Math.abs(p.y - p.h / 2 - tray.y - tray.h / 2) < 0.00001);
+          const minX = Math.min(...boxes.map(p => p.x - p.w / 2)), maxX = Math.max(...boxes.map(p => p.x + p.w / 2));
+          const minZ = Math.min(...boxes.map(p => p.z - p.d / 2)), maxZ = Math.max(...boxes.map(p => p.z + p.d / 2));
+          const minY = tray.y + tray.h / 2, maxY = Math.max(...boxes.map(p => p.y + p.h / 2));
+          return { mat: i % 2 ? 'loadLight' : 'load', x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2, w: maxX - minX, h: maxY - minY, d: maxZ - minZ, role: 'carton-band', lod: 'far' };
+        });
+        pieces.concat(bands).forEach((p) => {
+          p.lod = p.lod || (p.detail ? 'detail' : p.role === 'carton' ? 'near' : 'all');
+          p.cargo = ['carton', 'carton-band', 'cargo-detail'].includes(p.role);
+          const key = p.mat + '|' + p.lod + '|' + p.cargo;
+          if (!groups.has(key)) groups.set(key, []); groups.get(key).push(p);
+        });
+        groups.forEach((pieces) => {
+          const m = new T.InstancedMesh(boxGeo, mats[pieces[0].mat], carrierCapacity * pieces.length);
+          m.userData.componentRole = 'carrier-batch'; m.userData.components = pieces;
+          m.instanceMatrix.setUsage(T.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = false; m.receiveShadow = true;
+          const batch = { mesh: m, pieces, lod: pieces[0].lod, cargo: pieces[0].cargo, fullUploadPending: false };
+          m.onAfterRender = () => { batch.fullUploadPending = false; };
+          root.add(m); pickables.push(m); carrierParts.push(batch);
+        });
+      }
+      const seen = new Set(), carrierRecords = [], cargoRecords = [];
+      let matrixWrites = 0, uploadFloats = 0;
+      carrierParts.forEach(batch => { batch.firstChanged = Infinity; batch.lastChanged = -1; });
+      carriers.forEach((value, index) => {
+        const id = 'carrier:' + value.id, yaw = -finite(value.heading, 0), c = Math.cos(yaw), s = Math.sin(yaw), liftM = finite(value.liftM, 0);
+        let rec = records.get(id);
+        if (!rec) rec = record(id, 'Мобильный стеллаж ' + value.id, 'carrier', new T.Vector3(), new T.Vector3(carrierSpec.lengthM, carrierSpec.heightM, carrierSpec.widthM), { Тип: carrierSpec.label, Носитель: value.id, Размер: fmt(carrierSpec.lengthM) + ' × ' + fmt(carrierSpec.widthM) + ' × ' + fmt(carrierSpec.heightM) + ' м', Ярусы: carrierSpec.levels, Основание: carrierSpec.sourceNote });
+        rec.robotId = value.robotId === null || value.robotId === undefined ? null : String(value.robotId);
+        rec.center.set(value.x, carrierSpec.heightM / 2 + liftM, value.y);
+        rec.size.set(Math.abs(c) * carrierSpec.lengthM + Math.abs(s) * carrierSpec.widthM, carrierSpec.heightM, Math.abs(s) * carrierSpec.lengthM + Math.abs(c) * carrierSpec.widthM);
+        const phases = { parked: 'На домашнем месте', pickup: 'Перед подхватом', loading: 'Подхват', carrying: 'Перевозка', unloading: 'Постановка', delivered: 'Установлен в зоне операции' };
+        rec.details.Состояние = phases[value.phase] || value.phase;
+        rec.details.Содержимое = value.contents === 'empty' ? 'Пустой носитель' : 'С грузом';
+        if (rec.liftM !== liftM) { rec.liftM = liftM; rec.details.Подъём = fmt(liftM * 1000) + ' мм'; }
+        if (value.taskId !== null && value.taskId !== undefined) rec.details.Задание = '#' + value.taskId; else delete rec.details.Задание;
+        if (rec.robotId !== null) rec.details.Робот = 'AMR-' + String(Number(rec.robotId) + 1).padStart(2, '0'); else delete rec.details.Робот;
+        seen.add(id); carrierRecords.push(rec);
+        const cargoIndex = value.contents === 'empty' ? -1 : cargoRecords.length;
+        if (cargoIndex >= 0) cargoRecords.push(rec);
+        const frameTransform = [index, value.x, value.y, yaw, liftM].join('|');
+        const cargoTransform = [cargoIndex, value.x, value.y, yaw, liftM].join('|');
+        const oldTransform = carrierTransforms.get(id);
+        const frameChanged = oldTransform?.frame !== frameTransform, cargoChanged = oldTransform?.cargo !== cargoTransform;
+        if (frameChanged || cargoChanged) {
+          carrierTransforms.set(id, { frame: frameTransform, cargo: cargoTransform });
+          carrierParts.forEach((batch) => {
+            if (batch.cargo ? cargoIndex < 0 || !cargoChanged : !frameChanged) return;
+            const first = (batch.cargo ? cargoIndex : index) * batch.pieces.length;
+            batch.firstChanged = Math.min(batch.firstChanged, first);
+            batch.lastChanged = Math.max(batch.lastChanged, first + batch.pieces.length - 1);
+            batch.pieces.forEach((p, pieceIndex) => {
+            dummy.position.set(value.x + p.x * c + p.z * s, p.y + liftM, value.y - p.x * s + p.z * c);
+            dummy.rotation.set(0, yaw, 0); dummy.scale.set(p.w, p.h, p.d); dummy.updateMatrix();
+            batch.mesh.setMatrixAt(first + pieceIndex, dummy.matrix); matrixWrites++;
+            });
+          });
+        }
+      });
+      const recordKey = carriers.map(c => c.id + ':' + (c.contents === 'empty' ? 'empty' : 'full')).join('|'), recordsChanged = recordKey !== carrierRecordKey;
+      carrierParts.forEach((batch) => {
+        const batchRecords = batch.cargo ? cargoRecords : carrierRecords;
+        batch.mesh.count = batchRecords.length * batch.pieces.length;
+        if (batch.lastChanged >= 0) {
+          // Three r128 accepts a contiguous dirty range in floats, not a full stock upload.
+          batch.mesh.instanceMatrix.updateRange.offset = batch.fullUploadPending ? 0 : batch.firstChanged * 16;
+          batch.mesh.instanceMatrix.updateRange.count = batch.fullUploadPending ? -1 : (batch.lastChanged - batch.firstChanged + 1) * 16;
+          uploadFloats += batch.fullUploadPending ? batch.mesh.instanceMatrix.array.length : batch.mesh.instanceMatrix.updateRange.count;
+          batch.mesh.instanceMatrix.needsUpdate = true;
+        }
+        if (recordsChanged) batch.mesh.userData.records = batchRecords.flatMap((rec) => batch.pieces.map(() => rec));
+      });
+      stats.emptyCarrierCount = carriers.length - cargoRecords.length;
+      stats.loadedCarrierCount = cargoRecords.length;
+      stats.carrierMatrixWrites = matrixWrites;
+      stats.carrierUploadFloats = uploadFloats;
+      carrierRecordKey = recordKey;
+      for (const [id, rec] of records) if (rec.kind === 'carrier' && !seen.has(id)) { records.delete(id); carrierTransforms.delete(id); }
+      updateCarrierLod();
+    }
+    function updateCarrierLod() {
+      if (!carrierParts.length) return;
+      camera.updateMatrixWorld(true);
+      const ground = new T.Vector3().project(camera), top = new T.Vector3(0, carrierSpec.heightM, 0).project(camera);
+      const heightPx = Math.abs(top.y - ground.y) * height / 2;
+      const corners = [[0, 0], [carrierSpec.lengthM, 0], [0, carrierSpec.widthM], [carrierSpec.lengthM, carrierSpec.widthM]].map(([x, z]) => new T.Vector3(x, 0, z).project(camera));
+      const planPx = Math.max((Math.max(...corners.map(p => p.x)) - Math.min(...corners.map(p => p.x))) * width / 2, (Math.max(...corners.map(p => p.y)) - Math.min(...corners.map(p => p.y))) * height / 2);
+      const resolution = Math.max(heightPx, planPx * 1.5), near = quality !== 'low' && resolution >= 56;
+      const detail = near && layer !== 'flow' && resolution >= (quality === 'details' ? 90 : 140);
+      carrierParts.forEach(p => {
+        const visible = p.lod === 'all' || p.lod === 'near' && near || p.lod === 'far' && !near || p.lod === 'detail' && detail;
+        // Hidden LOD buffers may have missed several disjoint updates since their last draw.
+        if (visible && !p.mesh.visible) { p.fullUploadPending = true; p.mesh.instanceMatrix.updateRange.count = -1; p.mesh.instanceMatrix.needsUpdate = true; }
+        p.mesh.visible = visible;
+      });
+      stats.carrierLod = { mode: detail ? 'detail' : near ? 'cartons' : 'five-tier', heightPx, planPx };
+      stats.carrierCargoInstances = carrierParts.filter(p => p.cargo && p.mesh.visible).reduce((n, p) => n + p.mesh.count, 0);
     }
     function incidentRecord(incident) {
       const id = 'incident:' + incident.id, statuses = { reported: 'Обнаружен', acknowledged: 'Принят', diagnosing: 'Диагностика', recovering: 'Восстановление', resolved: 'Устранён' };
@@ -679,6 +831,7 @@
       if (disposed || !root) return;
       const robots = next && Array.isArray(next.robots) ? next.robots.filter((b) => Number.isFinite(b.x) && Number.isFinite(b.y)).slice(0, 500) : [];
       ensureRobots(robots.length);
+      updateCarriers(next?.carriers);
       const seen = new Set();
       const robotRecords = [];
       frameRobots.clear();
@@ -688,14 +841,28 @@
         frameRobots.set(key, b);
         const old = previous.get(key);
         const dx = old ? b.x - old.x : 0, dz = old ? b.y - old.y : 0;
-        const yaw = Number.isFinite(b.heading) ? -b.heading : Math.hypot(dx, dz) > 0.001 ? Math.atan2(-dz, dx) : old ? old.yaw : 0;
+        const yaw = Number.isFinite(b.underlift?.headingRad) ? -b.underlift.headingRad : Number.isFinite(b.heading) ? -b.heading : Math.hypot(dx, dz) > 0.001 ? Math.atan2(-dz, dx) : old ? old.yaw : 0;
         previous.set(key, { x: b.x, y: b.y, yaw }); seen.add(key);
         let rec = records.get(id);
         if (!rec) rec = record(id, (cleaning ? 'Робот уборки ' : 'Робот ') + (Number(b.id) + 1), 'robot', new T.Vector3(), cleaning ? new T.Vector3(0.8, 0.9, 0.8) : new T.Vector3(1.3, 1.15, 0.9), {});
-        rec.center.set(b.x, 0.55, b.y);
+        const pose = cleaning ? { visible: false, liftM: 0 } : window.WarehouseDemoCore.carrierPose(b, carrierSpec);
+        const payloadHeight = pose.visible ? carrierSpec.heightM + pose.liftM : 0.38;
+        rec.center.set(b.x, cleaning ? 0.55 : payloadHeight / 2, b.y);
+        if (!cleaning) {
+          const bodyW = Math.abs(Math.cos(yaw)) * 1.044 + Math.abs(Math.sin(yaw)) * 0.654, bodyD = Math.abs(Math.sin(yaw)) * 1.044 + Math.abs(Math.cos(yaw)) * 0.654;
+          const pod = pose.visible && b.podPose, podYaw = pod ? -finite(pod.heading, 0) : yaw;
+          const podW = pose.visible ? Math.abs(Math.cos(podYaw)) * carrierSpec.lengthM + Math.abs(Math.sin(podYaw)) * carrierSpec.widthM : 0;
+          const podD = pose.visible ? Math.abs(Math.sin(podYaw)) * carrierSpec.lengthM + Math.abs(Math.cos(podYaw)) * carrierSpec.widthM : 0;
+          const px = pod ? pod.x : b.x, pz = pod ? pod.y : b.y;
+          const minX = Math.min(b.x - bodyW / 2, px - podW / 2), maxX = Math.max(b.x + bodyW / 2, px + podW / 2);
+          const minZ = Math.min(b.y - bodyD / 2, pz - podD / 2), maxZ = Math.max(b.y + bodyD / 2, pz + podD / 2);
+          rec.center.set((minX + maxX) / 2, payloadHeight / 2, (minZ + maxZ) / 2); rec.size.set(maxX - minX, payloadHeight, maxZ - minZ);
+          if (!rec.robotCenter) rec.robotCenter = new T.Vector3(); rec.robotCenter.set(b.x, 0.19, b.y);
+        }
         let marker = robotLabels.get(key);
         if (!marker) { marker = label(rec, '', 1.3, 'robot'); robotLabels.set(key, marker); }
-        const phases = { toPickup: 'к погрузке', toDrop: 'с грузом', toCharger: 'к зарядке', charging: 'зарядка', loading: '↑ погрузка', unloading: '↓ разгрузка', waitPoint: 'очередь', waitCharger: 'ждёт зарядку', idle: 'свободен', working: 'убирает', transit: 'по проходу', toDock: 'к станции', waitingDock: 'ждёт станцию', parking: 'к парковке', done: 'секция пройдена' };
+        if (!cleaning) marker.y = payloadHeight + 0.14;
+        const phases = { toPickup: 'к погрузке', toDrop: b.carrierContents === 'empty' ? 'пустой носитель' : 'с грузом', toCharger: 'к зарядке', charging: 'зарядка', loading: '↑ погрузка', unloading: '↓ разгрузка', waitPoint: 'очередь', waitCharger: 'ждёт зарядку', idle: 'свободен', working: 'убирает', transit: 'по проходу', toDock: 'к станции', waitingDock: 'ждёт станцию', parking: 'к парковке', done: 'секция пройдена' };
         const waiting = /wait/i.test(b.phase || ''), charging = /charg/i.test(b.phase || '');
         if (b.safety) {
           const radius = b.safety.radiusM + b.safety.requiredClearanceM / 2;
@@ -708,24 +875,24 @@
         marker.tone = b.safety?.blocked ? '#a74430' : charging || waiting ? '#865914' : '#086c72';
         rec.details = {
           Модель: model.product ? (model.product.name || model.product.slug || 'Не указана') : 'Не указана',
-          Состояние: b.phase || 'Нет данных', Груз: b.loaded ? 'С паллетой' : 'Без груза',
+          Состояние: b.phase || 'Нет данных', Груз: pose.visible ? carrierSpec.label + (b.carrierContents === 'empty' ? ' · пустой' : ' · с грузом') : 'Без груза',
           'Заряд': Number.isFinite(b.soc) ? fmt(b.soc <= 1 ? b.soc * 100 : b.soc) + ' %' : 'Нет данных',
           'Положение': fmt(b.x) + '; ' + fmt(b.y) + ' м',
           'Пройдено': Number.isFinite(b.distanceM) ? fmt(b.distanceM) + ' м' : 'Нет данных',
           'До цели': Number.isFinite(b.remainingDistM) ? fmt(b.remainingDistM) + ' м' : 'Нет данных',
           'Завершено заданий': Number.isFinite(b.tasksDone) ? b.tasksDone : 'Нет данных',
-          Геометрия: cleaning ? 'Условный робот уборки: корпус 0,76 × 0,70 м, высота около 0,91 м; силуэт прототипа, не паспортная модель производителя' : 'Условный AMR 1,16 × 0,8 м; не габариты производителя, без внутренних деталей',
+          Геометрия: cleaning ? 'Условный робот уборки: корпус 0,76 × 0,70 м, высота около 0,91 м; силуэт прототипа, не паспортная модель производителя' : 'RONAVI: внешний силуэт по референсу; оболочка 1,044 × 0,654 × 0,38 м. Условная реконструкция, не CAD',
         };
         if (cleaning) { rec.details.Секция = sections.get(String(b.zoneId))?.rec.name || b.zoneId || 'Нет задания'; rec.details.Захват = Number.isFinite(b.brushWidthM) ? fmt(b.brushWidthM) + ' м — модельный захват' : 'Нет данных'; delete rec.details.Груз; }
-        else if (b.task) { rec.details.Задание = '#' + b.task.id; rec.details.Погрузка = fmt(b.task.from.x) + '; ' + fmt(b.task.from.y) + ' м'; rec.details.Выгрузка = fmt(b.task.to.x) + '; ' + fmt(b.task.to.y) + ' м'; }
+        else { rec.details.Носитель = carrierSpec.label; rec.details['Геометрия носителя'] = carrierSpec.sourceNote; }
+        if (!cleaning && b.task) { rec.details.Задание = '#' + b.task.id; rec.details.Погрузка = fmt(b.task.from.x) + '; ' + fmt(b.task.from.y) + ' м'; rec.details.Выгрузка = fmt(b.task.to.x) + '; ' + fmt(b.task.to.y) + ' м'; }
         robotRecords.push(rec);
-        const progress = clamp(finite(b.handlingProgress, b.loaded ? 1 : 0), 0, 1);
-        const lifted = b.phase === 'loading' ? progress : b.phase === 'unloading' ? 1 - progress : b.loaded ? 1 : 0;
         robotParts.forEach((part) => {
           const c = Math.cos(yaw), s = Math.sin(yaw);
-          dummy.position.set(b.x + part.x * c + part.z * s, part.y + (part.lift ? lifted * 0.08 : 0), b.y - part.x * s + part.z * c);
-          const show = !part.loaded || b.loaded || b.phase === 'loading';
-          dummy.scale.set(show ? part.w : 0, show ? part.h : 0, show ? part.d : 0);
+          const stroke = finite(pose.platformLiftM, pose.liftM), jack = part.role === 'jack-rod';
+          dummy.position.set(b.x + part.x * c + part.z * s, part.y + (jack ? stroke / 2 : part.lift ? stroke : 0), b.y - part.x * s + part.z * c);
+          const show = !part.loaded || pose.visible;
+          dummy.scale.set(show ? part.w : 0, show ? part.h + (jack ? stroke : 0) : 0, show ? part.d : 0);
           dummy.rotation.set(0, yaw, 0); dummy.updateMatrix(); part.mesh.setMatrixAt(index, dummy.matrix);
         });
         if (cleaning && brushMesh && b.working === true) {
@@ -794,7 +961,7 @@
       if (disposed || !root) return;
       // Root may call this at display refresh rate. Buffers update only on the 30 Hz draw.
       const robots = next && Array.isArray(next.robots) ? next.robots : [];
-      const key = String(next ? next.tS : '') + '|' + robots.map((b) => [b.id, b.x, b.y, b.heading, b.phase, b.loaded, b.handlingProgress, b.working, b.zoneId].join(',')).join(';') + '|' + (next && next.points ? JSON.stringify(next.points) : '') + '|' + String(next?.coverage?.version ?? '') + '|' + (next?.sections ? JSON.stringify(next.sections.map((s) => [s.id, s.progress, s.status, s.assignedRobotIds])) : '') + '|' + (next?.incidents ? JSON.stringify(next.incidents) : '');
+      const key = String(next ? next.tS : '') + '|' + robots.map((b) => [b.id, b.x, b.y, b.heading, b.phase, b.loaded, b.handlingProgress, b.working, b.zoneId].join(',')).join(';') + '|' + (next && next.points ? JSON.stringify(next.points) : '') + '|' + String(next?.coverage?.version ?? '') + '|' + (next?.sections ? JSON.stringify(next.sections.map((s) => [s.id, s.progress, s.status, s.assignedRobotIds])) : '') + '|' + (next?.incidents ? JSON.stringify(next.incidents) : '') + '|' + (next?.carriers ? JSON.stringify(next.carriers.map(c => [c.id, c.x, c.y, c.heading, c.phase, c.liftM, c.visible, c.robotId, c.contents])) : '');
       if (key === frameKey) return;
       frameKey = key; pendingFrame = next; invalidate();
     }
@@ -802,6 +969,7 @@
       if (!root) return;
       rackGroup.visible = layer !== 'flow'; robotsGroup.visible = layer !== 'infrastructure'; routesGroup.visible = layer !== 'infrastructure';
       if (detailGroup) detailGroup.visible = layer !== 'flow' && quality !== 'low';
+      updateCarrierLod();
       if (coverageOverlay) coverageOverlay.visible = layer !== 'infrastructure';
       updateSelection(); invalidate();
     }
@@ -824,7 +992,7 @@
       const pts = rec && rec.kind === 'robot' && routes.get(rec.id.slice(6))?.points;
       selectedRoute.visible = layer !== 'infrastructure' && !!pts && pts.length > 1;
       halo.visible = layer !== 'infrastructure' && !!rec && rec.kind === 'robot';
-      if (halo.visible) halo.position.copy(rec.center).add(root.position).setY(0.06);
+      if (halo.visible) halo.position.copy(rec.robotCenter || rec.center).add(root.position).setY(0.06);
       if (selectedRoute.visible) {
         const count = (pts.length - 1) * 6;
         if (count > selectedRouteCapacity) {
@@ -850,7 +1018,7 @@
     }
     function select(rec) {
       hovered = null; hoverInfo.hidden = true;
-      taskRobotId = rec?.kind === 'robot' ? rec.id.slice(6) : rec?.kind === 'task-endpoint' ? rec.robotId : null;
+      taskRobotId = rec?.kind === 'robot' ? rec.id.slice(6) : rec?.kind === 'task-endpoint' || rec?.kind === 'carrier' ? rec.robotId : null;
       selected = rec ? rec.id : null; updateSelection();
       labels.forEach((l) => { l.el.style.fontWeight = l.rec.id === selected ? '700' : '500'; });
       if (typeof onSelect === 'function') onSelect(rec ? publicRecord(rec) : null);
@@ -1051,6 +1219,7 @@
       if (pendingFrame) { const next = pendingFrame; pendingFrame = null; applyFrame(next); }
       if (cleaning) updateCoverage();
       updateSelection();
+      updateCarrierLod();
       renderer.info.reset();
       if (composer) {
         const bg = scene.background;
@@ -1141,7 +1310,7 @@
         const rec = h.object.userData.record || (h.object.userData.records || [])[h.instanceId];
         return rec && allowed(rec) && (slice === null || h.point.y <= slice);
       });
-      if (hit) { const rec = hit.object.userData.record || hit.object.userData.records[hit.instanceId]; select(rec); if (rec.kind === 'robot') onInspect?.(rec.id); }
+      if (hit) { const rec = hit.object.userData.record || hit.object.userData.records[hit.instanceId]; select(rec); if (rec.kind === 'robot') onInspect?.(rec.id); else if (rec.kind === 'carrier' && rec.robotId !== null) onInspect?.('robot:' + rec.robotId); }
     });
     listen(canvas, 'keydown', (e) => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-', 'Home', 'Escape'].includes(e.key)) return;
@@ -1188,7 +1357,7 @@
     resize();
     function projectRobot(id) {
       const rec = records.get('robot:' + id); if (!rec || !root) return null;
-      const p = rec.center.clone().add(root.position).project(camera), rect = canvas.getBoundingClientRect();
+      const p = (rec.robotCenter || rec.center).clone().setY(cleaning ? 0.55 : 0.19).add(root.position).project(camera), rect = canvas.getBoundingClientRect();
       return { x: rect.left + (p.x + 1) * rect.width / 2, y: rect.top + (1 - p.y) * rect.height / 2 };
     }
     function projectObject(id) {

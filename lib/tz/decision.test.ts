@@ -6,7 +6,10 @@ import { paramSpecsFor } from "../data/organizer/params";
 import { simInputIdentity } from "../sim/identity";
 import { SPATIAL_MODEL_VERSION } from "../sim/spatial-bridge";
 import { buildProjectModel, type ProjectModel } from "./model";
-import { FIXTURE_H1500, WAREHOUSE_BASE_PARAMS, fixtureSpecs } from "./econ/fixtures";
+import { FIXTURE_CARRIER_P, FIXTURE_H1500, WAREHOUSE_BASE_PARAMS, fixtureSpecs } from "./econ/fixtures";
+import { runSimSync } from "../sim/runner";
+import { toStored } from "../sim/metrics";
+import { SIM_MODEL_VERSION } from "../sim/types";
 import { resolveNorms } from "./norms";
 import { buildDecision } from "./decision";
 import type { ScenarioOk, SpatialEvidence } from "./types";
@@ -31,6 +34,53 @@ function profitable(m: ProjectModel) {
 }
 
 describe("one selected technical-economic decision", () => {
+  it("uses a current single-leg 2D receipt without requesting an unrelated underlift 3D proof", () => {
+    const m = model({ products: [FIXTURE_CARRIER_P], scenarios: fixtureSpecs(FIXTURE_CARRIER_P) });
+    profitable(m);
+    const input = m.simInputs.p1!.calculated!;
+    expect(input.transportWorkflow).toBe("single-leg-pallet-1");
+    const summary = { ...toStored(runSimSync(input)), scenarioKey: "p1" };
+    expect(summary.verdict).toBe("CONFIRMED");
+    const d = buildDecision(m, "p1", input, false, summary);
+    expect(d).toMatchObject({ status: "suitable", verification: { kind: "analytical", supported: true }, spatial: { evidence: null } });
+    expect(d.headline).toContain("аналитической 2D-модели");
+    const html = renderToStaticMarkup(createElement(DecisionSummary, { model: m, scenarioKey: "p1", expectedInput: input, simSummary: summary, onSimulation() {} }));
+    expect(html).toContain("Открыть аналитическую имитацию");
+    expect(html).not.toContain("Открыть прогон в 3D");
+    expect(html).toContain("пространственная безопасность этим прогоном не подтверждаются");
+    expect(buildDecision(m, "p1", input, false, { ...summary, verdict: "NOT_CONFIRMED" })).toMatchObject({ status: "partial", pilot: { applicable: false } });
+    for (const receipt of [{ ...summary, inputKey: undefined }, { ...summary, simModelVersion: "old-model" }, { ...summary, scenarioKey: "other" }]) {
+      expect(buildDecision(m, "p1", input, false, receipt)).toMatchObject({ status: "unverified", verification: { analytical: null } });
+    }
+    expect(buildDecision(m, "p1", { ...input, seed: input.seed + 1 }, false, summary).status).toBe("unverified");
+    expect(buildDecision(m, "p1", input, true, summary).status).toBe("stale");
+    expect(summary.simModelVersion).toBe(SIM_MODEL_VERSION);
+  });
+
+  it("keeps unsupported processes and compound scenarios outside a single receipt's confirmation scope", () => {
+    const unsupported = model(); profitable(unsupported);
+    const noInput = buildDecision(unsupported, "p1", null);
+    expect(noInput).toMatchObject({ status: "unsupported", verification: { supported: false }, pilot: { applicable: false } });
+    const html = renderToStaticMarkup(createElement(DecisionSummary, { model: unsupported, scenarioKey: "p1", expectedInput: null, onSimulation() {} }));
+    expect(html).toContain("Проверка нагрузки не поддерживается");
+    expect(html).not.toContain("Открыть проверку сценария");
+    expect(html).not.toContain("Открыть прогон в 3D");
+    const mixed = model(); profitable(mixed); const input = evidence(mixed);
+    mixed.scenarios.find(s => s.key === "p1")!.items.push({ ...mixed.scenarios.find(s => s.key === "p1")!.items[0]! });
+    expect(buildDecision(mixed, "p1", input)).toMatchObject({ status: "unsupported", pilot: { applicable: false } });
+    expect(buildDecision(mixed, "p1", input).nextAction).toContain("не подтверждает весь состав");
+  });
+  it("prioritizes resolving a failed flow before a pilot and keeps key financial results visible", () => {
+    const m = model(), input = evidence(m, "PARTIAL");
+    const html = renderToStaticMarkup(createElement(DecisionSummary, { model: m, scenarioKey: "p1", expectedInput: input,
+      onSimulation() {}, onCompare() {}, onPilot() {} }));
+    expect(html).toContain('data-decision-status="partial"');
+    expect(html).toContain("Есть ограничения");
+    expect(html.indexOf("Разобрать ограничения в 3D")).toBeLessThan(html.indexOf("Составить план и бюджет пилота"));
+    expect(html).toContain("Чистый эффект в год");
+    expect(html).toContain("Простая окупаемость");
+    expect(html).toContain("NPV");
+  });
   it("keeps the explicitly selected financial scenario instead of silently substituting a recommendation", () => {
     const m = model(); m.conclusion.recommendedScenarioKey = "r1";
     const d = buildDecision(m, "p1"), p = m.results.find(r => r.key === "p1") as ScenarioOk;
@@ -57,6 +107,35 @@ describe("one selected technical-economic decision", () => {
     expect(d.finance!.npvRub).toBe(p.npvRub); expect(d.finance!.effectYearRub).toBe(p.effectYearRub);
     expect(d.pilot.applicable).toBe(false); expect(d.nextAction).not.toContain("докупить");
     expect(m).toEqual(before);
+  });
+
+  it("reports an actual waiting or queue limit without claiming that sufficient output was insufficient", () => {
+    const m = model(), input = evidence(m, "PARTIAL"), stored = m.scenarios.find(s => s.key === "p1")!.spatialEvidence!;
+    stored.summary.achievedPerH = stored.summary.requiredPerH + 1;
+    stored.summary.queueEnd = 0; stored.summary.waitP95Min = input.thresholds.p95WaitMaxMin + 1;
+    const wait = buildDecision(m, "p1", input);
+    expect(wait.headline).toBe("Заданный выпуск достигнут; превышено ожидание назначения");
+    expect(wait.nextAction).toContain("Ожидание назначения p95:");
+    expect(wait.spatial.partialFacts).toHaveLength(2);
+    expect(wait.nextAction).not.toContain("Парк не выполняет");
+    stored.summary.waitP95Min = input.thresholds.p95WaitMaxMin;
+    stored.summary.queueEnd = 100;
+    const queue = buildDecision(m, "p1", input);
+    expect(queue.headline).toBe("Заданный выпуск достигнут; превышена допустимая очередь");
+    expect(queue.nextAction).toContain("Очередь в конце: 100 при пределе");
+    expect(queue.nextAction).not.toContain("Ожидание назначения p95:");
+  });
+
+  it("does not invent a missing SLA or energy metric when a PARTIAL receipt has no failed visible threshold", () => {
+    const m = model(), input = evidence(m, "PARTIAL"), stored = m.scenarios.find(s => s.key === "p1")!.spatialEvidence!;
+    stored.summary.achievedPerH = stored.summary.requiredPerH;
+    stored.summary.queueEnd = 0; stored.summary.waitP95Min = 0;
+    stored.assessment.headline = "Прогон завершён с ограничением: критерии приёма заданий.";
+    const d = buildDecision(m, "p1", input);
+    expect(d.headline).toBe("Часть критериев пространственной модели не выполнена");
+    expect(d.nextAction).toContain(stored.assessment.headline);
+    expect(d.spatial.partialFacts).toHaveLength(1);
+    expect(d.nextAction).not.toContain("SOC"); expect(d.nextAction).not.toContain("нехват");
   });
 
   it("requires both current model flow and existing financial viability for a suitable conclusion", () => {

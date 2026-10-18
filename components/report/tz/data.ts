@@ -1,5 +1,5 @@
-import type { Db } from "@/lib/catalog/queries";
-import { getProject, getProjectChanges, type ProjectChangeEntry, type ProjectRecord } from "@/lib/projects/queries";
+import type { PrismaClient } from "@prisma/client";
+import { getOwnedProjectSnapshot, type ProjectChangeEntry, type ProjectRecord } from "@/lib/projects/queries";
 import { liveDataVersionFrom, loadLiveInputs } from "@/lib/projects/recalc";
 import type { ReportChange } from "@/lib/report/tz/rows";
 import type { ParamSpec } from "@/lib/tz/types";
@@ -59,13 +59,11 @@ export function toReportChanges(entries: readonly ProjectChangeEntry[]): ReportC
  * проекта: описания параметров из БД, а пока таблица пуста — из кода; продукты и нормативы
  * нужны только для сравнения версии данных.
  */
-export async function loadReportData(db: Db, projectId: string, userId: string): Promise<ReportData | null> {
-  const project = await getProject(db, projectId, userId);
-  if (!project) return null;
-  const [live, entries] = await Promise.all([
-    loadLiveInputs(db, project.facility),
-    getProjectChanges(db, project.id, userId),
-  ]);
+export async function loadReportData(db: PrismaClient, projectId: string, userId: string): Promise<ReportData | null> {
+  const snapshot = await getOwnedProjectSnapshot(db, projectId, userId);
+  if (!snapshot) return null;
+  const { project, changes: entries } = snapshot;
+  const live = await loadLiveInputs(db, project.facility);
   const defs = (project.results?.runtime?.paramDefs ?? live.paramDefs).filter((d) => d.facility === project.facility);
   const liveDataVersion = project.results ? liveDataVersionFrom(live, project.results) : null;
   return { project, defs, changes: toReportChanges(entries ?? []), liveDataVersion };

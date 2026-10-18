@@ -5,8 +5,17 @@ import { incidentSummary } from "./incidents";
 import { applyFleetComparison, compareWarehouseFleet, fleetComparisonInput, type ComparisonProgress } from "./comparison";
 import { assessPlayback, calculateCase, createPlayback, isPlaybackDone, stepPlayback } from "./core";
 
+// Enumeration, replay and scripted targets need a real terminal run, but not the
+// full 135-minute capacity example. Thirty minutes includes all four recoveries.
+vi.mock("../../lib/tz/norms", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../lib/tz/norms")>();
+  return { ...actual, resolveNorms: (...args: Parameters<typeof actual.resolveNorms>) => ({
+    ...actual.resolveNorms(...args), simWarmupMin: 0, simPeakMin: 30,
+  }) };
+});
+
 const reference = calculateCase("complex");
-const trace = (state: ReturnType<typeof createPlayback>) => "tasks" in state ? state.tasks.map(({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY }) => ({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY })) : [];
+const trace = (state: ReturnType<typeof createPlayback>) => "tasks" in state ? state.tasks.filter(task => task.countsTowardDemand !== false).map(({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY }) => ({ id, kind, arrivalS, fromPoint, fromX, fromY, toPoint, toX, toY })) : [];
 
 describe("matched warehouse fleet enumeration", () => {
   it("freezes infrastructure and enumerates every requested N without mutating its reference", async () => {
@@ -17,7 +26,7 @@ describe("matched warehouse fleet enumeration", () => {
     expect(result.runs.map((r) => r.fleet)).toEqual([1, 2, 3]);
     expect(result.runs.every((r) => r.status === "COMPLETE" && r.workloadMatched)).toBe(true);
     expect(new Set(result.runs.map((r) => r.workloadTraceKey)).size).toBe(1);
-    expect(result.context.workload.tasks).toHaveLength(290);
+    expect(result.context.workload.tasks).toHaveLength(reference.summary.arrivedPeak);
     expect(result.context.chargerCount).toBe(reference.input.layout.chargers);
     expect(result.context.fixedInput.demoIncidents).toMatchObject({ enabled: false, schedule: [] });
     for (const n of [1, 2, 3]) {
@@ -27,13 +36,16 @@ describe("matched warehouse fleet enumeration", () => {
       input.robots.count = 3; input.demoTraffic.initialPositions = result.context.fixedInput.demoTraffic.initialPositions;
       expect(input).toEqual(result.context.fixedInput);
     }
-    expect(progress.some((p) => p.phase === "prepared" && p.contextSummary?.workloadCount === 290)).toBe(true);
+    expect(progress.some((p) => p.phase === "prepared" && p.contextSummary?.workloadCount === reference.summary.arrivedPeak)).toBe(true);
     expect(progress.filter((p) => p.phase === "candidate").map((p) => p.run!.fleet)).toEqual([1, 2, 3]);
     expect(result.runs.every((r) => !("inputKey" in r.summary!))).toBe(true);
   });
 
   it("matches all job fields and final RNG for 3/11/60 on one common 60-capacity site", async () => {
-    const result = await compareWarehouseFleet(reference, { minFleet: 60, maxFleet: 60 });
+    const workload = structuredClone(reference);
+    workload.input.demand = { ...workload.input.demand, warmupMin: 0, peakMin: 30 };
+    workload.financialSourceInput!.demand = structuredClone(workload.input.demand);
+    const result = await compareWarehouseFleet(workload, { minFleet: 60, maxFleet: 60 });
     expect(result.status).toBe("COMPLETE");
     const common = structuredClone(result.context.fixedInput);
     for (const n of [3, 11, 60]) {

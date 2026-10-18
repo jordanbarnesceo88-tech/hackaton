@@ -1,0 +1,241 @@
+{
+  "schemaVersion": "submission-current-1",
+  "generatedAt": "2026-10-18T13:14:56.930Z",
+  "versions": {
+    "economics": "tz-1.0.5",
+    "analytical": "sim-1.1.0",
+    "spatial": "warehouse-dense-underlift-1.7.2"
+  },
+  "source": {
+    "baseUrl": "http://localhost:3085",
+    "project": {
+      "id": "91dd2c5c-4da2-4ff8-a701-f4ee96ba430c",
+      "name": "Сдаточный пример - полный цикл стеллажа N6 C2",
+      "revision": 1
+    },
+    "calculationOperation": {
+      "id": "cmvdu7fna000101nsdr3egeml",
+      "kind": "SAVE",
+      "status": "SUCCEEDED",
+      "publication": "PUBLISHED",
+      "engineRelease": "alfa-robot/sha256:3766b27f13a6d739a8af0a1afbf21fecd5f2bcd0d75e1bf2be7f0bd80dfb2d89/alfa-durable-calculation-1"
+    },
+    "capturedAt": "2026-10-18T13:04:23.408Z",
+    "generatorSha256": "10d331cd009bd2de3e1a086a8c82b25b0be9588682c04cd22aad8cd50a699b64"
+  },
+  "receipts": [
+    {
+      "id": "steady-flow",
+      "calculatedAt": "2026-10-18T12:52:34.181Z",
+      "modelVersion": "tz-1.0.5",
+      "analyticalVersion": "sim-1.1.0",
+      "spatialVersion": "warehouse-dense-underlift-1.7.2",
+      "dataVersion": "744ad95b",
+      "cashRealizationShare": 1,
+      "status": "OK"
+    },
+    {
+      "id": "peak-overload",
+      "calculatedAt": "2026-10-18T12:41:24.169Z",
+      "modelVersion": "tz-1.0.5",
+      "analyticalVersion": "sim-1.1.0",
+      "spatialVersion": "warehouse-dense-underlift-1.7.2",
+      "dataVersion": "744ad95b",
+      "cashRealizationShare": 1,
+      "status": "PARTIAL"
+    },
+    {
+      "id": "retained-staff",
+      "calculatedAt": "2026-10-18T12:41:28.275Z",
+      "modelVersion": "tz-1.0.5",
+      "analyticalVersion": "sim-1.1.0",
+      "spatialVersion": "warehouse-dense-underlift-1.7.2",
+      "dataVersion": "744ad95b",
+      "cashRealizationShare": 0,
+      "status": "OK"
+    }
+  ],
+  "claims": {
+    "qualifiedExample": "steady-flow N6/C2; actual current server receipt; NPV > 0 and spatial OK",
+    "negativeExamples": [
+      "peak-overload: PARTIAL, negative purchase NPV",
+      "retained-staff: physical OK, negative purchase NPV"
+    ],
+    "unit": "173 files / 1903 PASS in recorded release run",
+    "database": "Полный повторный прогон на изолированной PostgreSQL: 9 файлов, 150/150 тестов PASS, код выхода 0. Проверены в том числе публикация, отмена, конфликты редакций и отбрасывание поддельного подтверждения; это не нагрузочный тест.",
+    "browser": "Actual current create/recalculate/save/reopen NPV parity/export/copy/delete plus durable cancel/stale/draft guards and admin/public checks",
+    "pilot": "Actual numeric/persistence/export verification on spatial 1.7.1; not claimed re-run on 1.7.2",
+    "externalDeployment": "Not certified updated",
+    "calibration": "Educational inputs and geometry; no industrial safety certification or natural-site calibration"
+  },
+  "visualQa": {
+    "documentation": {
+      "pages": 13,
+      "blankPages": [],
+      "outsideBounds": [],
+      "textChars": 15354
+    },
+    "presentation": {
+      "pages": 12,
+      "blankPages": [],
+      "outsideBounds": [],
+      "textChars": 4703
+    },
+    "sample-report": {
+      "pages": 31,
+      "blankPages": [],
+      "outsideBounds": [],
+      "textChars": 97741
+    }
+  },
+  "review": {
+    "scope": "Local current submission; documentary, source/export and browser proofs only. No global claim that every requirement or deployment is complete.",
+    "database": {
+      "statement": "Полный повторный прогон на изолированной PostgreSQL: 9 файлов, 150/150 тестов PASS, код выхода 0. Проверены в том числе публикация, отмена, конфликты редакций и отбрасывание поддельного подтверждения; это не нагрузочный тест.",
+      "slideStatement": "PostgreSQL: 9 файлов, 150/150 тестов PASS; публикация, отмена, конфликты редакций и проверка поддельных подтверждений.",
+      "postFixFullRun": {
+        "filesPassed": 9,
+        "testsPassed": 150,
+        "testsTotal": 150,
+        "exitCode": 0,
+        "durationSeconds": 506.05,
+        "localStart": "2026-10-18 18:03:43",
+        "localEnd": "2026-10-18 18:12:09",
+        "isolatedDatabasePort": 55434,
+        "engineRelease": "alfa-robot/sha256:3766b27f13a6d739a8af0a1afbf21fecd5f2bcd0d75e1bf2be7f0bd80dfb2d89/alfa-durable-calculation-1",
+        "warnings": "Two pg client.query deprecation warnings; no errors"
+      },
+      "history": "Earlier full run 144/146; outdated raw-scenario equality test contract corrected. A later historical test-driver null diagnostic was not reproduced and is not described as a production-worker fix."
+    },
+    "pdfVisual": {
+      "pages": {
+        "presentation": 12,
+        "documentation": 13,
+        "sample-report": 31
+      },
+      "authorAllPagesPersonallyViewed": true,
+      "independentAllInitial56PagesViewed": true,
+      "independentPresentation5and6Documentation8and13": "PASS after correction",
+      "independentFinalReport10and24and28": "PASS; final report pages 10,11,24,28,29 personally viewed, 31 pages outsideBounds0",
+      "automatedBounds": "56 pages, zero blank pages and zero text blocks outside page bounds",
+      "independentProofPagesAfterDb150": "PASS: final presentation page 12 and documentation page 13 personally viewed; exact current PDF SHA checked; no layout defects",
+      "finalProofPdfSha256": {
+        "presentation": "9bf28b0ec68cef310936769196f5e8736ac8673e1df73485b16584b6a44c7047",
+        "documentation": "d85ea44b572ff31f4ca2b3c8b0cae59e268d7fbbad008ff8262b6b1b1f157383",
+        "sample-report": "adb5c89fdcdc13749d46ed5b67c01f54bb4bacd82b29d4a35f8a8633f8a1a0b8"
+      }
+    },
+    "numbers": {
+      "independentExportChecks": 445,
+      "scope": "Final actual SAVE revision 1: JSON/CSV/cached XLSX 445/445 PASS, PDF numeric/version text 19/19 PASS; 31-page PDF SHA checked; physical summary and purchase NPV unchanged",
+      "qualifiedFleet": 6,
+      "qualifiedChargers": 2,
+      "physicalVersion": "warehouse-dense-underlift-1.7.2",
+      "achievedPerH": 52,
+      "requiredPerH": 51.81818181818181,
+      "queueEnd": 2,
+      "waitP95Min": 4.55,
+      "purchaseNpvRub": 4079992.1238097674,
+      "independentPdfTextChecks": 19,
+      "finalRevision": 1,
+      "excelRecalculation": "Not performed by Excel; cached workbook values independently reconciled with annual cashflow arithmetic and source JSON"
+    },
+    "pilot": "Actual numeric/persistence/export test on spatial 1.7.1; not claimed repeated on 1.7.2",
+    "sourcePublication": "Actual CREATE, followed by actual SAVE; same persistent project revision 0 to 1; generated exports use revision 1",
+    "externalPublication": "Not performed or certified by this package",
+    "sourceChecks": {
+      "fullEslint": "PASS: 0 errors and 0 warnings",
+      "fullTypeScriptNoEmit": "PASS: exit 0",
+      "current3dBundles": "PASS: both current generated bundles checked",
+      "snapshotReadRegression": "PASS: 2 targeted tests",
+      "unit": "Earlier full source run: 173 files / 1903 tests PASS; not relabelled as a new full rerun"
+    }
+  },
+  "files": [
+    {
+      "name": "assets/robot-current.png",
+      "bytes": 143783,
+      "sha256": "c832880ff0d85e2c21c7f81addabc95c674fc6ee40f84f2677f524c2e464d066"
+    },
+    {
+      "name": "assets/warehouse-current.png",
+      "bytes": 174241,
+      "sha256": "23373267d7e326261e01d41fba352fab2a7e384921db9146518662b871218f8b"
+    },
+    {
+      "name": "calculation-source.json",
+      "bytes": 1760096,
+      "sha256": "7273fbcf25f9177fbb85ef36ee7e2f79f58272c8975a8d8f6300c088700dd025"
+    },
+    {
+      "name": "demo-numbers.md",
+      "bytes": 2190,
+      "sha256": "c3e792361c5dafce339994391dcf025ecf454147d34aeb3eed913f5389102128"
+    },
+    {
+      "name": "documentation.pdf",
+      "bytes": 142796,
+      "sha256": "d85ea44b572ff31f4ca2b3c8b0cae59e268d7fbbad008ff8262b6b1b1f157383"
+    },
+    {
+      "name": "pdf-qa.json",
+      "bytes": 358,
+      "sha256": "462a960fb914c19efcd09f1280ad9c2368eb9217172804465525d40f3cdb5375"
+    },
+    {
+      "name": "peak-overload-receipt.json",
+      "bytes": 1091223,
+      "sha256": "250165fce16015d3c6ad6c5225d847e170b8160ccb8de209df5298f5a7639406"
+    },
+    {
+      "name": "presentation.pdf",
+      "bytes": 351205,
+      "sha256": "9bf28b0ec68cef310936769196f5e8736ac8673e1df73485b16584b6a44c7047"
+    },
+    {
+      "name": "README.md",
+      "bytes": 1277,
+      "sha256": "fa1e08b6df7ba952068021ea0a3f68e31e7ae7f946dbe6d5c9d7c4e191b61d6a"
+    },
+    {
+      "name": "retained-staff-receipt.json",
+      "bytes": 1089662,
+      "sha256": "6cf56cd077862c5e3440b01d9ecf71e125192247bbf1786a6f6b04af6cc12f37"
+    },
+    {
+      "name": "sample-report.csv",
+      "bytes": 20192,
+      "sha256": "1db485f4253cbc6532b68c8446f6f5be62277de1c723bb828553e849cdd589da"
+    },
+    {
+      "name": "sample-report.pdf",
+      "bytes": 1256381,
+      "sha256": "adb5c89fdcdc13749d46ed5b67c01f54bb4bacd82b29d4a35f8a8633f8a1a0b8"
+    },
+    {
+      "name": "sample-report.png",
+      "bytes": 159426,
+      "sha256": "663aeb679e4e0bae5d025b8bcf4e5d6c5282daad9eeb87dde25a6f57fcedf19b"
+    },
+    {
+      "name": "sample-report.xlsx",
+      "bytes": 62160,
+      "sha256": "c2ec5ecad028c0cc24cafa815a73c1c3ff0ad895a3d0efba0c2a5c5a4b749b9e"
+    },
+    {
+      "name": "steady-flow-receipt.json",
+      "bytes": 1755774,
+      "sha256": "d34ac17305534e66f35dc2f26c8a76277e7a4d20cc42d27127f3ed58cda46355"
+    },
+    {
+      "name": "verification-review.json",
+      "bytes": 3943,
+      "sha256": "2e5cadc45381446f4b3363add5e8f04d35dcadd5763efb4249713035652692c1"
+    },
+    {
+      "name": "visual-source.json",
+      "bytes": 549513,
+      "sha256": "a6187abbe4b9593bcd1d04b29ff9fe44d753bead5668d034e2d0faad5b081d49"
+    }
+  ]
+}

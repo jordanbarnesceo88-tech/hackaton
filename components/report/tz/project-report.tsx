@@ -42,6 +42,7 @@ import {
   type NormReportRow,
 } from "@/lib/report/tz/tables";
 import { SIM_MODEL_VERSION } from "@/lib/sim/types";
+import { SPATIAL_MODEL_VERSION } from "@/lib/sim/spatial-version";
 import { DISCLAIMER } from "@/lib/tz/econ";
 import { fx } from "@/lib/tz/econ/text";
 import { DEFAULT_NORMS } from "@/lib/tz/norms";
@@ -843,11 +844,11 @@ function SimSection({ results }: { results: ProjectResults }) {
   return (
     <Section id="simulation" title={SECTION_TITLES.simulation}>
       <Note>
-        Имитация проверяет, выдерживает ли парк по расчёту пиковый поток на той же планировке, по которой посчитано плечо
-        перевозки: {fx(norms.simWarmupMin)} мин прогрева и {fx(norms.simPeakMin)} мин пика. Расчёт подтверждён, если за пик
-        обслужено не меньше {fx(norms.simServedShareMin * 100, 1)} % заданий, а 95 % заданий ждут не дольше{" "}
-        {fx(norms.simP95WaitMaxMin)} мин; простой от {fx(norms.simOversizedIdleShare * 100, 1)} % — парк избыточен. Повторный
-        прогон с тем же зерном генератора (оно указано в таблице) даёт те же числа.
+        Имитация проверяет работу парка на заданной нагрузке. Базовое окно: {fx(norms.simWarmupMin)} мин прогрева и {fx(norms.simPeakMin)} мин пика;
+        пороги начала обработки — не меньше {fx(norms.simServedShareMin * 100, 1)} % заявок и ожидание p95 не дольше {fx(norms.simP95WaitMaxMin)} мин.
+        Для полного подстеллажного цикла итог берётся из пространственного прогона: дополнительно проверяются выходной поток, очередь, габариты,
+        энергия и корректность состояния. Начало обработки включает подачу носителя для конкретной заявки и само по себе не означает доставку. Простой от {fx(norms.simOversizedIdleShare * 100, 1)} %
+        отмечается как признак избыточного парка. Версия и зерно указаны в таблице; корректировки порогов — в нормативных данных сценария.
       </Note>
       {table.columns.length === 0 ? (
         <p className="text-sm text-muted-foreground">Имитация не выполнялась: нет сценариев роботизации с перевозкой паллет.</p>
@@ -918,9 +919,9 @@ function SimSection({ results }: { results: ProjectResults }) {
             <Note>
               Сохранённая планировка расчёта: около {fx(layout.widthM, 0)} × {fx(layout.heightM, 0)} м, стеллажных
               проходов — {formatNum(layout.rackAislesX.length)}, ворот приёмки — {formatNum(layout.receiving.length)}, отгрузки —{" "}
-              {formatNum(layout.shipping.length)}. По этой же схеме посчитано среднее плечо перевозки
+              {formatNum(layout.shipping.length)}. По этой же схеме оценён суммарный пробег за расчётный цикл
               {g.item.routeLoadedM !== null && g.item.routeEmptyM !== null
-                ? `: с грузом ${fx(g.item.routeLoadedM, 1)} м, порожнее ${fx(g.item.routeEmptyM, 1)} м`
+                ? `: перевозка ${fx(g.item.routeLoadedM, 1)} м, порожний пробег ${fx(g.item.routeEmptyM, 1)} м`
                 : ""}
               . Это оценка по планировке, а не по чертежу объекта.
             </Note>
@@ -1229,12 +1230,29 @@ export function PilotSection({ results, scenarioKey }: { results: ProjectResults
 }
 
 export function ProjectReport({ project, results, defs, changes, scenarioKey, liveDataVersion = null }: ProjectReportProps) {
+  const decisionKey = scenarioKey ?? results.conclusion.recommendedScenarioKey ?? results.results.find(r => r.kind !== "asis")?.key ?? "";
+  const selectedSpec = results.scenarios.find(spec => spec.key === decisionKey);
+  const savedSpatial = selectedSpec?.spatialEvidence;
+  const retiredSpatial = savedSpatial && savedSpatial.simModelVersion !== SPATIAL_MODEL_VERSION ? savedSpatial : null;
   return (
     <div className="report-print mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
       <Toolbar projectId={project.id} />
       <ReportHeader project={project} results={results} liveDataVersion={liveDataVersion} />
       {results.modelVersion === TZ_MODEL_VERSION && results.simModelVersion === SIM_MODEL_VERSION
-        ? <DecisionSummary model={results} scenarioKey={scenarioKey} expectedInput={expectedSpatialInputFromStored(results, scenarioKey ?? results.conclusion.recommendedScenarioKey ?? results.results.find(r => r.kind !== "asis")?.key ?? "")} />
+        ? retiredSpatial ? <section className="report-block my-4 grid gap-3 border p-4" data-archived-spatial-receipt={retiredSpatial.assessment.status}>
+          <h2>Сохранённый результат пространственной проверки</h2>
+          <h3>{selectedSpec?.name}</h3>
+          <p>Сохранённый вывод проекта: {results.conclusion.headline}</p>
+          <p>Сохранённый статус: {retiredSpatial.assessment.status}. {retiredSpatial.assessment.headline}</p>
+          <p className="text-xs text-muted-foreground">Пространственная модель {retiredSpatial.simModelVersion}; дата расчёта {formatCalcDate(results.calculatedAt)}.</p>
+          {retiredSpatial.assessment.terminal && retiredSpatial.assessment.status !== "NOT_EVALUATED" ? <dl className="grid gap-3 text-sm tabular-nums sm:grid-cols-3" aria-label="Сохранённые показатели пространственной проверки">
+            <div><dt>Доставлено / требуется, пал./ч</dt><dd>{formatNum(retiredSpatial.summary.achievedPerH, 1)} / {formatNum(retiredSpatial.summary.requiredPerH, 1)}</dd></div>
+            <div><dt>Очередь по правилам сохранённой модели</dt><dd>{formatNum(retiredSpatial.summary.queueEnd)} заявок</dd></div>
+            <div><dt>Ожидание p95 по правилам сохранённой модели</dt><dd>{formatNum(retiredSpatial.summary.waitP95Min, 1)} мин</dd></div>
+          </dl> : <p>В сохранённой проверке выполнение нагрузки не оценено.</p>}
+          <p role="note" className="text-sm">Текущая пространственная модель — {SPATIAL_MODEL_VERSION}. Архивные статус и показатели не переоценены и не являются подтверждением текущей версии. Для нового результата явно пересчитайте проект или его копию.</p>
+        </section>
+        : <DecisionSummary model={results} scenarioKey={decisionKey} expectedInput={expectedSpatialInputFromStored(results, decisionKey)} simSummary={results.sim?.[decisionKey] ?? null} />
         : <section className="report-block my-4"><h2>Сохранённый вывод модели {results.modelVersion}</h2><p>{results.conclusion.headline}</p><p>Архив не переоценён текущим алгоритмом. Числа и вывод ниже относятся к сохранённой версии.</p></section>}
       <SummarySection results={results} />
       <Contents />

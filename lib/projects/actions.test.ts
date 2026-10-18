@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { CalculationRequestError, enqueueCalculation, computeFrozenCalculation, publishFrozenCalculation } from "../calculation-jobs/service";
-import { claimJob, completeJob, failJob, getOwnedJobResult } from "../calculation-jobs/store";
+import { CalculationRequestError, enqueueCalculation, computeFrozenCalculation, publishFrozenCalculation, type FrozenCalculationInput } from "../calculation-jobs/service";
+import { claimJob, completeJob, failJob, getOwnedJobResult, reapExpiredJobs } from "../calculation-jobs/store";
+import { engineRelease } from "../calculation-jobs/types";
+import { drainOwnReceipt, serialTestCommands } from "./test-support/durable-driver";
 import type { SaveProjectInput, SaveProjectResult } from "./action-types";
 import { simInputIdentity } from "../sim/identity";
+import { spatialEvidenceMatchesInput } from "../sim/spatial-evidence";
 import { createSpatialProjectSnapshot, SPATIAL_MODEL_VERSION } from "../sim/spatial-bridge";
 import { calculateProjectPreview } from "../../experiments/warehouse-3d/project-input";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,10 +15,10 @@ import { sourcedToCharRow } from "../catalog/product-for-calc";
 import { promoteColumns } from "../catalog/promote";
 import { catalogProduct } from "../data/organizer/catalog";
 import { processDef, solutionTypeDef } from "../tz/processes";
-import { AUTO_MANUAL_SUFFIX, expectedSpatialInputFromStored } from "../tz/model";
+import { AUTO_MANUAL_SUFFIX, buildProjectModel, expectedSpatialInputFromStored, storedPartOf } from "../tz/model";
 import type { ProductSeed, ProjectResults, ScenarioSpec } from "../tz/types";
 import { stableJson } from "../tz/version";
-import { bestPaybackYears, getProject, getProjectChanges, persistNewProject, listProjects, persistProjectCalculation, type NewProject, type ProjectCalculation } from "./queries";
+import { bestPaybackYears, getProject, getProjectChanges, getOwnedProjectSnapshot, persistNewProject, listProjects, persistProjectCalculation, type NewProject, type ProjectCalculation } from "./queries";
 import { resultsFromInputsAsync, type LiveInputs, type ComputeProjectInput, liveDataVersion, loadLiveInputs, reproduceModel } from "./recalc";
 
 /**
@@ -54,7 +57,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mockRevalidate }));
 const serverActions = await import("./actions");
 const currentRevision = async (id: string) => (await prisma.project.findUnique({ where: { id }, select: { revision: true } }))?.revision ?? 0;
 let actingUser: string | null = null;
-let draining: Promise<void> = Promise.resolve();
+const serialCommand = serialTestCommands();
 
 // Test driver runs the real durable boundary and worker publication, without a web compute alias.
 async function executeCommand(request: unknown): Promise<SaveProjectResult> {
@@ -62,21 +65,41 @@ async function executeCommand(request: unknown): Promise<SaveProjectResult> {
   const ownerId = actingUser;
   try {
     const receipt = await enqueueCalculation(prisma, ownerId, request, randomUUID());
-    draining = draining.then(async () => {
-      let claim;
-      while ((claim = await claimJob(prisma, { workerId: "project-data-test", leaseMs: 120_000 }))) {
+    const startedAt = new Date();
+    const diagnostics = async () => ({ receiptId: receipt.id, ownerId, workerRelease: engineRelease(),
+      own: await prisma.calculationJob.findFirst({ where: { id: receipt.id, ownerId }, select: {
+        status: true, diagnosticCode: true, attempts: true, leaseUntil: true, nextAttemptAt: true,
+        run: { select: { ownerId: true, engineRelease: true, publicationState: true } },
+      } }),
+      queue: await prisma.calculationJob.findMany({ where: { OR: [
+        { status: { in: ["QUEUED", "RUNNING"] } }, { status: "FAILED", finishedAt: { gte: startedAt } },
+      ] }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 10, select: {
+        id: true, ownerId: true, status: true, diagnosticCode: true, leaseUntil: true, nextAttemptAt: true,
+        run: { select: { engineRelease: true } },
+      } }),
+    });
+    let emptyClaims = 0;
+    const completed = await serialCommand(() => drainOwnReceipt({
+      inspect: async () => {
+        const result = await getOwnedJobResult(prisma, ownerId, receipt.id);
+        return result ? { status: result.job.status, diagnosticCode: result.job.diagnosticCode, value: result } : null;
+      },
+      recover: () => reapExpiredJobs(prisma),
+      claim: () => claimJob(prisma, { workerId: "project-data-test", leaseMs: 120_000 }),
+      execute: async claim => {
         try {
           const computed = await computeFrozenCalculation(claim.run.input);
           expect(await completeJob(prisma, claim, computed, publishFrozenCalculation)).toBe(true);
         } catch (error) {
           await failJob(prisma, claim, "TEST_COMPUTATION_FAILED", "Test calculation failed");
-          throw error;
+          if (claim.job.id === receipt.id) throw error;
+          console.error(`project_test_foreign_job_failed job=${claim.job.id} owner=${claim.run.ownerId}`);
         }
-      }
-    });
-    await draining;
-    const completed = await getOwnedJobResult(prisma, ownerId, receipt.id);
-    if (!completed?.run.results) throw new Error("No completed durable result");
+      },
+      diagnostics,
+      onEmptyClaim: snapshot => { if (emptyClaims++ === 0) console.error(`project_test_null_claim ${JSON.stringify(snapshot)}`); },
+    }));
+    if (!completed.run.results) throw new Error(`SUCCEEDED durable receipt has no stored result; ${JSON.stringify(await diagnostics())}`);
     if (completed.job.publicationState === "STALE") return { ok: false, reason: "conflict", message: "Проект изменился" };
     const results = completed.run.results as unknown as ProjectResults;
     return { ok: true, results, revision: completed.job.publishedRevision ?? 0, calculatedAt: results.calculatedAt, dataVersion: results.dataVersion };
@@ -210,6 +233,20 @@ function withoutClock(r: ProjectResults): unknown {
   return { ...r, calculatedAt: "", sim };
 }
 
+function submittedSpecs(specs: readonly ScenarioSpec[]): ScenarioSpec[] {
+  return specs.map(({ spatialEvidence: _receipt, ...spec }) => { void _receipt; return spec; });
+}
+
+function expectCanonicalProofs(results: ProjectResults): void {
+  for (const spec of results.scenarios) {
+    const expected = expectedSpatialInputFromStored(results, spec.key);
+    if (expected?.transportWorkflow === "closed-pod-1") {
+      expect(spatialEvidenceMatchesInput(spec.spatialEvidence, expected), spec.key).toBe(true);
+      expect(spec.spatialEvidence!.executionInputKey).not.toBe("server-replay-request");
+    }
+  }
+}
+
 const SPECS: ScenarioSpec[] = [
   { key: "asis", name: "Как есть", kind: "asis", items: [] },
   { key: "p1", name: "Покупка — TZT22 H1500", kind: "purchase", items: [{ process: PT, productSlug: H, quantityOverride: 12 }] },
@@ -293,10 +330,12 @@ describe("действия проектов", () => {
     const before = await getProject(prisma, projectId, userA);
     if (!before?.results) throw new Error("нет результатов");
     const params = { ...before.results.paramsUsed, forkliftSalaryRubMonth: 130_000 };
+    const scenarios = structuredClone(SPECS);
+    scenarios.find(s => s.key === "r1")!.normOverrides = { utilization: .8 };
     const saved = await actions.save(projectId, {
       name: "TZT22 Склад — вариант",
       params,
-      scenarios: SPECS,
+      scenarios,
       changes: [
         // Клиент прислал «авто» 999 — сервер его не принимает.
         { scenarioKey: "p1", field: `item:${PT}:quantity`, auto: 999, old: null, new: 12, unit: "шт.", reason: "проверка" },
@@ -315,8 +354,9 @@ describe("действия проектов", () => {
     expect(results.calculatedAt).toBe(saved.calculatedAt);
     expect(results.dataVersion).toBe(saved.dataVersion);
     expect(p.dataVersion).toBe(saved.dataVersion);
-    expect(results.scenarios).toEqual(SPECS);
-    expect(p.scenarios).toEqual(SPECS);
+    expect(submittedSpecs(results.scenarios)).toEqual(scenarios);
+    expect(p.scenarios).toEqual(results.scenarios);
+    expectCanonicalProofs(results);
     expect(results.paramsUsed.forkliftSalaryRubMonth).toBe(130_000);
     expect(p.params.forkliftSalaryRubMonth).toBe(130_000);
     expect(Object.keys(results.productSnapshots).sort()).toEqual([C, H].sort());
@@ -328,7 +368,9 @@ describe("действия проектов", () => {
     expect(typeof item?.nAuto).toBe("number");
 
     const rows = await prisma.changeLog.findMany({ where: { projectId }, orderBy: { field: "asc" } });
-    expect(rows).toHaveLength(3);
+    // The server also records real input changes omitted from the client's notes,
+    // including a renamed project or a switched catalogue product.
+    expect(rows.map(row => row.field)).toEqual(expect.arrayContaining(["project:name", "param:forkliftSalaryRubMonth", `item:${PT}:quantity`, "norm:utilization"]));
     const norm = rows.find((r) => r.field === "norm:utilization");
     expect(norm?.entity).toBe("scenario");
     expect(norm?.scenarioId).toBe(p.scenarioRows.find((s) => s.key === "r1")?.id);
@@ -625,10 +667,13 @@ describe("P0 project revision and immutable archive", () => {
     expect(saved?.revision).toBe(project.revision + 1);
     expect(saved?.name).toBe(requests[winner]!.name);
     expect(saved?.params.forkliftSalaryRubMonth).toBe(requests[winner]!.params.forkliftSalaryRubMonth);
-    expect(saved?.scenarios).toEqual(requests[winner]!.scenarios);
+    expect(submittedSpecs(saved!.scenarios)).toEqual(requests[winner]!.scenarios);
+    expectCanonicalProofs(saved!.results!);
     expect(saved?.results?.paramsUsed.forkliftSalaryRubMonth).toBe(requests[winner]!.params.forkliftSalaryRubMonth);
     const log = await prisma.changeLog.findMany({ where: { projectId: id } });
-    expect(log).toHaveLength(1); expect(log[0]!.reason).toBe(`tab-${winner}`);
+    expect(log.map(row => row.field).sort()).toEqual([`item:${PT}:quantity`, "param:forkliftSalaryRubMonth", "project:name"].sort());
+    expect(log.find(row => row.field === "param:forkliftSalaryRubMonth")!.reason).toBe(`tab-${winner}`);
+    expect(log.find(row => row.field === `item:${PT}:quantity`)!.newValue).toBe(7 + winner);
     expect(await commands.recalculate(id, project.revision)).toMatchObject({ reason: "conflict" });
     expect(await serverActions.deleteProjectAction(id, project.revision)).toMatchObject({ reason: "conflict" });
     expect((await getProject(prisma, id, userA))?.revision).toBe(project.revision + 1);
@@ -720,4 +765,115 @@ describe("P0 project revision and immutable archive", () => {
     expect(after?.results).toEqual(project.results); expect(after?.scenarios).toEqual(project.scenarios);
     expect(await prisma.changeLog.count({ where: { projectId: id } })).toBe(0);
   }, 120_000);
+});
+
+describe("server-derived audit and consistent report snapshot", () => {
+  // These fixtures exercise real validation, PostgreSQL publication/CAS and MVCC.
+  // The compute boundary supplies a real financial model without a costly spatial replay;
+  // physical acceptance is covered separately by the canonical engine tests.
+  function computation(frozen: FrozenCalculationInput) {
+    const model = buildProjectModel({ ...frozen.live, ...frozen.input,
+      products: frozen.input.snapshot ? Object.values(frozen.input.snapshot.productSnapshots) : frozen.live.products,
+      norms: frozen.input.snapshot?.normsUsed ?? frozen.live.norms, scenarios: frozen.input.scenarios ?? SPECS });
+    return { model, results: { ...storedPartOf(model, frozen.live.paramDefs), calculatedAt: new Date().toISOString(), sim: {} } };
+  }
+  async function fixture() {
+    const live = await loadLiveInputs(prisma, "warehouse");
+    const params = Object.fromEntries(live.paramDefs.filter(d => d.facility === "warehouse").map(d => [d.key, d.base]));
+    const frozen: FrozenCalculationInput = { schemaVersion: 1, operation: "CREATE", live,
+      input: { facility: "warehouse", params, scenarios: structuredClone(SPECS) } };
+    const computed = computation(frozen);
+    const created = await persistNewProject(prisma, { userId: userA, name: "TZT22 server audit fixture",
+      objectName: null, facility: "warehouse", params, paramsSource: { kind: "demo" } }, computed.results);
+    const project = await getProject(prisma, created.id, userA);
+    if (!project) throw new Error("Missing audit fixture");
+    return project;
+  }
+  async function enqueue(project: NonNullable<Awaited<ReturnType<typeof getProject>>>, patch: Partial<SaveProjectInput>) {
+    return enqueueCalculation(prisma, userA, { operation: "SAVE", projectId: project.id, expectedRevision: project.revision,
+      params: project.params, scenarios: project.scenarios, ...patch }, randomUUID());
+  }
+  async function finish(jobId: string) {
+    const claim = await claimJob(prisma, { workerId: "audit-contract-test", leaseMs: 120_000 });
+    if (!claim) throw new Error("Missing audit claim");
+    expect(claim.job.id).toBe(jobId);
+    const computed = computation(claim.run.input as unknown as FrozenCalculationInput);
+    expect(await completeJob(prisma, claim, computed, publishFrozenCalculation)).toBe(true);
+    return (await getOwnedJobResult(prisma, userA, jobId))!;
+  }
+
+  it("server-derived audit records omitted changes through the real SAVE publication path", async () => {
+    const project = await fixture(), specs = structuredClone(project.scenarios);
+    specs.find(s => s.key === "p1")!.items[0]!.quantityOverride = 13;
+    const receipt = await enqueue(project, { params: { ...project.params, forkliftSalaryRubMonth: 130000 }, scenarios: specs });
+    expect((await finish(receipt.id)).job.publicationState).toBe("PUBLISHED");
+    const rows = await prisma.changeLog.findMany({ where: { projectId: project.id } });
+    expect(rows.map(row => row.field).sort()).toEqual(["item:pallet-transport:quantity", "param:forkliftSalaryRubMonth"].sort());
+    expect(rows.find(row => row.field === "item:pallet-transport:quantity")).toMatchObject({ oldValue: 12, newValue: 13, userId: userA });
+    expect(rows.find(row => row.field === "param:forkliftSalaryRubMonth")).toMatchObject({ oldValue: project.params.forkliftSalaryRubMonth, newValue: 130000 });
+  });
+
+  it("server-derived audit ignores invented values and unchanged notes, keeping only the real reason", async () => {
+    const project = await fixture(), specs = structuredClone(project.scenarios);
+    specs.find(s => s.key === "p1")!.items[0]!.quantityOverride = 13;
+    const changes = [
+      { scenarioKey: "p1", field: "item:pallet-transport:quantity", auto: 999999, old: 999999, new: -9, unit: "forged", reason: "Уточнение парка" },
+      { field: "param:activeAreaM2", auto: 0, old: 1, new: 999, reason: "Этого изменения не было" },
+    ];
+    await finish((await enqueue(project, { scenarios: specs, changes })).id);
+    const rows = await prisma.changeLog.findMany({ where: { projectId: project.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ field: "item:pallet-transport:quantity", oldValue: 12, newValue: 13,
+      unit: "шт.", reason: "Уточнение парка", userId: userA });
+    expect(rows[0]!.autoValue).not.toBe(999999);
+    const saved = await getProject(prisma, project.id, userA);
+    await finish((await enqueue(saved!, { changes })).id);
+    expect(await prisma.changeLog.findMany({ where: { projectId: project.id } })).toEqual(rows);
+  });
+
+  it("server-derived audit survives scenario deletion and a stale removal cannot detach the winner's history", async () => {
+    const project = await fixture(), specs = structuredClone(project.scenarios);
+    specs.find(s => s.key === "p1")!.items[0]!.quantityOverride = 13;
+    const winner = await enqueue(project, { scenarios: specs, changes: [] });
+    const stale = await enqueue(project, { scenarios: project.scenarios.filter(s => s.key !== "p1"), changes: [] });
+    await finish(winner.id);
+    expect((await finish(stale.id)).job.publicationState).toBe("STALE");
+    const before = await prisma.changeLog.findMany({ where: { projectId: project.id } });
+    expect(before).toHaveLength(1); expect(before[0]!.scenarioId).not.toBeNull();
+    const saved = (await getProject(prisma, project.id, userA))!;
+    await finish((await enqueue(saved, { scenarios: saved.scenarios.filter(s => s.key !== "p1"), changes: [] })).id);
+    const rows = await prisma.changeLog.findMany({ where: { projectId: project.id } });
+    expect(rows).toHaveLength(2);
+    expect(rows.find(row => row.id === before[0]!.id)).toMatchObject({ oldValue: 12, newValue: 13, scenarioId: null, entityId: "p1" });
+    expect(rows.find(row => row.field === "scenario:remove")).toMatchObject({ scenarioId: null, entityId: "p1" });
+    expect((await getProjectChanges(prisma, project.id, userA))!.every(row => row.scenarioKey === "p1")).toBe(true);
+  });
+
+  it("server-derived audit and report RepeatableRead do not mix a newly committed journal with old numbers", async () => {
+    const project = await fixture();
+    const receipt = await enqueue(project, { params: { ...project.params, forkliftSalaryRubMonth: 130000 }, changes: [] });
+    let wrote = false;
+    const wrapped = new Proxy(prisma, { get(target, property) {
+      if (property !== "$transaction") return Reflect.get(target, property);
+      return async (read: (tx: typeof prisma) => Promise<unknown>, options: unknown) => target.$transaction(async tx => {
+        const projectReader = new Proxy(tx.project, { get(delegate, method) {
+          if (method !== "findFirst") return Reflect.get(delegate, method);
+          return async (args: Parameters<typeof tx.project.findFirst>[0]) => {
+            const row = await tx.project.findFirst(args);
+            if (!wrote && args?.include) { wrote = true; await finish(receipt.id); }
+            return row;
+          };
+        } });
+        return read(new Proxy(tx, { get(client, key) { return key === "project" ? projectReader : Reflect.get(client, key); } }) as typeof prisma);
+      }, options as { isolationLevel: "RepeatableRead" });
+    } });
+    const snapshot = await getOwnedProjectSnapshot(wrapped, project.id, userA);
+    expect(wrote).toBe(true);
+    expect(snapshot?.project.revision).toBe(0);
+    expect(snapshot?.project.params.forkliftSalaryRubMonth).toBe(project.params.forkliftSalaryRubMonth);
+    expect(snapshot?.changes).toEqual([]);
+    const current = (await getProject(prisma, project.id, userA))!;
+    expect(current.revision).toBe(1); expect(current.params.forkliftSalaryRubMonth).toBe(130000);
+    expect(await prisma.changeLog.count({ where: { projectId: project.id } })).toBe(1);
+  });
 });

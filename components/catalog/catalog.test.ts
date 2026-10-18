@@ -47,7 +47,6 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 /** Подписи, которые e2e v1 ищут строго: в новых текстах их быть не должно (план, раздел 6). */
 const FORBIDDEN = [
-  "Рассчитать",
   "Далее",
   "Сохранить расчёт",
   "Сохранено",
@@ -479,7 +478,7 @@ describe("карточка продукта", () => {
       expectNoForbidden(html);
 
       const links = renderToStaticMarkup(createElement(DemoLinks, { product: p }));
-      expect(links).not.toContain('href="/demo');
+      expect(links).not.toContain("product=");
       expect(links).toContain(`В подбор демо-расчёта продукт не входит: ${selectionParticipation(p).reason}.`);
     }
     expect(participationSummary(product())).toBe(
@@ -487,6 +486,8 @@ describe("карточка продукта", () => {
     );
     const links = renderToStaticMarkup(createElement(DemoLinks, { product: product() }));
     expect(links).toContain('href="/demo?facility=warehouse"');
+    expect(links).toContain('product=ronavi-h1500');
+    expect(links).toContain("Рассчитать это решение");
     expectNoForbidden(links);
   });
 
@@ -495,8 +496,8 @@ describe("карточка продукта", () => {
     expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: "abc" })).toBe("Каталог");
     expect(descriptionSourceRef({ origin: "ORGANIZER", organizerCatalogId: null })).toBe("Каталог");
     expect(descriptionSourceRef({ origin: "ADMIN", organizerCatalogId: null })).toBe("добавлено администратором");
-    expect(demoLinkText("warehouse", "Склад")).toBe("Открыть в демо-расчёте склада");
-    expect(demoLinkText("airport", "Аэропорт")).toBe("Открыть демо для объекта «Аэропорт»");
+    expect(demoLinkText("warehouse", "Склад")).toBe("Общий демо-расчёт склада");
+    expect(demoLinkText("airport", "Аэропорт")).toBe("Общий демо-расчёт: Аэропорт");
   });
 
   it("мелкие форматтеры", () => {

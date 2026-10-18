@@ -1,13 +1,15 @@
-import { rackRects } from "../../components/sim/scene-model";
-import { createSim, stepSim, type SimMovementGate } from "../../lib/sim/engine";
+import { createDockAccess,requestDock,cancelDockRequest,dockPathAllowed,releaseDockAfterClear,dockDistance,type DockAccess } from "./dock-access";
+import { buildClosedPodLayout } from "../../lib/sim/underlift-layout";
+import { stockSweepIsClear, stockRouteIsClear, nearestStockGap, orientedBounds, rectangleGap, ROBOT_LENGTH_M, ROBOT_WIDTH_M } from "./pod-collision";
+import { createSim, stepSim, type SimMovementGate, type SimHandlingGate } from "../../lib/sim/engine";
 import { needsCharge, type SimDispatchGate } from "../../lib/sim/dispatch";
-import { buildWarehouseLayout } from "../../lib/sim/layout";
 import { positionAlong, route, routeLengthBetween, routeLengthM } from "../../lib/sim/routing";
-import { siteSegmentIsClear, validateProjectSiteLayout, validateSiteLayout, WAREHOUSE_BODY_RADIUS_M } from "../../lib/sim/site-layout";
-import type { SimEngineState } from "../../lib/sim/state";
+import { siteSegmentIsClear, validateProjectSiteLayout, validateSiteLayout } from "../../lib/sim/site-layout";
+import type { SimEngineState, SimTask } from "../../lib/sim/state";
 import type { SimInput, SimLayout } from "../../lib/sim/types";
 import { accrueIncidentTime, createIncidentRuntime, defaultDemoIncidents, incidentHalts, updateIncidents, type IncidentConfig, type IncidentRuntime } from "./incidents";
 import { recordZeroSocOperation, type AssessmentFacts, type AssessmentEvidence } from "./assessment";
+import { POD_RADIUS_M, dockOf, validateUnderliftConfig, initUnderlift, underliftCanAssign, assignUnderlift, prepareUnderliftRoute, syncUnderlift, underliftHandling, type CarrierInput, type UnderliftState } from "./carriers";
 
 export type TrafficPoint = { x: number; y: number };
 export type BodySafety = { status: "clear" | "waiting"; blocked: boolean; reason: string | null; blockedBy: number | null; radiusM: number; requiredClearanceM: number; safeCenterDistanceM: number; nearestClearanceM: number | null; waitS: number; totalWaitS: number; replans: number; lastReplanS: number; blockedAtS: number; parking: boolean; assignments: number; yieldDistanceM: number | null; yieldStartedS: number | null };
@@ -18,11 +20,11 @@ export type TrafficController = {
   replanCandidateId?: number | null;
   firstViolation?: AssessmentEvidence & { otherRobotId: number; clearanceM: number };
 };
-export type WarehouseDispatchPolicy = { version: "warehouse-dispatch-1"; pendingLookahead: 16; replanBudgetPerTick: 1; replanMinIntervalS: 5; selection: "oldest-feasible-nearest"; interruptHome: true; stationaryChargingConsumesRoute: false; homeConsumesTaskRoute: false };
+export type WarehouseDispatchPolicy = { version: "warehouse-dispatch-1"; pendingLookahead: 16; replanBudgetPerTick: 1; replanMinIntervalS: 5; selection: "oldest-feasible-nearest"; interruptHome: boolean; stationaryChargingConsumesRoute: false; homeConsumesTaskRoute: false };
 const DISPATCH_POLICY: WarehouseDispatchPolicy = { version: "warehouse-dispatch-1", pendingLookahead: 16, replanBudgetPerTick: 1, replanMinIntervalS: 5, selection: "oldest-feasible-nearest", interruptHome: true, stationaryChargingConsumesRoute: false, homeConsumesTaskRoute: false };
-export type DemoTrafficInput = SimInput & { demoIncidents?: IncidentConfig; demoTraffic: { version: "traffic-1.3.0"; radiusM: number; clearanceM: number; maxActiveRoutes: number; initialPositions: TrafficPoint[]; parkingBays: TrafficPoint[]; dispatchPolicy?: WarehouseDispatchPolicy } };
+export type DemoTrafficInput = CarrierInput & { demoIncidents?: IncidentConfig; demoTraffic: { version: "traffic-1.3.0" | "traffic-2.0.0"; radiusM: number; clearanceM: number; maxActiveRoutes: number; initialPositions: TrafficPoint[]; parkingBays: TrafficPoint[]; dispatchPolicy?: WarehouseDispatchPolicy } };
 type RouteCommitment = { robotId: number; partnerId: number; leg: string; partnerLeg: string; travelledM: number };
-export type WarehouseTrafficState = SimEngineState & { demoTraffic: TrafficController; demoIncidents?: IncidentRuntime; assessmentFacts?: AssessmentFacts; routeCommitments: RouteCommitment[] };
+export type WarehouseTrafficState = UnderliftState & { demoTraffic: TrafficController; demoIncidents?: IncidentRuntime; assessmentFacts?: AssessmentFacts; routeCommitments: RouteCommitment[];dockAccess:DockAccess };
 type Body = TrafficPoint & { id: number };
 const EPS = 1e-8;
 type Box = { x0: number; x1: number; y0: number; y1: number };
@@ -63,7 +65,7 @@ export function reserveTrafficMotion(controller: TrafficController, robotId: num
   const required = 2 * controller.radiusM + controller.clearanceM;
   const box = traceBox(path);
   for (const other of controller.reservations) if (other.id !== robotId && boxesNear(box, other.box, required) && traceDistance(path, other.path) < required - EPS) {
-    safety.blocked = true; safety.status = "waiting"; safety.blockedBy = other.id; safety.reason = `Защитная остановка: уступает роботу ${other.id + 1}`;
+    safety.blocked = true; safety.status = "waiting"; safety.blockedBy = other.id; safety.reason = other.id < 0 ? `Защитная остановка: стоящий стеллаж pod-home-${-other.id - 999999}` : `Защитная остановка: уступает роботу ${other.id + 1}`;
     if (safety.blockedAtS !== controller.tS) { safety.waitS += controller.dtS; safety.totalWaitS += controller.dtS; safety.blockedAtS = controller.tS; }
     return false;
   }
@@ -91,38 +93,26 @@ export function trafficSummary(controller: TrafficController) {
   return { policy: "swept-disc-reservation" as const, radiusM: controller.radiusM, requiredClearanceM: controller.clearanceM, safeCenterDistanceM: 2 * controller.radiusM + controller.clearanceM, waitingRobots: Object.values(controller.bodies).filter((b) => b.blocked).length, detours: controller.detours, collisionCount: controller.collisionCount, minimumClearanceM: controller.minimumClearanceM, totalWaitS: Object.values(controller.bodies).reduce((sum, b) => sum + b.totalWaitS, 0) };
 }
 
-function ensureGraph(layout: SimLayout) {
-  if (!layout.footprint) layout.footprint = [{ x: 0, y: 0 }, { x: layout.widthM, y: 0 }, { x: layout.widthM, y: layout.heightM }, { x: 0, y: layout.heightM }];
-  if (!layout.obstacles) layout.obstacles = rackRects(layout).map((r) => ({ ...r, y: layout.heightM - r.y - r.h, kind: "rack" }));
-  if (layout.routingGraph) return;
-  const graph = { nodes: [] as { id: string; x: number; y: number }[], edges: [] as { from: string; to: string }[], clearanceM: 0.8 };
-  layout.routingGraph = graph;
-  // Large generated plans keep every storage coordinate, attached to continuous aisle edges.
-  const points = [...(layout.slots.length > 400 ? [] : layout.slots), ...layout.receiving, ...layout.shipping, ...layout.chargers];
-  const add = (p: TrafficPoint) => { if (!graph.nodes.some((n) => n.x === p.x && n.y === p.y)) graph.nodes.push({ ...p, id: `base-${graph.nodes.length}` }); };
-  points.forEach(add);
-  for (const x of new Set([...layout.rackAislesX, ...points.map((p) => p.x)])) for (const y of layout.crossAislesY) add({ x, y });
-  for (const axis of ["x", "y"] as const) {
-    const other = axis === "x" ? "y" : "x";
-    const groups = new Map<number, typeof graph.nodes>();
-    for (const n of graph.nodes) groups.set(n[other], [...(groups.get(n[other]) ?? []), n]);
-    for (const row of groups.values()) {
-      if (axis === "x" && !layout.crossAislesY.includes(row[0]!.y)) continue;
-      row.sort((a, b) => a[axis] - b[axis]);
-      for (let i = 1; i < row.length; i++) if (siteSegmentIsClear(layout, row[i - 1]!, row[i]!)) graph.edges.push({ from: row[i - 1]!.id, to: row[i]!.id });
-    }
-  }
-}
-
 /** Real graph-connected bays off the main centre lines, not renderer offsets or stacked slots. */
 export function prepareWarehouseTraffic(input: SimInput): DemoTrafficInput {
+  if (input.transportWorkflow === "single-leg-pallet-1") throw new Error("Подстеллажная 3D-модель не подтверждает однорейсовую паллетную перевозку вилочным роботом или тягачом");
+  const prepared = input as DemoTrafficInput;
+  if (prepared.demoUnderlift && prepared.demoTraffic?.version === "traffic-2.0.0" && prepared.siteLayout) {
+    const issues = validateSiteLayout(prepared.siteLayout);
+    if (issues.length || !Number.isFinite(prepared.demoTraffic.radiusM) || prepared.demoTraffic.radiusM < POD_RADIUS_M || !Number.isFinite(prepared.demoTraffic.clearanceM) || prepared.demoTraffic.clearanceM < 0.15 || prepared.siteLayout.routingGraph!.clearanceM < prepared.demoTraffic.radiusM + 0.05 - 1e-8) throw new Error("Повреждён подготовленный подстеллажный план");
+    validateUnderliftConfig(prepared.siteLayout,prepared.demoUnderlift);
+    if (prepared.demoTraffic.parkingBays.length < input.robots.count) throw new Error("Для нового парка повторите подготовку по исходному плану");
+    const copy = structuredClone(prepared);
+    copy.demoTraffic.initialPositions = copy.demoTraffic.parkingBays.slice(0, input.robots.count);
+    copy.demoTraffic.maxActiveRoutes = input.robots.count;
+    return copy;
+  }
   if (input.siteLayout) {
     const issues = validateProjectSiteLayout(input.siteLayout);
     if (issues.length) throw new Error(`Неподдерживаемый исходный план: ${issues.join("; ")}`);
   }
-  const layout = structuredClone(input.siteLayout ?? buildWarehouseLayout(input.layout));
-  ensureGraph(layout);
-  const graph = layout.routingGraph!, radiusM = WAREHOUSE_BODY_RADIUS_M, clearanceM = 0.15, spacing = radiusM * 2 + clearanceM;
+  const { layout, config: underlift } = buildClosedPodLayout(input.layout, input.siteLayout);
+  const graph = layout.routingGraph!, radiusM = POD_RADIUS_M, clearanceM = 0.15, spacing = radiusM * 2 + clearanceM;
   const baseNodes = [...graph.nodes], indices = new Map(baseNodes.map((n) => [n.id, n]));
   const baseEdges = graph.edges.map((e) => [indices.get(e.from)!, indices.get(e.to)!] as const);
   const bays: TrafficPoint[] = [], entries: TrafficPoint[][] = [];
@@ -149,12 +139,15 @@ export function prepareWarehouseTraffic(input: SimInput): DemoTrafficInput {
   const laneIndex = new Map(graph.nodes.map((n) => [n.id, n]));
   const laneEdges = graph.edges.map((e) => [laneIndex.get(e.from)!, laneIndex.get(e.to)!] as const);
   const parkingBase = { nodes: [...graph.nodes], edges: [...graph.edges] };
+  const stockBounds = underlift.docks.filter(d => layout.slots.some(p => Math.hypot(p.x - d.x, p.y - d.y) < EPS)).map(d => orientedBounds(d, 1.4, 1, d.heading));
   const acceptBay = (node: typeof graph.nodes[number], elbow: TrafficPoint, bay: TrafficPoint): boolean => {
-    if (bays.length >= desired || graph.nodes.length > 995) return false;
+    if (bays.length >= desired || graph.nodes.length > 8190) return false;
     const entry = [node, elbow, bay];
     if (!siteSegmentIsClear(layout, node, elbow) || !siteSegmentIsClear(layout, elbow, bay)) return false;
     if (laneEdges.some(([a, b]) => pointSegmentDistance(bay, a, b) < spacing)) return false;
     if ([...layout.receiving, ...layout.shipping, ...layout.chargers].some((p) => Math.hypot(p.x - bay.x, p.y - bay.y) < spacing * 2)) return false;
+    const entryBounds = [node, elbow, bay].map(p => orientedBounds(p, ROBOT_LENGTH_M, ROBOT_WIDTH_M, 0));
+    if (stockBounds.some(fixed => entryBounds.some(box => rectangleGap(box, fixed) < .15 - EPS))) return false;
     if (bays.some((p) => Math.hypot(p.x - bay.x, p.y - bay.y) < spacing || traceDistance([p], entry) < spacing) || entries.some((path) => traceDistance([bay], path) < spacing)) return false;
     const middle = add(elbow), end = add(bay);
     if (node.id !== middle) graph.edges.push({ from: node.id, to: middle });
@@ -162,7 +155,7 @@ export function prepareWarehouseTraffic(input: SimInput): DemoTrafficInput {
     bays.push(bay); entries.push(entry); return true;
   };
   const legacyBays = () => {
-    for (const node of baseNodes) for (const dx of [-2.2, 2.2, -4.4, 4.4]) for (const dy of [-2.2, 2.2, -4.4, 4.4]) {
+    for (const node of [...baseNodes].sort((a,b)=>Math.min(...[...layout.receiving,...layout.shipping,...layout.chargers].map(p=>Math.hypot(p.x-a.x,p.y-a.y)))-Math.min(...[...layout.receiving,...layout.shipping,...layout.chargers].map(p=>Math.hypot(p.x-b.x,p.y-b.y))))) for (const dx of [-2.2, 2.2, -4.4, 4.4]) for (const dy of [-2.2, 2.2, -4.4, 4.4]) {
       acceptBay(node, { x: node.x + dx, y: node.y }, { x: node.x + dx, y: node.y + dy });
     }
   };
@@ -190,19 +183,21 @@ export function prepareWarehouseTraffic(input: SimInput): DemoTrafficInput {
   if (bays.length < input.robots.count) throw new Error(`Для ${input.robots.count} роботов недостаточно безопасных парковок: доступно ${bays.length}. Уменьшите парк или увеличьте объект.`);
   const issues = validateSiteLayout(layout);
   if (issues.length) throw new Error(`Непроходимая схема движения: ${issues.join("; ")}`);
-  return { ...input, siteLayout: layout, demoIncidents: defaultDemoIncidents("warehouse", input.robots.count), demoTraffic: { version: "traffic-1.3.0", radiusM, clearanceM, maxActiveRoutes: Math.min(12, Math.max(3, Math.floor(input.layout.activeAreaM2 / 1000))), initialPositions: bays.slice(0, input.robots.count), parkingBays: bays, dispatchPolicy: { ...DISPATCH_POLICY } } };
+  return { ...input, siteLayout: layout, demoUnderlift: underlift, demoIncidents: defaultDemoIncidents("warehouse", input.robots.count), demoTraffic: { version: "traffic-2.0.0", radiusM, clearanceM, maxActiveRoutes: input.robots.count, initialPositions: bays.slice(0, input.robots.count), parkingBays: bays, dispatchPolicy: { ...DISPATCH_POLICY } } };
 }
 
 export function isTrafficInput(input: SimInput): input is DemoTrafficInput { return "demoTraffic" in input; }
 export function isWarehouseTrafficState(state: SimEngineState): state is WarehouseTrafficState { return "demoTraffic" in state; }
 export function createWarehouseTrafficState(input: DemoTrafficInput): WarehouseTrafficState {
+  if(input.demoUnderlift&&(input.demoTraffic.radiusM<POD_RADIUS_M||input.demoTraffic.clearanceM<0.15||!Number.isFinite(input.demoTraffic.radiusM)||!Number.isFinite(input.demoTraffic.clearanceM)))throw new Error("Недостаточный защитный габарит подстеллажного механизма");
   const state = createSim(structuredClone(input)) as WarehouseTrafficState;
   if (state.precheck !== "ok") throw new Error(`Недопустимый вход: ${state.precheck}`);
   state.robots.forEach((r, i) => { const p = input.demoTraffic.initialPositions[i]; if (!p) throw new Error("Нет парковки для робота"); r.x = p.x; r.y = p.y; });
   state.demoTraffic = createTrafficController(state.robots, input.demoTraffic.radiusM, input.demoTraffic.clearanceM);
-  state.routeCommitments = [];
+  state.routeCommitments = [];state.dockAccess=createDockAccess(input.demoTraffic.radiusM*2+input.demoTraffic.clearanceM);
   state.demoIncidents = createIncidentRuntime(input.demoIncidents, state.robots.length);
   state.assessmentFacts = { zeroSocOperationRobotSeconds: 0 };
+  if (input.demoUnderlift) initUnderlift(state, input.demoUnderlift);
   for (const r of state.robots) Object.assign(r, { safety: state.demoTraffic.bodies[r.id] });
   updateIncidents(state);
   return state;
@@ -292,27 +287,30 @@ function floorRoute(layout: SimLayout, from: TrafficPoint, to: TrafficPoint, cle
 }
 
 /** Sparse graph A* first, bounded accessible-floor A* if lane connectivity is blocked. */
-export function freeGraphRoute(layout: SimLayout, from: TrafficPoint, to: TrafficPoint, others: Body[], spacing: number): TrafficPoint[] | null {
+export function freeGraphRoute(layout: SimLayout, from: TrafficPoint, to: TrafficPoint, others: Body[], spacing: number, stockClear: (a:TrafficPoint,b:TrafficPoint)=>boolean = ()=>true): TrafficPoint[] | null {
   if (others.some((p) => Math.hypot(p.x - to.x, p.y - to.y) < spacing - EPS)) return null;
   const graph = layout.routingGraph!, nodes = [...graph.nodes, { ...from, id: "traffic-start" }], start = nodes.length - 1;
   const byId = new Map(nodes.map((n, i) => [n.id, i]));
-  const adjacent = nodes.map(() => [] as number[]);
+  const adjacent = nodes.map(() => [] as { node: number; edge: number }[]);
+  const edgeChecks = new Int8Array(graph.edges.length);
   const buckets = new Map<string, Body[]>();
   for (const p of others) { const key = `${Math.floor(p.x / 8)},${Math.floor(p.y / 8)}`; buckets.set(key, [...(buckets.get(key) ?? []), p]); }
   const clear = (a: TrafficPoint, b: TrafficPoint) => {
+    if (!stockClear(a,b)) return false;
     for (let x = Math.floor((Math.min(a.x, b.x) - spacing) / 8); x <= Math.floor((Math.max(a.x, b.x) + spacing) / 8); x++) for (let y = Math.floor((Math.min(a.y, b.y) - spacing) / 8); y <= Math.floor((Math.max(a.y, b.y) + spacing) / 8); y++) for (const p of buckets.get(`${x},${y}`) ?? []) if (pointSegmentDistance(p, a, b) < spacing - EPS) return false;
     return true;
   };
-  for (const e of graph.edges) {
+  for (const [edge, e] of graph.edges.entries()) {
     const a = byId.get(e.from)!, b = byId.get(e.to)!;
-    if (clear(nodes[a]!, nodes[b]!)) { adjacent[a]!.push(b); adjacent[b]!.push(a); }
-    if (pointSegmentDistance(from, nodes[a]!, nodes[b]!) < EPS) for (const end of [a, b]) if (clear(from, nodes[end]!)) { adjacent[start]!.push(end); adjacent[end]!.push(start); }
+    // Validate a base link only if A* reaches it, retaining the original neighbour order.
+    adjacent[a]!.push({ node: b, edge }); adjacent[b]!.push({ node: a, edge });
+    if (pointSegmentDistance(from, nodes[a]!, nodes[b]!) < EPS) for (const end of [a, b]) if (clear(from, nodes[end]!)) { adjacent[start]!.push({ node: end, edge: -1 }); adjacent[end]!.push({ node: start, edge: -1 }); }
     // From the middle of a blocked lane, enter a genuinely free parallel lane laterally.
     const u = nodes[a]!, v = nodes[b]!;
     const p = u.x === v.x ? { x: u.x, y: from.y } : { x: from.x, y: u.y };
     if (pointSegmentDistance(p, u, v) < EPS && Math.hypot(p.x - from.x, p.y - from.y) > EPS && Math.hypot(p.x - from.x, p.y - from.y) <= 4.5 && siteSegmentIsClear(layout, from, p) && clear(from, p)) {
-      const i = nodes.length; nodes.push({ ...p, id: `lateral-${i}` }); adjacent.push([start]); adjacent[start]!.push(i);
-      for (const end of [a, b]) if (clear(p, nodes[end]!)) { adjacent[i]!.push(end); adjacent[end]!.push(i); }
+      const i = nodes.length; nodes.push({ ...p, id: `lateral-${i}` }); adjacent.push([{ node: start, edge: -1 }]); adjacent[start]!.push({ node: i, edge: -1 });
+      for (const end of [a, b]) if (clear(p, nodes[end]!)) { adjacent[i]!.push({ node: end, edge: -1 }); adjacent[end]!.push({ node: i, edge: -1 }); }
     }
   }
   const target = nodes.findIndex((n) => Math.abs(n.x - to.x) < EPS && Math.abs(n.y - to.y) < EPS);
@@ -327,7 +325,15 @@ export function freeGraphRoute(layout: SimLayout, from: TrafficPoint, to: Traffi
       return found.reverse().map((i) => ({ x: nodes[i]!.x, y: nodes[i]!.y }));
     }
     open.delete(current);
-    for (const next of adjacent[current]!) {
+    for (const link of adjacent[current]!) {
+      if (link.edge >= 0) {
+        if (!edgeChecks[link.edge]) {
+          const edge = graph.edges[link.edge]!;
+          edgeChecks[link.edge] = clear(nodes[byId.get(edge.from)!]!, nodes[byId.get(edge.to)!]!) ? 1 : -1;
+        }
+        if (edgeChecks[link.edge]! < 0) continue;
+      }
+      const next = link.node;
       const a = nodes[current]!, b = nodes[next]!, value = cost.get(current)! + Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
       if (value < (cost.get(next) ?? Infinity)) { cost.set(next, value); previous.set(next, current); open.add(next); }
     }
@@ -350,7 +356,7 @@ function releaseRouteCommitments(state: WarehouseTrafficState) {
 }
 
 function commitDetour(state: WarehouseTrafficState, robotId: number, partnerId: number | null) {
-  if (partnerId === null || state.routeCommitments.some((c) => [c.robotId, c.partnerId].includes(robotId) || [c.robotId, c.partnerId].includes(partnerId))) return;
+  if (partnerId === null || partnerId < 0 || state.routeCommitments.some((c) => [c.robotId, c.partnerId].includes(robotId) || [c.robotId, c.partnerId].includes(partnerId))) return;
   const leg = movingLeg(state, state.robots[robotId]!), partnerLeg = movingLeg(state, state.robots[partnerId]!);
   if (leg && partnerLeg) state.routeCommitments.push({ robotId, partnerId, leg, partnerLeg, travelledM: 0 });
 }
@@ -377,36 +383,122 @@ function takeReplanTurn(state: WarehouseTrafficState, robotId: number): boolean 
   return true;
 }
 
+function prepareCarrierRoute(state:WarehouseTrafficState,robot:SimEngineState["robots"][number]) {
+  return prepareUnderliftRoute(state, robot, (from,entry) => freeGraphRoute(state.layout,from,entry,state.robots.filter(r=>r.id!==robot.id),state.demoTraffic.radiusM*2+state.demoTraffic.clearanceM,(a,b)=>stockRouteIsClear(state,robot,a,b)&&dockPathAllowed(state.dockAccess,robot.id,[a,b])));
+}
+/** Reverse without yawing, then let ordinary A* restart from a certified turn-clear point. */
+export function tryReverseRetreat(state: WarehouseTrafficState, robot: SimEngineState["robots"][number]): boolean {
+  const lift = robot.underlift;
+  if (!lift || !["toPickup", "toDrop"].includes(robot.phase) ||
+      ["extract", "exit", "retreat"].includes(lift.stage) || stockRouteIsClear(state, robot, robot, robot)) return false;
+
+  const dx = Math.abs(Math.cos(lift.headingRad)) > .5 ? Math.sign(Math.cos(lift.headingRad)) : 0;
+  const dy = Math.abs(Math.sin(lift.headingRad)) > .5 ? Math.sign(Math.sin(lift.headingRad)) : 0;
+  const spacing = state.demoTraffic.radiusM * 2 + state.demoTraffic.clearanceM;
+  const others = warehouseObstacles(state, robot.id);
+  const start = { x: robot.x, y: robot.y };
+  const probe = { ...robot, underlift: { ...lift, stage: "retreat" as const } };
+
+  // Bounded local recovery: ten 20 cm candidates, with the original orientation throughout.
+  for (let step = 1; step <= 10; step++) {
+    const back = { x: start.x - dx * step * .2, y: start.y - dy * step * .2 };
+    if (!siteSegmentIsClear(state.layout, start, back) ||
+        !stockSweepIsClear(state, probe, [start, back], true) ||
+        !dockPathAllowed(state.dockAccess, robot.id, [start, back]) ||
+        others.some(body => pointSegmentDistance(body, start, back) < spacing - EPS)) break;
+    if (!stockRouteIsClear(state, { ...robot, ...back }, back, back)) continue;
+
+    // The tail preserves task identity for the base engine; it cannot be driven until replanned.
+    const oldTail = pathSlice(robot.path, robot.distM, robot.pathLenM);
+    robot.path = [start, back, ...oldTail];
+    robot.pathLenM = routeLengthM(robot.path);
+    robot.distM = 0;
+    lift.stage = "retreat";
+    lift.retreatUntilM = Math.hypot(back.x - start.x, back.y - start.y);
+    lift.extractionUntilM = undefined;
+    lift.routeStage = robot.phase === "toPickup" ? "pickup" : "drop";
+    return true;
+  }
+  return false;
+}
+
+function approachingDock(state:WarehouseTrafficState,robot:SimEngineState["robots"][number],nextDistance:number):boolean {
+ const task=robot.task,u=robot.underlift;if(!task||!u||!["toPickup","toDrop"].includes(robot.phase))return true;
+ const pickup=robot.phase==="toPickup",point=pickup?{x:task.fromX,y:task.fromY}:{x:task.toX,y:task.toY},dock=dockOf(state,point,EPS);
+ const proposed=pathSlice(robot.path,robot.distM,nextDistance),probe={spacingM:state.dockAccess.spacingM,grants:[{robotId:-1,key:"probe",center:point,entry:dock.entry}],waiters:[],nextSequence:0};
+ if(dockPathAllowed(probe,robot.id,proposed))return true;
+ const granted=requestDock(state.dockAccess,{robotId:robot.id,key:`${task.id}:${pickup?"pickup":"drop"}`,center:point,entry:dock.entry,tS:state.tS},state.robots);
+ if(!granted){const body=state.demoTraffic.bodies[robot.id]!,blocker=state.dockAccess.grants.find(g=>g.robotId!==robot.id&&!dockPathAllowed({...state.dockAccess,grants:[g]},robot.id,[point,dock.entry]));body.blocked=true;body.status="waiting";body.blockedBy=blocker?.robotId??state.robots.find(r=>r.id!==robot.id&&dockDistance(r,{center:point,entry:dock.entry})<state.dockAccess.spacingM-EPS)?.id??null;body.reason="Ожидание освобождения подстеллажного заезда";if(body.blockedAtS!==state.tS){body.waitS++;body.totalWaitS++;body.blockedAtS=state.tS;}}
+ return granted;
+}
 const warehouseGate: SimMovementGate = (plain, robot, nextDistance) => {
   const state = plain as WarehouseTrafficState, control = state.demoTraffic;
+  if (robot.underlift?.stage === "retreat" && robot.distM >= (robot.underlift.retreatUntilM ?? Infinity) - EPS) {
+    robot.underlift.stage = robot.phase === "toPickup" ? "approach" : "carry";
+    robot.underlift.routeStage = undefined;
+    robot.underlift.retreatUntilM = undefined;
+  }
+  if (!prepareCarrierRoute(state,robot)) {
+    const body=control.bodies[robot.id]!;
+    if(takeReplanTurn(state,robot.id))body.lastReplanS=control.tS;
+    body.blocked=true;body.status="waiting";body.reason="Ожидание свободного прямого подстеллажного заезда";body.waitS++;body.totalWaitS++;return false;
+  }
   const safety = control.bodies[robot.id]!;
   if (safety.yieldDistanceM !== null && robot.distM >= safety.yieldDistanceM - EPS) {
     safety.yieldStartedS ??= control.tS;
-    const others = state.robots.filter((r) => r.id !== robot.id), goal = robot.path[robot.path.length - 1]!;
+    const others = warehouseObstacles(state, robot.id), goal = robot.path[robot.path.length - 1]!;
     if (control.tS - safety.yieldStartedS >= 5 && takeReplanTurn(state, robot.id)) {
       if ((state.input as DemoTrafficInput).demoTraffic.dispatchPolicy) safety.lastReplanS = control.tS;
-      const resumed = freeGraphRoute(state.layout, robot, goal, others, safety.safeCenterDistanceM);
-      if (resumed) { robot.path = resumed; robot.pathLenM = routeLengthM(resumed); robot.distM = 0; safety.yieldDistanceM = null; safety.yieldStartedS = null; }
+      if(robot.underlift) {
+        cancelDockRequest(state.dockAccess,robot.id);
+      const previousStage=robot.underlift.routeStage;robot.underlift.routeStage=undefined;
+        if(prepareCarrierRoute(state,robot)){safety.yieldDistanceM=null;safety.yieldStartedS=null;}else robot.underlift.routeStage=previousStage;
+      } else {
+        const resumed = freeGraphRoute(state.layout, robot, goal, others, safety.safeCenterDistanceM,(a,b)=>stockRouteIsClear(state,robot,a,b)&&dockPathAllowed(state.dockAccess,robot.id,[a,b]));
+        if (resumed) { robot.path = resumed; robot.pathLenM = routeLengthM(resumed); robot.distM = 0; safety.yieldDistanceM = null; safety.yieldStartedS = null; }
+      }
     }
     safety.blocked = true; safety.status = "waiting"; safety.reason = "Уступает проезд: ожидание в парковочном кармане";
     safety.waitS++; safety.totalWaitS++; safety.blockedAtS = control.tS; return false;
   }
-  const cappedDistance = safety.yieldDistanceM === null ? nextDistance : Math.min(nextDistance, safety.yieldDistanceM);
-  if (reserveTrafficMotion(control, robot.id, pathSlice(robot.path, robot.distM, cappedDistance))) return cappedDistance;
+  let cappedDistance = safety.yieldDistanceM === null ? nextDistance : Math.min(nextDistance, safety.yieldDistanceM);
+  if(robot.underlift?.stage==="retreat")cappedDistance=Math.min(cappedDistance,robot.underlift.retreatUntilM!);
+  if(robot.underlift?.stage==="extract"&&robot.distM<(robot.underlift.extractionUntilM??0)-EPS)cappedDistance=Math.min(cappedDistance,robot.underlift.extractionUntilM!);
+  if(robot.underlift&&robot.pathLenM-robot.distM>2+EPS)cappedDistance=Math.min(cappedDistance,robot.pathLenM-2);
+  if (approachingDock(state,robot,cappedDistance)&&reserveWarehouseMotion(state, robot.id, pathSlice(robot.path, robot.distM, cappedDistance))) return cappedDistance;
+  if(robot.underlift&&(robot.pathLenM-robot.distM<=2+EPS||robot.underlift.stage==="extract"||robot.underlift.stage==="retreat"))return false;
   const replanInterval = (state.input as DemoTrafficInput).demoTraffic.dispatchPolicy?.replanMinIntervalS ?? 10;
   if (safety.waitS >= 2 && control.tS - safety.lastReplanS >= replanInterval && takeReplanTurn(state, robot.id)) {
     // One side keeps its detour; simultaneous mirrored replans can circle indefinitely.
     if (state.routeCommitments.some((c) => c.partnerId === robot.id && c.robotId === safety.blockedBy)) return false;
     safety.lastReplanS = control.tS;
     if (!(state.input as DemoTrafficInput).demoTraffic.dispatchPolicy) control.replansThisTick++;
-    const goal = robot.path[robot.path.length - 1]!, others = state.robots.filter((r) => r.id !== robot.id), spacing = control.radiusM * 2 + control.clearanceM;
-    let detour = freeGraphRoute(state.layout, robot, goal, others, spacing);
+    if(robot.underlift) {
+      cancelDockRequest(state.dockAccess,robot.id);
+      const previousStage=robot.underlift.routeStage;robot.underlift.routeStage=undefined;
+      if(prepareCarrierRoute(state,robot)){safety.replans++;control.detours++;safety.reason="Перестроен маршрут к прямому подстеллажному заезду";return false;}
+      robot.underlift.routeStage=previousStage;
+      if(tryReverseRetreat(state,robot)){safety.replans++;control.detours++;safety.reason="Безопасный отход задним ходом до места поворота";return false;}
+      if(safety.blockedBy!==null&&(robot.id>safety.blockedBy||state.dockAccess.grants.some(g=>g.robotId===safety.blockedBy))) {
+        const goal=robot.path.at(-1)!,input=state.input as DemoTrafficInput,spacing=safety.safeCenterDistanceM;
+        const bays=input.demoTraffic.parkingBays.filter(p=>Math.hypot(p.x-robot.x,p.y-robot.y)>spacing&&!input.demoTraffic.initialPositions.some((h,id)=>id!==robot.id&&Math.hypot(h.x-p.x,h.y-p.y)<EPS)).sort((a,b)=>Math.hypot(a.x-robot.x,a.y-robot.y)-Math.hypot(b.x-robot.x,b.y-robot.y));
+        for(const bay of bays.slice(0,4)) {
+          const prefix=freeGraphRoute(state.layout,robot,bay,warehouseObstacles(state,robot.id),spacing,(a,b)=>stockRouteIsClear(state,robot,a,b)&&dockPathAllowed(state.dockAccess,robot.id,[a,b]));
+          if(!prefix)continue;
+          const tail=route(state.layout,bay,goal);robot.path=[...prefix,...tail.slice(1)];robot.pathLenM=routeLengthM(robot.path);robot.distM=0;robot.underlift.routeStage=robot.phase==="toPickup"?"pickup":"drop";
+          safety.yieldDistanceM=routeLengthM(prefix);safety.yieldStartedS=null;safety.replans++;control.detours++;commitDetour(state,robot.id,safety.blockedBy);break;
+        }
+      }
+      return false;
+    }
+    const goal = robot.path[robot.path.length - 1]!, others = warehouseObstacles(state, robot.id), spacing = control.radiusM * 2 + control.clearanceM;
+    let detour = freeGraphRoute(state.layout, robot, goal, others, spacing,(a,b)=>stockRouteIsClear(state,robot,a,b)&&dockPathAllowed(state.dockAccess,robot.id,[a,b]));
     // If the goal is occupied, pull into a free off-route bay while preserving the actual task goal.
-    if (!detour && robot.id > (safety.blockedBy ?? Infinity)) {
+    if (!detour && (robot.id > (safety.blockedBy ?? Infinity)||state.dockAccess.grants.some(g=>g.robotId===safety.blockedBy))) {
       const input = state.input as DemoTrafficInput;
       const bays = input.demoTraffic.parkingBays.filter((p) => Math.hypot(p.x - robot.x, p.y - robot.y) > spacing && !input.demoTraffic.initialPositions.some((home, id) => id !== robot.id && Math.hypot(p.x - home.x, p.y - home.y) < EPS)).sort((a, b) => Math.hypot(a.x - robot.x, a.y - robot.y) - Math.hypot(b.x - robot.x, b.y - robot.y));
       for (const bay of bays.slice(0, 2)) {
-        const prefix = freeGraphRoute(state.layout, robot, bay, others, spacing);
+        const prefix = freeGraphRoute(state.layout, robot, bay, others, spacing,(a,b)=>stockRouteIsClear(state,robot,a,b)&&dockPathAllowed(state.dockAccess,robot.id,[a,b]));
         if (prefix) { detour = [...prefix, ...route(state.layout, bay, goal).slice(1)]; safety.yieldDistanceM = routeLengthM(prefix); safety.yieldStartedS = null; break; }
       }
     }
@@ -415,11 +507,40 @@ const warehouseGate: SimMovementGate = (plain, robot, nextDistance) => {
   return false;
 };
 
+function warehouseObstacles(state: WarehouseTrafficState, robotId: number): Body[] {
+  return state.robots.filter(r => r.id !== robotId);
+}
+function reserveWarehouseMotion(state: WarehouseTrafficState, robotId: number, path: TrafficPoint[]): boolean {
+  const robot=state.robots.find(r=>r.id===robotId)!;
+  if(!dockPathAllowed(state.dockAccess,robotId,path)){const body=state.demoTraffic.bodies[robotId]!;body.blocked=true;body.status="waiting";body.blockedBy=state.dockAccess.grants.find(g=>g.robotId!==robotId&&!dockPathAllowed({...state.dockAccess,grants:[g]},robotId,path))?.robotId??null;body.reason="Ожидание освобождения подстеллажного заезда и выезда";if(body.blockedAtS!==state.tS){body.waitS++;body.totalWaitS++;body.blockedAtS=state.tS;}return false;}
+  if(!stockSweepIsClear(state,robot,path)) {
+    const body=state.demoTraffic.bodies[robotId]!;body.blocked=true;body.status="waiting";body.blockedBy=null;body.reason="Защитная остановка: прямоугольный габарит стеллажа или место поворота заняты";
+    if(body.blockedAtS!==state.demoTraffic.tS){body.waitS+=state.demoTraffic.dtS;body.totalWaitS+=state.demoTraffic.dtS;body.blockedAtS=state.demoTraffic.tS;}return false;
+  }
+  return reserveTrafficMotion(state.demoTraffic, robotId, path);
+}
+const warehouseHandlingGate: SimHandlingGate = (plain, robot, dt) => underliftHandling(plain as WarehouseTrafficState, robot, dt,
+  (body, next) => reserveWarehouseMotion(plain as WarehouseTrafficState, body.id, pathSlice(body.path, body.distM, next)));
+
 function occupiesRoute(state: WarehouseTrafficState, robot: SimEngineState["robots"][number]): boolean {
   const input = state.input as DemoTrafficInput;
   if (input.demoTraffic.dispatchPolicy) return robot.task !== null || robot.phase === "toCharger";
   const home = input.demoTraffic.initialPositions[robot.id]!;
   return robot.phase !== "idle" || Math.hypot(robot.x - home.x, robot.y - home.y) > EPS;
+}
+
+const pickupReservations = new WeakMap<WarehouseTrafficState, { tS: number; head: number; points: Map<string, boolean> }>();
+function pickupIsReserved(state: WarehouseTrafficState, task: SimTask): boolean {
+  let cache = pickupReservations.get(state);
+  // Dispatch precedes movement; head changes on each assignment, time on each physical step.
+  if (!cache || cache.tS !== state.tS || cache.head !== state.head) {
+    cache = { tS: state.tS, head: state.head, points: new Map() }; pickupReservations.set(state, cache);
+  }
+  const key = `${task.fromX};${task.fromY}`, cached = cache.points.get(key);
+  if (cached !== undefined) return cached;
+  const reserved = state.robots.some(r => r.task && ((!r.loaded && Math.hypot(r.task.fromX - task.fromX, r.task.fromY - task.fromY) < 0.01) || Math.hypot(r.task.toX - task.fromX, r.task.toY - task.fromY) < 0.01));
+  cache.points.set(key, reserved);
+  return reserved;
 }
 
 const warehouseDispatchGate: SimDispatchGate = (plain, robot, task) => {
@@ -431,41 +552,49 @@ const warehouseDispatchGate: SimDispatchGate = (plain, robot, task) => {
     const target = task ? { x: task.fromX, y: task.fromY } : state.points.find(p => p.kind === "charger");
     if (target) { try { routeLengthBetween(state.layout, robot.x, robot.y, target.x, target.y); } catch { return false; } }
   }
-  const isActive = (r: typeof robot) => occupiesRoute(state, r);
-  const active = state.robots.filter(isActive).length;
-  // Reassigning an already admitted robot does not consume another route slot.
-  if (active >= input.demoTraffic.maxActiveRoutes && !isActive(robot)) return false;
+  // A full-fleet ceiling cannot reject an idle robot; avoid rescanning the whole fleet for it.
+  if (input.demoTraffic.maxActiveRoutes < state.robots.length) {
+    const active = state.robots.filter(r => occupiesRoute(state, r)).length;
+    if (active >= input.demoTraffic.maxActiveRoutes && !occupiesRoute(state, robot)) return false;
+  }
   if (!task) return state.points.some((p) => p.kind === "charger" && p.holder === null && p.queue.length === 0);
   if (needsCharge(state, robot)) return false;
-  const eligible = state.robots.filter((r) => r.phase === "idle" && !incidentHalts(state, r.id) && !needsCharge(state, r) && !state.demoTraffic.bodies[r.id]!.parking);
-  const leastAssignments = Math.min(...eligible.map((r) => state.demoTraffic.bodies[r.id]!.assignments));
-  if (!policy && body.assignments > leastAssignments) return false;
+  if (!policy) {
+    const eligible = state.robots.filter((r) => r.phase === "idle" && !incidentHalts(state, r.id) && !needsCharge(state, r) && !state.demoTraffic.bodies[r.id]!.parking);
+    const leastAssignments = Math.min(...eligible.map((r) => state.demoTraffic.bodies[r.id]!.assignments));
+    if (body.assignments > leastAssignments) return false;
+  }
   // Backpressure before committing another robot to an already occupied task endpoint.
-  return !state.robots.some((r) => r.id !== robot.id && r.task && ((!r.loaded && Math.hypot(r.task.fromX - task.fromX, r.task.fromY - task.fromY) < 0.01) || (Math.hypot(r.task.toX - task.fromX, r.task.toY - task.fromY) < 0.01)));
+  return !pickupIsReserved(state, task) && underliftCanAssign(state, robot, task);
 };
 
 const warehousePolicyGate: SimDispatchGate = Object.assign(
   ((state, robot, task) => warehouseDispatchGate(state, robot, task)) as SimDispatchGate,
-  { policy: { pendingLookahead: DISPATCH_POLICY.pendingLookahead }, onAssigned: (plain: SimEngineState, robot: SimEngineState["robots"][number]) => {
+  { policy: { pendingLookahead: DISPATCH_POLICY.pendingLookahead }, onAssigned: (plain: SimEngineState, robot: SimEngineState["robots"][number], task: Parameters<NonNullable<SimDispatchGate["onAssigned"]>>[2]) => {
     const state = plain as WarehouseTrafficState, body = state.demoTraffic.bodies[robot.id]!;
+    cancelDockRequest(state.dockAccess,robot.id);
     body.parking = false; body.yieldDistanceM = null; body.yieldStartedS = null;
     state.routeCommitments = state.routeCommitments.filter(c => c.robotId !== robot.id && c.partnerId !== robot.id);
+    assignUnderlift(state, robot, task);
   } },
 );
 
 export function stepWarehouseTraffic(state: WarehouseTrafficState) {
   updateIncidents(state);
+  for(const robot of state.robots)releaseDockAfterClear(state.dockAccess,robot.id,robot);
   releaseRouteCommitments(state);
   accrueIncidentTime(state, 1);
   const idleAtStart = new Set(state.robots.filter((r) => r.phase === "idle").map((r) => r.id));
   const tasksBefore = state.robots.map((r) => r.task?.id ?? null);
+  const physicalTasksBefore = new Map(state.robots.flatMap(r => r.task ? [[r.id, r.task] as const] : []));
   const phasesBefore = state.robots.map((r) => r.phase);
   const positionsBefore = state.robots.map((r) => ({ x: r.x, y: r.y, timerS: r.timerS, soc: r.soc }));
   // Select before beginTrafficStep clears last tick's blocker ids; a committed partner is not eligible.
   const replanCandidateId = selectReplanCandidate(state);
   beginTrafficStep(state.demoTraffic, state.robots, state.tS, 1);
   if ((state.input as DemoTrafficInput).demoTraffic.dispatchPolicy) state.demoTraffic.replanCandidateId = replanCandidateId;
-  stepSim(state, 1, warehouseGate, (state.input as DemoTrafficInput).demoTraffic.dispatchPolicy ? warehousePolicyGate : warehouseDispatchGate, (s, r) => !incidentHalts(s as WarehouseTrafficState, r.id));
+  stepSim(state, 1, warehouseGate, (state.input as DemoTrafficInput).demoTraffic.dispatchPolicy ? warehousePolicyGate : warehouseDispatchGate, (s, r) => !incidentHalts(s as WarehouseTrafficState, r.id), warehouseHandlingGate);
+  syncUnderlift(state, physicalTasksBefore);
   for (const r of state.robots) if (r.task && r.task.id !== tasksBefore[r.id]) state.demoTraffic.bodies[r.id]!.assignments++;
   for (const r of state.robots) if (r.phase !== phasesBefore[r.id]) { const body = state.demoTraffic.bodies[r.id]!; body.yieldDistanceM = null; body.yieldStartedS = null; }
   for (const robot of state.robots) {
@@ -473,10 +602,10 @@ export function stepWarehouseTraffic(state: WarehouseTrafficState) {
     const safety = state.demoTraffic.bodies[robot.id]!;
     if (!idleAtStart.has(robot.id) || robot.phase !== "idle") { safety.parking = false; continue; }
     const home = (state.input as DemoTrafficInput).demoTraffic.initialPositions[robot.id]!;
-    if (Math.hypot(home.x - robot.x, home.y - robot.y) < EPS) { safety.parking = false; continue; }
+    if (Math.hypot(home.x - robot.x, home.y - robot.y) < EPS) { safety.parking = false;continue; }
     if (!safety.parking) { robot.path = route(state.layout, robot, home); robot.pathLenM = routeLengthM(robot.path); robot.distM = 0; safety.parking = true; }
     const next = Math.min(robot.pathLenM, robot.distM + state.input.robots.speedMps);
-    if (reserveTrafficMotion(state.demoTraffic, robot.id, pathSlice(robot.path, robot.distM, next))) {
+    if (reserveWarehouseMotion(state, robot.id, pathSlice(robot.path, robot.distM, next))) {
       robot.distM = next; const p = positionAlong(robot.path, next); robot.x = p.x; robot.y = p.y;
       if (state.tS > state.warmupS) { state.acc.idleS -= 1; state.acc.emptyS += 1; }
       if (next >= robot.pathLenM - EPS) safety.parking = false;
@@ -484,15 +613,24 @@ export function stepWarehouseTraffic(state: WarehouseTrafficState) {
       if (safety.waitS >= 2 && state.demoTraffic.tS - safety.lastReplanS >= 5 && takeReplanTurn(state, robot.id)) {
         if (!state.routeCommitments.some((c) => c.partnerId === robot.id && c.robotId === safety.blockedBy)) {
           safety.lastReplanS = state.demoTraffic.tS;
-          const detour = freeGraphRoute(state.layout, robot, home, state.robots.filter((r) => r.id !== robot.id), safety.safeCenterDistanceM);
+          const detour = freeGraphRoute(state.layout, robot, home, warehouseObstacles(state, robot.id), safety.safeCenterDistanceM,(a,b)=>stockRouteIsClear(state,robot,a,b)&&dockPathAllowed(state.dockAccess,robot.id,[a,b]));
           if (detour) { commitDetour(state, robot.id, safety.blockedBy); robot.path = detour; robot.pathLenM = routeLengthM(detour); robot.distM = 0; safety.replans++; state.demoTraffic.detours++; }
         }
       }
       if (state.tS > state.warmupS) { state.acc.idleS -= 1; state.acc.waitPointS += 1; }
     }
   }
+  for(const robot of state.robots)releaseDockAfterClear(state.dockAccess,robot.id,robot);
   for (const c of state.routeCommitments) c.travelledM += routeLengthM(state.demoTraffic.reservations.find((r) => r.id === c.robotId)!.path);
   auditTraffic(state.demoTraffic, state.robots);
+  for (const robot of state.robots) {
+    const closest=nearestStockGap(state,robot);if(!closest)continue;
+    const gap=closest.gapM,body=state.demoTraffic.bodies[robot.id]!;
+    body.nearestClearanceM=body.nearestClearanceM===null?gap:Math.min(body.nearestClearanceM,gap);
+    state.demoTraffic.minimumClearanceM=state.demoTraffic.minimumClearanceM===null?gap:Math.min(state.demoTraffic.minimumClearanceM,gap);
+    if(gap<state.demoTraffic.clearanceM-EPS)state.demoTraffic.firstViolation??={tS:state.tS,robotId:robot.id,otherRobotId:-1000000-(state.demoUnderlift?.podIndex[closest.podId]??0),x:robot.x,y:robot.y,clearanceM:gap};
+    if(gap < -EPS)state.demoTraffic.collisionCount++;
+  }
   for (const r of state.robots) {
     const prev = positionsBefore[r.id]!;
     const operated = Math.hypot(r.x - prev.x, r.y - prev.y) > EPS || ((phasesBefore[r.id] === "loading" || phasesBefore[r.id] === "unloading") && (r.timerS !== prev.timerS || r.phase !== phasesBefore[r.id]));

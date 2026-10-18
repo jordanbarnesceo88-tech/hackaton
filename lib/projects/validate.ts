@@ -1,6 +1,6 @@
 import { fx } from "../tz/econ/text";
 import { parseSpatialProjectSnapshot } from "../sim/spatial-bridge";
-import { validateSiteLayout, validateProjectSiteLayout } from "../sim/site-layout";
+import { validateSiteLayout, validateProjectSiteLayout, SITE_LAYOUT_LIMITS } from "../sim/site-layout";
 import type { SimLayout } from "../sim/types";
 import { LAYOUT_LIMITS } from "../sim/layout";
 import { isNormKey, normDef } from "../tz/norms";
@@ -111,7 +111,7 @@ type InputShape = null | { [field: string]: InputShape } | readonly [InputShape]
 const POINT = { x: null, y: null };
 const RECT = { ...POINT, w: null, h: null, id: null, kind: null, heightM: null };
 const INPUT_SHAPE: InputShape = {
-  seed: null, loadMassKg: null,
+  seed: null, loadMassKg: null, transportWorkflow: null,
   layout: { activeAreaM2: null, mainAisleWidthM: null, rackAisleWidthM: null, receivingDocksCount: null, shippingDocksCount: null, chargers: null },
   robots: { count: null, speedMps: null, loadedSpeedFactor: null, handlingSec: null, autonomyH: null, chargeMin: null, payloadKg: null },
   demand: { avgPerH: null, peakPerH: null, warmupMin: null, peakMin: null },
@@ -132,7 +132,8 @@ function checkInputShape(value: unknown, shape: InputShape): void {
   if (shape === null) {
     if (!(value === null || (finite(value) && Math.abs(value) <= 1e9) || (typeof value === "string" && value.length <= 500))) throw new Error("Некорректное или слишком большое значение во входе 3D");
   } else if (Array.isArray(shape)) {
-    if (!Array.isArray(value) || value.length > 2000) throw new Error("Слишком большой список во входе 3D");
+    // Geometry validation below applies the tighter per-field limits to nodes, slots and points.
+    if (!Array.isArray(value) || value.length > SITE_LAYOUT_LIMITS.maxGraphEdges) throw new Error("Слишком большой список во входе 3D");
     for (const entry of value) checkInputShape(entry, shape[0]!);
   } else {
     if (!isPlainObject(value)) throw new Error("Неверная вложенная структура входа 3D");

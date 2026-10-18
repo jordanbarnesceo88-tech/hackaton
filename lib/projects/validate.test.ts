@@ -6,7 +6,11 @@ import {
   sanitizeProjectName,
   validatePendingChanges,
   validateScenarioSpecs,
+  checkScenarioSiteLayout,
 } from "./validate";
+import { buildClosedPodLayout } from "../sim/underlift-layout";
+import { warehouseBaseInput } from "../sim/fixtures";
+import { SITE_LAYOUT_LIMITS } from "../sim/site-layout";
 
 const PRODUCTS = ["ronavi-h1500", "dikom-dmr-carrier-p"];
 const PROCESSES = ["pallet-transport", "storage", "cleaning"];
@@ -30,6 +34,15 @@ function errorsOf(specs: unknown): string {
 }
 
 describe("validateScenarioSpecs", () => {
+  it("accepts complete dense plans above the former coarse array cap and still rejects the geometry limit", () => {
+    const { layout } = buildClosedPodLayout({ ...warehouseBaseInput(5).layout, activeAreaM2: 10000 });
+    expect(layout.routingGraph!.nodes.length).toBeGreaterThan(2000);
+    const serialized = JSON.parse(JSON.stringify(layout));
+    expect(checkScenarioSiteLayout(serialized)).toEqual(layout);
+    const excessive = structuredClone(serialized);
+    excessive.routingGraph.nodes = Array.from({ length: SITE_LAYOUT_LIMITS.maxGraphNodes + 1 }, (_, i) => ({ id: `over-${i}`, x: 1, y: 1 }));
+    expect(() => checkScenarioSiteLayout(excessive)).toThrow(/превышает бюджет/);
+  });
   it("принимает три сценария и собирает их заново только из известных полей", () => {
     const specs = base();
     specs[1]!.items[0]!.quantityOverride = 12;

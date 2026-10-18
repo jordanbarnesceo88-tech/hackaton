@@ -73,7 +73,7 @@ export function fleetCardLines(r: ItemResult): string[] {
     `Спрос: ${fx(r.demandPerDay)} ${du} → ${fx(r.avgPerHour, 1)} ${tu} в среднем, ${fx(r.peakPerHour, 1)} ${tu} в пик`,
   );
   const norm = r.thrNorm === null ? "норма — нет или неприменима" : `норма ${fx(r.thrNorm, 1)}`;
-  const leg = r.routeLoadedM === null ? "" : ` (плечо ${fx(r.routeLoadedM, 1)} м, оценка по планировке)`;
+  const leg = r.routeLoadedM === null ? "" : ` (перевозка за расчётный цикл ${fx(r.routeLoadedM, 1)} м, оценка по планировке)`;
   const cycle = r.thrCycle === null ? "по циклу — нет данных" : `по циклу ${fx(r.thrCycle, 1)}${leg}`;
   const eff = r.thrEff === null ? "принято — нет" : `принято ${fx(r.thrEff, 1)} ${tu}${r.thrSource ? ` (${r.thrSource})` : ""}`;
   lines.push(`Производительность: ${norm} · ${cycle} · ${eff}`);

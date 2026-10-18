@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setImmediate } from "node:timers/promises";
 import { calculateProjectPreview, calculateProjectPreviewAsync } from "../../experiments/warehouse-3d/project-input";
 import { paramSpecsFor } from "../data/organizer/params";
@@ -9,6 +9,10 @@ import { FIXTURE_H1500, fixtureSpecs, WAREHOUSE_BASE_PARAMS } from "../tz/econ/f
 import { buildProjectModel } from "../tz/model";
 import { resolveNorms } from "../tz/norms";
 import { resultsFromInputs, resultsFromInputsAsync } from "./recalc";
+import * as preview from "../../experiments/warehouse-3d/project-input";
+import * as runner from "../sim/runner";
+import * as sweep from "../sim/sweep";
+import { simSummaryMatchesInput } from "../sim/identity";
 
 const live = { paramDefs: paramSpecsFor("warehouse"), products: [FIXTURE_H1500], norms: resolveNorms(), paramDefsFrom: "code" as const };
 function fixture(fleet = 4) {
@@ -25,8 +29,63 @@ function fixture(fleet = 4) {
   return { input, snapshot };
 }
 const noClock = (results: ReturnType<typeof resultsFromInputs>["results"]) => ({ ...results, calculatedAt: "", sim: Object.fromEntries(Object.entries(results.sim).map(([k,v]) => [k,v && { ...v, durationMs: 0 }])) });
+const withoutProof = () => ({ facility: "warehouse", params: { ...WAREHOUSE_BASE_PARAMS },
+  scenarios: fixtureSpecs().map(s => ({ ...s, items: s.items.map(item => ({ ...item, quantityOverride: 1, chargersOverride: 1 })) })) });
+afterEach(() => vi.restoreAllMocks());
 
 describe("cooperative server calculation", () => {
+  it("automatically validates a new warehouse project without any client spatial proof", async () => {
+    const input = withoutProof(), unchanged = structuredClone(input);
+    const financial = buildProjectModel({ ...live, ...input });
+    const canonical = financial.simInputs.p1!.calculated!;
+    const replay = vi.spyOn(preview, "calculateProjectPreviewAsync");
+    const singleLegRun = vi.spyOn(runner, "runSim");
+    const singleLegSearch = vi.spyOn(sweep, "minStableFleetAsync");
+    const computed = await resultsFromInputsAsync(live, input);
+    expect(replay).toHaveBeenCalledTimes(1); // Identical purchase/RaaS inputs share the canonical replay.
+    expect(singleLegRun).not.toHaveBeenCalled();
+    expect(singleLegSearch).not.toHaveBeenCalled();
+    expect(input).toEqual(unchanged);
+    expect(financial.scenarios.every(s => !s.spatialEvidence)).toBe(true);
+    expect(computed.results.scenarios[0]!.spatialEvidence).toBeUndefined();
+    const proof = computed.results.scenarios[1]!.spatialEvidence!;
+    expect(proof.input).toEqual(canonical);
+    expect(proof.sourceInputKey).toBe(simInputIdentity(canonical));
+    expect(proof.executionInputKey).not.toBe("server-replay-request");
+    expect(proof.assessment.terminal).toBe(true);
+    expect(proof.assessment.status).toBe("PARTIAL");
+    expect(proof.summary.achievedPerH).toBeGreaterThan(0);
+    expect(computed.results.scenarios[2]!.spatialEvidence).toEqual(proof);
+    const physical = computed.results.sim.p1!;
+    expect(physical).toMatchObject({
+      simModelVersion: SPATIAL_MODEL_VERSION, inputKey: simInputIdentity(canonical),
+      achievedPerH: proof.summary.achievedPerH, scenarioKey: "p1", minStableFleet: null,
+    });
+    expect(simSummaryMatchesInput(physical, canonical)).toBe(true);
+    const actualReplay = await replay.mock.results[0]!.value;
+    expect(physical.servedShare).toBe(actualReplay.summary.servedShare);
+    expect(computed.results.sim.r1).toEqual({ ...physical, scenarioKey: "r1" });
+    expect(computed.model.simInputs.p1!.calculated).toEqual(canonical);
+    expect(computed.results.results.find(r => r.key === "p1")!.risks.some(r => r.code === "SIM_NOT_CONFIRMED")).toBe(true);
+    expect(computed.results.conclusion.recommendedScenarioKey).not.toBe("p1");
+  }, 15_000);
+
+  it("marks an automatic check unverified when its spatial budget is unavailable", async () => {
+    const input = withoutProof(), replay = vi.spyOn(preview, "calculateProjectPreviewAsync");
+    const computed = await resultsFromInputsAsync(live, input, { spatialBudgetMs: 0 });
+    expect(replay).not.toHaveBeenCalled();
+    const evidence = computed.results.scenarios.filter(s => s.kind !== "asis").map(s => s.spatialEvidence);
+    expect(evidence).toHaveLength(2);
+    for (const proof of evidence) {
+      expect(proof?.assessment.status).toBe("NOT_EVALUATED");
+      expect(proof?.executionInputKey).toBe("server-not-evaluated");
+      expect(proof?.summary.achievedPerH).toBe(0);
+    }
+    expect(computed.results.sim.p1).toBeNull();
+    expect(computed.results.sim.r1).toBeNull();
+    expect(computed.results.conclusion.recommendedScenarioKey).not.toBe("p1");
+  });
+
   it("retains exact canonical 3D and complete financial results, replacing client proof", async () => {
     const { input, snapshot } = fixture();
     expect(await calculateProjectPreviewAsync(snapshot, { yieldFn: setImmediate })).toEqual(calculateProjectPreview(snapshot));

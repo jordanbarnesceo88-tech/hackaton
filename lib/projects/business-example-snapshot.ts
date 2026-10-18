@@ -20,7 +20,7 @@ function submittedScenarios(scenarios: readonly ScenarioSpec[]) {
   return scenarios.map(({ spatialEvidence, ...input }) => { void spatialEvidence; return input; });
 }
 
-/** A stale prepared example falls back to browser preview, never to live HTTP simulation. */
+/** Compatibility check for seeded snapshots; the public demo independently calculates its current inputs. */
 export function compatibleBusinessExampleSnapshot(live: LiveInputs, id: BusinessExampleId, saved: ProjectResults): boolean {
   try {
     if (saved.facility !== "warehouse" || saved.modelVersion !== TZ_MODEL_VERSION || saved.simModelVersion !== SIM_MODEL_VERSION ||

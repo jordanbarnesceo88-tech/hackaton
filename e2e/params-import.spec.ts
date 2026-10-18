@@ -4,8 +4,8 @@ import { parseParamsFile } from "../lib/tz/params/import";
 import { TEMPLATE_HEADERS } from "../lib/tz/params/template";
 import type { ParamSpec } from "../lib/tz/types";
 
-test("guest imports and rechecks a 950000-byte CSV within the default Server Action limit", async ({ page, request }, testInfo) => {
-  test.setTimeout(90_000);
+test("guest checks a 950000-byte CSV twice, applies its values and receives a real server recalculation", async ({ page, request }, testInfo) => {
+  test.setTimeout(180_000);
   const template = await request.get("/api/templates/warehouse?format=csv");
   expect(template.status()).toBe(200);
   expect(template.headers()["content-type"]).toContain("text/csv");
@@ -18,6 +18,10 @@ test("guest imports and rechecks a 950000-byte CSV within the default Server Act
   expect(rows[0]).toEqual([...TEMPLATE_HEADERS]);
   const keyColumn = rows[0]!.indexOf("Ключ");
   const noteColumn = rows[0]!.indexOf("Источник/примечание");
+  const valueColumn = rows[0]!.indexOf("Значение");
+  const salaryRow = rows.find(row => row[keyColumn] === "forkliftSalaryRubMonth");
+  expect(salaryRow).toBeDefined();
+  salaryRow![valueColumn] = "121234";
   expect(rows.slice(1).map(row => row[keyColumn]).sort()).toEqual(defs.map(def => def.key).sort());
   // Padding an ignored quoted note preserves real template keys, values and row numbering.
   const row = rows[1]!;
@@ -41,6 +45,7 @@ test("guest imports and rechecks a 950000-byte CSV within the default Server Act
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/demo");
+  await expect(page.locator("[data-server-calculation]")).toHaveAttribute("data-server-calculation", "ready", { timeout: 90_000 });
   await page.getByRole("navigation", { name: "Шаги расчёта" }).getByRole("link", { name: /^2 / }).click();
   await page.getByText("Загрузить параметры из Excel или CSV по шаблону", { exact: true }).click();
   const importer = page.getByRole("group", { name: "Загрузка параметров из Excel или CSV", exact: true });
@@ -65,6 +70,21 @@ test("guest imports and rechecks a 950000-byte CSV within the default Server Act
   }
   // The first report must not be serialized back alongside the file on the second check.
   expect(Math.abs(requestBytes[1]! - requestBytes[0]!)).toBeLessThan(1024);
+  await importer.getByRole("button", { name: "Применить значения", exact: true }).click();
+  const salary = page.locator("#p-forkliftSalaryRubMonth");
+  await expect.poll(async () => Number((await salary.inputValue()).replace(/\s/g, ""))).toBe(121234);
+  await expect(page.locator("[data-server-calculation]")).toHaveAttribute("data-server-calculation", "edited");
+  const receiptPromise = page.waitForResponse(response => response.url().endsWith("/api/v1/demo-calculation") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Пересчитать", exact: true }).click();
+  const receipt = await receiptPromise;
+  expect(receipt.request().postDataJSON()).toMatchObject({ facility: "warehouse", params: { forkliftSalaryRubMonth: 121234 } });
+  expect(receipt.status(), await receipt.text()).toBe(200);
+  const calculated = await receipt.json();
+  expect(calculated.results.paramsUsed.forkliftSalaryRubMonth).toBe(121234);
+  expect(calculated.results.scenarios.length).toBeGreaterThan(1);
+  await expect(page.locator("[data-server-calculation]")).toHaveAttribute("data-server-calculation", "ready", { timeout: 90_000 });
+  await expect.poll(async () => Number((await salary.inputValue()).replace(/\s/g, ""))).toBe(121234);
+  await testInfo.attach("import-server-receipt", { body: JSON.stringify({ ms: calculated.ms, salary: calculated.results.paramsUsed.forkliftSalaryRubMonth, scenarioKeys: calculated.results.scenarios.map((scenario: { key: string }) => scenario.key) }), contentType: "application/json" });
   expect(errors).toEqual([]);
   console.info("[params-import]", JSON.stringify({ fileBytes: buffer.byteLength, requestBytes, parsedParameters: parsed.found }));
   await testInfo.attach("import-request-sizes", {

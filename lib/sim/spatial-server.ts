@@ -5,9 +5,24 @@ import type { ScenarioSpec, SpatialEvidence } from "../tz/types";
 import { simInputIdentity } from "./identity";
 import { createSpatialProjectSnapshot, SPATIAL_MODEL_VERSION } from "./spatial-bridge";
 import type { SimInput } from "./types";
+import type { SimRunSummary } from "./metrics";
+
+type SpatialReplayOptions = {
+  now: () => number;
+  budgetMs?: number;
+  onSummary?: (scenarioKey: string, summary: SimRunSummary) => void;
+};
+type ReplayReceipt = { evidence: SpatialEvidence; summary: SimRunSummary };
+
+function replaySummary(result: ReturnType<typeof calculateProjectPreview>, sourceInputKey: string, durationMs: number): SimRunSummary {
+  return { ...result.summary, inputKey: sourceInputKey, simModelVersion: SPATIAL_MODEL_VERSION, durationMs,
+    verdict: result.assessment.status === "OK" ? "CONFIRMED" : "NOT_CONFIRMED",
+    minStableFleet: null, fleetByNorm: null, verdictByNorm: null };
+}
 
 /** Shared project budget, not a separate allowance for every client-supplied proof. */
-export const PROJECT_SPATIAL_BUDGET_MS = 15_000;
+// Shared by every spatial scenario and always clipped to the project's remaining 60-second deadline.
+export const PROJECT_SPATIAL_BUDGET_MS = 45_000;
 
 function notEvaluated(previous: SpatialEvidence, expected: SimInput | null | undefined, reason: string): SpatialEvidence {
   // When the adapter cannot build an input, retain the old input solely as an explicitly unverified audit record.
@@ -22,19 +37,23 @@ function notEvaluated(previous: SpatialEvidence, expected: SimInput | null | und
 /** Client statuses are never receipts: replay only the input built by the server's financial model. */
 export function recheckProjectSpatialEvidence(
   model: ProjectModel,
-  { now, budgetMs = PROJECT_SPATIAL_BUDGET_MS }: { now: () => number; budgetMs?: number },
+  { now, budgetMs = PROJECT_SPATIAL_BUDGET_MS, onSummary }: SpatialReplayOptions,
 ): ScenarioSpec[] {
   const deadline = now() + (Number.isFinite(budgetMs) ? Math.max(0, budgetMs) : 0);
-  const cache = new Map<string, SpatialEvidence>();
+  const cache = new Map<string, ReplayReceipt>();
   return model.scenarios.map(spec => {
     if (!spec.spatialEvidence) return spec;
     const expected = model.simInputs[spec.key]?.calculated;
     const failed = (reason: string) => ({ ...spec, spatialEvidence: notEvaluated(spec.spatialEvidence!, expected, reason) });
     if (!expected) return failed("нет поддерживаемого входа текущего сценария");
     const key = simInputIdentity(expected), cached = cache.get(key);
-    if (cached) return { ...spec, spatialEvidence: structuredClone(cached) };
+    if (cached) {
+      onSummary?.(spec.key, { ...structuredClone(cached.summary), scenarioKey: spec.key });
+      return { ...spec, spatialEvidence: structuredClone(cached.evidence) };
+    }
     if (now() >= deadline) return failed("исчерпан общий бюджет пространственных проверок проекта");
     try {
+      const started = now();
       // This entry point enforces <=60 robots, <=50,000 m², <=8 h and <=20,000 expected tasks before replay.
       const result = calculateProjectPreview(createSpatialProjectSnapshot({ requestId: "server-recheck", scenarioKey: spec.key,
         scenarioName: spec.name, variantId: "calculated", input: expected }));
@@ -47,7 +66,9 @@ export function recheckProjectSpatialEvidence(
         summary: { fleet: summary.fleet, requiredPerH: summary.requiredPerH, achievedPerH: summary.achievedPerH, queueEnd: summary.queueEnd, waitP95Min: summary.waitP95Min },
       };
       if (!result.assessment.terminal || result.assessment.status === "RUNNING") return failed("прогон не завершён");
-      cache.set(key, evidence);
+      const measured = replaySummary(result, key, Math.max(0, now() - started));
+      cache.set(key, { evidence, summary: measured });
+      onSummary?.(spec.key, structuredClone(measured));
       return { ...spec, spatialEvidence: structuredClone(evidence) };
     } catch (error) {
       return failed(error instanceof Error ? error.message.slice(0, 1000) : "пространственный прогон недоступен");
@@ -56,11 +77,11 @@ export function recheckProjectSpatialEvidence(
 }
 
 export async function recheckProjectSpatialEvidenceAsync(
-  model: ProjectModel, options: CooperativeOptions & { now: () => number; budgetMs?: number },
+  model: ProjectModel, options: CooperativeOptions & SpatialReplayOptions,
 ): Promise<ScenarioSpec[]> {
   const now = options.now;
   const deadline = Math.min(options.deadline ?? Infinity, now() + (options.budgetMs ?? PROJECT_SPATIAL_BUDGET_MS));
-  const cache = new Map<string, SpatialEvidence>();
+  const cache = new Map<string, ReplayReceipt>();
   const out: ScenarioSpec[] = [];
   for (const spec of model.scenarios) {
     checkExecution(options);
@@ -69,9 +90,13 @@ export async function recheckProjectSpatialEvidenceAsync(
     const failed = (reason: string) => ({ ...spec, spatialEvidence: notEvaluated(spec.spatialEvidence!, expected, reason) });
     if (!expected) { out.push(failed("нет поддерживаемого входа текущего сценария")); continue; }
     const key = simInputIdentity(expected), cached = cache.get(key);
-    if (cached) { out.push({ ...spec, spatialEvidence: structuredClone(cached) }); continue; }
+    if (cached) {
+      options.onSummary?.(spec.key, { ...structuredClone(cached.summary), scenarioKey: spec.key });
+      out.push({ ...spec, spatialEvidence: structuredClone(cached.evidence) }); continue;
+    }
     if (now() >= deadline) { out.push(failed("исчерпан общий бюджет пространственных проверок проекта")); continue; }
     try {
+      const started = now();
       const result = await calculateProjectPreviewAsync(createSpatialProjectSnapshot({ requestId: "server-recheck", scenarioKey: spec.key,
         scenarioName: spec.name, variantId: "calculated", input: expected }), { ...options, now, deadline });
       if (!result.assessment.terminal || result.assessment.status === "RUNNING") { out.push(failed("прогон не завершён")); continue; }
@@ -82,7 +107,9 @@ export async function recheckProjectSpatialEvidenceAsync(
         summary: { fleet: result.summary.fleet, requiredPerH: result.summary.requiredPerH, achievedPerH: result.summary.achievedPerH,
           queueEnd: result.summary.queueEnd, waitP95Min: result.summary.waitP95Min },
       };
-      cache.set(key, evidence);
+      const measured = replaySummary(result, key, Math.max(0, now() - started));
+      cache.set(key, { evidence, summary: measured });
+      options.onSummary?.(spec.key, structuredClone(measured));
       out.push({ ...spec, spatialEvidence: structuredClone(evidence) });
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") throw error;

@@ -25,12 +25,21 @@
   let current = null, state = null, frame = null, playing = false, mode = 'final', speed = 1, carry = 0, last = 0;
   let projectSnapshot = null, financialEvaluation = null;
   let selectedId = null, currentLayer = 'all', dirty = false, busy = false, comparing = false, animation = 0, viewer = null;
-  let activeCase = config.initialCase || Core.DEMO_CASES[0].id;
+  const requestedCase = new URLSearchParams(location.search).get('case');
+  const validRequestedCase = Core.DEMO_CASES.some(item => item.id === requestedCase && (config.initialCase === 'sections' ? item.id === 'sections' : item.id !== 'sections'));
+  let activeCase = !projectMode && validRequestedCase ? requestedCase : config.initialCase || Core.DEMO_CASES[0].id;
   let treeEntries = [];
   let following = false, tab = 'fleet', lastUi = 0, lastScene = 0;
   const fleetRows = new Map(), sectionRows = new Map();
   const taskRows = new Map(), eventRows = new Map();
   const isCleaning = () => current?.kind === 'cleaning';
+  const carrier = () => Core.carrierSpec(current?.input);
+  const isRack = () => !isCleaning() && carrier().kind === 'mobile-rack';
+  const liftStages = { approach: 'Подъезд к носителю', 'dock-under': 'Заезд под стеллаж', 'close-gap': 'Подвод платформы до контакта', lift: 'Подъём стеллажа', extract: 'Извлечение стеллажа из ряда', retreat: 'Безопасный отход задним ходом', carry: 'Перевозка стеллажа', lower: 'Опускание на опоры', retract: 'Опускание платформы', exit: 'Выезд из-под стеллажа' };
+  const phaseLabel = (phase, underlift) => (!['incidentStop', 'trafficWait', 'parking'].includes(phase) && liftStages[underlift?.stage]) || liftStages[phase] || phaseLabels[phase] || phase;
+  const taskKind = task => task.operation === 'return-pod' ? 'Возврат носителя' : task.operation === 'prefetch-pod' ? 'Подача носителя' : ['putaway','inbound'].includes(task.kind) ? 'Размещение' : ['retrieval','outbound'].includes(task.kind) ? 'Отбор' : task.kind;
+  const taskScope = task => task.countsTowardDemand === false || task.id < 0 ? 'Внутренний рейс' : 'Заявка';
+  const customerDone = robot => robot.customerTasksDone ?? robot.tasksDone ?? 0;
   const robotName = id => `${isCleaning() ? 'CL' : 'AMR'}-${String(id + 1).padStart(2, '0')}`;
   const sectionStatus = { queued: 'В очереди', pending: 'В очереди', active: 'В работе', working: 'В работе', done: 'Завершена', completed: 'Завершена' };
   sectionStatus.in_progress = 'В работе'; sectionStatus.incomplete = 'Частично выполнена';
@@ -106,6 +115,12 @@
     });
     $(container).replaceChildren(...nodes);
   }
+  function carrierFacts(robot) {
+    const spec = carrier(), lift = robot.underlift;
+    const id = robot.carrierId || robot.task?.carrierId || lift?.podId;
+    const pod = frame.carriers?.find(item => item.id === id);
+    return [['Идентификатор носителя', id || 'Не назначен'], ['Рейс', robot.task ? `${taskScope(robot.task)} · ${taskKind(robot.task)}` : 'Нет задания'], ...(robot.task?.parentTaskId == null ? [] : [['Родительская заявка', `#${robot.task.parentTaskId}`]]), ['Содержимое носителя', (robot.carrierContents ?? pod?.contents) === 'empty' ? 'Пустой — груз разгружен' : id ? 'С грузом' : 'Носитель не назначен'], ['Габариты носителя', `${format(spec.lengthM,2)} × ${format(spec.widthM,2)} × ${format(spec.heightM,2)} м · ${spec.levels} ярусов`], ...(pod ? [['Домашнее место', `${format(pod.home.x)} / ${format(pod.home.y)} м`], ['Назначен роботу', pod.robotId == null ? 'Не назначен' : robotName(pod.robotId)]] : []), ...(lift ? [['Этап механики', liftStages[lift.stage] || lift.stage], ['Верх платформы от пола', `${format(lift.platformTopM,3)} м`], ['Опоры стеллажа над полом', `${format(lift.podLiftM,3)} м`], ['Зазор до платформы', `${format(lift.contactGapM,3)} м`], ['Контакт', lift.contact ? 'Есть' : 'Нет']] : []), ['Источник параметров', spec.sourceNote]];
+  }
   function selection(item) {
     if (item?.kind === 'incident') { selectedId = item.id; following = false; $('follow').setAttribute('aria-pressed','false'); viewer?.setFollow?.(null); $('selection').hidden = true; incidents.open(item.details?.incidentId ?? item.id.slice(9)); renderFleet(); renderTree(); return; }
     if (!item) { selectedId = null; following = false; $('follow').setAttribute('aria-pressed', 'false'); viewer?.setFollow?.(null); $('selection').hidden = true; return; }
@@ -140,7 +155,7 @@
     const title = document.createElement('b'), detail = document.createElement('small');
     title.textContent = item.title; detail.textContent = item.description;
     button.append(title, detail); button.setAttribute('aria-pressed', 'false');
-    button.addEventListener('click', () => calculate(item.id));
+    button.addEventListener('click', () => calculate(item.id, undefined, true));
     $('presets').append(button);
   }
   function setBusy(value) {
@@ -240,7 +255,7 @@
     text('playback-context', `Текущий кадр ${clockText(frame.tS)} · ${phase}${isCleaning() ? ` · ${format(frame.telemetry?.cleanedM2 || 0)} м² из ${format(frame.telemetry?.targetM2 || 0)} м²` : ''}. Вывод выше относится к полному прогону.`);
     const t = frame.telemetry || {};
     text('live-active', t.activeTasks ?? '—'); text('live-wait', frame.safety ? frame.robots.filter(r => r.safety?.blocked || ['waitPoint','waitCharger','waitingDock'].includes(r.phase)).length : t.waitingRobots ?? '—');
-    text('live-charge', t.chargingRobots ?? '—'); text('live-done', t.tasksDone ?? '—');
+    text('live-charge', t.chargingRobots ?? '—'); text('live-done', t.customerTasksDone ?? t.tasksDone ?? '—');
     text('live-distance', format((t.distanceM || 0) / 1000, 2));
     const origin = frame.provenance;
     if (frame.safety) text('scope-limit', isCleaning() ? 'Учитываем взаимные защитные остановки и доступные обходы. Люди, качество уборки и тормозной путь не моделируются.' : 'Учитываем габариты, защитные остановки и обходы по свободным проходам. Люди и тормозной путь не моделируются.');
@@ -264,11 +279,11 @@
     renderProcess(r);
     if (isCleaning()) {
       const zone = frame.sections?.find(z => z.id === r.zoneId);
-      facts('selection-details', [['Состояние', r.operationalState === 'incidentStop' ? 'Остановлен по инциденту' : phaseLabels[r.phase] || r.phase], ['Манёвр', r.maneuver === 'turning' ? 'Разворот на месте' : r.maneuver === 'moving' ? 'Движение по проходу' : 'Стоянка'], ['Угловая скорость', format(Math.abs(r.angularVelocityRadS || 0) * 180 / Math.PI, 0) + ' °/с'], ['Секция / задание', zone?.label || 'Переход / база'], ['Рабочий инструмент', r.working ? 'Включён · учитывается покрытие' : 'Выключен · площадь не растёт'], ['Убрано роботом', `${format(r.cleanedM2)} м² без повторов`], ['Выполнено в секции', zone ? `${format(zone.cleanedM2)} / ${format(zone.targetM2)} м² · ${format(zone.progress)} %` : '—'], ['Положение X / Y', `${xy(r)} м`], ['Цель X / Y', r.target ? `${xy(r.target)} м` : '—'], ['Остаток маршрута / ETA', `${format(r.remainingDistM)} м / ${format(r.etaS, 0)} с`], ['Ширина рабочего следа', `${format(r.brushWidthM ?? current.input.robots.brushWidthM, 2)} м`], ['Пробег / завершено секций', `${format(r.distanceM)} м / ${r.tasksDone ?? 0}`]]);
+      facts('selection-details', [['Состояние', r.operationalState === 'incidentStop' ? 'Остановлен по инциденту' : phaseLabel(r.phase, r.underlift)], ['Манёвр', r.maneuver === 'turning' ? 'Разворот на месте' : r.maneuver === 'moving' ? 'Движение по проходу' : 'Стоянка'], ['Угловая скорость', format(Math.abs(r.angularVelocityRadS || 0) * 180 / Math.PI, 0) + ' °/с'], ['Секция / задание', zone?.label || 'Переход / база'], ['Рабочий инструмент', r.working ? 'Включён · учитывается покрытие' : 'Выключен · площадь не растёт'], ['Убрано роботом', `${format(r.cleanedM2)} м² без повторов`], ['Выполнено в секции', zone ? `${format(zone.cleanedM2)} / ${format(zone.targetM2)} м² · ${format(zone.progress)} %` : '—'], ['Положение X / Y', `${xy(r)} м`], ['Цель X / Y', r.target ? `${xy(r.target)} м` : '—'], ['Остаток маршрута / ETA', `${format(r.remainingDistM)} м / ${format(r.etaS, 0)} с`], ['Ширина рабочего следа', `${format(r.brushWidthM ?? current.input.robots.brushWidthM, 2)} м`], ['Пробег / завершено секций', `${format(r.distanceM)} м / ${r.tasksDone ?? 0}`]]);
       return;
     }
     const phases = r.timeByPhase || {};
-    facts('selection-details', [['Состояние', r.operationalState === 'incidentStop' ? 'Остановлен по инциденту' : phaseLabels[r.phase] || r.phase], ['Задание / груз', `${r.task ? `#${r.task.id}` : 'нет'} / ${r.loaded ? 'паллета' : 'порожний'}`], ['Положение X / Y', `${xy(r)} м`], ['Цель X / Y', r.target ? `${xy(r.target)} м` : '—'], ['До текущей точки / ETA*', `${format(r.remainingDistM)} м / ${format(r.etaS, 0)} с`], ['Операция погрузки', r.handlingProgress == null ? '—' : `${format(r.handlingProgress * 100, 0)} %`], ['Путь / перевозки', `${format(r.distanceM)} м / ${r.tasksDone ?? 0}`], ['В очередях за прогон', `${format(((phases.waitPoint || 0) + (phases.waitCharger || 0)) / 60)} мин`], ['Сейчас ожидает', r.waitReason ? `${r.waitReason} · ${format(r.waitElapsedS, 0)} с` : '—'], ['В зарядке за прогон', `${format((phases.charging || 0) / 60)} мин`]]);
+    facts('selection-details', [['Состояние', r.operationalState === 'incidentStop' ? 'Остановлен по инциденту' : phaseLabel(r.phase, r.underlift)], ['Задание / груз', `${r.task ? `#${r.task.id}` : 'нет'} / ${r.loaded ? isRack() ? r.carrierContents === 'empty' ? 'пустой стеллаж' : 'стеллаж с грузом' : 'паллета' : 'порожний'}`], ['Положение X / Y', `${xy(r)} м`], ['Цель X / Y', r.target ? `${xy(r.target)} м` : '—'], ['До текущей точки / ETA*', `${format(r.remainingDistM)} м / ${format(r.etaS, 0)} с`], [isRack() ? 'Подхват / постановка' : 'Операция погрузки', r.handlingProgress == null ? '—' : `${format(r.handlingProgress * 100, 0)} %`], ['Путь / завершено', `${format(r.distanceM)} м / ${customerDone(r)} заявок${r.internalTasksDone ? ` · ${r.internalTasksDone} внутренних рейсов` : ''}`], ['В очередях за прогон', `${format(((phases.waitPoint || 0) + (phases.waitCharger || 0)) / 60)} мин`], ['Сейчас ожидает', r.waitReason ? `${r.waitReason} · ${format(r.waitElapsedS, 0)} с` : '—'], ['В зарядке за прогон', `${format((phases.charging || 0) / 60)} мин`], ...(isRack() ? carrierFacts(r) : [])]);
   }
   function renderFleet() {
     if (!frame) return;
@@ -285,7 +300,7 @@
       row.hidden = filter === 'moving' ? !(r.vMps > .001) : filter === 'waiting' ? !r.safety?.blocked && !['waitPoint','waitCharger','waitingDock'].includes(r.phase) : filter === 'charging' ? r.phase !== 'charging' : filter === 'idle' ? r.phase !== 'idle' || r.task != null || r.operationalState === 'incidentStop' : filter === 'incident' ? !r.incident : false;
       if (!row.hidden) visible++;
       row.setAttribute('aria-selected', String(selectedId === `robot:${r.id}`));
-      const values = [r.operationalState === 'incidentStop' ? `Остановлен: ${r.incident?.label || 'инцидент'}` : r.incident ? `${phaseLabels[r.phase] || r.phase} · предупреждение` : r.safety?.blocked ? phaseLabels.trafficWait : phaseLabels[r.phase] || r.phase, `${format(r.soc * 100, 1)}%`, format(r.vMps, 2), r.task ? `#${r.task.id}` : '—', xy(r.target), format(r.remainingDistM), format(r.etaS, 0), format(r.distanceM), isCleaning() ? format(r.cleanedM2) : r.tasksDone ?? 0];
+      const values = [r.operationalState === 'incidentStop' ? `Остановлен: ${r.incident?.label || 'инцидент'}` : r.incident ? `${phaseLabel(r.phase, r.underlift)} · предупреждение` : r.safety?.blocked ? phaseLabels.trafficWait : phaseLabel(r.phase, r.underlift), `${format(r.soc * 100, 1)}%`, format(r.vMps, 2), r.task ? `#${r.task.id}` : '—', xy(r.target), format(r.remainingDistM), format(r.etaS, 0), format(r.distanceM), isCleaning() ? format(r.cleanedM2) : `${customerDone(r)}${r.internalTasksDone ? ` · ${r.internalTasksDone} внутр.` : ''}`];
       values.forEach((v, i) => { const cell = row.cells[i + 1]; if (cell.textContent !== String(v)) cell.textContent = String(v); });
       row.cells[1].className = r.operationalState === 'incidentStop' ? 'state-chip incident-stop' : 'state-chip'; row.cells[1].dataset.phase = r.operationalState || r.phase;
     }
@@ -316,10 +331,11 @@
     if (tab !== 'tasks' || !frame) return;
     if (isCleaning()) { renderSectionTasks(); return; }
     const tasks = frame.tasks || [];
-    text('task-count', `${tasks.filter(t => t.status === 'queued').length} в очереди · ${tasks.filter(t => t.status === 'active').length} назначено · показаны первые 150`);
+    text('task-count', `${tasks.filter(t => t.status === 'queued' && t.countsTowardDemand !== false).length} заявок в очереди · ${tasks.filter(t => t.countsTowardDemand === false || t.id < 0).length} внутренних рейсов · ${tasks.filter(t => t.status === 'active').length} назначено · показаны первые 150`);
     syncLiveRows('task-rows', taskRows, tasks.slice(0, 150), t => `task:${t.id}`, (t, row) => {
       if (!row) { row = document.createElement('tr'); row.dataset.taskId = t.id; for (let i = 0; i < 8; i++) row.append(document.createElement('td')); }
-      const values = [`#${t.id}`, ['putaway','inbound'].includes(t.kind) ? 'Размещение' : ['retrieval','outbound'].includes(t.kind) ? 'Отбор' : t.kind, t.status === 'queued' ? 'В очереди' : 'В работе', t.robotId == null ? '—' : `AMR-${t.robotId + 1}`, xy(t.from), xy(t.to), clockText(t.arrivalS), format(Math.max(0, (t.startS ?? frame.tS) - t.arrivalS), 0)];
+      const taskType = `${taskScope(t)} · ${taskKind(t)}${t.parentTaskId == null ? '' : ` · для #${t.parentTaskId}`}`;
+      const values = [`#${t.id}`, isRack() ? `${taskType} · носитель ${t.carrierId || '—'}` : taskType, t.status === 'queued' ? 'В очереди' : ['done','completed'].includes(t.status) ? 'Завершено' : 'В работе', t.robotId == null ? '—' : `AMR-${t.robotId + 1}`, xy(t.from), xy(t.to), clockText(t.arrivalS), format(Math.max(0, (t.startS ?? frame.tS) - t.arrivalS), 0)];
       values.forEach((value, i) => { if (row.cells[i].textContent !== String(value)) row.cells[i].textContent = value; });
       return row;
     }, 'tab-tasks');
@@ -343,7 +359,8 @@
       if (robot.textContent !== robotText) robot.textContent = robotText;
       const incident = (frame.incidents || []).find(i => i.id === e.incidentId);
       const incidentStatus = e.status || e.to || e.type.replace('incident-', '');
-      const detailText = incident ? `${incidentStates[incidentStatus] || e.type} · ${incident.label} · ${incident.code}` : e.type === 'phase' ? `${phaseLabels[e.from] || e.from} → ${phaseLabels[e.to] || e.to}` : `${labels[e.type] || e.type}${e.taskId == null ? '' : ` #${e.taskId}`}`;
+      const eventTask = e.taskId == null ? null : frame.tasks?.find(task => task.id === e.taskId) || { ...e, id: e.taskId };
+      const detailText = incident ? `${incidentStates[incidentStatus] || e.type} · ${incident.label} · ${incident.code}` : e.type === 'phase' || e.type === 'underlift-stage' ? `${phaseLabel(e.from)} → ${phaseLabel(e.to)}` : `${labels[e.type] || e.type}${eventTask ? ` · ${taskScope(eventTask)} #${e.taskId}${eventTask.operation ? ` · ${taskKind(eventTask)}` : ''}${eventTask.parentTaskId == null ? '' : ` · для #${eventTask.parentTaskId}`}` : ''}`;
       if (detail.textContent !== detailText) detail.textContent = detailText;
       return li;
     }, 'tab-events');
@@ -387,10 +404,13 @@
     let stages, index = -1;
     if (dock) { stages = ['К станции','Очередь','Зарядка']; index = ['toCharger','toDock'].includes(r.phase) ? 0 : ['waitCharger','waitingDock'].includes(r.phase) ? 1 : 2; }
     else if (isCleaning()) { stages = ['Назначена секция','Переезд','Рабочие проходы','Секция завершена']; index = r.phase === 'working' ? 2 : r.phase === 'transit' ? 1 : r.phase === 'done' || r.phase === 'parking' ? 3 : -1; }
+    else if (r.underlift) { stages = Object.values(liftStages); index = Object.keys(liftStages).indexOf(r.underlift.stage); }
     else { stages = ['К погрузке','Погрузка','Перевозка','Выгрузка','Завершено']; index = r.phase === 'toPickup' ? 0 : r.phase === 'loading' ? 1 : r.phase === 'toDrop' ? 2 : r.phase === 'unloading' ? 3 : r.phase === 'waitPoint' ? r.loaded ? 3 : 1 : -1; }
-    text('task-title', dock ? 'Обслуживание · зарядная станция' : r.task ? isCleaning() ? `Задание: ${r.task.name || 'уборка секции'}` : `Задание #${r.task.id} · ${r.task.kind === 'inbound' ? 'размещение паллеты' : 'отбор и отгрузка'}` : 'Текущее задание отсутствует');
+    text('task-title', dock ? 'Обслуживание · зарядная станция' : r.task ? isCleaning() ? `Задание: ${r.task.name || 'уборка секции'}` : `${taskScope(r.task)} #${r.task.id} · ${taskKind(r.task)} · ${r.task.carrierId || 'носитель не назначен'}${r.task.parentTaskId == null ? '' : ` · для #${r.task.parentTaskId}`}` : 'Текущее задание отсутствует');
     const key = stages.join('|');
     if ($('task-stages').dataset.key !== key) { $('task-stages').dataset.key = key; $('task-stages').replaceChildren(...stages.map(name => { const li = document.createElement('li'); li.textContent = name; return li; })); }
+    $('task-stages').style.flexWrap = r.underlift && !dock ? 'wrap' : '';
+    [...$('task-stages').children].forEach(li => { li.style.flex = r.underlift && !dock ? '1 0 22%' : ''; });
     [...$('task-stages').children].forEach((li,i) => { li.dataset.state = index >= 0 && i < index ? 'past' : 'future'; if (i === index) li.setAttribute('aria-current','step'); else li.removeAttribute('aria-current'); });
     const location = point => {
       if (!point) return '—';
@@ -399,9 +419,10 @@
       return `${zone?.label || 'Точка'} (${xy(point)} м)`;
     };
     text('task-route-note', r.task ? isCleaning() ? 'Покрытие учитывается только при включённом инструменте внутри назначенной секции. Переходы и повторные проходы новые м² не добавляют.' : `Откуда: ${location(r.task.from)} → куда: ${location(r.task.to)}. ${r.waitReason || ''}` : dock ? `Цель: ${location(r.target)}. ${r.waitReason || 'Заряд меняется по модели аккумулятора.'}` : 'Выберите событие в журнале или момент на шкале, чтобы увидеть выполнение задания.');
-    const operation = !isCleaning() && r.handlingProgress != null;
+    const progress = r.underlift?.progress ?? r.handlingProgress;
+    const operation = !isCleaning() && progress != null;
     $('operation-meter').hidden = !operation;
-    if (operation) { $('operation-progress').value = r.handlingProgress * 100; text('operation-label', `${phaseLabels[r.phase]} · ${format(r.handlingProgress * 100,0)} %`); }
+    if (operation) { $('operation-progress').value = progress * 100; text('operation-label', `${phaseLabel(r.phase, r.underlift)} · ${format(progress * 100,0)} %`); }
   }
 
   function renderCleaningResult() {
@@ -495,21 +516,21 @@
       text('demo-link', cleaning ? 'Основное демо: склад' : 'Дополнительно: уборка');
       sectionRows.clear(); $('section-list').replaceChildren();
       text('page-title', cleaning ? 'Работа роботов внутри секций' : 'Склад. Поток. Состояние каждого робота.');
-      text('header-context', cleaning ? 'Дополнительная модель уборки · все параметры условные' : 'Основной сценарий команды · перевозка паллет');
+      text('header-context', cleaning ? 'Дополнительная модель уборки · все параметры условные' : 'Перевозка грузов · полный цикл мобильных стеллажей');
       text('scope-note', cleaning ? 'Моделируем выполнение уборки в пяти секциях: доступный пол, рабочие полосы, переезды и зарядку. Покрытие — уникальная площадь пройденных рабочих ячеек.' : 'Проверяем поток, очереди и зарядку на типовой планировке. Прохождение модели — основание для обследования и пилота.');
-      text('scope-limit', cleaning ? 'Геометрия и робот условные. Качество мытья, люди и взаимное уклонение роботов не моделируются.' : 'Геометрия склада и внешний вид AMR условные. Разъезды и заторы в проходах не моделируются.');
+      text('scope-limit', cleaning ? 'Геометрия и робот условные. Качество мытья, люди и взаимное уклонение роботов не моделируются.' : 'Поставленные носители остаются на полу; подача и возврат проходят по маршрутам. Подача и возврат — внутренние рейсы; они занимают роботов, но не увеличивают выполненный клиентский поток. Габариты и контактная механика — допущения модели; учёт нагрузки остаётся в паллетах.');
       text('result-title', 'Итог полного прогона');
       text('required-label', cleaning ? 'Площадь задания' : 'Нужно перемещать');
       text('achieved-label', cleaning ? 'Убрано за прогон' : 'Завершено за час');
       text('queue-label', cleaning ? 'Секции завершены' : 'Максимальная очередь');
-      text('live-done-label', cleaning ? 'секций выполнено' : 'перевозок');
-      text('fleet-done-heading', cleaning ? 'УБРАНО, М²' : 'ВЫПОЛНЕНО');
+      text('live-done-label', cleaning ? 'секций выполнено' : 'заявок выполнено');
+      text('fleet-done-heading', cleaning ? 'УБРАНО, М²' : 'ЗАЯВКИ / ВНУТР. РЕЙСЫ');
       const heads = cleaning ? ['СЕКЦИЯ','ЗАДАНИЕ, М²','СОСТОЯНИЕ','РОБОТ','УБРАНО, М²','ОСТАЛОСЬ, М²','ПРОГРЕСС','НАЧАТО'] : ['ЗАДАНИЕ','ТИП','СТАТУС','РОБОТ','ОТКУДА X / Y','КУДА X / Y','СОЗДАНО','ОЖИДАНИЕ, С'];
       const headrow = document.createElement('tr'); heads.forEach(v => { const th = document.createElement('th'); th.textContent = v; headrow.append(th); }); $('task-head').replaceChildren(headrow);
       document.querySelectorAll('[data-case]').forEach(b => b.setAttribute('aria-pressed', String(!modified && b.dataset.case === id)));
       text('case-context', `${modified ? 'Изменённые условия' : result.title} · ${format(cleaning ? result.activeAreaM2 : result.input.layout.activeAreaM2, 0)} м² · парк: ${result.input.robots.count} · ${result.product.name}`);
       text('dimensions', `${format(result.layout.widthM)} × ${format(result.layout.heightM)} м`);
-      text('input-note', cleaning ? `Объект ${format(result.activeAreaM2)} м²; доступный пол задания ${format(result.summary.targetM2)} м². Стены, оборудование, защитные отступы и недоступные клетки исключены. Параметры робота — допущения.` : `Средняя нагрузка ${format(result.input.demand.avgPerH)} пал./ч × пиковый коэффициент ${format(result.input.demand.peakPerH / result.input.demand.avgPerH, 2)} = ${format(result.input.demand.peakPerH)} пал./ч. ${result.input.layout.chargers} зарядных станций по опорному расчёту.`);
+      text('input-note', cleaning ? `Объект ${format(result.activeAreaM2)} м²; доступный пол задания ${format(result.summary.targetM2)} м². Стены, оборудование, защитные отступы и недоступные клетки исключены. Параметры робота — допущения.` : `Средняя нагрузка ${format(result.input.demand.avgPerH)} пал./ч × пиковый коэффициент ${format(result.input.demand.peakPerH / result.input.demand.avgPerH, 2)} = ${format(result.input.demand.peakPerH)} пал./ч. ${result.input.layout.chargers} зарядных станций по опорному расчёту. ${carrier().sourceNote}`);
       text('speed-note', cleaning ? `×1 — реальное время. Ускорение обзора: ×5, ×10, ×50, ×500. Уборка ${format(result.input.robots.speedMps, 2)} м/с, переход ${format(result.input.robots.transitSpeedMps, 2)} м/с; след ${format(result.input.robots.brushWidthM, 2)} м. Только рабочее движение увеличивает покрытие.` : `×1 — секунда модели за секунду реального времени. ×5, ×10, ×50 и ×500 ускоряют воспроизведение. Скорость робота: ${format(result.input.robots.speedMps, 2)} м/с без груза, ${format(result.input.robots.speedMps * result.input.robots.loadedSpeedFactor, 2)} м/с с грузом.`);
       text('versions', `Модель ${result.modelVersion || 'платформы'}, имитация ${result.simModelVersion || result.summary.simModelVersion}, seed ${result.input.seed}.`);
       text('source-note', result.sources.join(' '));
@@ -533,13 +554,17 @@
       setTimeout(() => { if (!playing) renderFrame(false); }, 700);
       document.body.dataset.ready = 'true';
   }
-  async function calculate(id, overrides) {
+  async function calculate(id, overrides, updateCaseUrl = false) {
     if (busy || comparing || projectMode) return;
     playing = false; setBusy(true); text('input-error', '');
     try {
       await nextPaint();
       const result = await calculateOffscreen(id, overrides);
       installModel(result, id, { modified: Boolean(overrides) });
+      if (updateCaseUrl) {
+        const url = new URL(location.href); url.searchParams.set('case', id);
+        window.history.replaceState(window.history.state, '', url);
+      }
     } catch (error) {
       text('input-error', `Не удалось проверить условия: ${error.message}`);
       if (!current) text('verdict', 'Проверка не выполнена');
@@ -549,7 +574,7 @@
   $('parameters').addEventListener('submit', event => {
     event.preventDefault();
     if (!$('parameters').reportValidity()) return;
-    calculate(activeCase, { fleet: Number($('fleet').value), ...(!isCleaning() ? { peakFactor: Number($('peak').value) } : {}), areaM2: Number($('area').value) });
+    calculate(activeCase, { fleet: Number($('fleet').value), ...(!isCleaning() ? { peakFactor: Number($('peak').value) } : {}), areaM2: Number($('area').value) }, true);
   });
   function resetPlayback() {
     state = Core.createPlayback(current.input); carry = 0; last = 0; frame = Core.playbackFrame(state); mode = 'play'; renderFrame();

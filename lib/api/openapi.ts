@@ -549,6 +549,22 @@ const SCHEMAS: Record<string, Schema> = {
     ["versions", "summary", "conclusion", "warnings", "results"],
     "Результат расчёта",
   ),
+  DemoCalculationRequest: obj(
+    {
+      facility: FACILITY_SCHEMA,
+      params: orNull(ref("ParamValues")),
+      scenarios: orNull(arr(ref("ScenarioSpec"), "Сценарии; если не заданы, используются сценарии по умолчанию", { minItems: 3, maxItems: 10 })),
+    },
+    ["facility"],
+    "Гостевой расчёт по актуальным публичным справочникам; идентификаторы проектов, владельцев и сохранённые результаты не принимаются",
+    { additionalProperties: false },
+  ),
+  DemoCalculationResponse: obj(
+    { results: ref("ProjectResults"), ms: num("Время серверного расчёта, включая загрузку справочников, мс", { minimum: 0 }) },
+    ["results", "ms"],
+    "Новый результат без сохранения проекта; статусы пространственной проверки передаются без повышения до OK",
+    { additionalProperties: false },
+  ),
   ProjectCreateRequest: obj(
     {
       name: str("Название проекта, 1–120 символов"),
@@ -906,6 +922,39 @@ export const OPENAPI: OpenApiDocument = {
   ],
   paths: {
     ...JOB_PATHS,
+    "/api/v1/demo-calculation": {
+      post: {
+        operationId: "calculateDemo",
+        summary: "Гостевой расчёт без сохранения",
+        description:
+          "Выполняет серверный расчёт по актуальному публичному каталогу и нормативам: экономику, 2D-имитацию и 3D-проверку поддерживаемых складских сценариев. " +
+          "Возвращает результат в том же HTTP-запросе; проект, архив и фоновое задание не создаются. Закрытие запроса может отменить вычисление. " +
+          "Тело до 4 МиБ, только facility, params и scenarios. До 30 попыток за 5 минут на IP; определение IP зависит от доверенного прокси. " +
+          "Допуск — до двух расчётов одновременно на web-процесс. Общий дедлайн расчётного контура — 60 секунд; все 3D-проверки делят до 45 секунд внутри оставшегося общего времени. " +
+          "Общий срок сетевого ответа не гарантируется. Все ответы имеют Cache-Control: no-store; посторонний Origin отклоняется. Введённые данные и результаты не сохраняются, служебный счётчик частоты обновляется.",
+        tags: ["Расчёт и проекты"],
+        "x-access": "public",
+        security: PUBLIC,
+        requestBody: { required: true, description: "JSON до 4 МиБ; пропущенные параметры получают значения по умолчанию",
+          content: { [JSON_TYPE]: { schema: ref("DemoCalculationRequest"), examples: {
+            defaults: { summary: "Склад с базовыми параметрами и сценариями", value: { facility: "warehouse", params: {} } },
+          } } } },
+        responses: {
+          "200": { ...jsonResponse("Вычисленный результат, включая фактические статусы и ограничения модели", ref("DemoCalculationResponse")),
+            headers: { "Cache-Control": { schema: { type: "string", const: "no-store" } } } },
+          "400": R400,
+          "403": errorResponse("Запрос с постороннего Origin"),
+          "413": errorResponse("Тело запроса превышает 4 МиБ"),
+          "415": R415,
+          "422": errorResponse("Неизвестные поля, тип объекта, параметры или сценарии не прошли проверку"),
+          "429": { ...errorResponse("Превышено 30 попыток за 5 минут на IP"),
+            headers: { "Retry-After": { schema: { type: "integer", minimum: 1 }, description: "Оставшееся время ограничения, секунды" } } },
+          "499": errorResponse("Расчёт отменён при отмене HTTP-запроса; результат не записан"),
+          "503": { ...errorResponse("Временная недоступность данных, заняты оба расчётных допуска или исчерпан дедлайн"),
+            headers: { "Retry-After": { schema: { type: "integer", const: 2 }, description: "Передаётся при занятом допуске или исчерпанном бюджете" } } },
+        },
+      },
+    },
     "/api/v1/catalog": {
       get: {
         operationId: "listCatalog",

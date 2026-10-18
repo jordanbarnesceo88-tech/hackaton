@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { productForCalcFromSeed } from "../../lib/catalog/product-for-calc";
 import { CATALOG } from "../../lib/data/organizer/catalog";
 import { paramSpecsFor } from "../../lib/data/organizer/params";
@@ -8,8 +8,17 @@ import { resolveNorms } from "../../lib/tz/norms";
 import { calculateCase, recheckSpatialFinanceInput, type DemoModel } from "./core";
 import { calculateSpatialFinance } from "./finance";
 
+// These tests check financial arithmetic and input identity, not full-window capacity.
+// Both the actual and reference financial model use this same bounded exposure.
+vi.mock("../../lib/tz/norms", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../lib/tz/norms")>();
+  return { ...actual, resolveNorms: (...args: Parameters<typeof actual.resolveNorms>) => ({
+    ...actual.resolveNorms(...args), simWarmupMin: 0, simPeakMin: 2,
+  }) };
+});
+
 let baseline: DemoModel;
-beforeAll(() => { baseline = calculateCase("baseline"); });
+beforeAll(() => { baseline = calculateCase("baseline", { areaM2: 5000, fleet: 3 }); });
 const shares = { annualCoverageShare: 0.6, cashRealizationShare: 0.5 };
 
 describe("standalone financial scenario uses the shared project engine", () => {
@@ -49,7 +58,7 @@ describe("standalone financial scenario uses the shared project engine", () => {
   });
 
   it("uses the same real complex source geometry in finance and evidence without rewriting an identity", () => {
-    const complex = calculateCase("complex"), before = structuredClone(complex);
+    const complex = calculateCase("complex", { areaM2: 5000, fleet: 3 }), before = structuredClone(complex);
     const result = calculateSpatialFinance(complex, shares);
     expect(result.assumptions.spatialMatchesFinancialInput).toBe(true);
     expect(result.assumptions.financialGeometry).toBe("explicit-site");

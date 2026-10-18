@@ -4,7 +4,9 @@ import { calculateProjectPreview } from "../../experiments/warehouse-3d/project-
 import { paramSpecsFor } from "../data/organizer/params";
 import { checkScenarioSiteLayout, validateScenarioSpecs } from "../projects/validate";
 import { resultsFromInputs } from "../projects/recalc";
-import { expectedLegsM, cycleThroughputPerH } from "../sim/analytic";
+import { expectedLegsM } from "../sim/analytic";
+import { expectedClosedPodCycleS, expectedClosedPodLegsM } from "../sim/closed-pod-cycle";
+import { prepareClosedPodSource } from "../sim/underlift-layout";
 import { simInputIdentity } from "../sim/identity";
 import { createSpatialProjectSnapshot } from "../sim/spatial-bridge";
 import { spatialEvidenceMatchesInput } from "../sim/spatial-evidence";
@@ -29,9 +31,9 @@ describe('one explicit site in financial cycle, simulation and persisted proof',
  });
  it('uses exact same plan/seed/points for cycle and SimInput while preserving the original',()=>{
   const input=args(),before=structuredClone(input),m=buildProjectModel(input),row=m.results.find(r=>r.key==='p1') as ScenarioOk;
-  const site=input.scenarios[1]!.siteLayout!,legs=expectedLegsM(site),sim=m.simInputs.p1!.calculated!;
+  const site=input.scenarios[1]!.siteLayout!,physical=prepareClosedPodSource(site),legs=expectedClosedPodLegsM(physical.layout,physical.config.docks),sim=m.simInputs.p1!.calculated!;
   expect(row.status).toBe('ok');expect(row.items[0]!.routeLoadedM).toBe(legs.loadedM);expect(row.items[0]!.routeEmptyM).toBe(legs.emptyM);
-  expect(row.items[0]!.thrCycle).toBe(cycleThroughputPerH({...legs,speedMps:sim.robots.speedMps,loadedSpeedFactor:sim.robots.loadedSpeedFactor,handlingSec:sim.robots.handlingSec}));
+  expect(row.items[0]!.thrCycle).toBe(3600/expectedClosedPodCycleS({...legs,speedMps:sim.robots.speedMps,loadedSpeedFactor:sim.robots.loadedSpeedFactor,handlingSec:sim.robots.handlingSec})!);
   expect(sim.siteLayout).toEqual(site);expect(sim.seed).toBe(719);expect(input).toEqual(before);
   expect(checkScenarioSiteLayout(site)).toEqual(site);
   expect(validateScenarioSpecs(input.scenarios,'warehouse',[FIXTURE_H1500.slug],['pallet-transport']).ok).toBe(true);

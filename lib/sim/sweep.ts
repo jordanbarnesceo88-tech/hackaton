@@ -1,5 +1,5 @@
 import { SIM_LIMITS } from "./engine";
-import { runSim, runSimSync } from "./runner";
+import { assertAnalyticalWorkflow, runSim, runSimSync } from "./runner";
 import type { RunOptions } from "./runner";
 import type { SimRunSummary } from "./metrics";
 import type { SimInput } from "./types";
@@ -70,6 +70,7 @@ export function minStableFleet(
   range: { min: number; max: number },
   opts: MinStableFleetOptions = {},
 ): number | null {
+  assertAnalyticalWorkflow(input);
   const lo = Math.max(1, Math.ceil(range.min));
   const hi = Math.min(SIM_LIMITS.maxRobots, Math.floor(range.max));
   const budgetMs = opts.budgetMs ?? 60_000;
@@ -84,6 +85,7 @@ export function minStableFleet(
 
 /** Async server equivalent: same ascending prefix, yielding within every candidate run. */
 export async function minStableFleetAsync(input: SimInput, range: { min: number; max: number }, opts: RunOptions): Promise<number | null> {
+  assertAnalyticalWorkflow(input);
   const deadline = opts.now() + (opts.budgetMs ?? 60_000);
   for (let n = Math.max(1, Math.ceil(range.min)); n <= Math.min(SIM_LIMITS.maxRobots, Math.floor(range.max)); n++) {
     // Even short candidate runs must not form an uninterrupted chain of resolved microtasks.
@@ -109,6 +111,7 @@ export type SeedRange = {
  * («131–135 пал./ч», «подтверждён в 5 из 5 прогонов»). Пустой список зёрен — нули.
  */
 export function seedRange(input: SimInput, seeds: readonly number[]): SeedRange {
+  assertAnalyticalWorkflow(input);
   const summaries = seeds.map((seed) => runSimSync({ ...input, seed }));
   let aMin = Infinity;
   let aMax = -Infinity;

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { ADMIN_TOKEN_MIN_LENGTH } from "@/lib/api/auth-constants";
+import { SIM_MODEL_VERSION, TZ_MODEL_VERSION } from "@/lib/tz/version";
+import { SPATIAL_MODEL_VERSION } from "@/lib/sim/spatial-version";
 import {
   ACCESS_LABELS,
   listOperations,
@@ -154,7 +156,7 @@ export default function ApiDocsPage() {
           </a>{" "}
           — его принимают генераторы клиентов, Swagger и Redoc.
         </p>
-        <p className="text-sm text-muted-foreground">Версия API: {OPENAPI.info.version}.</p>
+        <p className="text-sm text-muted-foreground">API v1 · экономика {TZ_MODEL_VERSION} · аналитическая 2D-модель {SIM_MODEL_VERSION} · пространственная модель {SPATIAL_MODEL_VERSION}. Версия и транспортный процесс записываются в результат; аналитическая и пространственная проверки относятся к поддерживаемому типу процесса.</p>
       </div>
 
       <section className="flex max-w-3xl flex-col gap-3">

@@ -1,9 +1,12 @@
+import { packPodRows } from "./pod-layout";
 import { siteSegmentIsClear, validateSiteLayout } from "../../lib/sim/site-layout";
 import type { SimLayout, SiteRect } from "../../lib/sim/types";
 
 /** Designed demonstration site, not a surveyed customer building. All solids affect routing. */
-export function complexSite(areaM2: number, chargers: number): SimLayout {
+export function complexSite(areaM2: number, chargers: number, mobileStorage = false): SimLayout {
   const scale = Math.sqrt(areaM2 / 10000);
+  const podColumns = [6, 12, 18, 24, 30, 36, 42, 54, 60, 66, 72, 78, 84, 90, 96];
+  const podRows = [46, 52, 58, 64, 70];
   const rect = (x: number, y: number, w: number, h: number, id: string, kind?: string): SiteRect => ({ x: x * scale, y: y * scale, w: w * scale, h: h * scale, id, kind });
   const walls = [
     rect(48, 0, 2, 12, "west-1"), rect(48, 20, 2, 36, "west-2"), rect(48, 64, 2, 16, "west-3"),
@@ -21,7 +24,7 @@ export function complexSite(areaM2: number, chargers: number): SimLayout {
     widthM: 150 * scale, heightM: 80 * scale,
     footprint: [{ x: 0, y: 0 }, { x: 150, y: 0 }, { x: 150, y: 40 }, { x: 100, y: 40 }, { x: 100, y: 80 }, { x: 0, y: 80 }].map((p) => ({ x: p.x * scale, y: p.y * scale })),
     wallHeightM: 4.5,
-    walls, columns, obstacles: racks,
+    walls, columns, obstacles: mobileStorage ? racks.filter(r => r.kind !== "rack") : racks,
     doors: [
       { ...rect(48, 12, 2, 8, "door-west-south"), id: "door-west-south", label: "Проезд приёмка → комплектация" },
       { ...rect(48, 56, 2, 8, "door-west-north"), id: "door-west-north", label: "Межсекционный проезд" },
@@ -31,25 +34,25 @@ export function complexSite(areaM2: number, chargers: number): SimLayout {
     ],
     compartments: [
       { ...rect(0, 0, 48, 38, "receiving"), id: "receiving", label: "Приёмка и контроль", kind: "receiving" },
-      { ...rect(0, 40, 48, 40, "storage-west"), id: "storage-west", label: "Хранение А", kind: "storage" },
-      { ...rect(50, 40, 50, 40, "storage-east"), id: "storage-east", label: "Хранение Б", kind: "storage" },
+      { ...rect(0, 40, 48, 40, "storage-west"), id: "storage-west", label: mobileStorage ? "Мобильные стеллажи А" : "Хранение А", kind: "storage" },
+      { ...rect(50, 40, 50, 40, "storage-east"), id: "storage-east", label: mobileStorage ? "Мобильные стеллажи Б" : "Хранение Б", kind: "storage" },
       { ...rect(50, 0, 48, 38, "packing"), id: "packing", label: "Комплектация", kind: "packing" },
       { ...rect(100, 0, 50, 40, "shipping"), id: "shipping", label: "Экспедиция", kind: "shipping" },
     ],
     zones: [
       { ...rect(0, 0, 48, 38, "receiving"), kind: "receiving", label: "Приёмка" },
-      { ...rect(0, 40, 100, 40, "storage"), kind: "storage", label: "Хранение" },
+      { ...rect(0, 40, 100, 40, "storage"), kind: "storage", label: mobileStorage ? "Зоны мобильных стеллажей" : "Хранение" },
       { ...rect(100, 0, 50, 40, "shipping"), kind: "shipping", label: "Отгрузка" },
       { ...rect(0, 0, 28, 12, "charging"), kind: "charging", label: "Зарядная зона" },
     ],
-    crossAislesY: [16, 24, 44, 74].map((v) => v * scale), rackAislesX: [22, 54, 64, 74, 94].map((v) => v * scale),
+    crossAislesY: [16, 24, 44, 74].map((v) => v * scale), rackAislesX: (mobileStorage ? podColumns : [22, 54, 64, 74, 94]).map((v) => v * scale),
     receiving: [{ id: "receiving-0", kind: "receiving", x: 6 * scale, y: 24 * scale }, { id: "receiving-1", kind: "receiving", x: 6 * scale, y: 34 * scale }],
     shipping: [{ id: "shipping-0", kind: "shipping", x: 144 * scale, y: 16 * scale }, { id: "shipping-1", kind: "shipping", x: 144 * scale, y: 24 * scale }],
     chargers: [], slots: [],
     routingGraph: { nodes: [], edges: [], clearanceM: 0.8 },
   };
-  const xs = [6, 12, 22, 24, 34, 44, 54, 64, 74, 84, 94, 104, 114, 124, 134, 144];
-  const ys = [6, 16, 24, 34, 44, 54, 60, 70, 74];
+  const xs = [...new Set([6, 12, 22, 24, 34, 44, 54, 64, 74, 84, 94, 104, 114, 124, 134, 144, ...(mobileStorage ? podColumns : [])])].sort((a,b)=>a-b);
+  const ys = [...new Set([6, 16, 24, 34, 44, 54, 60, 70, 74, ...(mobileStorage ? podRows : [])])].sort((a,b)=>a-b);
   const graph = layout.routingGraph!;
   for (const x of xs) for (const y of ys) {
     const p = { id: `node-${x}-${y}`, x: x * scale, y: y * scale };
@@ -67,7 +70,9 @@ export function complexSite(areaM2: number, chargers: number): SimLayout {
   const chargingNodes = graph.nodes.filter((n) => n.y === 6 * scale && n.x <= 44 * scale);
   if (!Number.isInteger(chargers) || chargers < 1 || chargers > chargingNodes.length) throw new Error("Complex site has insufficient physical charging bays");
   layout.chargers = chargingNodes.slice(0, chargers).map((n, i) => ({ id: `charger-${i}`, kind: "charger", x: n.x, y: n.y }));
-  layout.slots = graph.nodes.filter((n) => n.y >= 54 * scale && n.y <= 70 * scale && [22, 54, 64, 74, 94].some((x) => n.x === x * scale)).map(({ x, y }) => ({ x, y }));
+  layout.slots = graph.nodes.filter((n) => mobileStorage
+    ? podColumns.some(x => n.x === x * scale) && podRows.some(y => n.y === y * scale)
+    : n.y >= 54 * scale && n.y <= 70 * scale && [22, 54, 64, 74, 94].some((x) => n.x === x * scale)).map(({ x, y }) => ({ x, y }));
   layout.staging = [
     { ...rect(0, 20, 18, 18, "receiving-staging"), id: "receiving-staging", kind: "receiving", pointIds: layout.receiving.map((p) => p.id) },
     { ...rect(134, 8, 16, 26, "shipping-staging"), id: "shipping-staging", kind: "shipping", pointIds: layout.shipping.map((p) => p.id) },
@@ -75,5 +80,5 @@ export function complexSite(areaM2: number, chargers: number): SimLayout {
   ];
   const issues = validateSiteLayout(layout);
   if (issues.length) throw new Error(`Invalid complex demonstration map: ${issues.join("; ")}`);
-  return layout;
+  return mobileStorage ? packPodRows(layout).layout : layout;
 }

@@ -2,6 +2,60 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Scoped operating styles outrank shared utility defaults; the outer brand keeps its own type. */
+  .project-workspace {
+    --radius: 0.25rem;
+    min-width: 0;
+  }
+  .project-workspace [data-slot="card"] {
+    border-radius: 0.25rem;
+  }
+  .project-workspace h2,
+  .project-workspace h3,
+  .project-workspace [data-slot="card-title"] {
+    font-family: var(--font-body), sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .project-workspace .glass {
+    background: var(--background);
+    backdrop-filter: none;
+  }
+  .workspace-context { display: grid; gap: 0.65rem; padding-block: 0.75rem; min-width: 0; }
+  .workspace-context > dl { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 0.6rem 1.5rem; margin: 0; }
+  .workspace-context > dl > div { min-width: 0; }
+  .workspace-context dt { font-size: 0.6875rem; line-height: 1.4; color: var(--muted-foreground); }
+  .workspace-context dd { margin: 0.2rem 0 0; font-size: 0.8125rem; line-height: 1.45; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .workspace-calculation-status { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; padding-top: 0.65rem; border-top: 1px solid var(--border); font-size: 0.75rem; line-height: 1.45; }
+  .workspace-calculation-status > span { flex: 1 1 28rem; color: var(--muted-foreground); }
+  .workspace-calculation-status details > summary { min-height: 2.75rem; line-height: 2.75rem; }
+  .workspace-calculation-status[data-guest-calculation="error"] > strong { color: var(--destructive); }
+  .workspace-calculation-status[data-guest-calculation="edited"] > strong { color: var(--caution); }
+  .project-workspace .callout { border-radius: 0.25rem; }
+  @media (max-width: 639px) {
+    .workspace-context > dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 1rem; }
+    .workspace-context { padding-block: 0.5rem; }
+    .workspace-calculation-status > span { flex-basis: 100%; }
+  }
+  .decision-summary .decision-status {
+    border: 1px solid currentColor;
+    border-radius: 0.125rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .decision-summary[data-tone="ok"] .decision-status { color: var(--positive); }
+  .decision-summary[data-tone="warn"] .decision-status { color: var(--caution); }
+  .decision-summary[data-tone="crit"] .decision-status { color: var(--destructive); }
+  .decision-metrics > div { min-width: 0; }
+  .decision-metrics dd {
+    margin-top: 0.4rem;
+    font-size: 1.125rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
 /* Match BOTH an explicit `.dark` ancestor and the OS preference. Only the class was matched
    before, and nothing in the app ever sets it — no theme provider, no toggle — so the entire
    `.dark` block below was unreachable, while the brand pass's CHANGELOG claimed "light + dark".

@@ -16,8 +16,7 @@ export default async function LoginPage({
         email: String(formData.get("email") ?? "").toLowerCase().trim(),
         password: String(formData.get("password") ?? ""),
         // Вошедший продолжает работу, а не читает первый экран: путь жюри по ТЗ §5.4 начинается
-        // со списка проектов («Проекты» → «Новый проект»). Регистрация по-прежнему ведёт в
-        // мастер v1 (/onboarding): этот переход проверяют e2e/wizard.spec.ts и auth-report.spec.ts.
+        // со списка проектов («Проекты» → «Новый проект»). Регистрация ведёт туда же.
         redirectTo: "/projects",
       });
     } catch (e) {

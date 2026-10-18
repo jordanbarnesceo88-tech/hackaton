@@ -1,0 +1,63 @@
+{
+  "scope": "Local current submission; documentary, source/export and browser proofs only. No global claim that every requirement or deployment is complete.",
+  "database": {
+    "statement": "Полный повторный прогон на изолированной PostgreSQL: 9 файлов, 150/150 тестов PASS, код выхода 0. Проверены в том числе публикация, отмена, конфликты редакций и отбрасывание поддельного подтверждения; это не нагрузочный тест.",
+    "slideStatement": "PostgreSQL: 9 файлов, 150/150 тестов PASS; публикация, отмена, конфликты редакций и проверка поддельных подтверждений.",
+    "postFixFullRun": {
+      "filesPassed": 9,
+      "testsPassed": 150,
+      "testsTotal": 150,
+      "exitCode": 0,
+      "durationSeconds": 506.05,
+      "localStart": "2026-10-18 18:03:43",
+      "localEnd": "2026-10-18 18:12:09",
+      "isolatedDatabasePort": 55434,
+      "engineRelease": "alfa-robot/sha256:3766b27f13a6d739a8af0a1afbf21fecd5f2bcd0d75e1bf2be7f0bd80dfb2d89/alfa-durable-calculation-1",
+      "warnings": "Two pg client.query deprecation warnings; no errors"
+    },
+    "history": "Earlier full run 144/146; outdated raw-scenario equality test contract corrected. A later historical test-driver null diagnostic was not reproduced and is not described as a production-worker fix."
+  },
+  "pdfVisual": {
+    "pages": {
+      "presentation": 12,
+      "documentation": 13,
+      "sample-report": 31
+    },
+    "authorAllPagesPersonallyViewed": true,
+    "independentAllInitial56PagesViewed": true,
+    "independentPresentation5and6Documentation8and13": "PASS after correction",
+    "independentFinalReport10and24and28": "PASS; final report pages 10,11,24,28,29 personally viewed, 31 pages outsideBounds0",
+    "automatedBounds": "56 pages, zero blank pages and zero text blocks outside page bounds",
+    "independentProofPagesAfterDb150": "PASS: final presentation page 12 and documentation page 13 personally viewed; exact current PDF SHA checked; no layout defects",
+    "finalProofPdfSha256": {
+      "presentation": "9bf28b0ec68cef310936769196f5e8736ac8673e1df73485b16584b6a44c7047",
+      "documentation": "d85ea44b572ff31f4ca2b3c8b0cae59e268d7fbbad008ff8262b6b1b1f157383",
+      "sample-report": "adb5c89fdcdc13749d46ed5b67c01f54bb4bacd82b29d4a35f8a8633f8a1a0b8"
+    }
+  },
+  "numbers": {
+    "independentExportChecks": 445,
+    "scope": "Final actual SAVE revision 1: JSON/CSV/cached XLSX 445/445 PASS, PDF numeric/version text 19/19 PASS; 31-page PDF SHA checked; physical summary and purchase NPV unchanged",
+    "qualifiedFleet": 6,
+    "qualifiedChargers": 2,
+    "physicalVersion": "warehouse-dense-underlift-1.7.2",
+    "achievedPerH": 52,
+    "requiredPerH": 51.81818181818181,
+    "queueEnd": 2,
+    "waitP95Min": 4.55,
+    "purchaseNpvRub": 4079992.1238097674,
+    "independentPdfTextChecks": 19,
+    "finalRevision": 1,
+    "excelRecalculation": "Not performed by Excel; cached workbook values independently reconciled with annual cashflow arithmetic and source JSON"
+  },
+  "pilot": "Actual numeric/persistence/export test on spatial 1.7.1; not claimed repeated on 1.7.2",
+  "sourcePublication": "Actual CREATE, followed by actual SAVE; same persistent project revision 0 to 1; generated exports use revision 1",
+  "externalPublication": "Not performed or certified by this package",
+  "sourceChecks": {
+    "fullEslint": "PASS: 0 errors and 0 warnings",
+    "fullTypeScriptNoEmit": "PASS: exit 0",
+    "current3dBundles": "PASS: both current generated bundles checked",
+    "snapshotReadRegression": "PASS: 2 targeted tests",
+    "unit": "Earlier full source run: 173 files / 1903 tests PASS; not relabelled as a new full rerun"
+  }
+}

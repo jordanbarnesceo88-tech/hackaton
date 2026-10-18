@@ -1,5 +1,8 @@
-import type { SimInput } from "../sim/types";
+import type { SimInput, SimSummaryStored } from "../sim/types";
+import { simSummaryMatchesInput } from "../sim/identity";
 import { spatialEvidenceMatchesInput } from "../sim/spatial-evidence";
+import { endQueueLimit } from "../sim/metrics";
+import { formatNum } from "../format/rub";
 import { coverage } from "./econ/fleet";
 import { horizonOf } from "./econ/context";
 import { isViableScenario } from "./econ/conclusion";
@@ -10,11 +13,11 @@ import { normDef } from "./norms";
 import type { ProjectResults, ScenarioSpec } from "./types";
 
 export type DecisionModel = Pick<ProjectResults, "results" | "scenarios" | "normsUsed" | "conclusion" | "paramsUsed">;
-export type DecisionStatus = "missing" | "refused" | "baseline" | "stale" | "unverified" | "partial" | "invalid" | "financial-limit" | "suitable";
+export type DecisionStatus = "missing" | "refused" | "baseline" | "stale" | "unsupported" | "unverified" | "partial" | "invalid" | "financial-limit" | "suitable";
 type SpatialEvidence = NonNullable<ScenarioSpec["spatialEvidence"]>;
 
 /** Presentation data only: all money remains the financial engine's own result. */
-export function buildDecision(model: DecisionModel, scenarioKey?: string, expectedInput?: SimInput | null, stale = false) {
+export function buildDecision(model: DecisionModel, scenarioKey?: string, expectedInput?: SimInput | null, stale = false, simSummary?: SimSummaryStored | null) {
   const recommended = model.results.find(r => r.key === model.conclusion.recommendedScenarioKey);
   const selectedKey = scenarioKey ?? recommended?.key ?? model.results.find(r => r.kind !== "asis")?.key;
   const result = model.results.find(r => r.key === selectedKey) ?? null;
@@ -25,8 +28,27 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   const evidence: SpatialEvidence | null = spec?.spatialEvidence ?? null;
   const evidenceStale = result?.risks.some(r => r.code === "SPATIAL_STALE") ?? false;
   const fresh = !stale && !evidenceStale && spatialEvidenceMatchesInput(evidence, expectedInput);
+  const partialFacts: string[] = [];
+  const measured = fresh && evidence?.assessment.status === "PARTIAL" ? evidence.summary : null;
+  const insufficientOutput = measured !== null && measured.achievedPerH + 1e-8 < measured.requiredPerH;
+  const excessiveWait = measured !== null && measured.waitP95Min > evidence!.input.thresholds.p95WaitMaxMin;
+  const excessiveQueue = measured !== null && measured.queueEnd > endQueueLimit(measured.requiredPerH);
+  if (measured) {
+    partialFacts.push(`Завершённые перевозки: ${formatNum(measured.achievedPerH, 1)} из ${formatNum(measured.requiredPerH, 1)} пал./ч.`);
+    if (excessiveWait) partialFacts.push(`Ожидание назначения p95: ${formatNum(measured.waitP95Min, 2)} мин при пределе ${formatNum(evidence!.input.thresholds.p95WaitMaxMin, 2)} мин.`);
+    if (excessiveQueue) partialFacts.push(`Очередь в конце: ${formatNum(measured.queueEnd, 0)} при пределе ${formatNum(endQueueLimit(measured.requiredPerH), 2)}.`);
+  }
   const spatialState = !evidence ? "none" : fresh ? "fresh" : stale || evidenceStale || expectedInput ? "stale" : "unverified";
   const ok = result?.status === "ok" ? result : null;
+  // One transport receipt cannot confirm the other positions or processes of a compound scenario.
+  const singleItem = ok?.items.length === 1 && spec?.items.length === 1;
+  const verificationKind = !singleItem ? "unsupported" :
+    expectedInput?.transportWorkflow === "closed-pod-1" || (!expectedInput && evidence?.input.transportWorkflow === "closed-pod-1") ? "spatial" :
+    expectedInput ? "analytical" : "unsupported";
+  const analytical = verificationKind === "analytical" && !stale && !evidenceStale &&
+    simSummary?.scenarioKey === selectedKey && simSummaryMatchesInput(simSummary, expectedInput) ? simSummary : null;
+  const verified = verificationKind === "spatial" ? fresh && evidence?.assessment.status === "OK" : analytical?.verdict === "CONFIRMED";
+  const verificationMetrics = verificationKind === "spatial" ? fresh && evidence?.assessment.status !== "NOT_EVALUATED" ? evidence?.summary ?? null : null : analytical;
   const cashRealizationShare = spec?.cashRealizationShare ?? 1;
   const processes = (ok?.items ?? []).map(item => {
     const definition = processDef(item.process);
@@ -61,23 +83,38 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   } else if (ok.risks.some(r => r.code === "MANUAL_ADD")) {
     status = "invalid"; headline = "Применимость выбранной техники не подтверждена подбором";
     nextAction = "Разберите причину исключения техники из подбора; финансовые числа ниже оставлены для сравнения.";
-  } else if (fresh && evidence?.assessment.status === "FAIL") {
+  } else if (verificationKind === "unsupported") {
+    status = "unsupported"; headline = "Экономика рассчитана; проверка нагрузки этого сценария не поддерживается";
+    nextAction = !singleItem ? "Сценарий содержит несколько позиций: результат одного транспортного прогона не подтверждает весь состав. Уточните нагрузки каждого процесса и проверьте их отдельно."
+      : "Для выбранного процесса нет применимой имитационной модели. Согласуйте замеры производительности и условия объекта при обследовании; расчёт экономики остаётся предварительным.";
+  } else if (verificationKind === "analytical" && analytical?.verdict === "NOT_CONFIRMED") {
+    status = "partial"; headline = "Аналитическая 2D-модель не подтвердила заданную нагрузку";
+    nextAction = "Разберите показатели и узкое место аналитической имитации в шаге 7; измените условия и повторите серверный расчёт. 2D-модель не проверяет подхват мобильного стеллажа или пространственную безопасность.";
+  } else if (verificationKind === "spatial" && fresh && evidence?.assessment.status === "FAIL") {
     status = "invalid"; headline = "Нельзя обосновать сценарий: нарушены проверки модели";
     nextAction = "Разберите нарушенный критерий и повторите проверку после исправления условий или модели.";
-  } else if (fresh && evidence?.assessment.status === "PARTIAL") {
-    status = "partial"; headline = "Парк не выполняет всю заданную нагрузку";
-    nextAction = "Разберите ограничения в 3D и сравните варианты на одинаковых условиях. Причина не определяется автоматически числом роботов.";
-  } else if (!fresh || evidence?.assessment.status !== "OK") {
-    status = "unverified"; headline = spatialState === "stale" ? "Финансы рассчитаны; пространственная проверка устарела" : "Финансы рассчитаны; выполнение нагрузки в 3D ещё не подтверждено";
-    nextAction = "Проверьте текущий сценарий в 3D с тем же парком, зарядками и нагрузкой.";
+  } else if (verificationKind === "spatial" && fresh && evidence?.assessment.status === "PARTIAL") {
+    status = "partial";
+    headline = insufficientOutput ? "Измеренный выпуск ниже заданного потока"
+      : excessiveWait && excessiveQueue ? "Заданный выпуск достигнут; превышены ожидание и очередь"
+      : excessiveWait ? "Заданный выпуск достигнут; превышено ожидание назначения"
+      : excessiveQueue ? "Заданный выпуск достигнут; превышена допустимая очередь"
+      : "Часть критериев пространственной модели не выполнена";
+    nextAction = [...partialFacts, ...(!insufficientOutput && !excessiveWait && !excessiveQueue ? [evidence.assessment.headline] : []),
+      "Откройте прогон в 3D и проверьте нарушенные критерии перед сравнением изменений."].join(" ");
+  } else if (!verified) {
+    status = "unverified"; headline = verificationKind === "analytical" ? "Финансы рассчитаны; актуальная аналитическая проверка нагрузки отсутствует"
+      : spatialState === "stale" ? "Финансы рассчитаны; пространственная проверка устарела" : "Финансы рассчитаны; выполнение нагрузки в 3D ещё не подтверждено";
+    nextAction = verificationKind === "analytical" ? "Повторите серверный расчёт текущих условий и проверьте итог аналитической 2D-имитации в шаге 7."
+      : "Проверьте текущий сценарий в 3D с тем же парком, зарядками и нагрузкой.";
   } else if (ok.risks.some(r => r.code === "SIM_NOT_CONFIRMED")) {
     status = "partial"; headline = "Проверки нагрузки расходятся — требуется разбор";
     nextAction = "Сопоставьте входы и критерии имитаций: сохранённый риск невыполнения потока нельзя снять одним положительным результатом другой проверки.";
   } else if (!financialViable) {
-    status = "financial-limit"; headline = "Нагрузка подтверждена моделью; финансовые критерии не выполнены";
+    status = "financial-limit"; headline = verificationKind === "analytical" ? "Критерии аналитической 2D-модели выполнены; финансовые критерии не выполнены" : "Нагрузка подтверждена моделью; финансовые критерии не выполнены";
     nextAction = "Сравните покупку и услугу, затраты и денежную реализацию труда в пределах существующей модели.";
   } else {
-    status = "suitable"; headline = "Нагрузка и финансовые критерии модели выполнены";
+    status = "suitable"; headline = verificationKind === "analytical" ? "Критерии аналитической 2D-модели и финансов выполнены" : "Нагрузка и финансовые критерии модели выполнены";
     nextAction = "Сравните покупку и RaaS. Затем задайте участок, состав, бюджет и критерии пилота.";
   }
   const constraints = ok?.risks.map(r => r.text) ?? [];
@@ -91,9 +128,10 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
     horizonYears, discountRate: norms.discountRate, processes, constraints, sources,
     analyticAssumptions: { utilization: norms.utilization, availability: norms.availability, laborShare: norms.laborShareAutomatable,
       laborSource: spec?.normOverrides?.laborShareAutomatable !== undefined ? "задано в сценарии" : originLabel(normDef("laborShareAutomatable").origin) },
-    spatial: { state: spatialState, evidence, metrics: evidence && evidence.assessment.status !== "NOT_EVALUATED" ? evidence.summary : null },
+    spatial: { state: spatialState, evidence, metrics: evidence && evidence.assessment.status !== "NOT_EVALUATED" ? evidence.summary : null, partialFacts },
     finance: ok ? { capexRub: ok.capexRub, opexYearRub: ok.opexYearRub, effectYearRub: ok.effectYearRub, npvRub: ok.npvRub, paybackYears: ok.paybackYears, discountedPaybackYears: ok.discountedPaybackYears, tcoRub: ok.tcoRub, tcoYears: ok.tcoYears, viable: financialViable } : null,
     cashRealizationShare, cashRealizationExplicit: spec?.cashRealizationShare !== undefined,
+    verification: { kind: verificationKind, metrics: verificationMetrics, analytical, supported: verificationKind !== "unsupported" },
     pilot: {
       applicable: status === "suitable", criteria,
       purpose: status === "suitable" ? "Проверить выбранный вариант на ограниченном участке по его нагрузке и критериям." : "Сначала разрешить показанное ограничение или получить актуальную проверку; пилот не подменяет вывод по сценарию.",

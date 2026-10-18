@@ -1,126 +1,46 @@
 import { test, expect } from "@playwright/test";
+import { economicsRows, REPORT_LABELS } from "../components/calculator/economics-rows";
+import { createOwnedArchive } from "./legacy-support";
 
-test("signup → save analysis → open the report", async ({ page }) => {
-  const email = `e2e+${Date.now()}@example.com`;
-
-  await page.goto("/signup");
-  await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill("password123");
-  const nameField = page.locator('input[name="name"]');
-  if (await nameField.count()) await nameField.fill("E2E Tester");
-  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  // signUpAction signs in and redirects to «Мои проекты», like the login page does — landing
-  // there proves we're authenticated and off /signup.
-  await expect(page).toHaveURL(/\/projects/);
-
-  // Reach a calculate page via the flow.
-  await page.goto("/compare/warehouse");
-  await page.getByRole("link", { name: /Рассчитать/ }).first().click();
-  await expect(page).toHaveURL(/\/calculate\//);
-
-  await page.getByRole("button", { name: "Сохранить расчёт" }).click();
-  await expect(page.getByText("Сохранено")).toBeVisible();
-
-  const reportLink = page.getByRole("link", { name: "Открыть отчёт" });
-  await expect(reportLink).toBeVisible();
-  await reportLink.click();
-
-  await expect(page).toHaveURL(/\/report\//);
-  await expect(page.getByText(/Отчёт ROI/)).toBeVisible();
-  await expect(page.getByText(/не оферта/)).toBeVisible();
+test("authenticated legacy entry opens the current project; owned archive is read-only", async ({ page }) => {
+  const fixture = await createOwnedArchive(page);
+  try {
+    await page.goto("/compare/airport?facility=warehouse&ops=999999&staff=999");
+    await expect(page).toHaveURL(/\/projects\/new\?legacy=1&facility=airport$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Новый проект" })).toBeVisible();
+    await expect(page.locator('input[name="facility"][value="airport"]')).toBeChecked();
+    await expect(page.getByText(/Старые операции, занятость и денежные параметры не перенесены/)).toBeVisible();
+    await page.goto("/analyses");
+    await expect(page.getByRole("heading", { name: "Архив расчётов v1" })).toBeVisible();
+    await expect(page.locator('a[href*="/calculate/"]')).toHaveCount(0);
+    await page.getByRole("link", { name: "Просмотреть архивный отчёт", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/report/${fixture.analysis.id}$`));
+    await expect(page.locator("[data-legacy-report]")).toContainText("просмотр без сохранения");
+    await expect(page.getByRole("heading", { name: `Отчёт ROI: ${fixture.analysis.name}` })).toBeVisible();
+    await expect(page.getByText(/не\s+оферта/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Сохранить расчёт", exact: true })).toHaveCount(0);
+    expect(await fixture.db.savedAnalysis.findUniqueOrThrow({ where: { id: fixture.analysis.id } })).toEqual(fixture.analysis);
+  } finally { await fixture.cleanup(); }
 });
 
-// The calculator panel and the print report render the same ten figures from one shared
-// builder (components/calculator/economics-rows.ts). Nothing asserted that they agree, so a
-// drift in either surface — or in the builder — would have shipped silently. This walks the
-// numbers across the save boundary and compares them.
-test("report figures match the calculator panel exactly", async ({ page }) => {
-  const email = `e2e-parity+${Date.now()}@example.com`;
-
-  await page.goto("/signup");
-  await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill("password123");
-  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  await expect(page).toHaveURL(/\/projects/);
-
-  // Полное состояние подбора, включая занятость по задачам: без неё движок отказывается
-  // считать решения, у которых нет норматива (Р-1), и паритету нечего было бы сверять —
-  // на обеих поверхностях стояло бы одинаковое «не хватает занятости».
-  await page.goto(
-    "/compare/warehouse?industry=retail&facility=warehouse&area=10000&ops=5000&staff=40" +
-      "&task_asrs=4&task_amr=4&task_class-amr-transport=4" +
-      "&task_class-palletizer=4&task_class-cleaning=4"
-  );
-  await page.getByRole("link", { name: /Рассчитать/ }).first().click();
-  await expect(page).toHaveURL(/\/calculate\//);
-
-  // Read a surface's «label: value» pairs, scoped to the block the heading titles.
-  //
-  // `xpath=../..` was wrong on one of the two surfaces and silently so. On the panel the
-  // heading is a CardTitle inside a CardHeader, so two levels up is the Card. On the report it
-  // is an `<h2>` that is a direct child of `<section class="report-block">`, so two levels up
-  // is the whole report container — the Map was then built from every «x: y» line on the page
-  // (parameters, assumptions, the solution block) and, since it keys by label, quietly kept
-  // the *last* value for any label that appears twice. A real drift in a duplicated label
-  // could have been masked by a matching line from somewhere else on the page.
-  //
-  // Climb to the nearest enclosing card or section instead, which is the block in both cases.
-  const readRows = async (sectionHeading: string) => {
-    const block = page
-      .getByRole("heading", { name: sectionHeading, exact: true })
-      .locator("xpath=ancestor::*[@data-slot='card' or self::section][1]");
-    const text = await block.innerText();
-    const rows = new Map<string, string>();
-    for (const line of text.split("\n")) {
-      const i = line.indexOf(":");
-      if (i > 0) rows.set(line.slice(0, i).trim(), line.slice(i + 1).trim());
+test("archive report preserves manual quantity and all ten current v1 economic rows", async ({ page }) => {
+  const fixture = await createOwnedArchive(page);
+  try {
+    await page.goto(`/calculate/${fixture.solution.id}?analysis=${fixture.analysis.id}&quantityOverride=999&ops=999999`);
+    await expect(page).toHaveURL(new RegExp(`/report/${fixture.analysis.id}$`));
+    const block = page.getByRole("heading", { name: "Экономика", exact: true }).locator("xpath=ancestor::section[1]");
+    const rendered = new Map<string, string>();
+    for (const line of (await block.innerText()).split("\n")) {
+      const separator = line.indexOf(":");
+      if (separator > 0) rendered.set(line.slice(0, separator).trim(), line.slice(separator + 1).trim());
     }
-    return rows;
-  };
-  // Walk the region path before saving. The panel/report parity assertion below only caught a
-  // stale-assumptions bug when something actually made the two diverge, and picking a region and
-  // then moving the exchange rate is exactly that: the labour rate is re-derived from a ruble
-  // citation, so a surface reading the raw state instead of the derived one silently persists
-  // the pre-derivation figure. That shipped once — the report said 4 425 300 ₽ against the
-  // 2 267 100 ₽ on screen — with this spec green, because it never touched these two controls.
-  await page.locator("#region").selectOption("moscow");
-  await page.locator("#usdToRub").fill("110");
-  await page.locator("#usdToRub").blur();
-  await expect(page.locator("#laborCostPerHourUsd")).not.toHaveValue("15");
-
-  const panel = await readRows("Результаты");
-  expect(panel.size).toBeGreaterThan(4);
-
-  await page.locator('input[placeholder*="Название"]').fill("parity");
-  await page.getByRole("button", { name: "Сохранить расчёт" }).click();
-  await expect(page.getByText("Сохранено")).toBeVisible();
-  await page.getByRole("link", { name: "Открыть отчёт" }).click();
-  await expect(page).toHaveURL(/\/report\//);
-
-  const report = await readRows("Экономика");
-
-  // Pin the scoping itself. `xpath=../..` climbed to the whole report container here, so the
-  // Map was built from every «x: y» line on the page — parameters, assumptions, the solution
-  // block — and keyed by label, silently keeping the last of any duplicate. Neither of these
-  // labels belongs to the block its heading titles.
-  expect(report.has("Персонал (замещаемый)"), "report block leaked a parameters row").toBe(false);
-  expect(panel.has("Ставка дисконтирования"), "panel block leaked an assumptions row").toBe(false);
-
-  // Labels shared verbatim by both surfaces must carry identical values.
-  for (const label of [
-    "Требуется единиц",
-    "Замещается персонала (ЭПЗ)",
-    "CAPEX",
-    "OPEX/год",
-    "Базовые затраты на труд/год",
-    "Срок окупаемости (простой)",
-    "Срок окупаемости (дисконт.)",
-  ]) {
-    expect(report.get(label), `report vs panel: ${label}`).toBe(panel.get(label));
-  }
-
-  // ROI and NPV are the two rows that deliberately differ in wording between the surfaces
-  // (the report's grid is tighter), so compare them by their own labels.
-  expect(report.get("ROI (простой)")).toBe(panel.get("ROI (простой, без дисконтирования)"));
-  expect(report.get("NPV")).toBe(panel.get("NPV (чистая приведённая стоимость)"));
+    const expected = economicsRows(fixture.result, fixture.assumptions.usdToRub, REPORT_LABELS);
+    expect(expected).toHaveLength(10);
+    for (const row of expected) expect(rendered.get(row.label), row.label).toBe(row.value);
+    expect(rendered.has("Персонал (замещаемый)")).toBe(false);
+    expect(rendered.has("Ставка дисконтирования")).toBe(false);
+    await expect(block).toContainText("количество единиц — 6");
+    await expect(page.locator("[data-legacy-report]")).toContainText("не неизменяемый снимок прежних чисел");
+    expect(await fixture.db.savedAnalysis.findUniqueOrThrow({ where: { id: fixture.analysis.id } })).toEqual(fixture.analysis);
+  } finally { await fixture.cleanup(); }
 });

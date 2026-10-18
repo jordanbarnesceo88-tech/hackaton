@@ -4,7 +4,22 @@ import { LAYOUT_LIMITS } from "./layout";
 type Point = { x: number; y: number };
 const EPS = 1e-8;
 export const WAREHOUSE_BODY_RADIUS_M = 0.75;
+export const SITE_LAYOUT_LIMITS = { maxStorageSlots: 4096, maxGraphNodes: 8192, maxGraphEdges: 20000 } as const;
 const finite = (n: number) => Number.isFinite(n);
+type AxisSegment = { coordinate: number; from: number; to: number };
+
+function onIndexedSegment(segments: AxisSegment[], coordinate: number, along: number): boolean {
+  let lo = 0, hi = segments.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (segments[mid]!.coordinate < coordinate - EPS) lo = mid + 1; else hi = mid;
+  }
+  for (let i = lo; i < segments.length && segments[i]!.coordinate <= coordinate + EPS; i++) {
+    const segment = segments[i]!;
+    if (Math.abs(coordinate - segment.coordinate) < EPS && along >= segment.from && along <= segment.to) return true;
+  }
+  return false;
+}
 
 export function pointInFootprint(p: Point, polygon: readonly Point[]): boolean {
   let inside = false;
@@ -53,14 +68,14 @@ export function siteSegmentIsClear(layout: SimLayout, a: Point, b: Point): boole
 /** Validation is bounded and returns an invalid precheck rather than trusting scene-only geometry. */
 export function validateSiteLayout(layout: SimLayout): string[] {
   try {
-    if (![layout.zones, layout.crossAislesY, layout.rackAislesX, layout.receiving, layout.shipping, layout.chargers].every(a => Array.isArray(a) && a.length <= 500) || !Array.isArray(layout.slots) || layout.slots.length > 4096) return ["Missing or excessive site arrays"];
+    if (![layout.zones, layout.crossAislesY, layout.rackAislesX, layout.receiving, layout.shipping, layout.chargers].every(a => Array.isArray(a) && a.length <= 500) || !Array.isArray(layout.slots) || layout.slots.length > SITE_LAYOUT_LIMITS.maxStorageSlots) return ["Missing or excessive site arrays"];
     if (![...layout.crossAislesY, ...layout.rackAislesX].every(finite) || (layout.wallHeightM !== undefined && !(finite(layout.wallHeightM) && layout.wallHeightM > 0))) return ["Invalid site dimensions"];
     for (const r of [...layout.zones, ...(layout.doors ?? []), ...(layout.compartments ?? []), ...(layout.staging ?? [])]) {
       if (![r.x, r.y, r.w, r.h].every(finite) || r.w <= 0 || r.h <= 0 || r.x < 0 || r.y < 0 || r.x + r.w > layout.widthM + EPS || r.y + r.h > layout.heightM + EPS) return ["Invalid site zone rectangle"];
     }
     const graph = layout.routingGraph;
     const footprint = layout.footprint;
-    if (!graph || !footprint || footprint.length < 4 || footprint.length > 100 || graph.nodes.length < 2 || graph.nodes.length > 1000 || graph.edges.length > 4000) return ["Invalid site graph or footprint size"];
+    if (!graph || !footprint || footprint.length < 4 || footprint.length > 100 || graph.nodes.length < 2 || graph.nodes.length > SITE_LAYOUT_LIMITS.maxGraphNodes || graph.edges.length > SITE_LAYOUT_LIMITS.maxGraphEdges) return ["Invalid site graph or footprint size"];
     if (![layout.widthM, layout.heightM].every((v) => finite(v) && v > 0) || !finite(graph.clearanceM) || graph.clearanceM < 0) return ["Invalid site dimensions/clearance"];
     for (let i = 0; i < footprint.length; i++) {
       const p = footprint[i]!;
@@ -81,12 +96,15 @@ export function validateSiteLayout(layout: SimLayout): string[] {
     const nodes = new Map(graph.nodes.map((n) => [n.id, n]));
     if (nodes.size !== graph.nodes.length || new Set(graph.nodes.map((n) => `${n.x},${n.y}`)).size !== graph.nodes.length || graph.nodes.some((n) => typeof n.id !== "string" || !n.id || !siteSegmentIsClear(layout, n, n))) return ["Invalid or obstructed graph node"];
     const adjacent = new Map(graph.nodes.map((n) => [n.id, [] as string[]]));
+    const vertical: AxisSegment[] = [], horizontal: AxisSegment[] = [];
     for (const e of graph.edges) {
       const a = nodes.get(e.from);
       const b = nodes.get(e.to);
       if (!a || !b || e.from === e.to || Math.abs(a.x - b.x) + Math.abs(a.y - b.y) < EPS || !siteSegmentIsClear(layout, a, b)) return ["Edge crosses a wall, rack, footprint or missing node"];
       adjacent.get(e.from)!.push(e.to);
       adjacent.get(e.to)!.push(e.from);
+      if (Math.abs(a.x - b.x) < EPS) vertical.push({ coordinate: a.x, from: Math.min(a.y, b.y), to: Math.max(a.y, b.y) });
+      if (Math.abs(a.y - b.y) < EPS) horizontal.push({ coordinate: a.y, from: Math.min(a.x, b.x), to: Math.max(a.x, b.x) });
     }
     const seen = new Set<string>();
     const pending = [graph.nodes[0]!.id];
@@ -101,11 +119,9 @@ export function validateSiteLayout(layout: SimLayout): string[] {
     if (!layout.receiving.length || !layout.shipping.length || !layout.slots.length || points.length > 500) return ["Site needs bounded docks and storage slots"];
     if (new Set(points.map((p) => p.id)).size !== points.length) return ["Duplicate operation point id"];
     if (points.some((p) => !graph.nodes.some((n) => Math.abs(n.x - p.x) < EPS && Math.abs(n.y - p.y) < EPS))) return ["Operation points must be graph nodes"];
-    if (layout.slots.some(p => !siteSegmentIsClear(layout, p, p) || !graph.edges.some(e => {
-      const a = nodes.get(e.from)!, b = nodes.get(e.to)!;
-      return (Math.abs(a.x - b.x) < EPS && Math.abs(p.x - a.x) < EPS && p.y >= Math.min(a.y, b.y) && p.y <= Math.max(a.y, b.y)) ||
-        (Math.abs(a.y - b.y) < EPS && Math.abs(p.y - a.y) < EPS && p.x >= Math.min(a.x, b.x) && p.x <= Math.max(a.x, b.x));
-    }))) return ["Storage slots must lie on the routing graph"];
+    vertical.sort((a, b) => a.coordinate - b.coordinate);
+    horizontal.sort((a, b) => a.coordinate - b.coordinate);
+    if (layout.slots.some(p => !siteSegmentIsClear(layout, p, p) || !(onIndexedSegment(vertical, p.x, p.y) || onIndexedSegment(horizontal, p.y, p.x)))) return ["Storage slots must lie on the routing graph"];
     return [];
   } catch {
     return ["Malformed site layout"];
@@ -122,7 +138,7 @@ export function siteAreaM2(layout: SimLayout): number {
 /** Explicit plans must agree with the financial object's area and physical operation points. */
 export function validateProjectSiteLayout(layout: SimLayout, expected?: Pick<SimLayoutParams, "activeAreaM2" | "receivingDocksCount" | "shippingDocksCount" | "chargers">): string[] {
   const graph = layout?.routingGraph;
-  if (!Array.isArray(layout?.slots) || layout.slots.length > 500 || !graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges) || graph.nodes.length > 500 || graph.edges.length > 2000) return ["Исходный план должен содержать не больше 500 мест/узлов и 2000 рёбер"];
+  if (!Array.isArray(layout?.slots) || layout.slots.length > SITE_LAYOUT_LIMITS.maxStorageSlots || !graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges) || graph.nodes.length > SITE_LAYOUT_LIMITS.maxGraphNodes || graph.edges.length > SITE_LAYOUT_LIMITS.maxGraphEdges) return [`Исходный план превышает бюджет: ${SITE_LAYOUT_LIMITS.maxStorageSlots} мест, ${SITE_LAYOUT_LIMITS.maxGraphNodes} узлов и ${SITE_LAYOUT_LIMITS.maxGraphEdges} рёбер; план не сокращён`];
   const problems = validateSiteLayout(layout);
   if (problems.length) return problems;
   if (layout.routingGraph!.clearanceM < WAREHOUSE_BODY_RADIUS_M) return [`Отступ маршрутов от стен и границ должен быть не меньше радиуса корпуса ${WAREHOUSE_BODY_RADIUS_M} м; исходный план не изменён`];

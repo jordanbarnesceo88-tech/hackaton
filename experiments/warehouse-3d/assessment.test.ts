@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { summarize } from "../../lib/sim/metrics";
-import { assessPlayback, calculateCase, createPlayback, isPlaybackDone, stepPlayback } from "./core";
+import { assessPlayback, createPlayback, isPlaybackDone, stepPlayback } from "./core";
 import { assessCleaning, assessWarehouse } from "./assessment";
 import { createSectionInput, createSectionPlayback, sectionDone, stepSectionPlayback, summarizeSections } from "./sections";
 import { isWarehouseTrafficState, type DemoTrafficInput } from "./traffic";
+import { prepareWarehouseTraffic } from "./traffic";
+import { warehouseBaseInput } from "../../lib/sim/fixtures";
+import { complexSite } from "./site";
+import { calculateProjectPreview } from "./project-input";
+import { createSpatialProjectSnapshot } from "../../lib/sim/spatial-bridge";
 
-const base = calculateCase("complex", { fleet: 3 }).input as DemoTrafficInput;
+const raw = warehouseBaseInput(3);
+raw.siteLayout = complexSite(10000, 1, true);
+raw.layout.receivingDocksCount = raw.siteLayout.receiving.length;
+raw.layout.shippingDocksCount = raw.siteLayout.shipping.length;
+const base = prepareWarehouseTraffic(raw);
 function runWarehouse(input: DemoTrafficInput) {
   const state = createPlayback(input);
   while (!isPlaybackDone(state)) stepPlayback(state, 60);
@@ -53,10 +62,26 @@ describe("transparent demo goal assessment", () => {
     expect(assessPlayback(state).status).toBe("FAIL");
   });
 
-  it("treats pairwise clearance as not applicable for a real single-robot run", () => {
-    const single = createPlayback(calculateCase("complex", { fleet: 1 }).input);
-    expect(assessPlayback(single).checks.find((c) => c.id === "safety")!.status).toBe("NOT_APPLICABLE");
+  it("checks stationary shelf clearance even when there is only one robot", () => {
+    const input = structuredClone(base); input.robots.count = 1;
+    input.demoTraffic.initialPositions = input.demoTraffic.initialPositions.slice(0, 1);
+    input.demand = { avgPerH: 0, peakPerH: 0, warmupMin: 0, peakMin: 1 };
+    input.demoIncidents!.enabled = false;
+    input.demoIncidents!.schedule = [];
+    const single = createPlayback(input);
+    if (!isWarehouseTrafficState(single)) throw new Error("no safety controller");
+    expect(assessPlayback(single).checks.find((c) => c.id === "safety")!.status).toBe("NOT_EVALUATED");
+    // Deliberately expose the single body to stock; the distant initial parking
+    // position is not evidence of a measured shelf clearance.
+    const pod = single.demoUnderlift!.pods[0]!, dock = single.demoUnderlift!.docks.find(d => d.x === pod.home.x && d.y === pod.home.y)!;
+    Object.assign(single.robots[0]!, dock.entry);
+    stepPlayback(single);
+    expect(assessPlayback(single).checks.find((c) => c.id === "safety")!.status).toBe("PASS");
     expect(assessPlayback(single).checks.find((c) => c.id === "traffic_wait")!).toMatchObject({ status: "PASS", measured: { totalWaitS: 0, maxCurrentWaitS: 0 }, affectsOverall: false });
+    Object.assign(single.robots[0]!, { x: pod.x, y: pod.y });
+    single.robots[0]!.phase = "waitCharger"; single.robots[0]!.pointIdx = -1;
+    stepPlayback(single);
+    expect(assessPlayback(single).checks.find((c) => c.id === "safety")!.status).toBe("FAIL");
   });
 
   it("requires actual task completion after first 100% coverage and keeps return-to-base separate", () => {
@@ -116,7 +141,8 @@ describe("transparent demo goal assessment", () => {
   });
 
   it("exports authoritative terminal assessment and marks the legacy warehouse verdict scope", () => {
-    const model = calculateCase("complex");
+    const input = structuredClone(raw); input.demand = { avgPerH: 30, peakPerH: 30, warmupMin: 0, peakMin: 1 };
+    const model = calculateProjectPreview(createSpatialProjectSnapshot({ requestId: "assessment-unit", scenarioKey: "purchase", scenarioName: "Bounded export", variantId: "calculated", input }));
     expect(model.summary.verdictScope).toBe("intake-sla");
     expect(model.assessment).toMatchObject({ terminal: true, scope: "modeled-flow" });
     for (const c of model.assessment.checks) expect(c.label && c.measuredText && c.limitText && c.why && c.action).toBeTruthy();

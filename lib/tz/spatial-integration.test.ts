@@ -128,6 +128,7 @@ describe("свежесть и сохранение полного доказат
     const checked = validate(JSON.parse(JSON.stringify(specs)));
     expect(checked.ok).toBe(true);
     if (!checked.ok) throw new Error(checked.errors.join("; "));
+    expect(checked.value[1]!.spatialEvidence!.input.transportWorkflow).toBe("closed-pod-1");
     const model = project(checked.value);
     const stored = JSON.parse(JSON.stringify(storedPartOf(model)));
     expect(stored.scenarios).toEqual(specs);
@@ -139,6 +140,13 @@ describe("свежесть и сохранение полного доказат
     expect(rows.find(r => r.rowKey === "verdict")!.cells[1]).not.toContain("★");
     checked.value[1]!.spatialEvidence!.input.seed++;
     expect(model.scenarios[1]!.spatialEvidence!.input.seed).toBe(source.seed);
+  });
+
+  it("rejects an unknown workflow instead of stripping the model contract from a saved proof", () => {
+    const value = evidence();
+    value.input.transportWorkflow = "unrecognized-workflow" as typeof value.input.transportWorkflow;
+    value.sourceInputKey = simInputIdentity(value.input);
+    expect(validate(withEvidence(value)).ok).toBe(false);
   });
 
   it("восстановление входа отчёта не доверяет evidence.input и не пересчитывает деньги", () => {

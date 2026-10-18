@@ -2,10 +2,16 @@ import { describe, expect, it } from "vitest";
 import { simInputIdentity } from "../../lib/sim/identity";
 import { calculateCase } from "./core";
 import { buildPilotPlan } from "./pilot";
+import { warehouseBaseInput } from "../../lib/sim/fixtures";
+import { createSpatialProjectSnapshot } from "../../lib/sim/spatial-bridge";
+import { calculateProjectPreview } from "./project-input";
 
 describe("model evidence to pilot plan", () => {
   it("keeps an incomplete warehouse result as a measurement pilot with exact failed criteria", () => {
-    const model = calculateCase("complex"), before = structuredClone(model), plan = buildPilotPlan(model);
+    const input = warehouseBaseInput(1, { demand: { avgPerH: 30, peakPerH: 30, warmupMin: 0, peakMin: 1 } });
+    input.robots.handlingSec = 3600;
+    const model = calculateProjectPreview(createSpatialProjectSnapshot({ requestId: "pilot-unit", scenarioKey: "purchase", scenarioName: "Bounded incomplete work", variantId: "calculated", input }));
+    const before = structuredClone(model), plan = buildPilotPlan(model);
     expect(plan.mode).toBe("measure-and-resolve"); expect(plan.siteReadiness).toBe("NOT_EVALUATED");
     expect(plan.blockers.some(b => b.id === "throughput")).toBe(true);
     expect(plan.source.executionInputKey).toBe(simInputIdentity(model.input));

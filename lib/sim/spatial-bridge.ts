@@ -3,7 +3,7 @@ import type { SimProvenance } from "./adapter";
 import { simInputIdentity } from "./identity";
 import type { SimInput } from "./types";
 
-export const SPATIAL_MODEL_VERSION = "warehouse-demo-incidents-1.4.0" as const;
+export { SPATIAL_MODEL_VERSION } from "./spatial-version";
 
 export type SpatialProjectSnapshot = {
   schemaVersion: "spatial-project-1";
@@ -59,6 +59,9 @@ export function parseSpatialProjectSnapshot(value: unknown): SpatialProjectSnaps
       !text(v.scenarioKey, 200) || !text(v.scenarioName, 1000) ||
       !["calculated", "minStable", "byNorm"].includes(String(v.variantId))) throw new Error("Неподдерживаемый пространственный снимок");
   const input = record(v.input), layout = record(input.layout), robots = record(input.robots), demand = record(input.demand);
+  const sourceFields = new Set(["seed", "transportWorkflow", "layout", "siteLayout", "robots", "demand", "loadMassKg", "thresholds", "charge"]);
+  if (Object.keys(input).some(field => !sourceFields.has(field))) throw new Error("Снимок должен содержать исходный вход проекта без исполнительных настроек просмотра");
+  if (input.transportWorkflow !== undefined && !["closed-pod-1", "single-leg-pallet-1"].includes(String(input.transportWorkflow))) throw new Error("Неподдерживаемая версия транспортного процесса");
   const charge = record(input.charge), thresholds = record(input.thresholds);
   if (!Number.isSafeInteger(input.seed) || !Number.isSafeInteger(robots.count) || Number(robots.count) < 1 || Number(robots.count) > 500) throw new Error("Неверное зерно или число роботов");
   for (const field of ["activeAreaM2", "mainAisleWidthM", "rackAisleWidthM"]) if (!finite(layout[field]) || Number(layout[field]) <= 0) throw new Error("Неверная геометрия проекта");

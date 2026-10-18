@@ -2,6 +2,9 @@ import { ORGANIZER_DATA_VERSION } from "../data/organizer/version.generated";
 import { pluralRu } from "../format/plural";
 import { handlingSecFor, toSimInput } from "../sim/adapter";
 import { cycleThroughputPerH, expectedLegsM, type ExpectedLegs } from "../sim/analytic";
+import { expectedClosedPodCycleS, expectedClosedPodLegsM } from "../sim/closed-pod-cycle";
+import { buildClosedPodLayout, prepareClosedPodSource } from "../sim/underlift-layout";
+import { underliftCycleHandlingS } from "../sim/underlift-timing";
 import { validateProjectSiteLayout } from "../sim/site-layout";
 import { BOTTLENECK_LABELS } from "../sim/export-rows";
 import { simSummaryMatchesInput } from "../sim/identity";
@@ -53,7 +56,7 @@ import type {
   ScenarioSimInputs,
 } from "./types";
 export type { ScenarioSimInputs } from "./types";
-import { TZ_MODEL_VERSION, dataVersionOf } from "./version";
+import { TZ_MODEL_VERSION, dataVersionOf, stableJson } from "./version";
 
 /**
  * Сборка модели проекта tz-1.0.0: параметры объекта → проверка → планировка и цикл → подбор
@@ -304,13 +307,32 @@ function layoutOf(params: ParamValues, labels: Readonly<Record<string, string>>)
 
 /**
  * Производительность по циклу каждого мобильного продукта со скоростью на планировке объекта:
- * 3600 / (Lпорожн / v + Lгруз / (v × kгруз) + 2 × tзахв). Время захвата — норматив класса
- * погрузки (тот же, что в имитации); класс без норматива — цикл не считается.
+ * Обычная перевозка содержит один рейс и два обслуживания. Подстеллажный процесс
+ * дополнительно включает подачу/возврат и фактический бюджет четырёх обслуживаний.
+ * Порожнее плечо — аналитическое ожидание, а не прогноз работы диспетчера.
  */
+// Rebuilding financial rows must not repeat the same dense all-pairs kernel.
+// Only immutable distance values are cached; caller-owned plans are never retained or returned.
+const closedLegKernels = new Map<string, ExpectedLegs>();
+function closedLegKernel(params: SimLayoutParams, source?: SimLayout): ExpectedLegs {
+  const key = stableJson({ recipe: "closed-pod-1", params, source });
+  const cached = closedLegKernels.get(key);
+  if (cached) {
+    closedLegKernels.delete(key); closedLegKernels.set(key, cached);
+    return { ...cached };
+  }
+  const prepared = source ? prepareClosedPodSource(source) : buildClosedPodLayout(params);
+  const legs = expectedClosedPodLegsM(prepared.layout, prepared.config.docks);
+  closedLegKernels.set(key, { ...legs });
+  if (closedLegKernels.size > 8) closedLegKernels.delete(closedLegKernels.keys().next().value!);
+  return legs;
+}
+
 function cyclesOf(
   products: readonly ProductForCalc[],
   legs: ExpectedLegs | null,
   norms: NormValues,
+  closedPodLegs?: ExpectedLegs | null,
 ): Record<string, CycleInfo | null> {
   const out: Record<string, CycleInfo | null> = {};
   for (const p of products) {
@@ -320,14 +342,20 @@ function cyclesOf(
     if (v === null || !Number.isFinite(v) || !(v > 0)) continue;
     const h = handlingSecFor(p.handlingClass, norms);
     if (h === null) continue;
-    const thr = cycleThroughputPerH({
-      loadedM: legs.loadedM,
-      emptyM: legs.emptyM,
+    const closed = closedPodLegs !== undefined && p.handlingClass === "jacking";
+    const usedLegs = closed ? closedPodLegs : legs;
+    if (!usedLegs) continue;
+    const cycleInput = {
+      loadedM: usedLegs.loadedM,
+      emptyM: usedLegs.emptyM,
       speedMps: v,
       loadedSpeedFactor: norms.loadedSpeedFactor,
       handlingSec: h,
-    });
-    out[p.slug] = thr === null ? null : { thrPerH: thr, loadedM: legs.loadedM, emptyM: legs.emptyM };
+    };
+    const seconds = closed ? expectedClosedPodCycleS(cycleInput) : null;
+    const thr = closed ? seconds === null ? null : 3600 / seconds : cycleThroughputPerH(cycleInput);
+    out[p.slug] = thr === null ? null : { thrPerH: thr, ...usedLegs,
+      ...(closed ? { workflow: "closed-pod-1" as const, handlingS: underliftCycleHandlingS(h, v) } : {}) };
   }
   return out;
 }
@@ -387,6 +415,8 @@ function refusedForLayout(spec: ScenarioSpec, problem: { key: string; message: s
  * правки параметров) рисков не добавляет.
  */
 function simRisks(ctx: ScenarioContext, spec: ScenarioSpec, result: ScenarioOk, sim: SimSummaryStored | null | undefined, expected: SimInput | null | undefined): Risk[] {
+  // The same physical replay is assessed below through its spatial receipt, once.
+  if (expected?.transportWorkflow === "closed-pod-1" && sim?.verdict !== "CONFIRMED") return [];
   if (!simSummaryMatchesInput(sim, expected) || result.kind === "asis") return [];
   const item = result.items.find((r) => ctx.processes[r.process]?.simSupported);
   if (!item || item.n === null || sim.fleet !== item.n) return [];
@@ -716,10 +746,11 @@ function simInputsOf(
       ...(spec.siteLayout ? { siteLayout: spec.siteLayout } : {}),
       paramSpecs: defs,
       throughputPerHOverride: item.throughputPerHOverride,
+      ...(ctx.facility === "warehouse" ? { transportWorkflow: product.handlingClass === "jacking" ? "closed-pod-1" as const : "single-leg-pallet-1" as const } : {}),
     };
     const calculated = toSimInput({ ...base, fleet: ir.n, chargers: ir.chargers, fleetOrigin: ir.nOverridden ? "user" : "derived" });
     let byNorm: SimInput | null = null;
-    if (ir.thrNorm !== null && ir.thrNorm > 0) {
+    if (ir.thrNorm !== null && ir.thrNorm > 0 && base.transportWorkflow !== "closed-pod-1") {
       const { nAuto } = sizeFleet({
         peakPerH: ir.peakPerHour,
         thrEff: ir.thrNorm,
@@ -787,6 +818,17 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
   const layoutCheck = isWarehouseLike(facility) ? layoutOf(paramsUsed, paramLabels) : null;
   const layout = layoutCheck?.ok ? buildWarehouseLayout(layoutCheck.params) : null;
   const legs = layout ? expectedLegsM(layout) : null;
+  // A separate per-item recipe keeps fork/tug and mixed-scenario layouts unchanged.
+  let closedPodLegs: ExpectedLegs | null | undefined;
+  let closedPodProblem: string | null = null;
+  if (facility === "warehouse" && layoutCheck?.ok && products.some(p => p.mobile && p.handlingClass === "jacking")) {
+    try {
+      closedPodLegs = closedLegKernel(layoutCheck.params);
+    } catch (error) {
+      closedPodLegs = null;
+      closedPodProblem = error instanceof Error ? error.message : "Не удалось построить подстеллажный цикл";
+    }
+  }
   const layoutProblem = layoutCheck && !layoutCheck.ok ? layoutCheck : null;
   /** Позиции, которым нужна планировка: мобильный робот на процессе с расчётом экономики. */
   const needsLayout = (product: ProductForCalc | undefined, process: ProcessDef | undefined): boolean =>
@@ -798,13 +840,18 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
     norms,
     products: productsBySlug,
     processes,
-    cycle: cyclesOf(products, legs, norms),
+    cycle: cyclesOf(products, legs, norms, closedPodLegs),
     paramBounds: boundsOf(defs),
     paramLabels,
   };
   const explicitLegs = new WeakMap<SimLayout, ExpectedLegs>();
+  const explicitClosedLegs = new WeakMap<SimLayout, ExpectedLegs>();
   ctx.cycleForSpec = (spec, scenarioNorms, currentParams) => {
-    if (!spec.siteLayout) return ctx.cycle;
+    const closed = facility === "warehouse" && spec.items.some(item => productsBySlug[item.productSlug]?.mobile && productsBySlug[item.productSlug]?.handlingClass === "jacking");
+    if (!spec.siteLayout) {
+      if (closed && closedPodProblem) refuse("invalid_inputs", closedPodProblem, ["param:activeAreaM2"]);
+      return closed ? cyclesOf(products, legs, scenarioNorms, closedPodLegs) : ctx.cycle;
+    }
     if (facility !== "warehouse") refuse("invalid_inputs", "Явная складская планировка поддерживается только для склада", ["scenario:siteLayout"]);
     const site = spec.siteLayout;
     const issues = validateProjectSiteLayout(site, { activeAreaM2: toNumber(currentParams.activeAreaM2) ?? NaN,
@@ -817,7 +864,18 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
       catch { refuse("invalid_inputs", "Явная планировка не даёт связных маршрутов между точками работы", ["scenario:siteLayout"]); }
       explicitLegs.set(site, scenarioLegs);
     }
-    return cyclesOf(products, scenarioLegs, scenarioNorms);
+    let podLegs: ExpectedLegs | undefined;
+    if (closed) {
+      podLegs = explicitClosedLegs.get(site);
+      if (!podLegs) {
+        try {
+          if (!layoutCheck?.ok) refuse("invalid_inputs", "Не заданы параметры геометрии объекта", ["param:activeAreaM2"]);
+          podLegs = closedLegKernel(layoutCheck.params, site);
+        } catch (error) { refuse("invalid_inputs", error instanceof Error ? error.message : "План не поддерживает подстеллажный цикл", ["scenario:siteLayout"]); }
+        explicitClosedLegs.set(site, podLegs);
+      }
+    }
+    return cyclesOf(products, scenarioLegs, scenarioNorms, podLegs);
   };
 
   const specsIn = input.scenarios.map(cloneSpec);
@@ -893,14 +951,21 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
 }
 
 /** Модель без планировки и входов имитации — та часть, что сохраняется в Project.results. */
-export function storedPartOf(model: ProjectModel): Omit<ProjectResults, "calculatedAt" | "sim"> {
+export function storedPartOf(model: ProjectModel, paramDefs?: readonly ParamSpec[]): Omit<ProjectResults, "calculatedAt" | "sim"> {
   // Деструктуризация отбрасывает поля, которых нет в ProjectResults.
   const { layout: _layout, simInputs: _simInputs, ...rest } = model;
   // A current model's exact inputs are exportable facts; old archives without them stay unavailable.
-  if (rest.runtime || !Object.values(_simInputs).some(entry => entry.calculated !== null)) return rest;
+  if (rest.runtime || (!paramDefs && !Object.values(_simInputs).some(entry => entry.calculated !== null))) return rest;
   return { ...rest, runtime: { layout: structuredClone(_layout), simInputs: structuredClone(_simInputs),
-    layouts: Object.fromEntries(Object.entries(_simInputs).flatMap(([key, entry]) => entry.calculated
-      ? [[key, structuredClone(entry.calculated.siteLayout ?? buildWarehouseLayout(entry.calculated.layout))]] : [])),
+    layouts: Object.fromEntries(Object.entries(_simInputs).flatMap(([key, entry]) => {
+      const input = entry.calculated;
+      if (!input) return [];
+      const source = input.transportWorkflow === "closed-pod-1"
+        ? buildClosedPodLayout(input.layout, input.siteLayout).layout
+        : input.siteLayout ?? buildWarehouseLayout(input.layout);
+      return [[key, structuredClone(source)]];
+    })),
+    ...(paramDefs ? { paramDefs: structuredClone([...paramDefs]) } : {}),
     normsByScenario: Object.fromEntries(model.scenarios.map(spec => [spec.key, normsForSpec({ norms: model.normsUsed }, spec)])),
   } };
 }

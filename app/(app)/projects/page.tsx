@@ -34,7 +34,11 @@ function toListItem(p: ProjectListItem): ProjectsListItem {
 export default async function ProjectsPage() {
   await connection();
   const user = await requireUser();
-  const items = (await listProjects(prisma, user.userId)).map(toListItem);
+  const [projects, legacyCount] = await Promise.all([
+    listProjects(prisma, user.userId),
+    prisma.savedAnalysis.count({ where: { userId: user.userId } }),
+  ]);
+  const items = projects.map(toListItem);
 
   return (
     <div className="surface-data flex flex-col gap-6 py-10">
@@ -61,9 +65,9 @@ export default async function ProjectsPage() {
         <Link href="/demo" className="tap-target underline underline-offset-2 hover:text-foreground">
           Демо-расчёт без сохранения
         </Link>
-        <Link href="/analyses" className="tap-target underline underline-offset-2 hover:text-foreground">
-          Расчёты в упрощённой модели v1
-        </Link>
+        {legacyCount > 0 && <Link href="/analyses" className="tap-target underline underline-offset-2 hover:text-foreground">
+          Архив расчётов v1 · {legacyCount}
+        </Link>}
       </footer>
     </div>
   );

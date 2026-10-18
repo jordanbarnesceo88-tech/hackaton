@@ -1,5 +1,6 @@
 import { stableJson } from "../tz/version";
 import { SIM_MODEL_VERSION, type SimInput, type SimSummaryStored } from "./types";
+import { SPATIAL_MODEL_VERSION } from "./spatial-version";
 
 /** Полный канонический вход без потери NaN/Infinity у отклонённых прогонов. */
 export function simInputIdentity(input: SimInput): string {
@@ -15,7 +16,7 @@ export function simSummaryMatchesInput(
   input: SimInput | null | undefined,
 ): summary is SimSummaryStored {
   return !!summary && !!input &&
-    summary.simModelVersion === SIM_MODEL_VERSION &&
+    summary.simModelVersion === (input.transportWorkflow === "closed-pod-1" ? SPATIAL_MODEL_VERSION : SIM_MODEL_VERSION) &&
     summary.inputKey === simInputIdentity(input) &&
     summary.seed === input.seed &&
     summary.fleet === Math.floor(input.robots.count) &&

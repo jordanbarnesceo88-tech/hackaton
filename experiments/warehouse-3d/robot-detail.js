@@ -6,9 +6,9 @@
     if (!container) throw new Error('Для модели робота нужен контейнер');
     const T = window.THREE, own = [], listeners = [], parts = new Map(), resources = new Set();
     let disposed = false, lost = false, raf = 0, dirty = true, moving = false, lastDraw = 0;
-    let model = null, kind = null, selected = null, exploded = false, tween = null;
+    let model = null, kind = null, selected = null, exploded = false, tween = null, carrierSpec = null, carrierKey = '', underliftStage = '';
     let width = 0, height = 0, lastFrameKey = '', screenKey = '', screenCanvas = null, screenTexture = null;
-    let wheels = [], brushes = [], lift = null, cargo = null, statusMaterials = [], meshCount = 0;
+    let wheels = [], brushes = [], jacks = [], lift = null, cargo = null, statusMaterials = [], meshCount = 0;
     const stats = { renderCount: 0, drawCalls: 0, triangles: 0, cpuRenderMs: 0 };
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
     const RONAVI = 'https://ronavi-robotics.ru/catalogue/h1500';
@@ -55,7 +55,7 @@
     catch { /* Direct studio lights still provide a complete rendering fallback. */ }
     panels.forEach(([g, m]) => { g.dispose(); m.dispose(); });
     const floorGeometry = new T.CircleGeometry(2.2, 96), floorMaterial = new T.MeshStandardMaterial({ color: 0xbac7c5, roughness: 0.86, metalness: 0.08 });
-    const floor = new T.Mesh(floorGeometry, floorMaterial); floor.rotation.x = -Math.PI / 2; floor.position.y = -0.008; floor.receiveShadow = true; scene.add(floor);
+    const floor = new T.Mesh(floorGeometry, floorMaterial); floor.rotation.x = -Math.PI / 2; floor.position.y = 0; floor.receiveShadow = true; scene.add(floor);
     const helper = new T.Box3Helper(new T.Box3(), 0x078c91); helper.material.depthTest = false; helper.material.transparent = true; helper.material.opacity = 0.65; helper.visible = false; scene.add(helper);
     const geometryCache = new Map(), materialCache = new Map();
     const ownResource = (value) => { resources.add(value); return value; };
@@ -121,27 +121,34 @@
       wheels.push({ group, radius, trackOffset: z }); return group;
     }
     function buildWarehouse() {
-      const dark = material(0x30383b, 0.45, 0.35), lidMat = material(0x252a2c, 0.43, 0.22), rubber = material(0x1b2426, 0.86), steel = material(0xb8bfc1, 0.3, 0.85), yellow = material(0xe6de27, 0.4, 0.05);
+      const dark = material(0x30383b, 0.45, 0.35), lidMat = material(0x252a2c, 0.43, 0.22), rubber = material(0x1b2426, 0.86), steel = material(0xb8bfc1, 0.3, 0.85), yellow = material(0xe3cc21, 0.4, 0.05);
       const frame = part('h1500-frame', 'Нижнее шасси', 'Низкая несущая платформа. Габарит оболочки 1044 × 654 × 380 мм по странице Ronavi; монтажные элементы упрощены.', official(RONAVI), [0, -0.05, 0]);
       box(frame, 0.99, 0.13, 0.61, dark, 0, 0.14, 0, 0.022);
+      box(frame, 1.018, 0.123, 0.638, yellow, 0, 0.144, 0, 0.014);
+      for (const x of [-0.32, 0.32]) for (const z of [-0.19, 0.19]) {
+        const rod = cyl(frame, 0.018, 0.14, steel, x, 0.31, z); rod.userData.componentRole = 'jack-rod'; jacks.push(rod);
+      }
       for (const s of [-1, 1]) { box(frame, 0.81, 0.026, 0.018, steel, 0, 0.205, s * 0.25); for (const x of [-0.35, -0.12, 0.12, 0.35]) screw(frame, x, 0.218, s * 0.25); }
       const bumper = part('h1500-bumper', 'Защитный нижний пояс', 'Наружный защитный пояс и угловые вырезы воспроизведены по фото. Это не расчёт контакта или безопасности.', official(RONAVI), [0.04, -0.03, 0]);
       box(bumper, 1.024, 0.095, 0.642, rubber, 0, 0.075, 0, 0.022);
       for (const s of [-1, 1]) { box(bumper, 0.007, 0.075, 0.008, yellow, 0.514, 0.088, s * 0.297); box(bumper, 0.84, 0.007, 0.006, dark, 0, 0.043, s * 0.323); }
-      const top = part('h1500-platform', 'Верхняя грузовая платформа', 'Четыре опоры и верхняя плита по официальному фото. Подъём в просмотре следует handlingProgress модели; конструкция подъёмника не моделируется.', official(RONAVI), [0, 0.23, 0]); lift = top;
-      box(top, 1.044, 0.091, 0.654, lidMat, 0, 0.312, 0, 0.012);
-      box(top, 0.975, 0.012, 0.587, material(0x444a4c, 0.48, 0.62), 0, 0.36, 0, 0.008);
+      const top = part('h1500-platform', 'Верхняя грузовая платформа', 'Внешняя реконструкция по фото. Платформа выбирает зазор до основания и затем поднимает весь стеллаж по текущему этапу модели. Опоры показаны условно; внутренних чертежей подъёмника нет.', official(RONAVI), [0, 0.23, 0]); lift = top;
+      box(frame, 1.044, 0.091, 0.654, lidMat, 0, 0.312, 0, 0.012);
+      box(frame, 0.975, 0.012, 0.587, material(0x444a4c, 0.48, 0.62), 0, 0.36, 0, 0.008);
+      const contactPlate = box(top, 0.92, 0.012, 0.56, material(0x444a4c, 0.48, 0.62), 0, 0.374, 0, 0.002);
+      contactPlate.userData.componentRole = 'platform-face';
       for (const x of [-0.365, 0.365]) for (const z of [-0.225, 0.225]) {
         cyl(top, 0.03, 0.006, dark, x, 0.368, z); cyl(top, 0.018, 0.013, steel, x, 0.373, z, 'y', 32);
         for (let a = 0; a < 4; a++) screw(top, x + Math.cos(a * Math.PI / 2) * 0.024, 0.372, z + Math.sin(a * Math.PI / 2) * 0.024);
       }
       for (const x of [-0.475, 0.475]) for (const z of [-0.275, 0, 0.275]) screw(top, x, 0.367, z);
-      decal(top, 0.22, 0.045, 0.524, 0.316, 0, 'x', lettering('H1500', '#e9e12f', 0.74));
-      decal(top, 0.34, 0.045, -0.08, 0.368, 0.05, 'y', lettering('RONAVI  ·  H1500', '#bac5c4', 0.55));
+      decal(frame, 0.22, 0.045, 0.524, 0.316, 0, 'x', lettering('RONAVI', '#bec5c2', 0.64));
+      decal(top, 0.34, 0.045, -0.08, 0.3804, 0.05, 'y', lettering('RONAVI', '#bac5c4', 0.55));
       const face = part('h1500-interface', 'Передний интерфейс и световая полоса', 'Положение световой полосы, кнопки и тёмного окна — по фотографии. Геометрия оптики условная; работа датчиков здесь не симулируется.', official(RONAVI), [0.2, 0.035, 0]);
       box(face, 0.022, 0.077, 0.58, dark, 0.501, 0.217, 0, 0.006);
       const led = material(0xcdeef0, 0.2, 0.15, { emissive: 0x85bbc1, emissiveIntensity: 0.5 }); statusMaterials.push(led);
       box(face, 0.006, 0.009, 0.545, led, 0.516, 0.246, 0, 0.002);
+      for (const s of [-1, 1]) box(face, 0.97, 0.009, 0.004, led, 0, 0.246, s * 0.328, 0.001);
       box(face, 0.009, 0.035, 0.115, material(0x080f13, 0.13, 0.3), 0.516, 0.207, 0, 0.004);
       for (const z of [-0.026, 0.026]) cyl(face, 0.008, 0.003, material(0x18323d, 0.1, 0.45), 0.522, 0.208, z, 'x');
       for (const z of [-0.25, -0.18, 0.18, 0.25]) screw(face, 0.519, 0.217, z, 'x');
@@ -149,20 +156,45 @@
       box(stop, 0.009, 0.061, 0.06, yellow, 0.516, 0.215, -0.263, 0.002); cyl(stop, 0.024, 0.012, rubber, 0.525, 0.215, -0.263, 'x'); cyl(stop, 0.0185, 0.018, material(0xbc332d, 0.4), 0.537, 0.215, -0.263, 'x');
       const covers = part('h1500-service', 'Сервисные панели и вентиляция', 'Швы и наружный крепёж показаны для чтения сборок. Положение прорезей и элементов обслуживания — визуальная реконструкция.', reconstruction(RONAVI), [-0.12, 0.02, 0.19]);
       for (const s of [-1, 1]) {
-        box(covers, 0.66, 0.09, 0.009, dark, -0.04, 0.143, s * 0.311, 0.005);
-        for (let i = 0; i < 12; i++) box(covers, 0.004, 0.025, 0.002, rubber, -0.19 + i * 0.012, 0.149, s * 0.317, 0.0005);
-        for (const x of [-0.34, 0.26]) for (const y of [0.116, 0.177]) screw(covers, x, y, s * 0.318, 'z');
+        box(covers, 0.66, 0.09, 0.009, yellow, -0.04, 0.143, s * 0.323, 0.005);
+        box(covers, 0.23, 0.043, 0.004, dark, -0.09, 0.143, s * 0.33, 0.002);
+        for (let i = 0; i < 12; i++) box(covers, 0.004, 0.025, 0.002, rubber, -0.19 + i * 0.012, 0.149, s * 0.334, 0.0005);
+        for (const x of [-0.34, 0.26]) for (const y of [0.116, 0.177]) screw(covers, x, y, s * 0.33, 'z');
       }
-      decal(bumper, 0.26, 0.045, 0.516, 0.076, 0, 'x', lettering('RONAVI', '#e8e12c', 0.74));
+      decal(frame, 0.29, 0.049, 0.511, 0.139, 0, 'x', lettering('RONAVI', '#30383b', 0.7));
       for (const s of [-1, 1]) {
         const drive = part('h1500-drive-' + (s < 0 ? 'left' : 'right'), s < 0 ? 'Левая ходовая сборка' : 'Правая ходовая сборка', 'Колёса и наружные монтажные кронштейны. Расположение привода условное: подробной конструкторской документации нет.', reconstruction(RONAVI), [0, -0.02, s * 0.22]);
         wheel(drive, 0.02, 0.086, s * 0.27, 0.083, 0.058); box(drive, 0.19, 0.025, 0.095, steel, 0.02, 0.18, s * 0.24);
       }
-      const payload = part('h1500-payload', 'Паллета выбранного задания', 'Условная тара для показа текущей погрузки. Размер и масса конкретного груза не получены из телеметрии.', reconstruction(RONAVI), [0, 0.4, 0]); cargo = payload;
-      for (let i = 0; i < 5; i++) box(payload, 0.98, 0.018, 0.102, material(0xb79d70, 0.86), 0, 0.424, (i - 2) * 0.115, 0.002);
-      for (const z of [-0.2, 0, 0.2]) box(payload, 0.85, 0.047, 0.055, material(0x8e7957, 0.9), 0, 0.394, z, 0.002);
-      box(payload, 0.78, 0.31, 0.43, material(0xc0ad89, 0.87), 0, 0.589, 0, 0.008);
-      for (const x of [-0.24, 0.24]) box(payload, 0.009, 0.314, 0.434, material(0x78827d, 0.83), x, 0.589, 0, 0.001);
+      buildPayload();
+    }
+    function buildPayload() {
+      const payload = part('h1500-payload', 'Мобильный стеллаж · ' + carrierSpec.levels + ' яруса', carrierSpec.sourceNote + ' После разгрузки носитель возвращается пустым: полки, опоры и основание сохраняются. Толщины металла, крепёж и размещение коробок условные.', reconstruction(RONAVI, carrierSpec.sourceNote), [0, 0.35, 0]); cargo = payload;
+      const labelCanvas = document.createElement('canvas'); labelCanvas.width = 256; labelCanvas.height = 128;
+      const ctx = labelCanvas.getContext('2d'); ctx.fillStyle = '#e9e9df'; ctx.fillRect(0, 0, 256, 128); ctx.fillStyle = '#303a3b';
+      ctx.font = 'bold 19px monospace'; ctx.fillText('LOT  •  024', 14, 27); ctx.font = '13px monospace'; ctx.fillText('WAREHOUSE / DEMO', 14, 48);
+      for (let i = 0; i < 54; i++) if (i % 7 !== 2) ctx.fillRect(14 + i * 4, 64, i % 3 === 0 ? 3 : 1, 44);
+      const labelTexture = ownResource(new T.CanvasTexture(labelCanvas)); labelTexture.encoding = T.sRGBEncoding;
+      const materials = {
+        load: material(0xb99b6b, 0.92), loadLight: material(0xc5b18a, 0.93),
+        carrierSteel: material(0x6e7c7f, 0.38, 0.75), carrierPanel: material(0xb4bfc0, 0.46, 0.65), carrierTray: material(0x7b898d, 0.48, 0.65),
+        carrierHole: material(0x2d383b, 0.76, 0.2), carrierTape: material(0xc7b684, 0.75),
+        carrierLabel: ownResource(new T.MeshStandardMaterial({ map: labelTexture, roughness: 0.92, metalness: 0 })),
+      };
+      const pieces = window.warehouseCarrierParts(carrierSpec);
+      const trays = pieces.filter(p => p.role === 'shelf-tray');
+      for (const tray of trays) for (let x = -5; x <= 5; x++) for (let z = -4; z <= 4; z++) {
+        pieces.push({ mat: 'carrierHole', x: x * (carrierSpec.lengthM - 0.15) / 10, y: tray.y + tray.h / 2 + 0.0008, z: z * (carrierSpec.widthM - 0.15) / 8, w: 0.04, h: 0.001, d: 0.033, role: 'tray-perforation' });
+      }
+      const geometry = ownResource(new T.BoxGeometry(1, 1, 1)), transform = new T.Object3D(), groups = new Map();
+      pieces.forEach((p) => { p.cargo = ['carton', 'cargo-detail'].includes(p.role); const key = p.mat + '|' + p.cargo; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(p); });
+      groups.forEach((items) => {
+        const batch = new T.InstancedMesh(geometry, materials[items[0].mat], items.length);
+        batch.userData.componentRole = 'carrier-batch'; batch.userData.components = items;
+        batch.userData.cargo = items[0].cargo;
+        items.forEach((p, i) => { transform.position.set(p.x, p.y, p.z); transform.scale.set(p.w, p.h, p.d); transform.updateMatrix(); batch.setMatrixAt(i, transform.matrix); });
+        batch.castShadow = batch.receiveShadow = true; payload.add(batch); meshCount++;
+      });
     }
     function buildCleaning() {
       const silver = material(0xe4e6e5, 0.37, 0.1), graphite = material(0x252d31, 0.3, 0.18), rubber = material(0x1e2628, 0.87), green = material(0xaed714, 0.4, 0.02), steel = material(0xb1babd, 0.26, 0.85);
@@ -221,23 +253,43 @@
     }
     function publicPart(p) { return { id: p.id, name: p.name, description: p.description, source: p.source }; }
     function getParts() { return Array.from(parts.values(), publicPart); }
+    function boundsOf(group) {
+      const bounds = new T.Box3(), instance = new T.Matrix4(), world = new T.Matrix4();
+      group.traverse((object) => {
+        if (!object.isMesh || !object.visible) return;
+        const geometry = object.geometry;
+        if (!geometry.boundingBox) geometry.computeBoundingBox();
+        // Three r128's setFromObject only sees an instanced mesh's unit geometry.
+        if (object.isInstancedMesh) {
+          for (let i = 0; i < object.count; i++) {
+            object.getMatrixAt(i, instance); world.multiplyMatrices(object.matrixWorld, instance);
+            bounds.union(geometry.boundingBox.clone().applyMatrix4(world));
+          }
+        } else bounds.union(geometry.boundingBox.clone().applyMatrix4(object.matrixWorld));
+      });
+      return bounds;
+    }
     function selectPart(id) {
       const p = parts.get(String(id)); if (!p) return false;
-      selected = p.id; scene.updateMatrixWorld(true); helper.box.setFromObject(p.group); helper.visible = true;
+      selected = p.id; scene.updateMatrixWorld(true); helper.box.copy(boundsOf(p.group)); helper.visible = true;
       if (typeof onPartSelect === 'function') onPartSelect(publicPart(p)); invalidate(); return true;
     }
     function clearModel() {
       if (model) scene.remove(model);
       resources.forEach((r) => r.dispose()); resources.clear(); geometryCache.clear(); materialCache.clear(); parts.clear();
-      model = null; selected = null; tween = null; helper.visible = false; wheels = []; brushes = []; lift = cargo = null; statusMaterials = [];
+      model = null; selected = null; tween = null; helper.visible = false; wheels = []; brushes = []; jacks = []; lift = cargo = null; statusMaterials = []; underliftStage = '';
       screenCanvas = screenTexture = null; screenKey = lastFrameKey = ''; meshCount = 0;
     }
     function setRobot(value) {
       if (disposed) return [];
       const nextKind = value?.kind === 'cleaning' ? 'cleaning' : 'warehouse';
-      if (!model || kind !== nextKind) {
+      let nextSpec = value?.carrierSpec || window.WarehouseDemoCore.carrierSpec(value?.input || { loadCarrier: value?.loadCarrier });
+      if (nextSpec.kind !== 'mobile-rack') nextSpec = window.WarehouseDemoCore.carrierSpec();
+      const nextCarrierKey = JSON.stringify(nextSpec);
+      if (!model || kind !== nextKind || carrierKey !== nextCarrierKey) {
         clearModel(); kind = nextKind; model = new T.Group(); scene.add(model); exploded = false;
-        notice.textContent = 'Внешний вид по фотографиям · крепёж и монтаж условные · мышь: вращение и масштаб';
+        carrierSpec = nextSpec; carrierKey = nextCarrierKey;
+        notice.textContent = kind === 'warehouse' && carrierSpec.kind === 'mobile-rack' ? 'Стеллаж ' + [carrierSpec.lengthM, carrierSpec.widthM, carrierSpec.heightM].map(v => String(v).replace('.', ',')).join(' × ') + ' м · ' + carrierSpec.levels + ' ярусов · пропорции по фото, размеры — допущение' : 'Внешний вид по фотографиям · крепёж и монтаж условные · мышь: вращение и масштаб';
         if (kind === 'warehouse') buildWarehouse(); else buildCleaning();
       }
       setFrame(value?.robot || value); resetView(); renderer.shadowMap.needsUpdate = true; invalidate(); return getParts();
@@ -245,16 +297,35 @@
     function setFrame(value) {
       if (disposed || !model || !value) return;
       const workingClock = Number.isFinite(value.timeByPhase?.working) ? Math.max(0, value.timeByPhase.working) : Number.isFinite(value.cleanedM2) ? Math.max(0, value.cleanedM2) : 0;
-      const frameKey = [value.id, value.phase, value.loaded, value.soc, value.distanceM, value.handlingProgress, value.heading, value.working, workingClock, value.operationalState, value.incident?.code, value.incident?.status].join('|');
+      const frameKey = [value.id, value.phase, value.loaded, value.soc, value.distanceM, value.handlingProgress, value.heading, value.working, workingClock, value.operationalState, value.incident?.code, value.incident?.status, value.underlift?.stage, value.underlift?.progress, value.underlift?.platformTopM, value.underlift?.podLiftM, value.podPose?.x, value.podPose?.y, value.podPose?.heading, value.carrierContents ?? value.podPose?.contents].join('|');
       if (frameKey === lastFrameKey) return; lastFrameKey = frameKey;
       const distance = Number.isFinite(value.distanceM) ? value.distanceM : 0;
-      const heading = Number.isFinite(value.heading) ? value.heading : 0;
+      const heading = Number.isFinite(value.underlift?.headingRad) ? value.underlift.headingRad : Number.isFinite(value.heading) ? value.heading : 0;
       wheels.forEach((w) => { w.group.rotation.z = -(distance + heading * (w.trackOffset || 0)) / w.radius; });
       brushes.forEach((b) => { b.rotation[b.userData.brushAxis || 'y'] = workingClock * 12 * (b.userData.brushSign || 1); });
-      const handling = Number.isFinite(value.handlingProgress) ? Math.max(0, Math.min(1, value.handlingProgress)) : value.loaded ? 1 : 0;
-      const height = value.phase === 'loading' ? handling : value.phase === 'unloading' ? 1 - handling : value.loaded ? 1 : 0;
-      if (lift) { lift.userData.lift = height * 0.025; lift.position.y = (exploded ? parts.get('h1500-platform').offset.y : 0) + height * 0.025; }
-      if (cargo) { cargo.visible = !!value.loaded || value.phase === 'loading'; cargo.userData.lift = height * 0.025; cargo.position.y = (exploded ? parts.get('h1500-payload').offset.y : 0) + height * 0.025; }
+      const pose = window.WarehouseDemoCore.carrierPose(value, carrierSpec), wasVisible = cargo?.visible;
+      if (cargo && carrierSpec.kind === 'mobile-rack') {
+        const payloadPart = parts.get('h1500-payload');
+        const carrierId = value.task?.carrierId || value.carrierId;
+        payloadPart.name = (carrierId ? 'Стеллаж ' + carrierId : 'Мобильный стеллаж') + ' · ' + carrierSpec.levels + ' яруса · ' + ((value.carrierContents ?? value.podPose?.contents) === 'empty' ? 'пустой' : 'с грузом');
+      }
+      if (lift) { lift.userData.lift = pose.platformLiftM || 0; lift.position.y = (exploded ? parts.get('h1500-platform').offset.y : 0) + lift.userData.lift; }
+      jacks.forEach(rod => { const h = 0.14 + (pose.platformLiftM || 0); rod.scale.y = h / 0.14; rod.position.y = 0.24 + h / 2; });
+      if (cargo) {
+        const empty = (value.carrierContents ?? value.podPose?.contents) === 'empty';
+        cargo.userData.contents = empty ? 'empty' : 'full';
+        cargo.children.forEach(batch => { if (batch.userData.cargo) batch.visible = !empty; });
+        cargo.visible = pose.visible; cargo.userData.lift = pose.podLiftM ?? pose.liftM;
+        const dx = value.podPose ? value.podPose.x - value.x : 0, dz = value.podPose ? value.podPose.y - value.y : 0;
+        if (!cargo.userData.pose) cargo.userData.pose = new T.Vector3();
+        cargo.userData.pose.set(dx * Math.cos(heading) + dz * Math.sin(heading), cargo.userData.lift, -dx * Math.sin(heading) + dz * Math.cos(heading));
+        cargo.position.copy(cargo.userData.pose); if (exploded) cargo.position.add(parts.get('h1500-payload').offset);
+        cargo.rotation.y = value.podPose ? -(value.podPose.heading - heading) : 0;
+        cargo.userData.componentRole = 'whole-pod';
+        cargo.userData.entryOffsetM = Number.isFinite(value.underlift?.entryOffsetM) ? value.underlift.entryOffsetM : 0;
+        const platformTopM = 0.38 + (lift?.userData.lift || 0), podUndersideM = carrierSpec.baseClearanceM + cargo.userData.lift;
+        stats.contact = { platformTopM, podUndersideM, gapM: podUndersideM - platformTopM, localPodX: cargo.userData.pose.x, localPodZ: cargo.userData.pose.z, stage: value.underlift?.stage || null };
+      }
       const tone = value.incident?.severity === 'critical' ? 0xe35b43 : value.incident ? 0xe2ac48 : /charg/i.test(value.phase || '') ? 0x58c18d : /wait/i.test(value.phase || '') ? 0xe2ac48 : 0x9fdce4;
       statusMaterials.forEach((m) => { m.emissive.setHex(tone).convertSRGBToLinear(); });
       const soc = Number.isFinite(value.soc) ? Math.round(value.soc <= 1 ? value.soc * 100 : value.soc) : null;
@@ -267,28 +338,52 @@
         screenTexture.needsUpdate = true; screenKey = nextScreen;
       }
       renderer.shadowMap.needsUpdate = true; invalidate();
+      const nextStage = value.underlift?.stage || '';
+      if (kind === 'warehouse' && (wasVisible !== cargo?.visible || underliftStage !== nextStage)) { underliftStage = nextStage; resetView(); }
     }
     function setExploded(value) {
       if (disposed || !model) return;
       if (exploded === !!value && !tween) return;
       exploded = !!value;
-      tween = { start: performance.now(), duration: reduce.matches ? 0 : 520, entries: Array.from(parts.values(), (p) => ({ p, from: p.group.position.clone(), to: (exploded ? p.offset.clone() : new T.Vector3()).add(new T.Vector3(0, p.group.userData.lift || 0, 0)) })) };
-      notice.textContent = exploded ? 'Условное разнесение наружных сборок · не конструкционная схема · выберите деталь' : 'Внешний вид по фотографиям · крепёж и монтаж условные · мышь: вращение и масштаб';
+      tween = { start: performance.now(), duration: reduce.matches ? 0 : 520, entries: Array.from(parts.values(), (p) => ({ p, from: p.group.position.clone(), to: (exploded ? p.offset.clone() : new T.Vector3()).add(p.group.userData.pose || new T.Vector3(0, p.group.userData.lift || 0, 0)) })) };
+      notice.textContent = exploded ? 'Условное разнесение наружных сборок · не конструкционная схема · выберите деталь' : kind === 'warehouse' && carrierSpec.kind === 'mobile-rack' ? 'Стеллаж ' + [carrierSpec.lengthM, carrierSpec.widthM, carrierSpec.heightM].map(v => String(v).replace('.', ',')).join(' × ') + ' м · ' + carrierSpec.levels + ' ярусов · пропорции по фото, размеры — допущение' : 'Внешний вид по фотографиям · крепёж и монтаж условные · мышь: вращение и масштаб';
       resetView(); invalidate();
     }
     function resetView() {
       if (disposed || !model) return;
+      const viewportWidth = container.clientWidth, viewportHeight = container.clientHeight;
+      if (viewportWidth < 2 || viewportHeight < 2) return;
+      camera.aspect = viewportWidth / viewportHeight; camera.updateProjectionMatrix();
       scene.updateMatrixWorld(true);
       const bounds = new T.Box3();
       parts.forEach((p) => {
         if (!p.group.visible) return;
-        const destination = (exploded ? p.offset.clone() : new T.Vector3()).add(new T.Vector3(0, p.group.userData.lift || 0, 0));
-        const box = new T.Box3().setFromObject(p.group); box.translate(destination.sub(p.group.position)); bounds.union(box);
+        const destination = (exploded ? p.offset.clone() : new T.Vector3()).add(p.group.userData.pose || new T.Vector3(0, p.group.userData.lift || 0, 0));
+        bounds.union(boundsOf(p.group).translate(destination.sub(p.group.position)));
       });
+      if (cargo?.visible && ['dock-under', 'exit'].includes(underliftStage) && !exploded) {
+        const reach = cargo.userData.entryOffsetM || carrierSpec.lengthM / 2 + 1.044 / 2 + 0.18;
+        bounds.expandByPoint(new T.Vector3(carrierSpec.lengthM / 2 + reach, carrierSpec.heightM, carrierSpec.widthM / 2));
+        bounds.expandByPoint(new T.Vector3(-carrierSpec.lengthM / 2, 0, -carrierSpec.widthM / 2));
+      }
+      if (bounds.isEmpty()) return;
       const target = bounds.getCenter(new T.Vector3()), radius = bounds.getSize(new T.Vector3()).length() / 2;
-      const distance = radius / Math.sin(camera.fov * Math.PI / 360) / Math.min(1, camera.aspect) * 1.12;
-      controls.target.copy(target); camera.position.copy(target).addScaledVector(new T.Vector3(1, 0.67, 1.1).normalize(), distance);
-      controls.minDistance = radius * 0.5; controls.maxDistance = distance * 2.5; camera.lookAt(target); controls.update(); invalidate();
+      const direction = new T.Vector3(1, 0.67, 1.1).normalize(), right = new T.Vector3().crossVectors(camera.up, direction).normalize(), up = new T.Vector3().crossVectors(direction, right);
+      const tanVertical = Math.tan(camera.fov * Math.PI / 360), tanHorizontal = tanVertical * camera.aspect;
+      const usableWidth = Math.max(0.6, 1 - 40 / viewportWidth), usableHeight = Math.max(0.55, 1 - 76 / viewportHeight);
+      const corners = [];
+      let distance = 0;
+      for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) {
+        const corner = new T.Vector3(x, y, z), delta = corner.clone().sub(target); corners.push(corner);
+        distance = Math.max(distance, delta.dot(direction) + Math.max(Math.abs(delta.dot(right)) / (tanHorizontal * usableWidth), Math.abs(delta.dot(up)) / (tanVertical * usableHeight)));
+      }
+      controls.minDistance = Math.max(0.1, radius * 0.5); controls.maxDistance = Math.max(6, distance * 2.5);
+      camera.near = Math.max(0.01, (distance - radius) / 20); camera.far = Math.max(30, distance + radius * 4); camera.updateProjectionMatrix();
+      controls.target.copy(target); camera.position.copy(target).addScaledVector(direction, distance);
+      camera.lookAt(target); controls.update(); camera.updateMatrixWorld(true);
+      const projected = corners.map((corner) => corner.project(camera));
+      stats.fit = { width: viewportWidth, height: viewportHeight, minX: Math.min(...projected.map(p => p.x)), maxX: Math.max(...projected.map(p => p.x)), minY: Math.min(...projected.map(p => p.y)), maxY: Math.max(...projected.map(p => p.y)), heightM: bounds.max.y - bounds.min.y };
+      invalidate();
     }
     function resize() {
       if (disposed || lost) return;
@@ -307,7 +402,7 @@
         tween.entries.forEach(({ p, from, to }) => p.group.position.lerpVectors(from, to, ease)); renderer.shadowMap.needsUpdate = true;
         if (t >= 1) tween = null;
       }
-      const changed = controls.update(); if (selected && parts.has(selected)) { scene.updateMatrixWorld(true); helper.box.setFromObject(parts.get(selected).group); }
+      const changed = controls.update(); if (selected && parts.has(selected)) { scene.updateMatrixWorld(true); helper.box.copy(boundsOf(parts.get(selected).group)); }
       const start = performance.now(); renderer.info.reset(); renderer.render(scene, camera);
       stats.renderCount++; stats.drawCalls = renderer.info.render.calls; stats.triangles = renderer.info.render.triangles; stats.cpuRenderMs = performance.now() - start;
       lastDraw = performance.now(); moving = false; if (changed || tween) dirty = true; schedule();
@@ -330,7 +425,7 @@
     listen(canvas, 'webglcontextrestored', () => { lost = false; renderer.shadowMap.needsUpdate = true; resize(); invalidate(); });
     controls.addEventListener('change', invalidate);
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null; observer?.observe(container);
-    function getStats() { return Object.assign({}, stats, { available: !disposed && !lost, idleMs: performance.now() - lastDraw, memory: Object.assign({}, renderer.info.memory), meshCount, parts: parts.size, kind, exploded, pixelRatio: renderer.getPixelRatio(), dimensionsM: DIMS[kind] || null }); }
+    function getStats() { return Object.assign({}, stats, { available: !disposed && !lost, idleMs: performance.now() - lastDraw, memory: Object.assign({}, renderer.info.memory), meshCount, parts: parts.size, kind, exploded, pixelRatio: renderer.getPixelRatio(), dimensionsM: DIMS[kind] || null, carrier: kind === 'warehouse' ? carrierSpec : null, carrierVisible: !!cargo?.visible, carrierLiftM: cargo?.userData.lift || 0, carrierContents: cargo?.userData.contents ?? null, visibleCartons: cargo?.visible ? cargo.children.filter(batch => batch.visible).reduce((sum, batch) => sum + (batch.userData.components?.filter(piece => piece.role === 'carton').length || 0), 0) : 0 }); }
     function dispose() {
       if (disposed) return; disposed = true; cancelAnimationFrame(raf); observer?.disconnect(); listeners.forEach((f) => f()); controls.removeEventListener('change', invalidate); controls.dispose();
       clearModel(); floorGeometry.dispose(); floorMaterial.dispose(); helper.geometry.dispose(); helper.material.dispose(); environment?.dispose();

@@ -13,7 +13,6 @@ import { OperationsStaffing } from "./operations-staffing";
 import { MatchedComparison } from "./matched-comparison";
 import { buildMatchedComparison, type MatchedComparison as MatchedComparisonData } from "@/lib/tz/matched-comparison";
 import { staffingBreakEvenBudget } from "@/lib/tz/econ/staffing-budget";
-import { isAbortError, yieldToPage } from "@/components/sim/run-headless";
 import { buildSimVariants, storedMatches, type SimScenario } from "@/components/sim/variants";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Button } from "@/components/ui/button";
@@ -21,16 +20,16 @@ import { pluralRu } from "@/lib/format/plural";
 import { formatNum } from "@/lib/format/rub";
 import type { SaveProjectInput, SaveProjectResult } from "@/lib/projects/action-types";
 import { canAdoptSavedSnapshot, projectDraftKey, projectSnapshotModel } from "@/lib/projects/archive";
+import { calculateDemo } from "@/lib/projects/demo-calculation-client";
+import { useDurableCalculation } from "./use-durable-calculation";
+import { CalculationJobStatus } from "./calculation-job-status";
 import { changeFieldLabel, serverAutoFrom } from "@/lib/projects/changes";
 import { shortProductName } from "@/lib/projects/defaults";
 import type { ParamsSource } from "@/lib/projects/queries";
 import { SCENARIO_NAME_MAX, SCENARIOS_MAX, SCENARIOS_MIN } from "@/lib/projects/validate";
 import { projectCsv } from "@/lib/report/tz/csv";
 import { formatCalcDate, scenarioFinance, scenarioNorms } from "@/lib/report/tz/rows";
-import { SIM_LIMITS } from "@/lib/sim/engine";
-import { toStored, type SimRunSummary } from "@/lib/sim/metrics";
-import { runSim } from "@/lib/sim/runner";
-import type { SimInput, SimSummaryStored } from "@/lib/sim/types";
+import type { SimSummaryStored } from "@/lib/sim/types";
 import { buildProjectModel, storedPartOf, type BuildProjectModelInput, type ProjectModel } from "@/lib/tz/model";
 import { normDef, type NormKey, type NormValues } from "@/lib/tz/norms";
 import { sameParamValue } from "@/lib/tz/params/schema";
@@ -74,27 +73,24 @@ import { VersionBanner } from "./version-banner";
  * 8 сохранение, отчёт и выгрузки с журналом корректировок.
  *
  * Режимы:
- * - `guest` — гостевой /demo (ТЗ §3.1.2): модель считается в браузере, ничего не сохраняется,
+ * - `guest` — гостевой /demo (ТЗ §3.1.2): модель и нагрузка считаются на сервере без записи проекта,
  *   журнал ведётся только на экране, CSV собирается в браузере;
  * - `owner` — проект пользователя (§3.1.3, §3.1.5): первый показ воспроизведён из снимка
  *   сохранённого расчёта, «Сохранить проект» отправляет параметры, сценарии и журнал на сервер,
  *   который пересчитывает модель и имитацию сам;
  * - `readonly` — только просмотр: без правок и сохранения.
  *
- * Расчёт: `buildProjectModel` — та же чистая функция, что на сервере, поэтому число в браузере
- * совпадает с сохранённым бит-в-бит. Правка параметров не пересчитывает модель на каждое
+ * Финансовый bootstrap заполняет формы, но не заменяет полный серверный расчёт.
+ * Гость использует публичный расчёт без сохранения проекта; владелец — durable CALCULATE.
+ * Правка параметров не пересчитывает модель на каждое
  * нажатие клавиши: страница показывает «Параметры изменены — нажмите «Пересчитать»» (шаг 5
  * легенды датасета организатора). Явные действия со сценариями (выбор решения, ручная
  * корректировка, новый сценарий, «Принять парк по имитации») — это законченные правки, поэтому
  * модель после них пересчитывается сразу.
  *
- * Имитация для строки «Имитация» таблицы сценариев: после каждого пересчёта для каждого
- * сценария роботизации последовательно выполняются прогоны парка по расчёту, парка по норме
- * организатора и подбор минимального устойчивого парка — те же, что делает сервер при
- * сохранении (lib/projects/recalc.runProjectSims), но по частям, с отменой и уступкой
- * управления странице. Затем модель собирается ещё раз со сводками — так в сценарии попадают
- * риски SIM_NOT_CONFIRMED и SIM_OVERSIZED, как на сервере. Владелец до первого пересчёта видит
- * сохранённые сводки.
+ * Сервер возвращает целую модель с проверками нагрузки и движения. Архивы и сохранённые
+ * результаты не пересчитываются при открытии. Пересчёт владельца не меняет ревизию проекта;
+ * публикация происходит только отдельным сохранением. Поздний ответ не заменяет новый черновик.
  */
 
 export type WorkspaceMode = "guest" | "owner" | "readonly";
@@ -267,110 +263,6 @@ function fileNameOf(name: string): string {
   return s === "" ? "расчёт" : s.slice(0, 120);
 }
 
-// ——————————————————————————— Имитация в браузере ———————————————————————————
-
-/** Бюджет подбора минимального парка на сценарий и на все сценарии, мс — как на сервере (lib/projects/recalc). */
-const MIN_FLEET_BUDGET_MS = 20_000;
-const PROJECT_MIN_FLEET_BUDGET_MS = 40_000;
-/** Бюджет всех прогонов одного пересчёта, мс (ТЗ §4.3.3: запуск модели не дольше 60 с). */
-const SIMS_BUDGET_MS = 60_000;
-
-type SimProgress = { done: number; total: number; current: string | null };
-
-/** Вердикт прогона по норме в форме сводки: неподдержанный прогон — null. */
-function verdictOf(s: SimRunSummary | null): "CONFIRMED" | "NOT_CONFIRMED" | null {
-  if (!s) return null;
-  return s.verdict === "CONFIRMED" || s.verdict === "NOT_CONFIRMED" ? s.verdict : null;
-}
-
-/** Бюджет подбора исчерпан: минимальный парк не определён — это не ошибка расчёта. */
-class MinFleetBudget extends Error {}
-
-/**
- * Сводки имитации по сценариям модели — те же прогоны и та же сводка, что у сервера
- * (`runProjectSims`): парк по расчёту, парк по норме и последовательный перебор [1; 2N]. Одинаковые входы
- * (покупка и услуга одного продукта) прогоняются один раз.
- */
-async function runModelSims(
-  model: ProjectModel,
-  opts: { signal: AbortSignal; onProgress: (p: SimProgress) => void },
-): Promise<{ sims: Record<string, SimSummaryStored | null>; ms: number; count: number }> {
-  await yieldToPage();
-  const t0 = now();
-  const runs = new Map<string, SimRunSummary>();
-  const run = async (input: SimInput): Promise<SimRunSummary> => {
-    const key = stableJson(input);
-    const hit = runs.get(key);
-    if (hit) return hit;
-    const left = SIMS_BUDGET_MS - (now() - t0);
-    const s = await runSim(input, { now, signal: opts.signal, yieldFn: yieldToPage, budgetMs: Math.max(0, left) });
-    runs.set(key, s);
-    return s;
-  };
-  const mins = new Map<string, number | null>();
-  const minOf = async (input: SimInput): Promise<number | null> => {
-    const key = stableJson(input);
-    if (mins.has(key)) return mins.get(key) ?? null;
-    const tStart = now();
-    const budget = Math.min(MIN_FLEET_BUDGET_MS, PROJECT_MIN_FLEET_BUDGET_MS - (tStart - t0));
-    let m: number | null = null;
-    if (budget > 0) {
-      const lo = 1;
-      const hi = Math.min(SIM_LIMITS.maxRobots, Math.floor(2 * input.robots.count));
-      try {
-        for (let n = lo; n <= hi; n++) {
-          if (now() - tStart > budget) throw new MinFleetBudget();
-          const s = await runSim({ ...input, robots: { ...input.robots, count: n } }, {
-            now,
-            signal: opts.signal,
-            yieldFn: yieldToPage,
-            budgetMs: Math.max(0, Math.min(budget - (now() - tStart), SIMS_BUDGET_MS - (now() - t0))),
-          });
-          if (s.verdict === "CONFIRMED") {
-            m = n;
-            break;
-          }
-        }
-      } catch (e) {
-        if (!(e instanceof MinFleetBudget) && !(e instanceof Error && e.name === "SimBudgetExceeded")) throw e;
-        m = null;
-      }
-    }
-    mins.set(key, m);
-    return m;
-  };
-
-  const jobs = model.scenarios.filter((s) => model.simInputs[s.key]?.calculated);
-  const out: Record<string, SimSummaryStored | null> = {};
-  let done = 0;
-  for (const spec of model.scenarios) {
-    const si = model.simInputs[spec.key];
-    const calculated = si?.calculated ?? null;
-    if (!si || !calculated) {
-      out[spec.key] = null;
-      continue;
-    }
-    opts.onProgress({ done, total: jobs.length, current: spec.name });
-    const s = await run(calculated);
-    const byNorm = si.byNorm ? await run(si.byNorm) : null;
-    out[spec.key] = toStored({
-      ...s,
-      scenarioKey: spec.key,
-      assumedUtilPct: si.assumedUtilPct ?? s.assumedUtilPct,
-      minStableFleet: null,
-      fleetByNorm: si.byNorm ? si.byNorm.robots.count : null,
-      verdictByNorm: verdictOf(byNorm),
-    });
-    done++;
-  }
-  for (const spec of model.scenarios) {
-    const calculated = model.simInputs[spec.key]?.calculated;
-    const summary = out[spec.key];
-    if (calculated && summary) summary.minStableFleet = await minOf(calculated);
-  }
-  return { sims: out, ms: now() - t0, count: jobs.length };
-}
-
 // ——————————————————————————— Состояние расчёта ———————————————————————————
 
 /** Последний расчёт: вход, модель без сводок имитации и модель, которая на экране. */
@@ -382,30 +274,19 @@ type Calc = {
   ms: number;
   /** Сводки имитации по сценариям; null — ещё не посчитаны для этого расчёта. */
   sims: Record<string, SimSummaryStored | null> | null;
-  simSource: "stored" | "browser" | null;
+  simSource: "stored" | "server" | null;
   simMs: number | null;
   simCount: number | null;
 };
-
-type SimStatus =
-  | { token: number; kind: "running"; done: number; total: number; current: string | null }
-  | { token: number; kind: "error"; message: string };
 
 /** Изменение для журнала, ожидающее сохранения, с моментом правки. */
 type LocalChange = { change: PendingChange; at: string };
 
 /** Статус имитации в строке состояния. */
-function simStatusText(calc: Calc, status: SimStatus | null): string | null {
-  if (status && status.token === calc.token) {
-    if (status.kind === "error") return `Имитация не выполнена: ${status.message}`;
-    const n = Math.min(status.total, status.done + 1);
-    return `Имитация: сценарий ${n} из ${status.total}${status.current ? ` («${status.current}»)` : ""}…`;
-  }
-  if (calc.sims === null) return "Имитация: готовим прогоны…";
+function simStatusText(calc: Calc): string | null {
+  if (calc.simSource === "server") return "Имитация и пространственная проверка — результат серверного расчёта";
   if (calc.simSource === "stored") return "Имитация — по сохранённому расчёту";
-  const count = calc.simCount ?? Object.values(calc.sims).filter((s) => s !== null).length;
-  if (count === 0) return null;
-  return `Имитация в браузере: ${count} ${pluralRu(count, ["сценарий проверен", "сценария проверено", "сценариев проверено"])} за ${msText(calc.simMs ?? 0)} мс`;
+  return null;
 }
 
 // ——————————————————————————— Вкладки сценариев ———————————————————————————
@@ -588,13 +469,21 @@ export function Workspace({
     simMs: null,
     simCount: null,
   }));
-  const [simStatus, setSimStatus] = useState<SimStatus | null>(null);
+  const [serverRun, setServerRun] = useState<{ kind: "running" | "ready" | "error" | "edited"; message?: string }>({ kind: editable && !archive && (guest || !stored) ? "running" : "ready" });
+  const calculationSequence = useRef(0);
+  const guestController = useRef<AbortController | null>(null);
+  const { job: ownerJob, busy: ownerBusy, cancelling: ownerCancelling, run: runOwnerCalculation, cancel: cancelOwnerCalculation } = useDurableCalculation();
+  const ownerRequestedToken = useRef<number | null>(null);
+  const latestCalc = useRef(calc);
+  useLayoutEffect(() => { latestCalc.current = calc; }, [calc]);
   const [focusPick, setFocusPick] = useState<string | null>(initialFocusKey ?? null);
   const [notice, setNotice] = useState<{ where: "selection" | "scenarios" | "params"; text: string } | null>(null);
   const [activeStep, setActiveStep] = useState(initialStep);
   const [visitedSteps, setVisitedSteps] = useState<ReadonlySet<number>>(() => new Set([initialStep]));
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const stepsRef = useRef<HTMLDivElement>(null);
+  const initialViewUntouched = useRef(true);
   useEffect(() => {
     const list = stickyRef.current?.querySelector<HTMLOListElement>('nav[aria-label="Шаги расчёта"] ol');
     if (!list) return;
@@ -629,6 +518,7 @@ export function Workspace({
    * «#report» открывают нужный шаг.
    */
   function goToStep(n: number, opts: { focusHeading?: boolean } = {}) {
+    initialViewUntouched.current = false;
     const next = Math.min(TZ_STEP_COUNT, Math.max(1, n));
     const id = TZ_STEPS.find((st) => st.n === next)?.id;
     if (next === activeStep) {
@@ -661,40 +551,91 @@ export function Workspace({
     });
   }
 
-  /** Начало шага — сразу под липкой панелью, если страница прокручена ниже него. */
+  /** Explicit navigation reveals the workspace in either direction; ordinary scrolling stays free. */
   function revealStepTop() {
-    const steps = stepsRef.current;
-    if (!steps) return;
-    const barBottom = stickyRef.current?.getBoundingClientRect().bottom ?? 0;
-    const top = steps.getBoundingClientRect().top;
-    if (top < barBottom) window.scrollTo({ top: window.scrollY + top - barBottom - 16, behavior: "instant" });
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    const header = document.querySelector<HTMLElement>("body > header");
+    const position = header && getComputedStyle(header).position;
+    const inset = header && (position === "sticky" || position === "fixed") ? header.getBoundingClientRect().height : 0;
+    window.scrollTo({ top: Math.max(0, window.scrollY + workspace.getBoundingClientRect().top - inset), behavior: "instant" });
   }
+  const revealInitialView = useEffectEvent(() => {
+    if (initialViewUntouched.current && (initialStep === 8 || window.location.hash)) revealStepTop();
+  });
+  useEffect(() => {
+    const interact = () => { initialViewUntouched.current = false; };
+    const events = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
+    for (const event of events) window.addEventListener(event, interact, { passive: true, capture: true });
+    return () => { for (const event of events) window.removeEventListener(event, interact, { capture: true }); };
+  }, []);
+  useEffect(() => {
+    if (serverRun.kind !== "ready") return;
+    const raf = requestAnimationFrame(() => revealInitialView());
+    return () => cancelAnimationFrame(raf);
+  }, [serverRun.kind]);
 
   const model = calc.model;
 
-  // ——— Имитация после каждого пересчёта ———
-  const simTarget = !archive && calc.sims === null ? calc : null;
+  function adoptCalculation(target: Calc, submitted: { params: ParamValues; scenarios: readonly ScenarioSpec[] }, sequence: number, results: ProjectResults, ms: number) {
+    if (sequence !== calculationSequence.current || latestCalc.current.token !== target.token || !canAdoptSavedSnapshot(latestDraft.current, submitted)) return;
+    const canonical = projectSnapshotModel(results);
+    setParams(canonical.paramsUsed);
+    setScenarios(canonical.scenarios);
+    setNorms(canonical.normsUsed);
+    setStale(false);
+    setCalc(current => current.token !== target.token ? current : {
+      ...current, input: { facility, params: canonical.paramsUsed, scenarios: canonical.scenarios, paramDefs: defs, products, norms: canonical.normsUsed },
+      base: canonical, model: canonical, ms, sims: results.sim ?? {}, simSource: "server", simMs: null, simCount: null,
+    });
+    setServerRun({ kind: "ready" });
+  }
+  const onCalculationReady = useEffectEvent(adoptCalculation);
+
+  // A financial bootstrap is useful while loading, but is never a completed guest calculation.
+  const guestTarget = guest && !archive && calc.simSource !== "server" ? calc : null;
   useEffect(() => {
-    if (!simTarget) return;
-    const ac = new AbortController();
-    const { token, base, input } = simTarget;
-    runModelSims(base, {
-      signal: ac.signal,
-      onProgress: (p) => setSimStatus({ token, kind: "running", ...p }),
-    })
-      .then(({ sims, ms, count }) => {
-        if (ac.signal.aborted) return;
-        const withSims = count > 0 ? buildProjectModel({ ...input, sims }) : base;
-        setCalc((c) => (c.token === token ? { ...c, sims, model: withSims, simSource: "browser", simMs: ms, simCount: count } : c));
-        setSimStatus(null);
-      })
-      .catch((e: unknown) => {
-        if (ac.signal.aborted || isAbortError(e)) return;
-        console.error("Workspace: имитация", e);
-        setSimStatus({ token, kind: "error", message: e instanceof Error && e.message ? e.message : "неизвестная ошибка" });
-      });
-    return () => ac.abort();
-  }, [simTarget]);
+    if (!guestTarget) return;
+    const controller = new AbortController(), sequence = ++calculationSequence.current;
+    guestController.current = controller;
+    const submitted = { params: guestTarget.input.params, scenarios: guestTarget.input.scenarios };
+    calculateDemo({ facility, ...submitted }, controller.signal).then(({ results, ms }) => {
+      if (!controller.signal.aborted) onCalculationReady(guestTarget, submitted, sequence, results, ms);
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || sequence !== calculationSequence.current) return;
+      setServerRun({ kind: "error", message: error instanceof Error ? error.message : "Не удалось завершить серверный расчёт." });
+    });
+    return () => { controller.abort(); if (guestController.current === controller) guestController.current = null; };
+  }, [guestTarget, facility, defs, products]);
+
+  // A CALCULATE run returns a private result without publishing or changing the project revision.
+  // While it runs, only the latest explicitly recalculated target is retained for the next run.
+  const ownerTarget = !guest && editable && !archive && calc.simSource === null ? calc : null;
+  useEffect(() => {
+    if (!ownerTarget || ownerBusy || ownerRequestedToken.current === ownerTarget.token) return;
+    ownerRequestedToken.current = ownerTarget.token;
+    const sequence = ++calculationSequence.current;
+    const submitted = { params: ownerTarget.input.params, scenarios: ownerTarget.input.scenarios };
+    const started = now();
+    void runOwnerCalculation({ operation: "CALCULATE", facility, ...submitted }, `workspace-calculate:${project.id ?? "new"}`).then(receipt => {
+      if (sequence !== calculationSequence.current) return;
+      if (!receipt?.results) {
+        setServerRun({ kind: "error", message: "Расчёт отменён или результат не получен. Черновик сохранён в этой вкладке; повторите расчёт." });
+        return;
+      }
+      onCalculationReady(ownerTarget, submitted, sequence, receipt.results, now() - started);
+    }).catch((error: unknown) => {
+      if (sequence !== calculationSequence.current) return;
+      setServerRun({ kind: "error", message: error instanceof Error ? error.message : "Не удалось завершить серверный расчёт." });
+    });
+  }, [ownerTarget, ownerBusy, runOwnerCalculation, facility, project.id]);
+
+  function invalidateCalculation() {
+    if (!editable || archive) return;
+    calculationSequence.current++;
+    if (guest) guestController.current?.abort();
+    setServerRun({ kind: "edited" });
+  }
 
   // ——— Шаг из адреса: при открытии страницы и по ссылкам «#report» внутри неё ———
   const onHashStep = useEffectEvent((initial: boolean) => {
@@ -708,7 +649,7 @@ export function Workspace({
   });
   useEffect(() => {
     // Server and hydration share initialStep; the URL hash is applied together with its content after mount.
-    const raf = requestAnimationFrame(() => onHashStep(true));
+    const raf = requestAnimationFrame(() => { onHashStep(true); revealInitialView(); });
     const onHash = () => onHashStep(false);
     window.addEventListener("hashchange", onHash);
     return () => {
@@ -771,6 +712,11 @@ export function Workspace({
 
   // ——— Пересчёт ———
   function recalcWith(nextParams: ParamValues, nextScenarios: readonly ScenarioSpec[]): ProjectModel {
+    if (editable && !archive) {
+      calculationSequence.current++;
+      guestController.current?.abort();
+      setServerRun({ kind: "running" });
+    }
     const input: BuildProjectModelInput = {
       facility,
       params: nextParams,
@@ -782,7 +728,7 @@ export function Workspace({
     const { value, ms } = timed(() => buildProjectModel(input), now);
     setCalc((c) => ({
       token: c.token + 1,
-      input,
+      input: { ...input, scenarios: value.scenarios },
       base: value,
       model: value,
       ms,
@@ -813,6 +759,7 @@ export function Workspace({
 
   // ——— Параметры ———
   function onParamChange(key: string, value: ParamValue) {
+    invalidateCalculation();
     setParams((p) => ({ ...p, [key]: value }));
     setParamMeta((m) => ({ ...m, [key]: { at: new Date().toISOString() } }));
     setStale(true);
@@ -839,7 +786,7 @@ export function Workspace({
     }
     setParams(next);
     setParamMeta(nextMeta);
-    if (n > 0) setStale(true);
+    if (n > 0) { invalidateCalculation(); setStale(true); }
     setNotice({
       where: "params",
       text:
@@ -985,31 +932,6 @@ export function Workspace({
     );
   }
 
-  function onAcceptFleet(scenarioKey: string, n: number) {
-    const spec = scenarios.find((s) => s.key === scenarioKey);
-    const idx = spec ? spec.items.findIndex((it) => processDef(it.process)?.simSupported) : -1;
-    const current = spec?.items[idx];
-    if (!spec || !current) return;
-    const field = `item:${current.process}:quantity`;
-    const autoRaw = serverAutoFrom(model, defs)(scenarioKey, field);
-    const auto = typeof autoRaw === "number" ? autoRaw : null;
-    const items = spec.items.map((it, i) => (i === idx ? { ...it, quantityOverride: n } : it));
-    commitScenarios(
-      scenarios.map((s) => (s.key === scenarioKey ? { ...s, items } : s)),
-      [
-        {
-          scenarioKey,
-          field,
-          auto,
-          old: current.quantityOverride ?? auto,
-          new: n,
-          unit: "шт.",
-          reason: "принят парк по имитации",
-        },
-      ],
-    );
-  }
-
   function onSpatialResult(snapshot: SpatialProjectSnapshot, result: SpatialProjectResult) {
     if (!editable || stale) return;
     const expected = model.simInputs[snapshot.scenarioKey]?.calculated;
@@ -1066,13 +988,13 @@ export function Workspace({
   }
 
   function onBuildMatchedComparison() {
-    if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    if (!editable || stale || !calculationReady || !focusSpec || focusSpec.kind === "asis") return;
     const comparison = buildMatchedComparison({ input: { facility, params, paramDefs: defs, scenarios, products, norms }, source: focusSpec });
     setMatched({ inputKey: matchedInputKey, comparison });
   }
 
   function onAdoptMatchedScenario(value: ScenarioSpec) {
-    if (!editable || stale || matched?.inputKey !== matchedInputKey || scenarios.length >= SCENARIOS_MAX) return;
+    if (!editable || stale || !calculationReady || matched?.inputKey !== matchedInputKey || scenarios.length >= SCENARIOS_MAX) return;
     const spec = structuredClone(value);
     spec.key = nextScenarioKey(value.kind === "raas" ? "r" : "p", scenarios);
     spec.name = uniqueScenarioName(value.name.slice(0, SCENARIO_NAME_MAX), scenarios);
@@ -1131,11 +1053,13 @@ export function Workspace({
 
   // ——— Сохранение и выгрузка ———
   function getSaveInput(): SaveProjectInput {
-    const scen = stale ? recalcWith(params, scenarios).scenarios : scenarios;
-    return { expectedRevision: revision, params, scenarios: scen, changes: [...paramChanges.map((c) => c.change), ...pending.map((c) => c.change)] };
+    return { expectedRevision: revision, params, scenarios, changes: [...paramChanges.map((c) => c.change), ...pending.map((c) => c.change)] };
   }
 
   function onSaved(_r: Extract<SaveProjectResult, { ok: true }>, input: SaveProjectInput) {
+    calculationSequence.current++;
+    guestController.current?.abort();
+    setServerRun({ kind: "edited" });
     setRevision(_r.revision);
     const sent = new Set(input.changes);
     setPending((p) => p.filter((c) => !sent.has(c.change)));
@@ -1148,6 +1072,7 @@ export function Workspace({
       setScenarios(savedModel.scenarios);
       setNorms(savedModel.normsUsed);
       setStale(false);
+      setServerRun({ kind: "ready" });
       setCalc(c => ({ ...c, token: c.token + 1,
         input: { facility, params: savedModel.paramsUsed, paramDefs: defs, scenarios: savedModel.scenarios, products, norms: savedModel.normsUsed },
         base: savedModel, model: savedModel, sims: canonical.sim ?? {}, simSource: "stored", simMs: null, simCount: null }));
@@ -1155,6 +1080,7 @@ export function Workspace({
   }
 
   function getCsv(): { csv: string; fileName: string } {
+    if (guest && (serverRun.kind !== "ready" || stale)) throw new Error("Дождитесь серверного расчёта текущих условий перед выгрузкой.");
     const m = stale ? recalcWith(params, scenarios) : model;
     const sims = stale ? undefined : (calc.sims ?? undefined);
     const projectName = project.name;
@@ -1262,8 +1188,12 @@ export function Workspace({
     .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
   const journal = guest ? localEntries : [...changes, ...localEntries];
 
-  const statusText = calcStatusText(calc.ms, model);
-  const simText = simStatusText(calc, simStatus);
+  const calculationReady = !editable || archive || serverRun.kind === "ready";
+  const calculationBusy = guest ? serverRun.kind === "running" : ownerBusy;
+  const statusText = !calculationReady ? "Предварительные данные: серверный расчёт текущих условий ещё не завершён" : calcStatusText(calc.ms, model);
+  const simText = !calculationReady ? null : simStatusText(calc);
+  const focusInput = model.simInputs[focusKey]?.calculated;
+  const archivedLayout = model.runtime?.layouts?.[focusKey] ?? model.layout;
   // Only visited content mounts; section anchors/headings always exist. Visited children stay mounted.
   // Ритм шага: заголовок с вводной — одна группа, дальше блоки шага через 40px; внутри блока
   // свой, более плотный шаг. Раньше всё шло через 16px, и соседние разделы сливались.
@@ -1279,7 +1209,7 @@ export function Workspace({
   const focusIsAsis = focusSpec?.kind === "asis";
 
   return (
-    <div className="flex flex-col gap-10 pb-16" data-project-revision={revision} data-project-archive={archive}>
+    <div ref={workspaceRef} className="project-workspace flex flex-col gap-6 pb-16" data-project-revision={revision} data-project-archive={archive} data-calculation-state={editable && !archive ? serverRun.kind : "ready"}>
       {stored && project.id && (
         <VersionBanner
           archive={archive}
@@ -1315,9 +1245,25 @@ export function Workspace({
           onStepClick={goToStep}
           className="static border-b-0 bg-transparent py-1.5 backdrop-blur-none"
         />
+        <div className="workspace-context" aria-label="Текущие условия расчёта">
+          <dl>
+            <div><dt>Сценарий</dt><dd>{focusResult?.name ?? "Не выбран"}</dd></div>
+            <div><dt>Активная зона</dt><dd>{formatNum(focusInput?.layout.activeAreaM2 ?? (Number(model.paramsUsed.activeAreaM2) || 0), 0)} м²</dd></div>
+            {focusInput && <><div><dt>Роботы / зарядки</dt><dd>{focusInput.robots.count} / {focusInput.layout.chargers}</dd></div>
+            <div><dt>Требуемый поток</dt><dd>{formatNum(focusInput.demand.peakPerH, 1)} пал./ч</dd></div></>}
+          </dl>
+          {editable && !archive && <div className="workspace-calculation-status" role="status" aria-live="polite" data-guest-calculation={guest ? serverRun.kind : undefined} data-server-calculation={serverRun.kind}>
+            <strong>{serverRun.kind === "running" ? "Сервер рассчитывает…" : serverRun.kind === "error" ? "Расчёт не завершён" : serverRun.kind === "edited" ? "Условия изменены · пересчитайте" : calc.simSource === "stored" ? "Сохранённый расчёт" : "Серверный расчёт завершён"}</strong>
+            {serverRun.kind === "error" ? <span>{serverRun.message}</span> : <details className="min-w-0 text-muted-foreground"><summary className="cursor-pointer">О расчёте</summary><p className="max-w-3xl py-2">{serverRun.kind === "running" ? "Считаем экономику, нагрузку и движение роботов. Предварительные числа не подтверждают выполнение задачи." : serverRun.kind === "edited" ? "Предыдущий результат не подтверждает новые значения. Нажмите «Пересчитать»." : guest ? "Результат относится к показанным условиям; проект гостевого расчёта не сохраняется." : "Пересчёт не публикует изменения. Сохранение проекта и его ревизия — отдельное действие."}</p></details>}
+            {serverRun.kind === "error" && <Button type="button" size="sm" onClick={recalc} disabled={calculationBusy}>Повторить расчёт</Button>}
+          </div>}
+          {!guest && editable && !archive && <CalculationJobStatus job={ownerJob} cancelling={ownerCancelling} onCancel={() => {
+            void cancelOwnerCalculation().catch(error => setServerRun({ kind: "error", message: error instanceof Error ? error.message : "Не удалось подтвердить отмену расчёта." }));
+          }} />}
+        </div>
         <RecalcBar
           onRecalc={recalc}
-          readOnly={!editable}
+          readOnly={!editable || calculationBusy}
           stale={stale}
           statusText={statusText}
           simText={simText}
@@ -1352,7 +1298,7 @@ export function Workspace({
           <dt className="text-muted-foreground">Режим</dt>
           <dd>
             {guest
-              ? "гостевой расчёт: модель считается в браузере, ничего не сохраняется"
+              ? "гостевой расчёт: модель и нагрузку проверяет сервер, проект не сохраняется"
               : mode === "readonly"
                 ? "режим чтения: изменения не сохраняются"
                 : project.isDemo
@@ -1387,7 +1333,7 @@ export function Workspace({
           <h2 id={`${uid}-h-params`} tabIndex={-1}>{stepHeading(2)}</h2>
           <p className="text-sm text-muted-foreground">
             У каждого поля — единица, пример, диапазон и источник базового значения. После правки нажмите «Пересчитать»:
-            браузер считает по той же модели, что и сервер.
+            сервер проверяет экономику и выполнение нагрузки для новых условий. Сохранение проекта — отдельное действие.
           </p>
         </header>
         {visitedSteps.has(2) && <>
@@ -1488,6 +1434,9 @@ export function Workspace({
           </p>
         </header>
         {visitedSteps.has(5) && <>
+        {!calculationReady && <p role="status" className="rounded border border-border p-4 text-sm" data-economics-pending>
+          Предварительная экономика: серверный расчёт текущих условий ещё не завершён. Эти значения не являются итоговой рекомендацией; сравнение и вывод появятся после расчёта.
+        </p>}
         {/* Вкладки и панель, которой они управляют, — одна группа (16px), а не два блока шага. */}
         <div className="flex flex-col gap-4">
           {results.length > 0 && (
@@ -1567,12 +1516,12 @@ export function Workspace({
                 {scenarios.map(spec => <option key={spec.key} value={spec.key}>{spec.name}</option>)}
               </select>
             </label>
-            <Button type="button" variant="outline" disabled={stale || !focusSpec || focusSpec.kind === "asis"} onClick={onBuildMatchedComparison}>Сравнить модели: покупка и RaaS</Button>
+            <Button type="button" variant="outline" disabled={stale || !calculationReady || !focusSpec || focusSpec.kind === "asis"} onClick={onBuildMatchedComparison}>Сравнить модели: покупка и RaaS</Button>
           </div>
           {matched && matched.inputKey !== matchedInputKey && <p className="text-sm text-muted-foreground" role="status">Условия или исходный сценарий изменились. Постройте сравнение заново.</p>}
-          {matched?.inputKey === matchedInputKey && <MatchedComparison comparison={matched.comparison} onAdopt={scenarios.length < SCENARIOS_MAX ? onAdoptMatchedScenario : undefined} readOnly={scenarios.length >= SCENARIOS_MAX} />}
+          {calculationReady && matched?.inputKey === matchedInputKey && <MatchedComparison comparison={matched.comparison} onAdopt={scenarios.length < SCENARIOS_MAX ? onAdoptMatchedScenario : undefined} readOnly={scenarios.length >= SCENARIOS_MAX} />}
         </div>}
-        <ScenarioTable
+        {calculationReady ? <><ScenarioTable
           results={results}
           sim={calc.sims ?? {}}
           tcoYears={tcoYears}
@@ -1583,7 +1532,9 @@ export function Workspace({
         />
         <div className="rounded-lg border px-4 py-3">
           <Conclusion conclusion={model.conclusion} />
-        </div>
+        </div></> : <p role="status" className="rounded border border-border p-4 text-sm" data-comparison-pending>
+          Сравнение и рекомендация ожидают серверного расчёта текущих условий. Состав сценариев можно настроить ниже.
+        </p>}
 
         {editable && (
           <div className="flex flex-col gap-3 rounded-lg border px-4 py-3">
@@ -1627,7 +1578,7 @@ export function Workspace({
           </div>
         )}
 
-        <div className="flex flex-col gap-4">
+        {calculationReady && <div className="flex flex-col gap-4">
           <h3 className="section-title">Чувствительность</h3>
           {results.length > 0 && (
             <ScenarioTabs
@@ -1655,7 +1606,7 @@ export function Workspace({
               )}
             </div>
           )}
-        </div>
+        </div>}
         </>}
       </section>
 
@@ -1669,8 +1620,10 @@ export function Workspace({
             {Object.entries(calc.sims ?? {}).filter(([, summary]) => summary !== null).map(([key, summary]) => summary && (
               <p key={key}>{model.scenarios.find(s => s.key === key)?.name ?? key}: {summary.fleet} роботов; достигнуто {formatNum(summary.achievedPerH, 1)} из {formatNum(summary.requiredPerH, 1)} пал./ч; вердикт {summary.verdict}.</p>
             ))}
-            <p>{model.layout ? `Сохранённая планировка: ${formatNum(model.layout.widthM, 1)} × ${formatNum(model.layout.heightM, 1)} м, ${model.layout.slots.length} мест хранения.` : "Планировка и входы старого архива не сохранены. Они не восстанавливаются текущим алгоритмом."} Для нового прогона явно пересчитайте проект или его копию.</p>
+            <p>{archivedLayout ? `Сохранённая планировка выбранного сценария: ${formatNum(archivedLayout.widthM, 1)} × ${formatNum(archivedLayout.heightM, 1)} м, ${archivedLayout.slots.length} мест хранения.` : "Планировка и входы старого архива не сохранены. Они не восстанавливаются текущим алгоритмом."} Для нового прогона явно пересчитайте проект или его копию.</p>
           </div>
+        ) : !calculationReady ? (
+          <p className="callout" data-tone={serverRun.kind === "error" ? "bad" : "info"}>Пространственный просмотр станет доступен после серверного расчёта текущих условий. Статус и повторная отправка — в общей панели выше.</p>
         ) : showSimulation ? (
           // Таблица «Откуда параметры имитации» печатает ссылки на источники текстом; длинная
           // ссылка без пробелов растягивала раскрытый блок шире карточки (её обрезает
@@ -1680,12 +1633,12 @@ export function Workspace({
               scenarios={simScenarios}
               initialKey={simInitialKey}
               selectedScenarioKey={focusKey}
+              spatialEvidenceByKey={Object.fromEntries(model.scenarios.map(s => [s.key, s.spatialEvidence]))}
               stale={stale}
               readOnly={!editable}
               onScenarioSelect={setFocusPick}
               onSpatialResult={onSpatialResult}
               onSpatialScenario={onSpatialScenario}
-              onAcceptFleet={editable ? onAcceptFleet : undefined}
               nowFn={now}
               headingAs="h3"
             />
@@ -1715,14 +1668,17 @@ export function Workspace({
           <p>{model.conclusion.headline}</p>
           <ul className="list-disc pl-5">{model.conclusion.bullets.map((text, index) => <li key={index}>{text}</li>)}</ul>
           <p className="text-xs text-muted-foreground">{model.conclusion.disclaimer}</p>
-        </section> : <DecisionSummary model={model} scenarioKey={focusKey} stale={stale}
+        </section> : !calculationReady ? <section className="grid gap-3" aria-label="Расчёт выбранного сценария" data-decision-pending>
+          <h3>{serverRun.kind === "error" ? "Серверный расчёт не завершён" : serverRun.kind === "edited" ? "Новые условия ещё не проверены" : "Рассчитываем выбранный сценарий"}</h3>
+          <p>Заключение, выполнение нагрузки и финансовые показатели текущих условий появятся после ответа сервера. {serverRun.kind === "error" ? "Повторите расчёт в общей панели выше; предварительные числа не являются результатом проверки." : "Можно изучать исходные данные и подготовить правки на остальных шагах."}</p>
+        </section> : <DecisionSummary model={model} scenarioKey={focusKey} stale={stale} simSummary={calc.sims?.[focusKey] ?? null}
           expectedInput={model.simInputs[focusKey]?.calculated ?? null}
           onCompare={() => goToStep(6, { focusHeading: true })}
           onSimulation={() => goToStep(7, { focusHeading: true })}
           onPilot={() => { const plan = document.getElementById(`${uid}-pilot`); plan?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }); }} />}
-        {focusResult?.status === "ok" && focusResult.kind !== "asis" && <section id={`${uid}-pilot`} tabIndex={-1} className="min-w-0 scroll-mt-24"><PilotPlan
+        {calculationReady && focusResult?.status === "ok" && focusResult.kind !== "asis" && <section id={`${uid}-pilot`} tabIndex={-1} className="min-w-0 scroll-mt-24"><PilotPlan
           key={`${focusKey}:${calc.token}`} model={model} scenarioKey={focusKey}
-          readOnly={!editable || stale} onChange={onPilotChange} /></section>}
+          readOnly={!editable || stale || !calculationReady} onChange={onPilotChange} /></section>}
         <ProjectToolbar
           mode={archive ? "readonly" : mode}
           revision={revision}
@@ -1733,7 +1689,7 @@ export function Workspace({
           dirty={dirty}
           getSaveInput={mode === "owner" ? getSaveInput : undefined}
           onSaved={onSaved}
-          getCsv={guest ? getCsv : undefined}
+          getCsv={guest && calculationReady && !stale ? getCsv : undefined}
           savedAtText={stored ? formatCalcDate(stored.results.calculatedAt) : null}
         />
         <ChangeLog entries={journal} guest={guest} />

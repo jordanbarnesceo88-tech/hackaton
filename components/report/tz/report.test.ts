@@ -5,10 +5,15 @@ import { baseValuesFor, paramSpecsFor } from "@/lib/data/organizer/params";
 import type { ProjectChangeEntry, ProjectRecord } from "@/lib/projects/queries";
 import { MANUAL_NOTE } from "@/lib/report/tz/rows";
 import { fixtureChanges, fixtureDefs, fixtureResults } from "@/lib/report/tz/test-fixtures";
-import { expectedLegsM } from "@/lib/sim/analytic";
+import { expectedClosedPodLegsM } from "@/lib/sim/closed-pod-cycle";
+import { prepareClosedPodSource } from "@/lib/sim/underlift-layout";
+import { warehouseBaseInput } from "@/lib/sim/fixtures";
+import { simInputIdentity } from "@/lib/sim/identity";
+import { SPATIAL_MODEL_VERSION } from "@/lib/sim/spatial-version";
+import { formatNum } from "@/lib/format/rub";
 import { DISCLAIMER } from "@/lib/tz/econ";
 import { FIXTURE_H1500, FIXTURE_PRODUCTS, fixtureSpecs } from "@/lib/tz/econ/fixtures";
-import { buildProjectModel } from "@/lib/tz/model";
+import { buildProjectModel, storedPartOf } from "@/lib/tz/model";
 import { resolveNorms } from "@/lib/tz/norms";
 import { sortDefs } from "@/lib/tz/params/template";
 import type { ParamSpec, ProjectResults, SelectionResult, SensitivityRow } from "@/lib/tz/types";
@@ -171,6 +176,45 @@ describe("ProjectReport — печатный отчёт", () => {
   it("решение, добавленное вручную, помечено ⚠ и пояснено", () => {
     expect(text).toContain("Покупка — DMR Carrier P ⚠");
     expect(text).toContain(MANUAL_NOTE);
+  });
+
+  it("preserves a previous spatial version's saved verdict and measurements instead of rejudging it on read", () => {
+    const saved = fixtureResults(), spec = saved.scenarios.find(row => row.key === "p1")!;
+    const result = saved.results.find(row => row.key === "p1");
+    if (result?.status !== "ok") throw new Error("Missing saved financial result");
+    const item = result.items[0]!;
+    const input = warehouseBaseInput(item.n!); input.transportWorkflow = "closed-pod-1";
+    input.layout.chargers = item.chargers; input.demand.peakPerH = item.peakPerHour;
+    saved.runtime = { layout: null, simInputs: { p1: { calculated: input, byNorm: null, assumedUtilPct: null, provenance: null } } };
+    saved.conclusion.headline = "Сохранённый финансовый вывод проекта";
+    result.npvRub = 1_000_000; result.discountedPaybackYears = 2;
+    spec.spatialEvidence = { input: structuredClone(input), sourceInputKey: simInputIdentity(input), executionInputKey: "saved-completed-input",
+      simModelVersion: "warehouse-dense-underlift-1.7.1", assessment: { status: "OK", terminal: true, headline: "Сохранённая модель выполнила свои критерии" },
+      summary: { fleet: input.robots.count, requiredPerH: input.demand.peakPerH, achievedPerH: 132.125, queueEnd: 2, waitP95Min: 4.55 } };
+    const before = structuredClone(saved);
+    const archived = renderToStaticMarkup(createElement(ProjectReport, { project: PROJECT, results: saved, defs: fixtureDefs(), changes: [], scenarioKey: "p1" }));
+    expect(archived).toContain('data-archived-spatial-receipt="OK"');
+    expect(archived).not.toContain('data-decision-status="unverified"');
+    expect(archived).not.toContain('data-decision-status="suitable"');
+    const historical = textOf(archived);
+    expect(historical).toContain(`132,1 / ${formatNum(input.demand.peakPerH, 1)}`);
+    expect(historical).toContain("2 заявок");
+    expect(historical).toContain("4,6 мин");
+    expect(historical).toContain("Сохранённая модель выполнила свои критерии");
+    expect(historical).toContain("Сохранённый финансовый вывод проекта");
+    expect(historical).toContain(`Текущая пространственная модель — ${SPATIAL_MODEL_VERSION}`);
+    expect(historical).toContain("не являются подтверждением текущей версии");
+    expect(saved).toEqual(before);
+
+    spec.spatialEvidence.simModelVersion = SPATIAL_MODEL_VERSION;
+    const current = renderToStaticMarkup(createElement(ProjectReport, { project: PROJECT, results: saved, defs: fixtureDefs(), changes: [], scenarioKey: "p1" }));
+    expect(current).toContain('data-decision-status="suitable"');
+    expect(current).not.toContain('data-archived-spatial-receipt=');
+
+    delete spec.spatialEvidence;
+    const absent = renderToStaticMarkup(createElement(ProjectReport, { project: PROJECT, results: saved, defs: fixtureDefs(), changes: [], scenarioKey: "p1" }));
+    expect(absent).toContain('data-decision-status="unverified"');
+    expect(absent).not.toContain('data-archived-spatial-receipt=');
   });
 
   it("старый архив показывает сохранённую имитацию без генерации новой схемы", () => {
@@ -451,7 +495,7 @@ describe("layout-svg — схема склада", () => {
 
   it("схема отчёта — та же планировка, по которой модель посчитала плечо перевозки (§3.6.2)", () => {
     // Настоящая модель проекта (lib/tz/model) на данных организатора и фикстурах продуктов:
-    // плечи позиций посчитаны по её собственной планировке (layoutOf → buildWarehouseLayout).
+    // Пробеги closed-pod рассчитаны по полному dense-плану, сохраняемому runtime.layouts.
     const model = buildProjectModel({
       facility: "warehouse",
       params: baseValuesFor("warehouse"),
@@ -460,17 +504,26 @@ describe("layout-svg — схема склада", () => {
       products: FIXTURE_PRODUCTS,
       norms: resolveNorms(),
     });
-    const groups = layoutGroups(model);
+    // A bare financial model is not a persisted execution plan. Reports must never
+    // rebuild an old archive with today's generic 150-home layout.
+    expect(layoutGroups(model).every(g => g.layout === null)).toBe(true);
+    const stored: ProjectResults = JSON.parse(JSON.stringify({ ...storedPartOf(model),
+      calculatedAt: "2026-10-18T00:00:00.000Z", sim: {},
+    }));
+    const groups = layoutGroups(stored);
     expect(groups.length).toBeGreaterThan(0);
     for (const g of groups) {
       expect(g.item.routeLoadedM).not.toBeNull();
       expect(g.item.routeEmptyM).not.toBeNull();
-      const layout = reportLayout(model.paramsUsed, g.item.chargers);
+      const layout = g.layout;
       expect(layout).not.toBeNull();
       if (!layout) continue;
-      const legs = expectedLegsM(layout);
-      expect(legs.loadedM).toBe(g.item.routeLoadedM);
-      expect(legs.emptyM).toBe(g.item.routeEmptyM);
+      expect(layout.slots.length).toBeGreaterThan(150);
+      const physical = prepareClosedPodSource(layout);
+      const legs = expectedClosedPodLegsM(physical.layout, physical.config.docks);
+      expect(legs.loadedM).toBeCloseTo(g.item.routeLoadedM!, 10);
+      expect(legs.emptyM).toBeCloseTo(g.item.routeEmptyM!, 10);
+      expect(Object.values(stored.runtime!.layouts!).some(saved => JSON.stringify(saved) === JSON.stringify(layout))).toBe(true);
     }
   });
 

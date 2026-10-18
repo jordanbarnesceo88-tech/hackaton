@@ -3,10 +3,19 @@ import { warehouseBaseInput } from "./fixtures";
 import { simInputIdentity, simSummaryMatchesInput } from "./identity";
 import { runSimSync } from "./runner";
 import { toStored } from "./metrics";
+import { SPATIAL_MODEL_VERSION } from "./spatial-version";
 
 describe("полная идентичность входа имитации", () => {
   const input = warehouseBaseInput(11);
   const summary = toStored(runSimSync(input));
+
+  it("requires the physical model version for a closed workflow, rejecting single-leg receipts", () => {
+    const closed = { ...input, transportWorkflow: "closed-pod-1" as const };
+    const canonical = { ...summary, inputKey: simInputIdentity(closed) };
+    expect(simSummaryMatchesInput(canonical, closed)).toBe(false);
+    expect(simSummaryMatchesInput({ ...canonical, simModelVersion: SPATIAL_MODEL_VERSION }, closed)).toBe(true);
+    expect(() => runSimSync(closed)).toThrow("Однорейсовая");
+  });
 
   it("сохраняется в JSON и не зависит от порядка ключей", () => {
     expect(simSummaryMatchesInput(JSON.parse(JSON.stringify(summary)), input)).toBe(true);

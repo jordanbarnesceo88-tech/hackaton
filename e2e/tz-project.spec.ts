@@ -83,6 +83,9 @@ test("проект склада: создать, скорректировать,
   await expect(page).toHaveURL(url => /^\/projects\/(?!new$)[^/]+$/.test(url.pathname) && url.searchParams.get("edit") === "1", { timeout: 60_000 });
   const createdUrl = new URL(page.url());
   const projectUrl = `${createdUrl.origin}${createdUrl.pathname}`;
+  const created = await (await page.request.get(`/api/v1/projects/${createdUrl.pathname.split("/").at(-1)}`)).json();
+  const purchaseKey = created.scenarios.find((scenario: { name: string; key: string }) => scenario.name === PURCHASE)?.key;
+  expect(purchaseKey, "ключ выбранного сценария в сохранённом проекте").toBeTruthy();
   await expect(page.locator("#object")).toContainText(name);
   await page.getByText("Детали расчёта", { exact: true }).click();
   await expect(page.getByText(/Расчёт выполнен за/).first()).toBeVisible();
@@ -110,6 +113,7 @@ test("проект склада: создать, скорректировать,
   await expect(economics.getByText("задано вами").first()).toBeVisible();
   await page.getByRole("button", { name: "Пересчитать", exact: true }).click();
   await openStep(page, "6 Сценарии");
+  await expect(scenarioTable(page)).toBeVisible({ timeout: 90_000 });
   await expect.poll(() => scenarioCell(page, PURCHASE, "Состав оборудования")).toMatch(manualFleet);
 
   // 4. Сохранение: сервер пересчитывает модель и имитацию сам.
@@ -144,7 +148,7 @@ test("проект склада: создать, скорректировать,
 
   // 7. Отчёт для печати в PDF: оговорка и журнал корректировок с правкой числа роботов.
   await report.getByRole("link", { name: "Отчёт (PDF)" }).click();
-  await expect(page).toHaveURL(url => /\/projects\/[^/]+\/report$/.test(url.pathname) && url.searchParams.get("scenario") === "p1");
+  await expect(page).toHaveURL(url => /\/projects\/[^/]+\/report$/.test(url.pathname) && url.searchParams.get("scenario") === purchaseKey);
   await expect(page.getByText(/предварительная оценка/).first()).toBeVisible();
   const changes = page.locator("#changes");
   await expect(changes.getByRole("heading", { name: "Журнал корректировок" })).toBeVisible();

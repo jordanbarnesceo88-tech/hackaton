@@ -9,8 +9,9 @@ import type { ScenarioSpec } from "./types";
  * Эталон сборки модели tz-1.0.0 (ТЗ §5.6: результаты презентации воспроизводятся в сборке).
  * Базовый склад организатора, продукты — фикстуры экономики (H1500 и Carrier P с источниками
  * в lib/tz/econ/fixtures.ts), производительность по циклу — по НАСТОЯЩЕЙ планировке и
- * аналитике lib/sim, а не подставленные 20 пал./ч эталона T1.2. Поэтому парк H1500 здесь 11,
- * а не 10 (см. CHANGELOG.md, запись T2.2 «МЕНЯЕТ ЧИСЛА»).
+ * аналитике lib/sim, а не подставленные 20 пал./ч эталона T1.2. В tz-1.0.5 H1500 использует
+ * dense closed-pod цикл: два физических рейса и четыре обработки на клиентскую паллету.
+ * Его N=19 и ухудшившиеся NPV закреплены явно; fork Carrier P сохраняет прежний цикл.
  *
  * Числа закреплены снимком: любое изменение модели или данных, меняющее их, видно в diff
  * теста и требует пометки «МЕНЯЕТ ЧИСЛА» с повышением TZ_MODEL_VERSION. Деньги округлены до
@@ -77,34 +78,34 @@ describe("эталон: базовый склад, H1500 и Carrier P на на�
           "thrCycle": null,
         },
         {
-          "N": 11,
-          "NPV": -4108652,
-          "PB": 4.1302,
-          "ROI_TZ": 122.9883,
-          "TCO": 225509489,
-          "band": "moderate",
-          "capex": 38500000,
-          "chargers": 1,
-          "effect": 9321602,
+          "N": 19,
+          "NPV": -42430871,
+          "PB": 11.628,
+          "ROI_TZ": 45.0203,
+          "TCO": 269255637,
+          "band": "slow",
+          "capex": 63470000,
+          "chargers": 2,
+          "effect": 5458373,
           "key": "p1",
-          "nExact": 10.2159,
-          "opex": 37550398,
-          "thrCycle": 19.2257,
+          "nExact": 18.7008,
+          "opex": 41413627,
+          "thrCycle": 10.5026,
         },
         {
-          "N": 11,
-          "NPV": 2263407,
-          "PB": 1.4596,
-          "ROI_TZ": 342.5657,
-          "TCO": 230624489,
-          "band": "fast",
+          "N": 19,
+          "NPV": -33334585,
+          "PB": null,
+          "ROI_TZ": -2863.6777,
+          "TCO": 280000637,
+          "band": "none",
           "capex": 1540000,
-          "chargers": 1,
-          "effect": 1055102,
+          "chargers": 2,
+          "effect": -8820127,
           "key": "r1",
-          "nExact": 10.2159,
-          "opex": 45816898,
-          "thrCycle": 19.2257,
+          "nExact": 18.7008,
+          "opex": 55692127,
+          "thrCycle": 10.5026,
         },
         {
           "N": 13,
@@ -129,11 +130,11 @@ describe("эталон: базовый склад, H1500 и Carrier P на на�
     expect(byNorm).toMatchInlineSnapshot(`
       {
         "asis": null,
-        "p1": 3,
+        "p1": null,
         "p2": 4,
-        "r1": 3,
+        "r1": null,
       }
     `);
-    expect(model.conclusion.recommendedScenarioKey).toMatchInlineSnapshot(`"r1"`);
+    expect(model.conclusion.recommendedScenarioKey).toMatchInlineSnapshot(`null`);
   });
 });

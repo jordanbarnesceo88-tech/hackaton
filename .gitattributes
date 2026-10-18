@@ -7,3 +7,6 @@ public/*-3d.html text eol=lf
 
 # Accepted historical export: keep the exact CRLF bytes and recorded SHA on every OS.
 docs/submission/sample-report.csv -text whitespace=cr-at-eol
+
+# The current submission manifest records exact bytes of generated artifacts.
+docs/submission/current/** -text whitespace=cr-at-eol

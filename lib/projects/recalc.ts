@@ -7,8 +7,8 @@ import type { SimInput, SimSummaryStored } from "../sim/types";
 import { PROJECT_SPATIAL_BUDGET_MS, recheckProjectSpatialEvidence, recheckProjectSpatialEvidenceAsync } from "../sim/spatial-server";
 import { checkExecution, type CooperativeOptions } from "../sim/cooperative";
 import { withServerCalculation, yieldServer } from "../sim/server-execution";
-import { buildWarehouseLayout } from "../sim/layout";
-import { normsForSpec } from "../tz/econ/context";
+import { simInputIdentity } from "../sim/identity";
+import { SPATIAL_MODEL_VERSION } from "../sim/spatial-bridge";
 import {
   buildProjectModel,
   projectDataVersion,
@@ -167,7 +167,7 @@ export function runProjectSims(model: ProjectModel, opts: ProjectSimOptions = {}
   const out: Record<string, SimSummaryStored | null> = {};
   for (const spec of model.scenarios) {
     const si = model.simInputs[spec.key];
-    if (!si?.calculated) {
+    if (!si?.calculated || si.calculated.transportWorkflow === "closed-pod-1") {
       out[spec.key] = null;
       continue;
     }
@@ -213,7 +213,7 @@ export async function runProjectSimsAsync(model: ProjectModel, options: Cooperat
   for (const spec of model.scenarios) {
     checkExecution({ ...options, now, deadline });
     const si = model.simInputs[spec.key];
-    if (!si?.calculated) { out[spec.key] = null; continue; }
+    if (!si?.calculated || si.calculated.transportWorkflow === "closed-pod-1") { out[spec.key] = null; continue; }
     const summary = await run(si.calculated);
     const byNorm = si.byNorm ? await run(si.byNorm) : null;
     out[spec.key] = toStored({ ...summary, scenarioKey: spec.key, assumedUtilPct: si.assumedUtilPct ?? summary.assumedUtilPct,
@@ -245,6 +245,28 @@ export async function runProjectSimsAsync(model: ProjectModel, options: Cooperat
   return out;
 }
 
+/** Request replay from the server's own closed-cycle input, even without a client receipt. */
+function withSpatialReplayRequests(model: ProjectModel): ProjectModel {
+  if (model.facility !== "warehouse") return model;
+  return { ...model, scenarios: model.scenarios.map(spec => {
+    const calculated = model.simInputs[spec.key]?.calculated;
+    if (spec.kind === "asis" || spec.spatialEvidence || calculated?.transportWorkflow !== "closed-pod-1") return spec;
+    return { ...spec, spatialEvidence: {
+      input: structuredClone(calculated), sourceInputKey: simInputIdentity(calculated), executionInputKey: "server-replay-request",
+      simModelVersion: SPATIAL_MODEL_VERSION,
+      assessment: { status: "NOT_EVALUATED", terminal: true, headline: "Ожидается серверная проверка пространственного входа" },
+      summary: { fleet: calculated.robots.count, requiredPerH: calculated.demand.peakPerH, achievedPerH: 0, queueEnd: 0, waitP95Min: 0 },
+    } };
+  }) };
+}
+
+function physicalSummaryCollector(model: ProjectModel, measured: Record<string, SimSummaryStored | null>) {
+  return (key: string, summary: SimRunSummary) => {
+    const input = model.simInputs[key]?.calculated;
+    if (input?.transportWorkflow === "closed-pod-1") measured[key] = toStored(summary);
+  };
+}
+
 /**
  * Пересчёт на уже загруженных входах (без обращения к БД): модель, прогоны имитации, модель с
  * рисками имитации и сохраняемый результат. Со снимком продукты сценариев и нормативы берутся
@@ -264,14 +286,13 @@ export function resultsFromInputs(live: LiveInputs, input: ComputeProjectInput):
   };
   const base: BuildProjectModelInput = { ...common, scenarios: input.scenarios ?? initialScenarios(common) };
   const first = buildProjectModel(base);
-  base.scenarios = recheckProjectSpatialEvidence(first, { now, budgetMs: Math.min(PROJECT_SPATIAL_BUDGET_MS, Math.max(0, deadline - now())) });
-  const sims = runProjectSims(first, { now, budgetMs: Math.max(0, deadline - now()) });
+  const physical: Record<string, SimSummaryStored | null> = {};
+  base.scenarios = recheckProjectSpatialEvidence(withSpatialReplayRequests(first), {
+    now, budgetMs: Math.min(PROJECT_SPATIAL_BUDGET_MS, Math.max(0, deadline - now())), onSummary: physicalSummaryCollector(first, physical),
+  });
+  const sims = { ...runProjectSims(first, { now, budgetMs: Math.max(0, deadline - now()) }), ...physical };
   const model = buildProjectModel({ ...base, sims });
-  const results: ProjectResults = { ...storedPartOf(model), calculatedAt: new Date().toISOString(), sim: sims,
-    runtime: { layout: structuredClone(model.layout), simInputs: structuredClone(model.simInputs), paramDefs: structuredClone(live.paramDefs),
-      layouts: Object.fromEntries(Object.entries(model.simInputs).flatMap(([key, entry]) => entry.calculated
-        ? [[key, structuredClone(entry.calculated.siteLayout ?? buildWarehouseLayout(entry.calculated.layout))]] : [])),
-      normsByScenario: Object.fromEntries(model.scenarios.map(spec => [spec.key, normsForSpec({ norms: model.normsUsed }, spec)])) } };
+  const results: ProjectResults = { ...storedPartOf(model, live.paramDefs), calculatedAt: new Date().toISOString(), sim: sims };
   return { results, model };
 }
 
@@ -294,17 +315,15 @@ export async function resultsFromInputsAsync(live: LiveInputs, input: ComputePro
     const first = buildProjectModel(base);
     checkExecution(execution);
     options.onStage?.("spatial-check");
-    base.scenarios = await recheckProjectSpatialEvidenceAsync(first, { ...execution,
+    const physical: Record<string, SimSummaryStored | null> = {};
+    base.scenarios = await recheckProjectSpatialEvidenceAsync(withSpatialReplayRequests(first), { ...execution,
+      onSummary: physicalSummaryCollector(first, physical),
       budgetMs: Math.min(options.spatialBudgetMs ?? PROJECT_SPATIAL_BUDGET_MS, Math.max(0, execution.deadline - now())) });
     options.onStage?.("simulation");
-    const sims = await runProjectSimsAsync(first, execution);
+    const sims = { ...await runProjectSimsAsync(first, execution), ...physical };
     options.onStage?.("finalizing");
     const model = buildProjectModel({ ...base, sims });
-    const results: ProjectResults = { ...storedPartOf(model), calculatedAt: new Date().toISOString(), sim: sims,
-      runtime: { layout: structuredClone(model.layout), simInputs: structuredClone(model.simInputs), paramDefs: structuredClone(live.paramDefs),
-        layouts: Object.fromEntries(Object.entries(model.simInputs).flatMap(([key, entry]) => entry.calculated
-          ? [[key, structuredClone(entry.calculated.siteLayout ?? buildWarehouseLayout(entry.calculated.layout))]] : [])),
-        normsByScenario: Object.fromEntries(model.scenarios.map(spec => [spec.key, normsForSpec({ norms: model.normsUsed }, spec)])) } };
+    const results: ProjectResults = { ...storedPartOf(model, live.paramDefs), calculatedAt: new Date().toISOString(), sim: sims };
     checkExecution(execution);
     return { model, results };
   }, execution);

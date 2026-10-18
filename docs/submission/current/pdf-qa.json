@@ -1,0 +1,20 @@
+{
+  "documentation": {
+    "pages": 13,
+    "blankPages": [],
+    "outsideBounds": [],
+    "textChars": 15354
+  },
+  "presentation": {
+    "pages": 12,
+    "blankPages": [],
+    "outsideBounds": [],
+    "textChars": 4703
+  },
+  "sample-report": {
+    "pages": 31,
+    "blankPages": [],
+    "outsideBounds": [],
+    "textChars": 97741
+  }
+}

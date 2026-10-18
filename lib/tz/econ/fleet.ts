@@ -137,8 +137,8 @@ export function throughputFor(
     trace.push({
       key: "thrCycle",
       label: `${FORMULAS.thrCycle.title} — ${product.name}`,
-      formula: FORMULAS.thrCycle.expression,
-      substituted: cycleText(product, ctx.norms, routeLoadedM, routeEmptyM, thrCycle, unit),
+      formula: cyc?.workflow === "closed-pod-1" ? "thrцикл = 3600 / (Lпорож / v + Lноситель / (v × kгруз) + 2 × h + 2 × (2h/3 + max(h/3; 2/v))); h = max(6; tзахв)" : FORMULAS.thrCycle.expression,
+      substituted: cycleText(product, ctx.norms, routeLoadedM, routeEmptyM, thrCycle, unit, cyc?.handlingS),
       value: thrCycle,
       unit,
       origin: "derived",
@@ -193,12 +193,13 @@ function cycleText(
   emptyM: number | null,
   thr: number,
   unit: string,
+  handlingS?: number,
 ): string {
   const v = product.speedMps;
   const h = norms ? handlingSecOf(product, norms) : null;
   if (norms && v !== null && v > 0 && h !== null && loadedM !== null && emptyM !== null) {
     const k = norms.loadedSpeedFactor;
-    return `3600 / (${fx(emptyM, 1)} / ${fx(v)} + ${fx(loadedM, 1)} / (${fx(v)} × ${fx(k)}) + 2 × ${fx(h)}) = ${fx(thr)} ${unit}`;
+    return `3600 / (${fx(emptyM, 1)} / ${fx(v)} + ${fx(loadedM, 1)} / (${fx(v)} × ${fx(k)}) + ${handlingS === undefined ? `2 × ${fx(h)}` : `${fx(handlingS)} (два подхвата и две постановки с выездом)`}) = ${fx(thr)} ${unit}${handlingS === undefined ? "" : "; подача/возврат включены; порожнее плечо — аналитическое ожидание независимых точек, потери диспетчеризации проверяются в 3D"}`;
   }
   return (
     `плечо с грузом ${fx(loadedM ?? 0, 1)} м, порожнее ${fx(emptyM ?? 0, 1)} м` +

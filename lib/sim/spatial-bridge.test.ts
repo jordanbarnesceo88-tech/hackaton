@@ -76,6 +76,15 @@ describe("project → spatial handoff", () => {
     expect(() => parseSpatialProjectSnapshot({ ...snapshot(), assumedUtilPct: 101 })).toThrow();
   });
 
+  it("rejects client-injected prepared traffic, docking and cargo settings", () => {
+    for (const [field, value] of Object.entries({ demoTraffic: { clearanceM: 0, parkingBays: [{ x: -20, y: -20 }] }, demoUnderlift: { docks: [{ entry: { x: 999, y: 999 } }] }, demoIncidents: { enabled: false }, loadCarrier: { lengthM: .5 } })) {
+      const s = snapshot();
+      Object.assign(s.input, { [field]: value });
+      s.inputKey = simInputIdentity(s.input);
+      expect(() => parseSpatialProjectSnapshot(s)).toThrow("без исполнительных настроек");
+    }
+  });
+
   it("preserves intentionally unknown robot characteristics and zero handling time", () => {
     const input = warehouseBaseInput(2);
     input.robots = { ...input.robots, autonomyH: null, chargeMin: null, payloadKg: null, handlingSec: 0 };

@@ -126,6 +126,8 @@ export type RobotSimParams = {
 export type SimInput = {
   /** Зерно генератора mulberry32. «Перезапуск» использует то же зерно. */
   seed: number;
+  /** Versioned transport process. Omitted only in historical inputs. */
+  transportWorkflow?: "closed-pod-1" | "single-leg-pallet-1";
   layout: SimLayoutParams;
   /** Explicit obstacle-aware site; omitted for the unchanged standard warehouse model. */
   siteLayout?: SimLayout;

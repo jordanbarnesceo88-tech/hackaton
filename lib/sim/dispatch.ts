@@ -94,9 +94,10 @@ export function assignTasks(s: SimEngineState, dispatchGate?: SimDispatchGate): 
     const queue = s.dispatchQueue ??= { indices: [], enqueuedThrough: 0 };
     for (let i = queue.enqueuedThrough; i < s.tasks.length; i++) if (s.tasks[i]!.startS === null) queue.indices.push(i);
     queue.enqueuedThrough = s.tasks.length;
+    queue.indices.sort((a, b) => Number(s.tasks[a]!.countsTowardDemand !== false) - Number(s.tasks[b]!.countsTowardDemand !== false) || a - b);
   }
   while (s.head < s.tasks.length && idle.length > 0) {
-    const candidates = policy ? s.dispatchQueue!.indices.slice(0, policy.pendingLookahead) : [s.head];
+    const candidates = policy ? [...s.dispatchQueue!.indices.filter(i => s.tasks[i]!.countsTowardDemand === false), ...s.dispatchQueue!.indices.filter(i => s.tasks[i]!.countsTowardDemand !== false).slice(0, policy.pendingLookahead)] : [s.head];
     let task: SimTask | undefined;
     let selectedQueueIndex = -1;
     let bestIdx = -1;
@@ -114,7 +115,7 @@ export function assignTasks(s: SimEngineState, dispatchGate?: SimDispatchGate): 
     }
     if (bestIdx < 0 || !task) break;
     const robot = idle.splice(bestIdx, 1)[0]!;
-    if (policy) s.dispatchQueue!.indices.splice(selectedQueueIndex, 1);
+    if (policy) s.dispatchQueue!.indices.splice(s.dispatchQueue!.indices.indexOf(candidates[selectedQueueIndex]!), 1);
     s.head++;
     dispatchGate?.onAssigned?.(s, robot, task);
     task.startS = s.tS;

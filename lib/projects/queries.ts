@@ -4,7 +4,7 @@ import { getParamDefinitions, type Db } from "../catalog/queries";
 import { paramSpecsFor } from "../data/organizer/params";
 import { processesForFacility } from "../tz/processes";
 import type { ParamValues, PendingChange, ProjectResults, ScenarioKind, ScenarioSpec } from "../tz/types";
-import { changeFieldLabel, serverAutoFrom, toChangeLogRows } from "./changes";
+import { changeFieldLabel, projectAuditDiff, serverAutoFrom, toChangeLogRows } from "./changes";
 import { resultsFromInputsAsync, type ComputedProject, type LiveInputs } from "./recalc";
 import { checkExecution } from "../sim/cooperative";
 import { checkScenarioSiteLayout, validProjectRevision } from "./validate";
@@ -308,6 +308,18 @@ export async function getProjectChanges(db: Db, projectId: string, userId: strin
   }));
 }
 
+/** A report cannot mix one project's revision with another revision's journal. */
+export async function getOwnedProjectSnapshot(db: PrismaClient, projectId: string, userId: string): Promise<{
+  project: ProjectRecord; changes: ProjectChangeEntry[];
+} | null> {
+  return db.$transaction(async tx => {
+    const project = await getProject(tx, projectId, userId);
+    if (!project) return null;
+    const changes = await getProjectChanges(tx, projectId, userId);
+    return { project, changes: changes ?? [] };
+  }, { isolationLevel: "RepeatableRead" });
+}
+
 // ——————————————————————————— Запись ———————————————————————————
 
 /** Значение для колонки Json: результаты модели и сценарии — обычные JSON-объекты. */
@@ -455,6 +467,10 @@ export async function persistProjectCalculation(
   const results: ProjectResults = JSON.parse(JSON.stringify(computed.results));
   const serverAuto = serverAutoFrom(computed.model, input.live.paramDefs);
   checkExecution({ signal: input.signal });
+  const before = await getProject(tx, projectId, userId);
+  if (!before) throw new ProjectRevisionConflict();
+  const changes = projectAuditDiff(before, { name: input.name ?? before.name,
+    params: results.paramsUsed, scenarios: results.scenarios }, input.changes, input.live.paramDefs);
   const claimed = await tx.project.updateMany({
     where: { id: projectId, userId, revision: input.expectedRevision, isDemo: false },
     data: {
@@ -467,7 +483,11 @@ export async function persistProjectCalculation(
   if (claimed.count !== 1) throw new ProjectRevisionConflict();
   const existing = await tx.scenario.findMany({ where: { projectId }, select: { id: true, key: true, name: true } });
   const byKey = new Map(results.scenarios.map((s) => [s.key, s]));
-  const gone = existing.filter((s) => !byKey.has(s.key)).map((s) => s.id);
+  const removed = existing.filter((s) => !byKey.has(s.key));
+  // The FK cascades from Scenario; detach historical facts before removing that row.
+  for (const row of removed) await tx.changeLog.updateMany({ where: { projectId, scenarioId: row.id },
+    data: { scenarioId: null, entityId: row.key } });
+  const gone = removed.map(s => s.id);
   if (gone.length > 0) await tx.scenario.deleteMany({ where: { id: { in: gone } } });
   // Названия уникальны в проекте: сначала освободить имена сценариев, которые обменялись ими.
   for (const row of existing) {
@@ -486,9 +506,9 @@ export async function persistProjectCalculation(
     });
     idByKey.set(s.key, row.id);
   }
-  if (input.changes.length > 0) {
+  if (changes.length > 0) {
     await tx.changeLog.createMany({
-      data: toChangeLogRows(input.changes, { projectId, userId, scenarioIdByKey: idByKey, serverAuto }),
+      data: toChangeLogRows(changes, { projectId, userId, scenarioIdByKey: idByKey, serverAuto }),
     });
   }
   // An abort observed before commit must roll back the claim, scenario changes and log together.

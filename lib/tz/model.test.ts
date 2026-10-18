@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { paramSpecsFor } from "../data/organizer/params";
 import { defaultScenarios, initialScenarios, shortProductName } from "../projects/defaults";
 import { runProjectSims } from "../projects/recalc";
-import { cycleThroughputPerH, expectedLegsM } from "../sim/analytic";
-import { buildWarehouseLayout } from "../sim/layout";
+import { expectedClosedPodCycleS, expectedClosedPodLegsM } from "../sim/closed-pod-cycle";
+import { buildClosedPodLayout } from "../sim/underlift-layout";
 import { simInputIdentity } from "../sim/identity";
+import { SPATIAL_MODEL_VERSION } from "../sim/spatial-version";
 import { SIM_MODEL_VERSION, type SimSummaryStored } from "../sim/types";
 import { pickRecommended } from "./econ";
 import { FIXTURE_CARRIER_P, FIXTURE_DMR600, FIXTURE_H1500, WAREHOUSE_BASE_PARAMS } from "./econ/fixtures";
@@ -78,7 +79,7 @@ describe("buildProjectModel — базовый склад организатор
   });
 
   it("парк H1500 по формуле ТЗ: ⌈λпик / (цикл × 0,775) × 1,175⌉ по циклу на той же планировке", () => {
-    const layout = buildWarehouseLayout({
+    const { layout, config } = buildClosedPodLayout({
       activeAreaM2: 10_000,
       mainAisleWidthM: 3.5,
       rackAisleWidthM: 2.8,
@@ -86,8 +87,9 @@ describe("buildProjectModel — базовый склад организатор
       shippingDocksCount: 4,
       chargers: 1,
     });
-    const legs = expectedLegsM(layout);
-    const cycle = cycleThroughputPerH({ ...legs, speedMps: 1.5, loadedSpeedFactor: 0.8, handlingSec: 20 });
+    const legs = expectedClosedPodLegsM(layout, config.docks);
+    const cycleS = expectedClosedPodCycleS({ ...legs, speedMps: 1.5, loadedSpeedFactor: 0.8, handlingSec: 20 });
+    const cycle = cycleS === null ? null : 3600 / cycleS;
     expect(cycle).not.toBeNull();
     const peak = (((1000 + 1000 + 0) * (1 - 5 / 100)) / 22) * 1.5;
     const expected = Math.ceil((peak / ((cycle as number) * 0.775 * 1)) * 1.175 - 1e-9);
@@ -98,7 +100,7 @@ describe("buildProjectModel — базовый склад организатор
     expect(item?.thrEff).toBe(cycle);
     expect(item?.peakPerHour).toBeCloseTo(peak, 9);
     expect(item?.n).toBe(expected);
-    expect(item?.n).toBe(11);
+    expect(item?.n).toBe(19);
     expect(item?.routeLoadedM).toBe(legs.loadedM);
     expect(item?.routeEmptyM).toBe(legs.emptyM);
     expect(model.layout?.widthM).toBe(layout.widthM);
@@ -125,18 +127,21 @@ describe("buildProjectModel — базовый склад организатор
     expect(rows.every((r) => !r.manuallyAdded)).toBe(true);
   });
 
-  it("входы имитации: парк по расчёту и по паспортной норме (90 пал./ч → 3 робота)", () => {
+  it("closed-pod имеет один физический вход; fork сохраняет отдельный парк по паспортной норме", () => {
     const p1 = ok(model, "p1");
     const si = model.simInputs.p1;
     expect(si?.calculated?.robots.count).toBe(p1.items[0]?.n);
     expect(si?.calculated?.layout.chargers).toBe(p1.items[0]?.chargers);
     expect(si?.calculated?.demand.peakPerH).toBe(p1.items[0]?.peakPerHour);
-    expect(si?.byNorm?.robots.count).toBe(3);
+    expect(si?.calculated?.transportWorkflow).toBe("closed-pod-1");
+    expect(si?.byNorm).toBeNull();
     expect(si?.assumedUtilPct).toBe(77.5);
     expect(model.simInputs.asis).toEqual({ calculated: null, byNorm: null, assumedUtilPct: null, provenance: null });
     expect(si?.provenance?.some((r) => r.field === "param:activeAreaM2")).toBe(true);
     // Carrier P — вилочный: цикл с временем захвата 45 с, норма 50 пал./ч.
     expect(model.simInputs.p2?.calculated?.robots.handlingSec).toBe(NORMS.handlingSecFork);
+    expect(model.simInputs.p2?.calculated?.transportWorkflow).toBe("single-leg-pallet-1");
+    expect(model.simInputs.p2?.byNorm?.robots.count).toBe(4);
   });
 
   it("снимки — только продукты сценариев; версия данных стабильна и зависит от данных", () => {
@@ -180,12 +185,12 @@ describe("buildProjectModel — ошибки и имитация", () => {
   });
 
   const simOf = (patch: Partial<SimSummaryStored>): SimSummaryStored => {
-    const item = ok(model, "p1").items[0];
+    const item = ok(model, "p2").items[0];
     return {
       simModelVersion: SIM_MODEL_VERSION,
-      inputKey: simInputIdentity(model.simInputs.p1!.calculated!),
+      inputKey: simInputIdentity(model.simInputs.p2!.calculated!),
       seed: 1,
-      scenarioKey: "p1",
+      scenarioKey: "p2",
       fleet: item?.n ?? 0,
       requiredPerH: item?.peakPerHour ?? 0,
       achievedPerH: 54,
@@ -209,8 +214,8 @@ describe("buildProjectModel — ошибки и имитация", () => {
   };
 
   it("имитация не подтвердила расчёт → риск SIM_NOT_CONFIRMED (высокий) с числами", () => {
-    const m = buildProjectModel(input({ sims: { p1: simOf({}) } }));
-    const risk = ok(m, "p1").risks.find((r) => r.code === "SIM_NOT_CONFIRMED");
+    const m = buildProjectModel(input({ sims: { p2: simOf({}) } }));
+    const risk = ok(m, "p2").risks.find((r) => r.code === "SIM_NOT_CONFIRMED");
     expect(risk?.severity).toBe("high");
     expect(risk?.text).toBe(
       "Имитация не подтвердила расчёт: достигнуто 54 из 129,5 пал./ч; узкое место — парк роботов; " +
@@ -221,21 +226,33 @@ describe("buildProjectModel — ошибки и имитация", () => {
 
   it("избыточный парк → SIM_OVERSIZED (низкий); устаревшая сводка рисков не даёт", () => {
     const m = buildProjectModel(
-      input({ sims: { p1: simOf({ verdict: "CONFIRMED", bottleneck: "none", oversized: true, idlePct: 45 }) } }),
+      input({ sims: { p2: simOf({ verdict: "CONFIRMED", bottleneck: "none", oversized: true, idlePct: 45 }) } }),
     );
-    const risk = ok(m, "p1").risks.find((r) => r.code === "SIM_OVERSIZED");
+    const risk = ok(m, "p2").risks.find((r) => r.code === "SIM_OVERSIZED");
     expect(risk?.severity).toBe("low");
     expect(risk?.text).toMatch(/простой 45 %/);
-    const stale = buildProjectModel(input({ sims: { p1: simOf({ fleet: 7 }) } }));
-    expect(ok(stale, "p1").risks.some((r) => r.code.startsWith("SIM_"))).toBe(false);
+    const stale = buildProjectModel(input({ sims: { p2: simOf({ fleet: 7 }) } }));
+    expect(ok(stale, "p2").risks.some((r) => r.code.startsWith("SIM_"))).toBe(false);
   });
 
   it("сводка с теми же N и потоком не переносится на другую автономность", () => {
     const changed = buildProjectModel(input({
-      products: [{ ...FIXTURE_H1500, autonomyH: 0.2, chargeMin: 240 }, FIXTURE_CARRIER_P, FIXTURE_DMR600],
-      sims: { p1: simOf({}) },
+      products: [FIXTURE_H1500, { ...FIXTURE_CARRIER_P, autonomyH: 0.2, chargeMin: 240 }, FIXTURE_DMR600],
+      sims: { p2: simOf({}) },
     }));
-    expect(ok(changed, "p1").risks.some((r) => r.code.startsWith("SIM_"))).toBe(false);
+    expect(ok(changed, "p2").risks.some((r) => r.code.startsWith("SIM_"))).toBe(false);
+  });
+
+  it("closed-pod сохраняет сигнал избыточности только от текущей физической сводки", () => {
+    const expected = model.simInputs.p1!.calculated!;
+    const summary = simOf({ simModelVersion: SPATIAL_MODEL_VERSION, inputKey: simInputIdentity(expected),
+      scenarioKey: "p1", seed: expected.seed, fleet: expected.robots.count, requiredPerH: expected.demand.peakPerH,
+      verdict: "CONFIRMED", bottleneck: "none", oversized: true, idlePct: 45, minStableFleet: null,
+      fleetByNorm: null, verdictByNorm: null });
+    const current = buildProjectModel(input({ sims: { p1: summary } }));
+    expect(ok(current, "p1").risks.find(r => r.code === "SIM_OVERSIZED")).toMatchObject({ severity: "low" });
+    const obsolete2D = buildProjectModel(input({ sims: { p1: { ...summary, simModelVersion: SIM_MODEL_VERSION } } }));
+    expect(ok(obsolete2D, "p1").risks.some(r => r.code.startsWith("SIM_"))).toBe(false);
   });
 
   it("ручная выработка остаётся экономической оценкой без ложного подтверждения симулятором", () => {
@@ -303,7 +320,8 @@ describe("buildProjectModel — решение, исключённое подб�
     // Без защиты вывод выбрал бы именно его.
     expect(pickRecommended(m.results)?.key).toBe("p3");
     expect(m.conclusion.recommendedScenarioKey).not.toBe("p3");
-    expect(m.conclusion.recommendedScenarioKey).toBe("r1");
+    expect(pickRecommended(m.results.filter(r => r.key !== "p3"))).toBeNull();
+    expect(m.conclusion.recommendedScenarioKey).toBeNull();
     expect(m.conclusion.bullets[0]).toMatch(/^«Покупка — DMR 600» не рекомендуется: подбор исключил решение \(DMR 600 — грузоподъёмность 600 кг < масса груза 800 кг\)/);
   });
 
@@ -396,7 +414,9 @@ describe("прогоны имитации проекта", () => {
   it("общий бюджет подбора минимального парка исчерпан — подбор пропускается, вердикты есть", () => {
     const sims = runProjectSims(model, { now: () => 0, projectBudgetMs: 0 });
     expect(sims.asis).toBeNull();
-    for (const k of ["p1", "r1", "p2"]) {
+    expect(sims.p1).toBeNull();
+    expect(sims.r1).toBeNull();
+    for (const k of ["p2"]) {
       expect(sims[k]?.verdict).toMatch(/CONFIRMED|NOT_CONFIRMED/);
       expect(sims[k]?.minStableFleet).toBeNull();
     }

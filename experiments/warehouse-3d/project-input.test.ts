@@ -15,16 +15,22 @@ function fixture() {
 }
 
 describe("project spatial preview", () => {
-  it("keeps exact project parameters and source identity without catalog or complex-demo defaults", () => {
+  it("keeps project parameters and source identity while declaring its generated mobile-shelf layout", () => {
     const snapshot = fixture(), before = structuredClone(snapshot), sourceLayout = createSim(snapshot.input).layout;
     const model = calculateProjectPreview(snapshot);
     expect(snapshot).toEqual(before);
     expect(model.id).toBe("project"); expect(model.input.seed).toBe(19);
     expect(model.input.robots).toEqual(snapshot.input.robots); expect(model.input.demand).toEqual(snapshot.input.demand);
     expect(model.input.layout).toEqual(snapshot.input.layout);
-    expect(model.layout.slots).toEqual(sourceLayout.slots); expect(model.layout.receiving).toEqual(sourceLayout.receiving);
+    expect(model.layout.slots.length).toBeGreaterThan(0);
+    expect(model.layout.slots.length).toBeLessThanOrEqual(4096);
+    expect(model.layout.slots.length).toBeGreaterThan(sourceLayout.slots.length);
+    expect(model.layout.obstacles?.some(obstacle => obstacle.kind === "rack")).toBe(false);
+    expect(model.assumptions.some(note => note.includes(`${model.layout.slots.length} местами мобильных стеллажей`))).toBe(true);
+    expect(model.layout.receiving).toEqual(sourceLayout.receiving);
     expect([model.layout.widthM, model.layout.heightM]).toEqual([sourceLayout.widthM, sourceLayout.heightM]);
     expect(model.projectOrigin?.sourceInputKey).toBe(snapshot.inputKey);
+    expect(model.projectOrigin?.sourceInput).toEqual(snapshot.input);
     expect(model.projectOrigin?.executionInputKey).toBe(simInputIdentity(model.input));
     expect(model.projectOrigin?.executionInputKey).not.toBe(snapshot.inputKey);
     expect(model.summary.scenarioKey).toBe(snapshot.scenarioKey); expect(model.finance).toBeNull();

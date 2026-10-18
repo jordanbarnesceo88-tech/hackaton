@@ -3,7 +3,6 @@
 import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createSim, isDone } from "@/lib/sim/engine";
-import { buildWarehouseLayout } from "@/lib/sim/layout";
 import { simWasRun, summarize, type SimRunSummary } from "@/lib/sim/metrics";
 import type { SimEngineState } from "@/lib/sim/state";
 import { formatNum } from "@/lib/format/rub";
@@ -15,39 +14,26 @@ import { canvasAriaLabel, statusText, storedCheck, withFinalVerdict, type RunSta
 import { DEFAULT_SPEED } from "./playback";
 import { isAbortError, runHeadless } from "./run-headless";
 import { SimIsoScene } from "./sim-iso-scene";
-import { SimControls, type AcceptFleetControl } from "./sim-controls";
+import { SimControls } from "./sim-controls";
 import { SimKpis } from "./sim-kpis";
 import { SimLegend } from "./sim-legend";
 import { useReducedMotion } from "./use-reduced-motion";
 import { SpatialPreview, type SpatialFinancialAssumptions } from "./spatial-preview";
 import type { SpatialProjectSnapshot, SpatialProjectResult } from "@/lib/sim/spatial-bridge";
 import type { SpatialScenarioProposal } from "@/lib/sim/spatial-proposal";
+import type { SpatialEvidence } from "@/lib/tz/types";
+import { spatialEvidenceMatchesInput } from "@/lib/sim/spatial-evidence";
+import { simSummaryMatchesInput } from "@/lib/sim/identity";
 import {
   optionValue,
   resolveSelection,
   simOptions,
-  variantFleet,
   withFleetFacts,
   type SimScenario,
   type SimVariantId,
 } from "./variants";
 
-/**
- * Имитация работы склада (ТЗ §3.6): схема с зонами, проездами, воротами, зарядкой и роботами;
- * старт, стоп, перезапуск, скорость и выбор сценария (§3.6.3); показатели и вердикт
- * «расчёт подтверждён / не подтверждён» (§2.1.4, §3.6.2); выгрузка PNG (§3.7.4); видимый статус
- * прогона (§4.3.3).
- *
- * Как устроено:
- * - при монтировании и при каждой смене входа (по значению) выполняется прогон без анимации — по
- *   частям, с отменой и прогрессом; по его итогу показываются последний кадр, вердикт и
- *   показатели. Само ничего не проигрывается: движение начинается только по «▶ Старт»;
- * - проигрывание — отдельный прогон с тем же зерном, который цикл кадров двигает на
- *   speed × длительность кадра шагов. Движок детерминирован, поэтому проигрывание приходит
- *   к тому же итогу, что и прогон без анимации;
- * - состояние React меняется только в обработчиках событий и в колбэках промисов и кадров, не в
- *   теле эффектов (правила react-hooks v7).
- */
+/** Each transport workflow uses its own server receipt; playback mounts only on explicit open. */
 
 /** Шаг прогресса в строке состояния, %: чаще обновлять aria-live незачем — скринридер зачитывает каждое. */
 const PROGRESS_STEP_PCT = 5;
@@ -62,13 +48,7 @@ export type WarehouseSimulationProps = {
   readOnly?: boolean;
   /** The form has edits not represented by the calculated simulation input. Unsaved calculated data is valid. */
   stale?: boolean;
-  /**
-   * Итог прогона парка по расчёту сценария — для строки «Имитация» в таблице сценариев.
-   * Варианты «минимальный» и «по норме» сюда не сообщаются: у них другой парк.
-   */
-  onSummary?: (key: string, summary: SimRunSummary) => void;
-  /** «Принять парк по имитации»: записать в сценарий ручной парк M (владелец пишет журнал). */
-  onAcceptFleet?: (key: string, n: number) => void;
+  spatialEvidenceByKey?: Record<string, SpatialEvidence | undefined>;
   onSpatialResult?: (snapshot: SpatialProjectSnapshot, result: SpatialProjectResult) => void;
   onSpatialScenario?: (proposal: SpatialScenarioProposal, assumptions: SpatialFinancialAssumptions) => void;
   onScenarioSelect?: (key: string) => void;
@@ -104,15 +84,81 @@ function errorText(e: unknown): string {
 }
 
 export function WarehouseSimulation({
+  scenarios, initialKey, selectedScenarioKey, spatialEvidenceByKey = {}, stale = false, readOnly = false,
+  onSpatialResult, onSpatialScenario, onScenarioSelect, nowFn, headingAs = "h2",
+}: WarehouseSimulationProps) {
+  const selectId = useId();
+  const [picked, setPicked] = useState<string | null>(null);
+  const [analyticalOpen, setAnalyticalOpen] = useState(false);
+  const scenario = scenarios.find(s => s.key === (selectedScenarioKey ?? picked ?? initialKey)) ?? scenarios[0];
+  const variant = scenario?.variants.find(v => v.id === "calculated");
+  const input = variant?.input;
+  const evidence = scenario ? spatialEvidenceByKey[scenario.key] : undefined;
+  const spatial = input?.transportWorkflow === "closed-pod-1";
+  const fresh = spatial && !stale && spatialEvidenceMatchesInput(evidence, input);
+  const analytical = !spatial && !stale && scenario?.stored?.scenarioKey === scenario?.key && simSummaryMatchesInput(scenario?.stored, input) ? scenario.stored : null;
+  const measured = fresh && evidence.assessment.status !== "NOT_EVALUATED";
+  const status = stale ? "stale" : spatial ? fresh ? evidence.assessment.status : evidence ? "stale" : "missing"
+    : analytical ? analytical.verdict : scenario?.stored ? "stale" : "missing";
+  return <Card data-validation-kind={spatial ? "spatial" : input ? "analytical" : "unsupported"}
+    data-spatial-receipt={spatial ? status : undefined} data-analytical-receipt={!spatial && input ? status : undefined}>
+    <CardHeader>
+      <CardTitle as={headingAs}>{spatial ? "Проверка работы склада в 3D" : input ? "Аналитическая проверка транспортного процесса" : "Проверка нагрузки"}</CardTitle>
+      <CardDescription>{spatial ? "Проверяем выбранный состав на исходной нагрузке: движение, подхват стеллажей, возвраты, зарядку и защитные остановки."
+        : input ? "Проверяем одиночную перевозку: задания, ожидание, работу точек и зарядку. Пространственная безопасность и подхват стеллажа этой моделью не проверяются."
+        : "Доступность имитации зависит от выбранного процесса и исходных данных."}</CardDescription>
+    </CardHeader>
+    <CardContent className="grid min-w-0 gap-4">
+      <div className="grid gap-1">
+        <label htmlFor={selectId} className="text-sm font-medium">Сценарий</label>
+        <select id={selectId} className="field max-w-xl" value={scenario?.key ?? ""} disabled={!scenarios.length}
+          onChange={event => { setPicked(event.target.value); onScenarioSelect?.(event.target.value); }}>
+          {!scenarios.length && <option value="">Нет сценария для проверки</option>}
+          {scenarios.map(s => <option key={s.key} value={s.key} disabled={!s.variants.some(v => v.id === "calculated" && v.input)}>{s.name}</option>)}
+        </select>
+      </div>
+      <div role="status" aria-live="polite" className="grid gap-2 text-sm">
+        <p className="font-medium">{stale ? "Условия изменены. Пересчитайте сценарий для актуальной проверки."
+          : fresh ? evidence.assessment.headline
+          : analytical ? analytical.verdict === "CONFIRMED" ? "Серверная аналитическая 2D-модель: критерии текущего входа выполнены."
+            : analytical.verdict === "NOT_CONFIRMED" ? "Серверная аналитическая 2D-модель не подтвердила заданную нагрузку."
+            : "Серверная аналитическая 2D-модель не поддерживает этот вход."
+          : input ? spatial ? "Актуальная пространственная проверка этого входа отсутствует. Выполните расчёт сценария."
+            : "Актуальная серверная 2D-сводка этого входа отсутствует. Пересчитайте сценарий."
+          : scenario?.unavailableReason ?? "Выберите сценарий роботизации с данными для поддерживаемой проверки нагрузки."}</p>
+        {measured && <dl className="grid gap-x-5 gap-y-3 border-y border-border py-3 tabular-nums sm:grid-cols-3" aria-label="Результат пространственной проверки">
+          <div><dt className="text-xs text-muted-foreground">Доставлено / требуется</dt><dd className="m-0 font-semibold">{formatNum(evidence.summary.achievedPerH, 1)} / {formatNum(evidence.summary.requiredPerH, 1)} пал./ч</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Ещё не начата обработка</dt><dd className="m-0 font-semibold">{formatNum(evidence.summary.queueEnd)} заявок</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Ожидание до начала обработки p95</dt><dd className="m-0 font-semibold">{formatNum(evidence.summary.waitP95Min, 1)} мин</dd></div>
+        </dl>}
+        {analytical && simWasRun(analytical) && <dl className="grid gap-x-5 gap-y-3 border-y border-border py-3 tabular-nums sm:grid-cols-3" aria-label="Результат аналитической проверки">
+          <div><dt className="text-xs text-muted-foreground">Достигнуто / требуется</dt><dd className="m-0 font-semibold">{formatNum(analytical.achievedPerH, 1)} / {formatNum(analytical.requiredPerH, 1)} пал./ч</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Максимальная очередь заданий</dt><dd className="m-0 font-semibold">{formatNum(analytical.queueMax)} заявок</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Ожидание назначения p95</dt><dd className="m-0 font-semibold">{formatNum(analytical.waitP95Min, 1)} мин</dd></div>
+        </dl>}
+      </div>
+      {input && <p className="text-xs text-muted-foreground">Парк: {input.robots.count} · зарядок: {input.layout.chargers}. Окно: {formatNum(input.demand.peakMin)} мин после {formatNum(input.demand.warmupMin)} мин прогрева; seed {input.seed}.{fresh ? ` Модель ${evidence.simModelVersion}.` : analytical ? ` Модель ${analytical.simModelVersion}.` : ""} {spatial ? "Начало обработки включает подачу носителя для конкретной заявки; завершённые доставки учитываются отдельно." : "Результат относится к аналитическому циклу одиночной перевозки выбранного транспортного процесса."}</p>}
+      {spatial && <SpatialPreview stale={stale} readOnly={readOnly} onResult={onSpatialResult} onCreateScenario={onSpatialScenario}
+        selection={scenario && variant && input ? { scenarioKey: scenario.key, scenarioName: scenario.name, variantId: "calculated", input,
+          ...(variant.provenance ? { provenance: variant.provenance } : {}),
+          ...(scenario.assumedUtilPct === undefined ? {} : { assumedUtilPct: scenario.assumedUtilPct }) } : null} />}
+      {input && <details className="min-w-0 border-t border-border pt-3" open={analyticalOpen}
+        onToggle={event => setAnalyticalOpen(event.currentTarget.open)}>
+        <summary className="tap-target cursor-pointer text-sm font-medium">Упрощённая аналитическая проверка</summary>
+        <p className="mt-2 text-xs text-muted-foreground">{input?.transportWorkflow === "closed-pod-1"
+          ? "Однорейсовая 2D-модель не учитывает обязательную подачу и возврат стеллажей. Для этого процесса используется пространственная проверка выше."
+          : "Схема и локальное воспроизведение аналитического цикла. Серверный результат текущих условий показан выше; просмотр других парков не изменяет сценарий и его подтверждение."}</p>
+        {analyticalOpen && !spatial && <div className="mt-3"><AnalyticalWarehouseSimulation scenarios={scenarios.filter(s => s.variants.some(v => v.input && v.input.transportWorkflow !== "closed-pod-1")).map(s => ({ ...s, variants: s.variants.filter(v => v.input?.transportWorkflow !== "closed-pod-1") }))} initialKey={scenario?.key ?? initialKey}
+          selectedScenarioKey={scenario?.key} stale={stale} readOnly onScenarioSelect={onScenarioSelect} nowFn={nowFn} headingAs="h3" /></div>}
+      </details>}
+    </CardContent>
+  </Card>;
+}
+
+function AnalyticalWarehouseSimulation({
   scenarios,
   initialKey,
   selectedScenarioKey,
-  readOnly = false,
-  stale = false,
-  onSummary,
-  onAcceptFleet,
-  onSpatialResult,
-  onSpatialScenario,
   onScenarioSelect,
   nowFn,
   headingAs = "h2",
@@ -132,23 +178,17 @@ export function WarehouseSimulation({
   const assumedUtilPct = scenario?.assumedUtilPct ?? scenario?.stored?.assumedUtilPct;
 
   // Вход сравнивается по значению, а не по ссылке (см. input-key.ts): владелец может собирать
-  // сценарии заново на каждой отрисовке и обновлять своё состояние в onSummary — ключ по ссылке
+  // сценарии заново на каждой отрисовке — ключ по ссылке
   // зациклил бы прогон. Все записи ниже помечены этим ключом.
-  const inputKey = variant?.input ? simInputKey(variant.input) : null;
-  const input = useMemo(() => (inputKey ? parseSimInputKey(inputKey) : null), [inputKey]);
+  const input = variant?.input ?? null;
+  const inputKey = input ? simInputKey(input) : null;
 
   const options = useMemo(() => simOptions(scenarios), [scenarios]);
-  const layout = useMemo(() => (input ? input.siteLayout ?? buildWarehouseLayout(input.layout) : null), [input]);
 
   // ——— Прогон без анимации ———
   const [run, setRun] = useState<RunRecord | null>(null);
   const [progress, setProgress] = useState<{ key: string; pct: number } | null>(null);
   const clockNow = useEffectEvent(() => (nowFn ?? defaultNow)());
-  const reportDone = useEffectEvent((summary: SimRunSummary) => {
-    if (onSummary && scenario && variantId === "calculated") {
-      onSummary(scenario.key, withFleetFacts(summary, scenario, "calculated"));
-    }
-  });
 
   useEffect(() => {
     if (!inputKey) return;
@@ -171,7 +211,6 @@ export function WarehouseSimulation({
       .then((res) => {
         if (ac.signal.aborted) return;
         setRun({ key: inputKey, ok: true, ...res });
-        reportDone(res.summary);
       })
       .catch((e: unknown) => {
         if (ac.signal.aborted || isAbortError(e)) return;
@@ -182,6 +221,7 @@ export function WarehouseSimulation({
 
   const current = run && inputKey !== null && run.key === inputKey ? run : null;
   const done = current?.ok ? current : null;
+  const layout = done?.state.layout ?? null;
   const failed = current && !current.ok ? current : null;
   const pct = progress && progress.key === inputKey ? progress.pct : 0;
 
@@ -200,7 +240,7 @@ export function WarehouseSimulation({
   function startFresh(autoplay: boolean) {
     if (!input || !inputKey) return;
     tokenRef.current += 1;
-    const st = createSim(input);
+    const st = createSim(parseSimInputKey(inputKey));
     playRef.current = st;
     // Показатели сразу по кадру 00:00, а не итог полного прогона рядом с часами «00:00»: при
     // «уменьшении движения» перезапуск не проигрывает, и кадр до первого тика остаётся на экране.
@@ -281,27 +321,6 @@ export function WarehouseSimulation({
         ? { kind: "done", durationMs: done.durationMs, seed: input.seed, modelVersion: done.summary.simModelVersion }
         : { kind: "running", pct };
 
-  // ——— «Принять парк по имитации» ———
-  // Прогон отклонён предварительной проверкой (робот не поднимает груз) — число роботов не
-  // помогает, предлагать парк нечего.
-  const m = finalSummary && simWasRun(finalSummary) ? finalSummary.minStableFleet : null;
-  const calcFleet = scenario ? variantFleet(scenario, "calculated") : null;
-  const accept: AcceptFleetControl | null =
-    !readOnly && onAcceptFleet && scenario && m !== null
-      ? {
-          fleet: m,
-          disabled: calcFleet === m,
-          hint:
-            calcFleet === m
-              ? `Парк сценария уже равен минимальному устойчивому парку (${m}).`
-              : `Парк сценария «${scenario.name}» станет ${m} вместо ${calcFleet ?? "—"}; изменение попадёт в журнал корректировок.`,
-        }
-      : null;
-
-  function handleAccept() {
-    if (scenario && m !== null && onAcceptFleet) onAcceptFleet(scenario.key, m);
-  }
-
   // ——— PNG ———
   const [png, setPng] = useState<{ busy: boolean; message: string | null }>({ busy: false, message: null });
 
@@ -334,10 +353,9 @@ export function WarehouseSimulation({
   return (
     <Card>
       <CardHeader>
-        <CardTitle as={headingAs}>Имитация работы склада</CardTitle>
+        <CardTitle as={headingAs}>Упрощённая аналитическая проверка</CardTitle>
         <CardDescription>
-          Проверка расчёта имитацией: тот же парк, та же планировка и тот же пиковый поток, что в экономике.
-          Схема показывает итог прогона; движение — только по кнопке «▶ Старт».
+          Локальное воспроизведение одиночной перевозки на исходной планировке. Серверная сводка показана выше; этот просмотр не подтверждает подхват стеллажа или пространственную безопасность.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -358,22 +376,8 @@ export function WarehouseSimulation({
           canExport={done !== null}
           exporting={png.busy}
           onPng={handlePng}
-          accept={accept}
-          onAccept={handleAccept}
-        />
-        <SpatialPreview
-          stale={stale}
-          readOnly={readOnly}
-          onResult={onSpatialResult}
-          onCreateScenario={onSpatialScenario}
-          selection={scenario && variant && input ? {
-            scenarioKey: scenario.key,
-            scenarioName: scenario.name,
-            variantId: variant.id,
-            input,
-            ...(variant.provenance ? { provenance: variant.provenance } : {}),
-            ...(assumedUtilPct === undefined ? {} : { assumedUtilPct }),
-          } : null}
+          accept={null}
+          onAccept={() => undefined}
         />
         {input && (
           <p className="text-xs text-muted-foreground">
@@ -414,7 +418,7 @@ export function WarehouseSimulation({
               />
             ) : (
               <div className="rounded-md border p-6 text-sm text-muted-foreground">
-                Выберите сценарий роботизации: для «Как есть» роботов нет — имитировать нечего.
+                {input ? "Схема появится после завершения аналитического прогона." : "Выберите сценарий роботизации: для «Как есть» роботов нет — имитировать нечего."}
               </div>
             )}
             <SimLegend />

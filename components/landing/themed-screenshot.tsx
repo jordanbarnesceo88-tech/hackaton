@@ -31,8 +31,8 @@ export function ThemedScreenshot({
   );
   return (
     <>
-      <Image src={light} alt={alt} sizes={sizes} fetchPriority={fetchPriority} className={cn(frame, "dark:hidden")} />
-      <Image src={dark} alt={alt} sizes={sizes} fetchPriority={fetchPriority} className={cn(frame, "hidden dark:block")} />
+      <Image unoptimized src={light} alt={alt} sizes={sizes} fetchPriority={fetchPriority} className={cn(frame, "dark:hidden")} />
+      <Image unoptimized src={dark} alt={alt} sizes={sizes} fetchPriority={fetchPriority} className={cn(frame, "hidden dark:block")} />
     </>
   );
 }

@@ -55,6 +55,7 @@ export type ToSimInputArgs = {
   /** Ручная выработка требует отдельной калибровки физических времён модели. */
   throughputPerHOverride?: number | null;
   siteLayout?: SimLayout;
+  transportWorkflow?: SimInput["transportWorkflow"];
 };
 
 /**
@@ -287,6 +288,7 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
 
   const input: SimInput = {
     seed,
+    ...(args.transportWorkflow ? { transportWorkflow: args.transportWorkflow } : {}),
     layout: {
       activeAreaM2: area!,
       mainAisleWidthM: mainAisle!,
@@ -322,6 +324,8 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
   }
 
   const provenance: SimProvenance[] = [];
+  if (args.transportWorkflow === "closed-pod-1") provenance.push({ field: "calc:transportWorkflow", label: "Цикл подстеллажной перевозки", value: "closed-pod-1", unit: null, origin: "choice",
+    note: "Один клиентский заказ: перевозка и обязательная подача/возврат того же стеллажа. Два физических рейса, два подхвата и две постановки; минимум 6 с на обслуживание, медленный обратный выезд может увеличить время постановки. Исходный спрос остаётся в паллетах. Порожнее перемещение — аналитическое ожидание независимых точек, фактические потери проверяются в 3D." });
   if (args.siteLayout) provenance.push({ field: "scenario:siteLayout", label: "Явная планировка сценария", value: "Общий план для цикла, имитации и экономики", unit: null, origin: "user", note: "Площадь, ворота, зарядки и граф маршрутов проверены; типовая планировка не подставлялась" });
 
   for (const key of Object.keys(PARAM_FIELDS) as ParamField[]) {

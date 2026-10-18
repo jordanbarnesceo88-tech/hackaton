@@ -171,13 +171,18 @@ export default async function MethodologyPage() {
       <div className="flex flex-col gap-3">
         <h1>Откуда цифры</h1>
         <p className="text-muted-foreground">
-          Здесь собраны все утверждения, из которых складывается расчёт: что считает модель, откуда
-          взяты внешние данные и чем мы не даём себе соврать.
+          Текущий проект связывает параметры, экономику, проверку работы и источники. Ниже отдельно сохранены справочные показатели и источники прежней модели v1.
         </p>
       </div>
 
+      <section className="flex flex-col gap-4">
+        <h2>Методика текущего проекта</h2>
+        <p className="text-sm text-muted-foreground">Положительный NPV не подтверждает выполнение нагрузки. Проверка относится к указанному парку, входам, типу перевозки и версии модели. Для поддомкрачивающих роботов проверяется полный цикл мобильного стеллажа; одиночная перевозка паллеты вилочным роботом или тягачом — отдельный процесс. Входы, формулы, нормативы, ограничения и правила серверного пересчёта собраны в действующей методике.</p>
+        <Link href="/methodology/tz" className="tap-target w-fit text-primary underline underline-offset-4">Открыть текущую методику, формулы и источники →</Link>
+      </section>
+
       <section className="flex flex-col gap-5">
-        <h2>Что означает каждый показатель</h2>
+        <h2>Справочные показатели прежней модели v1</h2>
         {ORDER.map((key) => (
           <div key={key} className="flex flex-col gap-1">
             <h3>{LABELS[key]}</h3>
@@ -185,16 +190,15 @@ export default async function MethodologyPage() {
           </div>
         ))}
         <p className="text-sm text-muted-foreground">
-          Те же объяснения доступны прямо в расчёте — у каждого числа, по кнопке рядом с ним.
+          Эти объяснения относятся к исторической упрощённой модели. Текущий проект раскрывает свои формулы рядом с показателями и в действующей методике.
         </p>
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2>Внешние источники</h2>
+        <h2>Источники справочных решений v1</h2>
         <p className="text-sm text-muted-foreground">
           Цена и производительность — разные утверждения, поэтому у класса решений два источника,
-          и они проверяются по отдельности. Список строится из тех же данных, на которых
-          считает платформа, поэтому разойтись с ними не может.
+          и они проверяются по отдельности. Этот список относится к справочным решениям прежней модели; источники текущего проекта показаны в его характеристиках и методике.
         </p>
         <p className="text-sm text-muted-foreground">
           Ниже — результат проверки свежести. Возраст каждой цитаты и порог посчитаны при
@@ -268,8 +272,8 @@ export default async function MethodologyPage() {
         <Link href="/demo" className="tap-target font-medium underline underline-offset-4">
           Проверить свой объект →
         </Link>
-        <Link href="/onboarding" className="tap-target font-medium underline underline-offset-4">
-          Упрощённый расчёт v1 →
+        <Link href="/projects/new" className="tap-target font-medium underline underline-offset-4">
+          Создать проект с текущей моделью →
         </Link>
       </footer>
     </div>

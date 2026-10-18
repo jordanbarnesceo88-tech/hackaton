@@ -46,8 +46,7 @@ export default async function ReportPage({
           был бы документ с числами, которых вы не вводили.
         </p>
         <p className="text-muted-foreground">
-          Откройте расчёт заново и сохраните его ещё раз — данные решения при этом
-          пересчитаются по актуальной модели.
+          Историческая запись сохранена без изменений. Для новой оценки создайте проект в текущей модели; данные старого отчёта не восстанавливаются подстановкой значений.
         </p>
       </div>
     );
@@ -75,6 +74,7 @@ export default async function ReportPage({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
+      <p className="mb-4 rounded border border-border p-3 text-sm" data-legacy-report>Архив входов v1 · просмотр без сохранения. Показатели повторно рассчитаны по текущим данным прежней модели и могут отличаться от сохранённых. Это не пространственная проверка текущей модели и не неизменяемый снимок прежних чисел.</p>
       <div className="no-print mb-4 flex justify-end">
         <PrintButton />
       </div>

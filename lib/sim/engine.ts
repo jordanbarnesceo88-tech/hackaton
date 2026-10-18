@@ -1,3 +1,4 @@
+import { customerQueueLength, customerWorkStarts } from "./customer-work";
 import { assignTasks, setPath, type SimDispatchGate } from "./dispatch";
 import { buildWarehouseLayout } from "./layout";
 import { bernoulliArrivals, createRng, nextRandom } from "./rng";
@@ -11,6 +12,7 @@ import type { SimInput } from "./types";
 export type SimMovementGate = (state: SimEngineState, robot: SimRobot, nextDistM: number) => boolean | number;
 /** Optional demo fault gate: a held robot neither moves nor completes handling/charging. */
 export type SimRobotStepGate = (state: SimEngineState, robot: SimRobot) => boolean;
+export type SimHandlingGate = (state: SimEngineState, robot: SimRobot, dtS: number) => boolean;
 
 /**
  * Движок имитации склада: дискретное время с шагом 1 с, детерминированный (ТЗ §2.1.4 —
@@ -215,11 +217,12 @@ function addTask(s: SimEngineState, rand: () => number, t: number, inWin: boolea
   const slot = slots[Math.floor(rand() * slots.length)]!;
   const dockDraw = rand();
   let task: SimTask;
+  const taskId = s.nextDemandTaskId === undefined ? s.tasks.length : s.nextDemandTaskId++;
   if (inbound) {
     const di = Math.floor(dockDraw * receiving.length);
     const dock = s.points[di]!;
     task = {
-      id: s.tasks.length,
+      id: taskId,
       kind: "inbound",
       fromPoint: di,
       fromX: dock.x,
@@ -235,7 +238,7 @@ function addTask(s: SimEngineState, rand: () => number, t: number, inWin: boolea
     const di = receiving.length + Math.floor(dockDraw * shipping.length);
     const dock = s.points[di]!;
     task = {
-      id: s.tasks.length,
+      id: taskId,
       kind: "outbound",
       fromPoint: -1,
       fromX: slot.x,
@@ -316,28 +319,31 @@ function releasePoint(s: SimEngineState, r: SimRobot): void {
 }
 
 /** Шаг погрузки или выгрузки. */
-function handle(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean): void {
+function handle(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean, handlingGate?: SimHandlingGate): boolean {
+  if (handlingGate && !handlingGate(s, r, dt)) return false;
   r.timerS -= dt;
   if (inWin && r.pointIdx >= 0) s.points[r.pointIdx]!.busyS += dt;
-  if (r.timerS > TIMER_EPS) return;
+  if (r.timerS > TIMER_EPS) return true;
   const task = r.task!;
   releasePoint(s, r);
   if (r.phase === "loading") {
     r.loaded = true;
     r.phase = "toDrop";
     setPath(s, r, task.toX, task.toY);
-    return;
+    return true;
   }
   r.loaded = false;
   task.doneS = s.tS + dt;
-  s.doneCount++;
-  if (inWin) {
+  if (s.physicalDoneCount !== undefined) s.physicalDoneCount++;
+  if (task.countsTowardDemand !== false) s.doneCount++;
+  if (inWin && task.countsTowardDemand !== false) {
     s.acc.doneInPeak++;
     const b = bucketOf(s, s.tS);
     if (b < s.acc.bucketDone.length) s.acc.bucketDone[b]! += 1;
   }
   r.task = null;
   r.phase = "idle";
+  return true;
 }
 
 /** Шаг зарядки: заряд растёт линейно, полный заряд 0 → 100 % занимает `chargeMin` минут. */
@@ -355,7 +361,7 @@ function charge(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean): voi
 /** Вид времени робота за шаг — для разложения времени парка. */
 type TimeKind = "loaded" | "empty" | "handling" | "waitPoint" | "charging" | "idle";
 
-function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean, movementGate?: SimMovementGate): void {
+function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean, movementGate?: SimMovementGate, handlingGate?: SimHandlingGate): void {
   const rb = s.input.robots;
   const acc = s.acc;
 
@@ -393,8 +399,7 @@ function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean, m
         p.holder = r.id;
         r.phase = r.loaded ? "unloading" : "loading";
         r.timerS = rb.handlingSec;
-        handle(s, r, dt, inWin);
-        kind = "handling";
+        kind = handle(s, r, dt, inWin, handlingGate) ? "handling" : "waitPoint";
       } else {
         kind = "waitPoint";
       }
@@ -402,8 +407,7 @@ function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean, m
     }
     case "loading":
     case "unloading":
-      handle(s, r, dt, inWin);
-      kind = "handling";
+      kind = handle(s, r, dt, inWin, handlingGate) ? "handling" : "waitPoint";
       break;
     case "waitCharger": {
       const p = r.pointIdx >= 0 ? s.points[r.pointIdx] : undefined;
@@ -456,13 +460,16 @@ function stepRobot(s: SimEngineState, r: SimRobot, dt: number, inWin: boolean, m
  * Вердикт и сохраняемая сводка считаются при dt = 1 с; другой шаг допустим, но даёт другие
  * числа (дискретизация движения и поступления заданий).
  */
-export function stepSim(state: SimEngineState, dtS = 1, movementGate?: SimMovementGate, dispatchGate?: SimDispatchGate, robotStepGate?: SimRobotStepGate): void {
+export function stepSim(state: SimEngineState, dtS = 1, movementGate?: SimMovementGate, dispatchGate?: SimDispatchGate, robotStepGate?: SimRobotStepGate, handlingGate?: SimHandlingGate): void {
   if (isDone(state)) return;
   const dt = Number.isFinite(dtS) && dtS > 0 ? dtS : 1;
   const s = state;
   const t = s.tS;
   const inWin = t >= s.warmupS && t < s.endS;
-  if (inWin && s.acc.queueAtPeakStart === null) s.acc.queueAtPeakStart = queueLength(s);
+  const demandQueueLength = () => s.input.transportWorkflow === "closed-pod-1"
+    ? customerQueueLength(s.tasks, customerWorkStarts(s.input, s.tasks, s.tS))
+    : s.nextDemandTaskId === undefined ? queueLength(s) : s.tasks.filter(task => task.startS === null && task.countsTowardDemand !== false).length;
+  if (inWin && s.acc.queueAtPeakStart === null) s.acc.queueAtPeakStart = demandQueueLength();
 
   const perH = t < s.warmupS ? s.input.demand.avgPerH : s.input.demand.peakPerH;
   const rand = () => nextRandom(s.rng);
@@ -471,7 +478,7 @@ export function stepSim(state: SimEngineState, dtS = 1, movementGate?: SimMoveme
 
   assignTasks(s, dispatchGate);
   if (inWin) {
-    const q = queueLength(s);
+    const q = demandQueueLength();
     if (q > s.acc.queueMax) s.acc.queueMax = q;
   }
 
@@ -479,7 +486,7 @@ export function stepSim(state: SimEngineState, dtS = 1, movementGate?: SimMoveme
     if (robotStepGate && !robotStepGate(s, r)) {
       if (s.chargeModelled) { r.soc = Math.max(0, r.soc - dt / (s.input.robots.autonomyH! * 3600)); if (inWin && r.soc === 0) s.acc.socFloorS += dt; }
       if (inWin) s.acc.waitPointS += dt;
-    } else stepRobot(s, r, dt, inWin, movementGate);
+    } else stepRobot(s, r, dt, inWin, movementGate, handlingGate);
   }
   s.tS = t + dt;
 }

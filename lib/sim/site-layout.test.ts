@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { prepareWarehouseTraffic } from "../../experiments/warehouse-3d/traffic";
+import { POD_RADIUS_M } from "../../experiments/warehouse-3d/carriers";
 import { warehouseBaseInput } from "./fixtures";
 import { siteSegmentIsClear, validateProjectSiteLayout, validateSiteLayout, WAREHOUSE_BODY_RADIUS_M } from "./site-layout";
 import type { SimLayout } from "./types";
@@ -12,6 +13,27 @@ function site(): SimLayout {
 }
 
 describe("physical body clearance on explicit site routes", () => {
+  it("preserves exact edge-membership and tolerance rules with the axis index", () => {
+    const layout = site(), graph = layout.routingGraph!;
+    graph.nodes.push({ id: "e", x: 20, y: 15 });
+    graph.edges.push({ from: "c", to: "e" });
+    const nodes = new Map(graph.nodes.map(n => [n.id, n]));
+    const candidates = [
+      { x: 15, y: 5 }, { x: 20, y: 12 }, { x: 20 + 9e-9, y: 12 },
+      { x: 20 + 1.1e-8, y: 12 }, { x: 15, y: 5 + 9e-9 },
+      { x: 15, y: 5 + 1.1e-8 }, { x: 20, y: 15 }, { x: 20, y: 15 + 1e-10 },
+      { x: 1 - 1e-10, y: 5 }, { x: 30, y: 5 }, { x: 30 + 1e-10, y: 5 },
+    ];
+    for (const p of candidates) {
+      const expected = graph.edges.some(edge => {
+        const a = nodes.get(edge.from)!, b = nodes.get(edge.to)!;
+        return Math.abs(a.x - b.x) < 1e-8 && Math.abs(p.x - a.x) < 1e-8 && p.y >= Math.min(a.y, b.y) && p.y <= Math.max(a.y, b.y) ||
+          Math.abs(a.y - b.y) < 1e-8 && Math.abs(p.y - a.y) < 1e-8 && p.x >= Math.min(a.x, b.x) && p.x <= Math.max(a.x, b.x);
+      });
+      layout.slots = [p];
+      expect(validateSiteLayout(layout).length === 0, JSON.stringify(p)).toBe(expected);
+    }
+  });
   it("rejects the actual zero-clearance wall-penetration counterexample without rewriting the source", () => {
     const layout = site(); layout.routingGraph!.clearanceM = 0; layout.walls = [{ x: 0, y: 5.2, w: 40, h: 0.2 }];
     expect(5.2 - 5 - WAREHOUSE_BODY_RADIUS_M).toBeCloseTo(-0.55);
@@ -56,7 +78,8 @@ describe("physical body clearance on explicit site routes", () => {
       expect(siteSegmentIsClear(prepared.siteLayout!, a, b)).toBe(true);
     }
     for (const bay of prepared.demoTraffic.parkingBays) expect(siteSegmentIsClear(prepared.siteLayout!, bay, bay)).toBe(true);
-    expect(prepared.demoTraffic.radiusM).toBe(WAREHOUSE_BODY_RADIUS_M);
+    expect(prepared.demoTraffic.radiusM).toBe(POD_RADIUS_M);
+    expect(graph.clearanceM).toBeGreaterThanOrEqual(POD_RADIUS_M + .05 - 1e-9);
     expect(input.siteLayout).toEqual(before);
   });
 });

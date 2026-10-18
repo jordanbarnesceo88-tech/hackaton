@@ -1,3 +1,4 @@
+import { customerQueueLength, customerWorkStarts } from "./customer-work";
 import { DEFAULT_NORMS } from "../tz/norms";
 import { BUCKET_S, requestedFleet } from "./engine";
 import { simInputIdentity } from "./identity";
@@ -194,7 +195,8 @@ function pct(part: number, total: number): number {
  *
  * - Достигнутый поток — завершённые за окно задания / длительность окна, ч.
  * - Доля обслуженных — задания, поступившие в окне и взятые роботом до конца окна, к числу
- *   поступивших в окне (нет поступлений — 1). Задания, которые к концу окна ещё едут, —
+ *   поступивших в окне (нет поступлений — 1). В closed-pod начало включает реальную подачу
+ *   носителя, связанную с этой заявкой. Задания, которые к концу окна ещё едут, —
  *   обслуживаются, а не теряются, поэтому в долю входят.
  * - Ожидание — от поступления до момента, когда задание взял робот; не взятое к концу окна
  *   считается с ожиданием до конца окна (оценка снизу), чтобы перцентиль не занижался.
@@ -216,12 +218,15 @@ export function summarize(state: SimEngineState, meta: SimSummaryMeta = {}): Sim
   const windowS = tNow > s.warmupS ? tNow - s.warmupS : 0;
   const hours = windowS / 3600;
 
+  const workStarts = customerWorkStarts(input, s.tasks, tNow);
   const arrivedInWindow: number[] = [];
   let started = 0;
   let waitSum = 0;
   for (const task of s.tasks) {
+    if (task.countsTowardDemand === false) continue;
     if (task.arrivalS < s.warmupS || task.arrivalS >= tNow) continue;
-    const startedAt = task.startS !== null && task.startS < tNow ? task.startS : null;
+    const workStartedAt = workStarts.get(task.id) ?? null;
+    const startedAt = workStartedAt !== null && workStartedAt < tNow ? workStartedAt : null;
     if (startedAt !== null) started++;
     const waitS = (startedAt ?? tNow) - task.arrivalS;
     arrivedInWindow.push(waitS / 60);
@@ -251,7 +256,10 @@ export function summarize(state: SimEngineState, meta: SimSummaryMeta = {}): Sim
     if (p.kind !== "charger" && p.utilPct > maxDockUtilPct) maxDockUtilPct = p.utilPct;
   }
 
-  const queueEnd = queueLength(s);
+  const hasInternalMoves = s.tasks.some(task => task.countsTowardDemand === false);
+  const queueEnd = input.transportWorkflow === "closed-pod-1"
+    ? customerQueueLength(s.tasks, workStarts)
+    : hasInternalMoves ? s.tasks.filter(task => task.countsTowardDemand !== false && task.startS === null).length : queueLength(s);
   const queueAtPeakStart = acc.queueAtPeakStart ?? queueEnd;
   const achievedPerH = hours > 0 ? acc.doneInPeak / hours : 0;
 

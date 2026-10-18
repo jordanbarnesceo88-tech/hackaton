@@ -84,6 +84,22 @@ describe("OPENAPI ↔ файлы маршрутов", () => {
 });
 
 describe("документ OPENAPI", () => {
+  it("documents the public live calculation, strict input and unchanged result contract", () => {
+    const operation = OPENAPI.paths["/api/v1/demo-calculation"]!.post!;
+    expect(operation["x-access"]).toBe("public"); expect(operation.security).toEqual([]);
+    expect(operation.requestBody!.content["application/json"]!.schema).toEqual({ $ref: "#/components/schemas/DemoCalculationRequest" });
+    const request = OPENAPI.components.schemas.DemoCalculationRequest!;
+    expect(request.additionalProperties).toBe(false); expect(request.required).toEqual(["facility"]);
+    expect(Object.keys(request.properties as object).sort()).toEqual(["facility", "params", "scenarios"]);
+    expect(OPENAPI.components.schemas.DemoCalculationResponse).toMatchObject({ required: ["results", "ms"],
+      properties: { results: { $ref: "#/components/schemas/ProjectResults" }, ms: { type: "number", minimum: 0 } } });
+    expect(Object.keys(operation.responses).sort()).toEqual(["200", "400", "403", "413", "415", "422", "429", "499", "503"]);
+    expect(operation.responses["200"]!.headers).toHaveProperty("Cache-Control");
+    expect(operation.responses["429"]!.headers).toHaveProperty("Retry-After");
+    expect(operation.responses["503"]!.headers).toHaveProperty("Retry-After");
+    for (const limit of ["4 МиБ", "30 попыток за 5 минут", "60 секунд", "45 секунд", "no-store"]) expect(operation.description).toContain(limit);
+  });
+
   it("OpenAPI 3.1 и сериализуется в JSON без потерь", () => {
     expect(OPENAPI.openapi).toBe("3.1.0");
     expect(JSON.parse(JSON.stringify(OPENAPI))).toEqual(OPENAPI);
