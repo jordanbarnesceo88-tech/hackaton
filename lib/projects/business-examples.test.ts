@@ -4,7 +4,7 @@ import { productForCalcFromSeed } from "../catalog/product-for-calc";
 import { baseValuesFor, paramSpecsFor } from "../data/organizer/params";
 import { resolveNorms } from "../tz/norms";
 import { buildDecision } from "../tz/decision";
-import { buildBusinessExample } from "./business-example-model";
+import { buildBusinessExampleOffline as buildBusinessExample } from "./business-example-offline";
 import { businessExample, businessExampleInputs } from "./business-examples";
 
 const products = CATALOG.map(productForCalcFromSeed);

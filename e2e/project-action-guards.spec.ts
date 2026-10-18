@@ -7,6 +7,7 @@ test("dirty exports and live refresh preserve local input, including edits durin
   test.setTimeout(180_000);
   const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
   let projectId: string | undefined;
+  let jobId: string | undefined;
   try {
     await page.goto("/login");
     await page.locator("#email").fill("demo@demo.local");
@@ -14,14 +15,22 @@ test("dirty exports and live refresh preserve local input, including edits durin
     await page.getByRole("button", { name: "Войти", exact: true }).click();
     await expect(page).toHaveURL(/\/projects$/);
     const created = await page.request.post("/api/v1/projects", {
+      headers: { "Idempotency-Key": `guards-create-${Date.now()}` },
       data: { name: `e2e-guards-${Date.now()}`, facility: "warehouse" },
     });
-    expect(created.status()).toBe(201);
-    const project = await created.json();
-    projectId = project.id;
+    expect(created.status()).toBe(202);
+    const { job } = await created.json();
+    jobId = job.id;
+    await expect.poll(async () => {
+      const response = await page.request.get(`/api/v1/calculation-jobs/${job.id}`);
+      return (await response.json()).job.status;
+    }, { timeout: 90_000 }).toBe("SUCCEEDED");
+    const completed = await (await page.request.get(`/api/v1/calculation-jobs/${job.id}/result`)).json();
+    expect(completed.job.publicationState).toBe("PUBLISHED");
+    projectId = completed.job.projectId;
     // Только собственная тестовая запись: создаём баннер без изменения общих справочников.
     await db.project.update({ where: { id: projectId }, data: {
-      dataVersion: "older-data", results: { ...project.results, dataVersion: "older-data" },
+      dataVersion: "older-data", results: { ...completed.results, dataVersion: "older-data" },
     } });
     // Reopening a saved project defaults to its immutable archive. This test explicitly
     // enters the current-version editor to exercise dirty and in-flight edit protection.
@@ -61,7 +70,23 @@ test("dirty exports and live refresh preserve local input, including edits durin
     await expect(salary).toHaveValue("122000");
     await expect(refresh).toBeDisabled();
   } finally {
-    if (projectId) await db.project.deleteMany({ where: { id: projectId, name: { startsWith: "e2e-guards-" } } });
-    await db.$disconnect();
+    try {
+      if (jobId) {
+        const url = `/api/v1/calculation-jobs/${jobId}`;
+        const response = await page.request.get(url);
+        if (response.ok()) {
+          const { job } = await response.json();
+          if (job.status === "QUEUED" || job.status === "RUNNING") {
+            await page.request.post(`${url}/cancel`, { data: {} });
+            await expect.poll(async () => (await (await page.request.get(url)).json()).job.status,
+              { timeout: 30_000 }).not.toMatch(/^(QUEUED|RUNNING)$/);
+          }
+          const current = (await (await page.request.get(url)).json()).job;
+          projectId ??= current.projectId ?? undefined;
+          await page.request.delete(url, { data: {} });
+        }
+      }
+      if (projectId) await db.project.deleteMany({ where: { id: projectId, name: { startsWith: "e2e-guards-" } } });
+    } finally { await db.$disconnect(); }
   }
 });

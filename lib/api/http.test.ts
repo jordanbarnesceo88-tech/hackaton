@@ -6,7 +6,7 @@ import { apiError, isJsonContentType, readJsonBody, tooManyRequests } from "./ht
 // в форме { error, details? }; разбор строки запроса каталога.
 
 function post(body: BodyInit | null, headers: Record<string, string> = { "content-type": "application/json" }): Request {
-  return new Request("http://localhost/api/v1/calculate", { method: "POST", body, headers });
+  return new Request("http://localhost/api/v1/calculation-jobs", { method: "POST", body, headers });
 }
 
 async function errorOf(res: Response): Promise<{ status: number; error: string }> {

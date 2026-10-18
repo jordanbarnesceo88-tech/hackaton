@@ -9,7 +9,6 @@ const SAVE_FAILED = "Ошибка сохранения";
 import type {
   FacilityParams,
   AssumptionValues,
-  EconomicsResult,
 } from "@/lib/economics/types";
 
 export function SaveControl({
@@ -17,13 +16,11 @@ export function SaveControl({
   solutionId,
   params,
   assumptions,
-  result,
 }: {
   facilitySlug: string;
   solutionId: string;
   params: FacilityParams;
   assumptions: AssumptionValues;
-  result: EconomicsResult;
 }) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -59,7 +56,6 @@ export function SaveControl({
         solutionId,
         params,
         assumptions,
-        results: result,
       });
       setMsgFor(snapshot);
       if (res.ok) {

@@ -5,8 +5,24 @@ import {
   validateAssumptions,
   isPlainObject,
   NAME_MAX_LEN,
+  validAnalysisInputSize,
+  ANALYSIS_INPUT_MAX_BYTES,
 } from "./validate";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
+
+describe("legacy input UTF-8 size", () => {
+  it("accepts the exact cap and refuses one byte more, before filtering ignored fields", () => {
+    const framing = new TextEncoder().encode(JSON.stringify({ padding: "" })).byteLength;
+    expect(validAnalysisInputSize({ padding: "x".repeat(ANALYSIS_INPUT_MAX_BYTES - framing) })).toBe(true);
+    expect(validAnalysisInputSize({ padding: "x".repeat(ANALYSIS_INPUT_MAX_BYTES - framing + 1) })).toBe(false);
+    expect(validAnalysisInputSize({ results: "я".repeat(ANALYSIS_INPUT_MAX_BYTES / 2) })).toBe(false);
+  });
+  it("refuses unserializable values", () => {
+    const cycle: Record<string, unknown> = {}; cycle.self = cycle;
+    expect(validAnalysisInputSize(cycle)).toBe(false);
+    expect(validAnalysisInputSize({ invalid: BigInt(1) })).toBe(false);
+  });
+});
 
 describe("sanitizeName", () => {
   it("trims and accepts a normal name", () => {

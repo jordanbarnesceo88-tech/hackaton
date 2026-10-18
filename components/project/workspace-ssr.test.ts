@@ -8,8 +8,6 @@ import { Workspace, type WorkspaceProps } from "./workspace";
 vi.mock("@/lib/projects/actions", () => ({
   copyProjectAction: vi.fn(),
   deleteProjectAction: vi.fn(),
-  saveProjectAction: vi.fn(),
-  recalcProjectAction: vi.fn(),
 }));
 
 describe("workspace first server render", () => {

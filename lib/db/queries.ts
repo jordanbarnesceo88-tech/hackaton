@@ -1,5 +1,8 @@
 import { prisma } from "./client";
+import type { PrismaClient } from "@prisma/client";
 import type { SiblingSolution } from "@/lib/economics/recommend";
+
+type AnalysisDb = Pick<PrismaClient, "facilityTypeCategory" | "solution" | "savedAnalysis">;
 
 export async function getIndustries() {
   return prisma.industry.findMany({
@@ -64,8 +67,8 @@ export async function getCatalogForFacilityType(facilityTypeSlug: string) {
  * экрану занятости они не нужны, а порядок обязан совпадать с тем, что человек увидит на
  * сравнении, — поэтому сортировка здесь та же.
  */
-export async function getTaskCategories(facilityTypeSlug: string) {
-  const links = await prisma.facilityTypeCategory.findMany({
+export async function getTaskCategories(facilityTypeSlug: string, db: AnalysisDb = prisma) {
+  const links = await db.facilityTypeCategory.findMany({
     where: { facilityType: { slug: facilityTypeSlug } },
     orderBy: [{ order: "asc" }, { category: { name: "asc" } }],
     select: {
@@ -83,8 +86,8 @@ export async function getTaskCategories(facilityTypeSlug: string) {
   return links.map((l) => l.category);
 }
 
-export async function getSolutionApplicability(solutionId: string): Promise<string[]> {
-  const rows = await prisma.facilityTypeCategory.findMany({
+export async function getSolutionApplicability(solutionId: string, db: AnalysisDb = prisma): Promise<string[]> {
+  const rows = await db.facilityTypeCategory.findMany({
     where: { category: { solutions: { some: { id: solutionId } } } },
     select: { facilityType: { select: { slug: true } } },
   });
@@ -125,11 +128,11 @@ export async function getAssumptions() {
   return prisma.assumption.findMany({ orderBy: { order: "asc" } });
 }
 
-export async function getSolutionForCalc(id: string) {
+export async function getSolutionForCalc(id: string, db: AnalysisDb = prisma) {
   // No longer reaches through to a facility type: a category serves many of them now. Callers
   // take the facility type from where it actually belongs — the saved analysis for a report,
   // the URL for a live calculation — and validate it against getSolutionApplicability().
-  return prisma.solution.findUnique({
+  return db.solution.findUnique({
     where: { id },
     include: {
       solutionCategory: {
@@ -181,8 +184,8 @@ export type SavedAnalysisInput = {
   results: unknown;
 };
 
-export async function createSavedAnalysis(userId: string, input: SavedAnalysisInput) {
-  return prisma.savedAnalysis.create({
+export async function createSavedAnalysis(userId: string, input: SavedAnalysisInput, db: AnalysisDb = prisma) {
+  return db.savedAnalysis.create({
     data: {
       userId,
       name: input.name,

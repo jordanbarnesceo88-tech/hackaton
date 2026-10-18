@@ -1,3 +1,7 @@
+import { randomUUID } from "node:crypto";
+import { CalculationRequestError, enqueueCalculation, computeFrozenCalculation, publishFrozenCalculation } from "../calculation-jobs/service";
+import { claimJob, completeJob, failJob, getOwnedJobResult } from "../calculation-jobs/store";
+import type { SaveProjectInput, SaveProjectResult } from "./action-types";
 import { simInputIdentity } from "../sim/identity";
 import { createSpatialProjectSnapshot, SPATIAL_MODEL_VERSION } from "../sim/spatial-bridge";
 import { calculateProjectPreview } from "../../experiments/warehouse-3d/project-input";
@@ -11,11 +15,11 @@ import { processDef, solutionTypeDef } from "../tz/processes";
 import { AUTO_MANUAL_SUFFIX, expectedSpatialInputFromStored } from "../tz/model";
 import type { ProductSeed, ProjectResults, ScenarioSpec } from "../tz/types";
 import { stableJson } from "../tz/version";
-import { bestPaybackYears, getProject, getProjectChanges, insertProject, listProjects, storeProjectCalculation } from "./queries";
-import { computeProjectResults, liveDataVersion, loadLiveInputs, reproduceModel } from "./recalc";
+import { bestPaybackYears, getProject, getProjectChanges, persistNewProject, listProjects, persistProjectCalculation, type NewProject, type ProjectCalculation } from "./queries";
+import { resultsFromInputsAsync, type LiveInputs, type ComputeProjectInput, liveDataVersion, loadLiveInputs, reproduceModel } from "./recalc";
 
 /**
- * Серверные действия проектов на настоящем Postgres (набор db). Подменены только границы,
+ * Durable команды и атомарная публикация проектов на настоящем Postgres (набор db). Подменены только границы,
  * которые в тесте не работают: сессия (auth), перенаправление (бросает исключение
  * NEXT_REDIRECT) и revalidatePath (нужен контекст запроса Next). Расчёт, имитация и БД —
  * настоящие.
@@ -49,12 +53,62 @@ vi.mock("next/cache", () => ({ revalidatePath: mockRevalidate }));
 
 const serverActions = await import("./actions");
 const currentRevision = async (id: string) => (await prisma.project.findUnique({ where: { id }, select: { revision: true } }))?.revision ?? 0;
-// Ordinary fixtures send a current precondition; conflict/legacy-client tests call serverActions directly.
+let actingUser: string | null = null;
+let draining: Promise<void> = Promise.resolve();
+
+// Test driver runs the real durable boundary and worker publication, without a web compute alias.
+async function executeCommand(request: unknown): Promise<SaveProjectResult> {
+  if (!actingUser) return { ok: false, reason: "unauthenticated", message: "Войдите" };
+  const ownerId = actingUser;
+  try {
+    const receipt = await enqueueCalculation(prisma, ownerId, request, randomUUID());
+    draining = draining.then(async () => {
+      let claim;
+      while ((claim = await claimJob(prisma, { workerId: "project-data-test", leaseMs: 120_000 }))) {
+        try {
+          const computed = await computeFrozenCalculation(claim.run.input);
+          expect(await completeJob(prisma, claim, computed, publishFrozenCalculation)).toBe(true);
+        } catch (error) {
+          await failJob(prisma, claim, "TEST_COMPUTATION_FAILED", "Test calculation failed");
+          throw error;
+        }
+      }
+    });
+    await draining;
+    const completed = await getOwnedJobResult(prisma, ownerId, receipt.id);
+    if (!completed?.run.results) throw new Error("No completed durable result");
+    if (completed.job.publicationState === "STALE") return { ok: false, reason: "conflict", message: "Проект изменился" };
+    const results = completed.run.results as unknown as ProjectResults;
+    return { ok: true, results, revision: completed.job.publishedRevision ?? 0, calculatedAt: results.calculatedAt, dataVersion: results.dataVersion };
+  } catch (error) {
+    if (!(error instanceof CalculationRequestError)) throw error;
+    const reason = ({ 401: "unauthenticated", 404: "not_found", 409: "conflict", 428: "precondition_required" } as const)[error.status as 401 | 404 | 409 | 428] ?? "invalid";
+    return { ok: false, reason, message: error.message + " " + JSON.stringify(error.details ?? {}) };
+  }
+}
+const commands = {
+  ...serverActions,
+  save: (id: string, input: SaveProjectInput) => executeCommand({ ...input, operation: "SAVE", projectId: id }),
+  recalculate: (id: string, expectedRevision?: number) => executeCommand({ operation: "RECALCULATE", projectId: id, expectedRevision }),
+};
 const actions = { ...serverActions,
-  saveProjectAction: async (id: string, input: Parameters<typeof serverActions.saveProjectAction>[1]) => serverActions.saveProjectAction(id, { expectedRevision: await currentRevision(id), ...input }),
-  recalcProjectAction: async (id: string) => serverActions.recalcProjectAction(id, await currentRevision(id)),
+  save: async (id: string, input: SaveProjectInput) => commands.save(id, { expectedRevision: await currentRevision(id), ...input }),
+  recalculate: async (id: string) => commands.recalculate(id, await currentRevision(id)),
   deleteProjectAction: async (id: string) => serverActions.deleteProjectAction(id, await currentRevision(id)),
 };
+
+// Pure-engine setup/fault injection remains local to the DB test, never exported to HTTP.
+async function computeProjectResults(db: typeof prisma, input: ComputeProjectInput) {
+  return resultsFromInputsAsync(await loadLiveInputs(db, input.facility), input);
+}
+async function insertProject(db: typeof prisma, live: LiveInputs, input: NewProject) {
+  const computed = await resultsFromInputsAsync(live, input);
+  return persistNewProject(db, input, computed.results);
+}
+async function storeProjectCalculation(db: typeof prisma, input: ProjectCalculation) {
+  const computed = await resultsFromInputsAsync(input.live, input);
+  return db.$transaction(tx => persistProjectCalculation(tx, input, computed));
+}
 
 const P = "tzt-t22-";
 const PT = "pallet-transport";
@@ -137,12 +191,6 @@ async function cleanup(): Promise<void> {
   await prisma.catalogProduct.deleteMany({ where: { slug: { startsWith: P } } });
 }
 
-const form = (fields: Record<string, string>) => {
-  const fd = new FormData();
-  for (const [k, v] of Object.entries(fields)) fd.set(k, v);
-  return fd;
-};
-
 /** Вызов действия, которое при успехе перенаправляет: возвращает адрес перенаправления. */
 async function redirected(fn: () => Promise<unknown>): Promise<string> {
   try {
@@ -188,46 +236,37 @@ beforeEach(() => {
   mockRevalidate.mockClear();
 });
 
-const asUser = (id: string | null) => mockAuth.mockResolvedValue(id ? { user: { id, role: "USER" } } : null);
+const asUser = (id: string | null) => { actingUser = id; return mockAuth.mockResolvedValue(id ? { user: { id, role: "USER" } } : null); };
 
 describe("действия проектов", () => {
   let projectId = "";
 
   it("без входа — отказ unauthenticated, ничего не записано", async () => {
     asUser(null);
-    const created = await actions.createProjectAction({ error: null }, form({ name: "X", facility: "warehouse", source: "demo" }));
-    expect(created.error).toMatch(/Войдите/);
-    const saved = await actions.saveProjectAction("нет", { params: {}, scenarios: SPECS, changes: [] });
+    await expect(enqueueCalculation(prisma, "", { operation: "CREATE", name: "X", facility: "warehouse" }, randomUUID())).rejects.toMatchObject({ status: 401 });
+    const saved = await actions.save("нет", { params: {}, scenarios: SPECS, changes: [] });
     expect(saved).toMatchObject({ ok: false, reason: "unauthenticated" });
     expect(await actions.copyProjectAction("нет")).toMatchObject({ reason: "unauthenticated" });
     expect(await actions.deleteProjectAction("нет")).toMatchObject({ reason: "unauthenticated" });
   });
 
-  it("создание: неверный ввод отклоняется с объяснением", async () => {
-    asUser(userA);
-    const bad = (fields: Record<string, string>) => actions.createProjectAction({ error: null }, form(fields));
-    expect((await bad({ name: " ", facility: "warehouse", source: "demo" })).error).toMatch(/название проекта/);
-    expect((await bad({ name: "X", facility: "port", source: "demo" })).error).toMatch(/тип объекта/);
-    expect((await bad({ name: "X", facility: "warehouse", source: "fax" })).error).toMatch(/источник/);
-    expect((await bad({ name: "X", facility: "warehouse", source: "upload", paramsJson: "{" })).error).toMatch(/прочитать/);
-    const withIssues = await bad({
-      name: "X",
-      facility: "warehouse",
-      source: "upload",
-      paramsJson: JSON.stringify({ forkliftSalaryRubMonth: "много" }),
-    });
-    expect(withIssues.error).toMatch(/не прошёл проверку/);
-    expect(withIssues.issues?.some((i) => i.key === "forkliftSalaryRubMonth" && i.severity === "error")).toBe(true);
+  it("создание: общий durable validator отклоняет неверные данные", async () => {
+    for (const request of [
+      { operation: "CREATE", name: " ", facility: "warehouse" },
+      { operation: "CREATE", name: "X", facility: "port" },
+      { operation: "CREATE", name: "X", facility: "warehouse", paramsSource: { kind: "fax" } },
+      { operation: "CREATE", name: "X", facility: "warehouse", params: { forkliftSalaryRubMonth: "много" } },
+    ]) await expect(enqueueCalculation(prisma, userA, request, randomUUID())).rejects.toMatchObject({ status: 422 });
   });
 
   it("создание на демо-данных: проект со сценариями по умолчанию и результатами", async () => {
     asUser(userA);
-    const url = await redirected(() =>
-      actions.createProjectAction({ error: null }, form({ name: "TZT22 Склад", facility: "warehouse", source: "demo" })),
-    );
-    expect(url).toMatch(/^\/projects\/[^/]+$/);
-    projectId = new URL(url, "http://localhost").pathname.split("/").pop() ?? "";
-    expect(mockRevalidate).toHaveBeenCalledWith("/projects");
+    const receipt = await enqueueCalculation(prisma, userA, { operation: "CREATE", name: "TZT22 Склад", facility: "warehouse", paramsSource: { kind: "demo" } }, randomUUID());
+    expect(await prisma.project.findUnique({ where: { id: receipt.reservedProjectId! } })).toBeNull();
+    const claim = await claimJob(prisma, { workerId: "project-create-test", leaseMs: 120_000 });
+    if (!claim || claim.job.id !== receipt.id) throw new Error("Wrong durable claim");
+    expect(await completeJob(prisma, claim, await computeFrozenCalculation(claim.run.input), publishFrozenCalculation)).toBe(true);
+    projectId = receipt.reservedProjectId!;
 
     const p = await getProject(prisma, projectId, userA);
     expect(p).not.toBeNull();
@@ -254,7 +293,7 @@ describe("действия проектов", () => {
     const before = await getProject(prisma, projectId, userA);
     if (!before?.results) throw new Error("нет результатов");
     const params = { ...before.results.paramsUsed, forkliftSalaryRubMonth: 130_000 };
-    const saved = await actions.saveProjectAction(projectId, {
+    const saved = await actions.save(projectId, {
       name: "TZT22 Склад — вариант",
       params,
       scenarios: SPECS,
@@ -268,7 +307,6 @@ describe("действия проектов", () => {
     });
     expect(saved.ok).toBe(true);
     if (!saved.ok) return;
-    expect(mockRevalidate).toHaveBeenCalledWith("/projects/[projectId]", "page");
 
     const p = await getProject(prisma, projectId, userA);
     const results = p?.results;
@@ -368,8 +406,8 @@ describe("действия проектов", () => {
   it("чужой проект неотличим от несуществующего", async () => {
     asUser(userB);
     const input = { params: {}, scenarios: SPECS, changes: [] };
-    expect(await actions.saveProjectAction(projectId, input)).toMatchObject({ ok: false, reason: "not_found" });
-    expect(await actions.recalcProjectAction(projectId)).toMatchObject({ ok: false, reason: "not_found" });
+    expect(await actions.save(projectId, input)).toMatchObject({ ok: false, reason: "not_found" });
+    expect(await actions.recalculate(projectId)).toMatchObject({ ok: false, reason: "not_found" });
     expect(await actions.copyProjectAction(projectId)).toMatchObject({ ok: false, reason: "not_found" });
     expect(await actions.deleteProjectAction(projectId)).toMatchObject({ ok: false, reason: "not_found" });
     expect(await getProject(prisma, projectId, userB)).toBeNull();
@@ -381,14 +419,14 @@ describe("действия проектов", () => {
     asUser(userA);
     const before = await getProject(prisma, projectId, userA);
     const params = before?.results?.paramsUsed ?? {};
-    const two = await actions.saveProjectAction(projectId, { params, scenarios: SPECS.slice(0, 2), changes: [] });
+    const two = await actions.save(projectId, { params, scenarios: SPECS.slice(0, 2), changes: [] });
     expect(two).toMatchObject({ ok: false, reason: "invalid" });
     if (!two.ok) expect(two.message).toMatch(/от 3 до 10 сценариев/);
     const injected = SPECS.map((s) => ({ ...s, results: { npvRub: 1e12 } })) as unknown as ScenarioSpec[];
-    expect(await actions.saveProjectAction(projectId, { params, scenarios: injected, changes: [] })).toMatchObject({
+    expect(await actions.save(projectId, { params, scenarios: injected, changes: [] })).toMatchObject({
       reason: "invalid",
     });
-    const badParam = await actions.saveProjectAction(projectId, {
+    const badParam = await actions.save(projectId, {
       params: { ...params, shiftsPerDay: "две" },
       scenarios: SPECS,
       changes: [],
@@ -410,7 +448,7 @@ describe("действия проектов", () => {
     const live = await liveDataVersion(prisma, before.results);
     expect(live).not.toBe(before.results.dataVersion);
 
-    const r = await actions.recalcProjectAction(projectId);
+    const r = await actions.recalculate(projectId);
     expect(r.ok).toBe(true);
     const after = await getProject(prisma, projectId, userA);
     expect(after?.results?.dataVersion).toBe(live);
@@ -438,10 +476,10 @@ describe("действия проектов", () => {
       isDemo: true,
     });
     const before = await getProject(prisma, demoId, userA);
-    const saved = await actions.saveProjectAction(demoId, { params: src.results.paramsUsed, scenarios: SPECS, changes: [] });
+    const saved = await actions.save(demoId, { params: src.results.paramsUsed, scenarios: SPECS, changes: [] });
     expect(saved).toMatchObject({ ok: false, reason: "invalid" });
-    if (!saved.ok) expect(saved.message).toMatch(/Демо-проект.*Скопируйте проект/);
-    expect(await actions.recalcProjectAction(demoId)).toMatchObject({ ok: false, reason: "invalid" });
+    if (!saved.ok) expect(saved.message).toMatch(/только для чтения/);
+    expect(await actions.recalculate(demoId)).toMatchObject({ ok: false, reason: "invalid" });
     expect(await actions.deleteProjectAction(demoId)).toMatchObject({ ok: false, reason: "invalid" });
     const after = await getProject(prisma, demoId, userA);
     expect(after?.results?.calculatedAt).toBe(before?.results?.calculatedAt);
@@ -500,7 +538,7 @@ describe("spatial financial scenario persistence", () => {
     spec.spatialEvidence = { input, sourceInputKey: simInputIdentity(input), executionInputKey: "test-prepared-input", simModelVersion: SPATIAL_MODEL_VERSION,
       assessment: { status: "PARTIAL", headline: "Выполнена часть нагрузки", terminal: true },
       summary: { fleet: input.robots.count, requiredPerH: input.demand.peakPerH, achievedPerH: input.demand.peakPerH / 2, queueEnd: 20, waitP95Min: 5 } };
-    const saved = await actions.saveProjectAction(id, { params, scenarios: specs, changes: [
+    const saved = await actions.save(id, { params, scenarios: specs, changes: [
       { scenarioKey: "p1", field: "scenario:staffing", auto: null, old: null, new: spec.operationsStaffing, reason: spec.operationsStaffing.reason },
       { scenarioKey: "p1", field: "item:pallet-transport:package", auto: null, old: null, new: spec.items[0]!.costPackage, reason: spec.items[0]!.costPackage.reason },
     ] });
@@ -543,7 +581,7 @@ describe("spatial financial scenario persistence", () => {
     spec.spatialEvidence = { input, sourceInputKey: simInputIdentity(input), executionInputKey: "never-executed", simModelVersion: SPATIAL_MODEL_VERSION,
       assessment: { status: "OK", headline: "Поддельный положительный статус", terminal: true },
       summary: { fleet: 1, requiredPerH: input.demand.peakPerH, achievedPerH: 999999, queueEnd: 0, waitP95Min: 0 } };
-    const receipt = await actions.saveProjectAction(id, { params, scenarios: specs, changes: [] });
+    const receipt = await actions.save(id, { params, scenarios: specs, changes: [] });
     expect(receipt).toMatchObject({ ok: true });
     const reopened = await getProject(prisma, id, userA);
     if (!reopened?.results) throw new Error("No saved calculation");
@@ -580,7 +618,7 @@ describe("P0 project revision and immutable archive", () => {
       scenarios: SPECS.map(s => s.key === "p1" ? { ...s, items: s.items.map(i => ({ ...i, quantityOverride: 7 + index })) } : s),
       changes: [{ field: "param:forkliftSalaryRubMonth", auto: 0, old: params.forkliftSalaryRubMonth ?? null, new: salary, reason: `tab-${index}` }],
     }));
-    const outcomes = await Promise.all(requests.map(request => serverActions.saveProjectAction(id, request)));
+    const outcomes = await Promise.all(requests.map(request => commands.save(id, request)));
     expect(outcomes.filter(r => r.ok)).toHaveLength(1);
     expect(outcomes.filter(r => !r.ok && r.reason === "conflict")).toHaveLength(1);
     const winner = outcomes.findIndex(r => r.ok), saved = await getProject(prisma, id, userA);
@@ -591,15 +629,15 @@ describe("P0 project revision and immutable archive", () => {
     expect(saved?.results?.paramsUsed.forkliftSalaryRubMonth).toBe(requests[winner]!.params.forkliftSalaryRubMonth);
     const log = await prisma.changeLog.findMany({ where: { projectId: id } });
     expect(log).toHaveLength(1); expect(log[0]!.reason).toBe(`tab-${winner}`);
-    expect(await serverActions.recalcProjectAction(id, project.revision)).toMatchObject({ reason: "conflict" });
+    expect(await commands.recalculate(id, project.revision)).toMatchObject({ reason: "conflict" });
     expect(await serverActions.deleteProjectAction(id, project.revision)).toMatchObject({ reason: "conflict" });
     expect((await getProject(prisma, id, userA))?.revision).toBe(project.revision + 1);
   }, 120_000);
 
   it("legacy writes without a precondition fail explicitly, including rename, recalc and delete", async () => {
     const { id, params, project } = await example("TZT22 missing revision");
-    expect(await serverActions.saveProjectAction(id, { name: "Must not rename", params, scenarios: SPECS, changes: [] })).toMatchObject({ reason: "precondition_required" });
-    expect(await serverActions.recalcProjectAction(id)).toMatchObject({ reason: "precondition_required" });
+    expect(await commands.save(id, { name: "Must not rename", params, scenarios: SPECS, changes: [] })).toMatchObject({ reason: "precondition_required" });
+    expect(await commands.recalculate(id)).toMatchObject({ reason: "precondition_required" });
     expect(await serverActions.deleteProjectAction(id)).toMatchObject({ reason: "precondition_required" });
     const after = await getProject(prisma, id, userA);
     expect(after?.revision).toBe(0); expect(after?.name).toBe(project.name); expect(after?.results).toEqual(project.results);

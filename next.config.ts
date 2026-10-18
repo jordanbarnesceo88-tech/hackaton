@@ -40,13 +40,15 @@ const securityHeaders = [
   },
 ];
 
+const demoViewers = [
+  { source: "/demo/warehouse", destination: "/warehouse-3d.html" },
+  { source: "/demo/cleaning", destination: "/cleaning-3d.html" },
+];
+
 const nextConfig: NextConfig = {
   env: engineFingerprint ? { CALCULATION_ENGINE_FINGERPRINT: engineFingerprint } : {},
   // Keep a separately running review build intact while validating a new backend locally.
   distDir: process.env.ALFA_BUILD_DIR ?? ".next",
-  // JSON admission is capped at 4 MiB in client/server guards. Leave a bounded extra
-  // MiB for React Server Action framing; source field/geometry limits remain in force.
-  experimental: { serverActions: { bodySizeLimit: "5mb" } },
   // Standalone output is for the Docker image (the runner stage copies `.next/standalone`).
   // It must NOT be set when Vercel builds: their `onBuildComplete` step reads
   // `.next/next-server.js.nft.json`, which standalone mode relocates, and the build dies with
@@ -59,14 +61,19 @@ const nextConfig: NextConfig = {
   // Поэтому он не бандлится, а подключается обычным require из node_modules; для standalone-
   // сборки Docker его файлы попадают в .next/standalone через трассировку зависимостей.
   serverExternalPackages: ["exceljs"],
+  async rewrites() {
+    return { beforeFiles: demoViewers, afterFiles: [], fallback: [] };
+  },
+  async redirects() {
+    return demoViewers.map(route => ({ source: route.destination, destination: route.source, permanent: true }));
+  },
   async headers() {
     // Only the self-contained viewers create a local Blob worker from their embedded core.
     const viewerHeaders = securityHeaders.map(header => header.key === "Content-Security-Policy"
       ? { ...header, value: csp.replace("worker-src 'self'", "worker-src 'self' blob:") } : header);
     return [
       { source: "/:path*", headers: securityHeaders },
-      { source: "/warehouse-3d.html", headers: viewerHeaders },
-      { source: "/cleaning-3d.html", headers: viewerHeaders },
+      ...demoViewers.flatMap(route => [route.source, route.destination].map(source => ({ source, headers: viewerHeaders }))),
     ];
   },
 };

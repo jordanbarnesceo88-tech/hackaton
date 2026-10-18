@@ -76,7 +76,7 @@ export function SpatialPreview({ selection, stale, readOnly = false, onResult, o
     window.addEventListener("message", receive);
     timeout = setTimeout(() => failed("Не удалось передать снимок в 3D за 30 с. Проверьте новую вкладку и повторите открытие."), 30_000);
     cleanup.current = stop;
-    child = window.open(`/warehouse-3d.html#project=${snapshot.requestId}`, "_blank");
+    child = window.open(`/demo/warehouse#project=${snapshot.requestId}`, "_blank");
     if (!child) { failed("Браузер заблокировал новую вкладку. Разрешите всплывающие окна для этого сайта и повторите."); return; }
     setFeedback({ key: currentKey, message: "Открываем 3D выбранного варианта." });
   }

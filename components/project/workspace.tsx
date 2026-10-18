@@ -19,7 +19,7 @@ import { BackToTop } from "@/components/ui/back-to-top";
 import { Button } from "@/components/ui/button";
 import { pluralRu } from "@/lib/format/plural";
 import { formatNum } from "@/lib/format/rub";
-import type { SaveProjectInput, SaveProjectResult } from "@/lib/projects/actions";
+import type { SaveProjectInput, SaveProjectResult } from "@/lib/projects/action-types";
 import { canAdoptSavedSnapshot, projectDraftKey, projectSnapshotModel } from "@/lib/projects/archive";
 import { changeFieldLabel, serverAutoFrom } from "@/lib/projects/changes";
 import { shortProductName } from "@/lib/projects/defaults";
@@ -120,7 +120,6 @@ export type WorkspaceProps = {
   archive?: boolean;
   initialStep?: number;
   initialFocusKey?: string;
-  initialSims?: Record<string, SimSummaryStored | null>;
   mode: WorkspaceMode;
   project: WorkspaceProject;
   /** Описания параметров типа объекта (администрируемые ParamDefinition или код). */
@@ -383,7 +382,7 @@ type Calc = {
   ms: number;
   /** Сводки имитации по сценариям; null — ещё не посчитаны для этого расчёта. */
   sims: Record<string, SimSummaryStored | null> | null;
-  simSource: "stored" | "browser" | "example" | null;
+  simSource: "stored" | "browser" | null;
   simMs: number | null;
   simCount: number | null;
 };
@@ -404,10 +403,9 @@ function simStatusText(calc: Calc, status: SimStatus | null): string | null {
   }
   if (calc.sims === null) return "Имитация: готовим прогоны…";
   if (calc.simSource === "stored") return "Имитация — по сохранённому расчёту";
-  if (calc.simSource === "example") return "Имитация — готовый пример, рассчитан при открытии";
   const count = calc.simCount ?? Object.values(calc.sims).filter((s) => s !== null).length;
   if (count === 0) return null;
-  return `Имитация: ${count} ${pluralRu(count, ["сценарий проверен", "сценария проверено", "сценариев проверено"])} за ${msText(calc.simMs ?? 0)} мс`;
+  return `Имитация в браузере: ${count} ${pluralRu(count, ["сценарий проверен", "сценария проверено", "сценариев проверено"])} за ${msText(calc.simMs ?? 0)} мс`;
 }
 
 // ——————————————————————————— Вкладки сценариев ———————————————————————————
@@ -547,7 +545,6 @@ export function Workspace({
   archive = false,
   initialStep = 1,
   initialFocusKey,
-  initialSims,
   mode,
   project,
   defs,
@@ -586,8 +583,8 @@ export function Workspace({
     base: initialModel,
     model: initialModel,
     ms: initialMs,
-    sims: initialSims ?? (stored ? stored.results.sim : archive ? {} : null),
-    simSource: initialSims ? "example" : stored ? "stored" : null,
+    sims: stored ? stored.results.sim : archive ? {} : null,
+    simSource: stored ? "stored" : null,
     simMs: null,
     simCount: null,
   }));

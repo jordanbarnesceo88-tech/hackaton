@@ -2,10 +2,6 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { catalogProduct } from "../data/organizer/catalog";
-import { paramSpecsFor } from "../data/organizer/params";
-import { validateScenarioSpecs } from "../projects/validate";
-import { hasErrors, validateParamValues } from "../tz/params/validate";
-import { processesForFacility } from "../tz/processes";
 import { validateProductSeeds } from "./import";
 import {
   EXAMPLE_IMPORT_KEYS,
@@ -163,44 +159,4 @@ describe("примеры документа", () => {
     expect(catalogProduct(seed.slug)).toBeUndefined();
   });
 
-  it("примеры расчёта проходят проверку параметров и сценариев", () => {
-    const op = OPENAPI.paths["/api/v1/calculate"]?.post;
-    const examples = Object.values(op?.requestBody?.content["application/json"]?.examples ?? {});
-    expect(examples.length).toBeGreaterThanOrEqual(2);
-    const specs = paramSpecsFor("warehouse");
-    const products = [EXAMPLE_PRODUCT_SLUG];
-    for (const ex of examples) {
-      const body = ex.value as { facility: string; params?: Record<string, unknown>; scenarios?: unknown };
-      expect(body.facility).toBe("warehouse");
-      const checked = validateParamValues(specs, body.params ?? {}, { origin: "api" });
-      expect(hasErrors(checked.issues), ex.summary).toBe(false);
-      if (body.scenarios !== undefined) {
-        const res = validateScenarioSpecs(
-          body.scenarios,
-          "warehouse",
-          products,
-          processesForFacility("warehouse").map((p) => p.slug),
-        );
-        expect(res.ok ? [] : res.errors, ex.summary).toEqual([]);
-      }
-    }
-  });
-
-  it("пример зарплаты — граница диапазона организатора, а не придуманное число", () => {
-    const op = OPENAPI.paths["/api/v1/calculate"]?.post;
-    const salary = op?.requestBody?.content["application/json"]?.examples?.salary?.value as { params: Record<string, number> };
-    const spec = paramSpecsFor("warehouse").find((s) => s.key === "forkliftSalaryRubMonth");
-    expect(spec?.origin).toBe("organizer");
-    expect(salary.params.forkliftSalaryRubMonth).toBe(spec?.max);
-  });
-
-  it("числа расчёта в примерах ответов не приводятся — только заглушки", () => {
-    const op = OPENAPI.paths["/api/v1/calculate"]?.post;
-    const value = op?.responses["200"]?.content?.["application/json"]?.examples?.example?.value as {
-      summary: Record<string, unknown>[];
-    };
-    for (const key of ["capexRub", "opexYearRub", "npvRub", "tcoRub", "paybackYears"]) {
-      expect(typeof value.summary[0]?.[key], key).toBe("string");
-    }
-  });
 });

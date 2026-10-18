@@ -1,5 +1,6 @@
 "use client";
 
+import type { ProjectActionFailure, SaveProjectInput, SaveProjectResult } from "@/lib/projects/action-types";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { useActionState, useId, useState, type ReactNode } from "react";
@@ -7,9 +8,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   copyProjectAction,
   deleteProjectAction,
-  type ProjectActionFailure,
-  type SaveProjectInput,
-  type SaveProjectResult,
 } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 import { projectInputSizeIssue } from "@/lib/projects/payload-limit";

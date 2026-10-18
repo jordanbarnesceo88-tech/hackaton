@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { CreateProjectState } from "@/lib/projects/actions";
+import type { CreateProjectState } from "@/lib/projects/action-types";
 import { submitCalculation } from "@/lib/calculation-jobs/client";
 import type { CalculationRequest } from "@/lib/calculation-jobs/service";
 import { stableJson } from "@/lib/tz/version";

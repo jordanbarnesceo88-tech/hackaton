@@ -7,15 +7,18 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Por
 const artifact = fileURLToPath(new URL('../../public/warehouse-3d.html', import.meta.url));
 const cleaningArtifact = fileURLToPath(new URL('../../public/cleaning-3d.html', import.meta.url));
 createServer(async (req, res) => {
-  const route = (req.url || '/').split('?')[0];
+  const url = new URL(req.url || '/', 'http://localhost');
+  const route = url.pathname;
   if (route === '/favicon.ico') { res.writeHead(204); res.end(); return; }
-  if (route !== '/' && route !== '/warehouse-3d.html' && route !== '/cleaning-3d.html') { res.writeHead(404); res.end('Not found'); return; }
+  const redirect = { '/': '/demo/warehouse', '/warehouse-3d.html': '/demo/warehouse', '/cleaning-3d.html': '/demo/cleaning' }[route];
+  if (redirect) { res.writeHead(308, { Location: redirect + url.search }); res.end(); return; }
+  if (route !== '/demo/warehouse' && route !== '/demo/cleaning') { res.writeHead(404); res.end('Not found'); return; }
   try {
-    const html = await readFile(route === '/cleaning-3d.html' ? cleaningArtifact : artifact);
+    const html = await readFile(route === '/demo/cleaning' ? cleaningArtifact : artifact);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(html);
   } catch {
     res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Build the demo first: node experiments/warehouse-3d/build.mjs');
   }
-}).listen(port, '127.0.0.1', () => console.log(`Warehouse 3D: http://127.0.0.1:${port}/`));
+}).listen(port, '127.0.0.1', () => console.log(`Warehouse 3D: http://127.0.0.1:${port}/demo/warehouse`));

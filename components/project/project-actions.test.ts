@@ -9,8 +9,6 @@ import type { JobReceipt } from "@/lib/calculation-jobs/types";
 vi.mock("@/lib/projects/actions", () => ({
   copyProjectAction: vi.fn(),
   deleteProjectAction: vi.fn(),
-  saveProjectAction: vi.fn(),
-  recalcProjectAction: vi.fn(),
 }));
 
 const stored = { modelVersion: "older-model", dataVersion: "older-data", calculatedAt: "2026-10-16T08:00:00Z" };

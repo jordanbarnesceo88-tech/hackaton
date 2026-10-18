@@ -2,12 +2,9 @@ import { charGroupOf, charLabel, formatCharValue, sourcedToCharRow } from "../ca
 import { hasConflictingAlternatives, promoteColumns } from "../catalog/promote";
 import { catalogProduct } from "../data/organizer/catalog";
 import { paramSpecsFor } from "../data/organizer/params";
-import { ORGANIZER_DATA_VERSION } from "../data/organizer/version.generated";
 import { SIM_MODEL_VERSION } from "../sim/types";
 import { CHAR_GROUP_LABELS, CHARACTERISTIC_KEYS } from "../tz/characteristics";
-import { DISCLAIMER } from "../tz/econ/conclusion";
 import { normDef } from "../tz/norms";
-import { validateParamValues } from "../tz/params/validate";
 import { FACILITY_LABELS } from "../tz/params/template";
 import { PROCESS_DEFS, processDef, SOLUTION_TYPE_DEFS, solutionTypeDef } from "../tz/processes";
 import type { CharValue, ProductSeed, Sourced } from "../tz/types";
@@ -240,17 +237,11 @@ function exampleDetail(seed: ProductSeed): Record<string, unknown> {
 }
 
 const EXAMPLE_PARAM_KEY = "forkliftSalaryRubMonth";
+const PALLET = "pallet-transport";
 const warehouseSpecs = paramSpecsFor("warehouse");
 const exampleParamSpec = warehouseSpecs.find((s) => s.key === EXAMPLE_PARAM_KEY) ?? warehouseSpecs[0];
 /** Верхняя граница зарплаты оператора погрузчика из датасета организатора — пример значения. */
 const exampleSalary = exampleParamSpec?.max ?? exampleParamSpec?.base ?? null;
-
-/** Пример ошибки проверки параметра — теми же функциями, что работают в обработчике. */
-function exampleParamIssues(): unknown {
-  return validateParamValues(warehouseSpecs, { [EXAMPLE_PARAM_KEY]: "сто двадцать тысяч" }, { origin: "api" }).issues.filter(
-    (i) => i.severity === "error",
-  );
-}
 
 /** Пример ошибки импорта. */
 function exampleImportIssues(): unknown {
@@ -258,60 +249,6 @@ function exampleImportIssues(): unknown {
   return res.ok ? [] : res.issues;
 }
 
-const NUM = "<число>";
-const RUB = "<число, ₽>";
-
-const exampleScenarioSummary = {
-  key: "p1",
-  name: "Покупка — Ronavi H1500",
-  kind: "purchase",
-  status: "ok",
-  recommended: "<true или false>",
-  capexRub: RUB,
-  opexYearRub: RUB,
-  effectYearRub: RUB,
-  paybackYears: NUM,
-  band: "<fast | moderate | slow | none>",
-  roiTzPct: NUM,
-  npvRub: RUB,
-  discountedPaybackYears: `${NUM} или null`,
-  tcoRub: RUB,
-  tcoYears: NUM,
-  equipment: [
-    { process: "pallet-transport", productSlug: EXAMPLE_PRODUCT_SLUG, productName: EXAMPLE_SOURCE?.name ?? "Ronavi H1500", robots: NUM, chargers: NUM },
-  ],
-  simVerdict: "<CONFIRMED | NOT_CONFIRMED>",
-  refusal: null,
-};
-
-const exampleVersions = {
-  modelVersion: TZ_MODEL_VERSION,
-  simModelVersion: SIM_MODEL_VERSION,
-  dataVersion: "<хэш данных расчёта>",
-  calculatedAt: "<дата и время ISO 8601>",
-  organizer: ORGANIZER_DATA_VERSION,
-  paramDefsFrom: "db",
-};
-
-const exampleCalcResponse = {
-  versions: exampleVersions,
-  summary: [exampleScenarioSummary],
-  conclusion: {
-    recommendedScenarioKey: "<ключ сценария или null>",
-    headline: "<вывод по проекту>",
-    bullets: ["<риск, сильнейший рычаг, горизонт смены вывода, порог зарплаты>"],
-    disclaimer: DISCLAIMER,
-  },
-  warnings: [],
-  results: "<ProjectResults: сценарии, статьи CAPEX и OPEX с формулами, денежные потоки, чувствительность, подбор, сравнение, имитация — см. схему>",
-};
-
-const PALLET = "pallet-transport";
-const exampleScenarios = [
-  { key: "asis", name: "Как есть", kind: "asis", items: [] },
-  { key: "p1", name: "Покупка — Ronavi H1500", kind: "purchase", items: [{ process: PALLET, productSlug: EXAMPLE_PRODUCT_SLUG }] },
-  { key: "r1", name: "Услуга (RaaS) — Ronavi H1500", kind: "raas", items: [{ process: PALLET, productSlug: EXAMPLE_PRODUCT_SLUG }] },
-];
 
 const utilizationDef = normDef("utilization");
 const exampleNormRows = normApiRows([]).norms.slice(0, 2).map((n) => ({ ...n, updatedAt: "<дата и время ISO 8601>" }));
@@ -1199,68 +1136,18 @@ export const OPENAPI: OpenApiDocument = {
         },
       },
     },
-    "/api/v1/calculate": {
-      post: {
-        operationId: "calculate",
-        summary: "Расчёт сценариев без сохранения",
-        description:
-          "Считает сценарии для объекта: подбор решений, состав оборудования, CAPEX, OPEX, эффект, окупаемость, ROI, NPV, TCO, чувствительность, " +
-          "вывод и проверку парка имитацией. Расчёт тот же, что у «Нового проекта», поэтому числа совпадают с проектом на тех же параметрах. " +
-          "Без params — базовые значения демо-набора; без scenarios — сценарии по умолчанию из подбора. Ничего не сохраняется. " +
-          "Лимит: 60 запросов за 15 минут с одного IP.",
-        tags: ["Расчёт и проекты"],
-        "x-access": "public",
-        security: PUBLIC,
-        requestBody: {
-          required: true,
-          content: {
-            [JSON_TYPE]: {
-              schema: ref("CalculateRequest"),
-              examples: {
-                demo: { summary: "Склад на демо-данных", value: { facility: "warehouse" } },
-                ...(exampleSalary !== null
-                  ? {
-                      salary: {
-                        summary: "Зарплата оператора погрузчика — верхняя граница типового диапазона",
-                        value: { facility: "warehouse", params: { [EXAMPLE_PARAM_KEY]: exampleSalary } },
-                      },
-                    }
-                  : {}),
-                scenarios: { summary: "Свои сценарии: «Как есть», покупка и услуга (RaaS) одного робота", value: { facility: "warehouse", scenarios: exampleScenarios } },
-              },
-            },
-          },
-        },
-        responses: {
-          "200": jsonResponse("Результат расчёта", ref("CalculateResponse"), {
-            example: { summary: "Структура ответа (числа расчёта заменены заглушками)", value: exampleCalcResponse },
-          }),
-          "400": R400,
-          "413": R413,
-          "415": R415,
-          "422": errorResponse("Параметры или сценарии не прошли проверку", {
-            summary: "Зарплата передана текстом",
-            value: {
-              error: `Параметры объекта не прошли проверку — исправьте: «${exampleParamSpec?.label ?? EXAMPLE_PARAM_KEY}»`,
-              details: { issues: exampleParamIssues() },
-            },
-          }),
-          "429": R429,
-          "503": R503,
-        },
-      },
-    },
     "/api/v1/projects": {
       post: {
         operationId: "createProject",
         summary: "Создать проект",
         description:
-          "Создаёт проект пользователя с расчётом и сохраняет его с версиями модели и данных. Путь для WMS, ERP и 1С: " +
-          "объёмы и режим работы объекта передаются в params. Проверка — как у формы «Новый проект»; сервер сам считает модель и имитацию. " +
-          "Проект открывается на сайте по адресу из поля url. Лимит: 30 проектов за 15 минут на пользователя.",
+          "Ставит CREATE в долговременную очередь. Объёмы и режим работы объекта из WMS, ERP или 1С передаются в params. " +
+          "Worker считает модель и имитацию, затем атомарно создаёт проект. Опрос состояния — по Location; projectId появляется после публикации. " +
+          "Обрыв HTTP не отменяет операцию; повторяйте то же тело с прежним ключом. Лимит: 30 отправок за 15 минут на пользователя; также действуют общие квоты очереди.",
         tags: ["Расчёт и проекты"],
         "x-access": "user",
         security: USER,
+        parameters: [{ name: "Idempotency-Key", in: "header", required: true, description: "Уникальный ключ CREATE, сохраняемый при сетевом повторе", schema: { type: "string", pattern: "^[a-zA-Z0-9._:-]{1,128}$" } }],
         requestBody: {
           required: true,
           content: {
@@ -1281,23 +1168,20 @@ export const OPENAPI: OpenApiDocument = {
           },
         },
         responses: {
-          "201": {
-            description: "Проект создан; заголовок Location — адрес проекта в API",
-            headers: { Location: str("/api/v1/projects/{id}") },
+          "202": {
+            description: "CREATE принят; Location — состояние операции, результат доступен после завершения worker",
+            headers: { Location: { schema: str("/api/v1/calculation-jobs/{id}") }, "Retry-After": { schema: { type: "integer" } } },
             content: {
               [JSON_TYPE]: {
-                schema: ref("ProjectCreated"),
-                examples: {
-                  example: {
-                    summary: "Структура ответа (числа расчёта заменены заглушками)",
-                    value: { id: "<id проекта>", revision: 0, url: "/projects/<id проекта>", ...exampleCalcResponse },
-                  },
-                },
+                schema: { type: "object", required: ["job"], properties: { job: ref("CalculationJobReceipt") } },
               },
             },
           },
           "400": R400,
           "401": R401_USER,
+          "403": errorResponse("Запрос с постороннего Origin"),
+          "409": errorResponse("Тот же Idempotency-Key использован с другим телом запроса"),
+          "410": errorResponse("Технический результат удалён; прежний ключ не создаёт новый проект"),
           "413": R413,
           "415": R415,
           "422": errorResponse("Название, тип объекта, параметры или сценарии не прошли проверку"),

@@ -3,7 +3,7 @@
 import type { JobReceipt } from "./types";
 import type { CalculationRequest } from "./service";
 import type { ProjectResults } from "../tz/types";
-import type { SaveProjectInput } from "../projects/actions";
+import type { SaveProjectInput } from "../projects/action-types";
 import { stableJson } from "../tz/version";
 
 export type JobResult = { job: JobReceipt; results: ProjectResults | null; submitted: SaveProjectInput | null };

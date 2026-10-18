@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { prisma } from "@/lib/db/client";
-import { getSolutionApplicability, getTaskCategories } from "@/lib/db/queries";
+import { getSolutionApplicability, getSolutionForCalc, getTaskCategories } from "@/lib/db/queries";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/economics/assumptions";
+import { computeEconomics } from "@/lib/economics/calculate";
+import { toSolutionCapacity } from "@/lib/economics/normalize";
+import { ANALYSIS_INPUT_MAX_BYTES } from "./validate";
 
 // saveAnalysisAction is the app's write boundary: it decides what a client may persist, and it
 // derives facilityTypeSlug from the database rather than trusting the payload. It sat at 0%
@@ -45,7 +48,6 @@ const payload = (over: Record<string, unknown> = {}) => ({
   solutionId,
   params: { areaM2: 1000, opsPerDay: 500, staffCount: 10 },
   assumptions: { ...DEFAULT_ASSUMPTIONS },
-  results: { economical: false, reason: "no_savings" },
   ...over,
 });
 
@@ -136,7 +138,43 @@ describe("saveAnalysisAction", () => {
     ).toEqual({ ok: false, reason: "invalid" });
   });
 
-  it("rejects a non-object results blob", async () => {
-    expect(await saveAnalysisAction(payload({ results: "not an object" }))).toEqual({ ok: false, reason: "invalid" });
+  it("ignores forged client economics and stores the server result while preserving all user overrides", async () => {
+    const solution = await getSolutionForCalc(solutionId);
+    if (!solution) throw new Error("Missing server solution");
+    const params = { areaM2: 1000, opsPerDay: 500, staffCount: 10, quantityOverride: 4,
+      capexPerUnitUsdOverride: 123000, taskStaffing: { [solution.solutionCategory.slug]: 3 } };
+    const assumptions = { ...DEFAULT_ASSUMPTIONS, discountRate: 0.125 };
+    const canonical = computeEconomics(toSolutionCapacity({ ...solution, workloadStream: solution.solutionCategory.workloadStream,
+      categorySlug: solution.solutionCategory.slug, workerOutputPerYear: solution.solutionCategory.workerOutputPerYear }), params, assumptions);
+    const forged = { economical: true, npvUsd: 999999999, capexUsd: 0, secretPadding: "do not persist client fields" };
+    const res = await saveAnalysisAction(payload({ params, assumptions, results: forged }));
+    if (!res.ok) throw new Error("Canonical save should succeed");
+    const saved = await prisma.savedAnalysis.findUniqueOrThrow({ where: { id: res.id } });
+    expect(saved.params).toEqual(params); expect(saved.assumptions).toEqual(assumptions);
+    expect(saved.results).toEqual(canonical); expect(saved.results).not.toEqual(forged);
+    expect(saved.results).not.toHaveProperty("secretPadding");
+    expect(saved.userId).toBe(userId);
+  });
+
+  it("rejects oversized UTF-8 commands before a DB transaction and leaves existing analyses intact", async () => {
+    const existing = await saveAnalysisAction(payload());
+    if (!existing.ok) throw new Error("Expected existing saved analysis");
+    const before = await prisma.savedAnalysis.findUniqueOrThrow({ where: { id: existing.id } });
+    const count = await prisma.savedAnalysis.count({ where: { userId } });
+    const transaction = vi.spyOn(prisma, "$transaction");
+    try {
+      // Characters are below 64KiB; encoded bytes exceed it. Even ignored client output
+      // and unknown padding count toward the request bound.
+      expect(await saveAnalysisAction(payload({ results: { padding: "я".repeat(ANALYSIS_INPUT_MAX_BYTES / 2) } }))).toEqual({ ok: false, reason: "invalid" });
+      expect(transaction).not.toHaveBeenCalled();
+    } finally { transaction.mockRestore(); }
+    expect(await prisma.savedAnalysis.count({ where: { userId } })).toBe(count);
+    expect(await prisma.savedAnalysis.findUniqueOrThrow({ where: { id: existing.id } })).toEqual(before);
+  });
+
+  it("rejects malformed root commands instead of dereferencing them", async () => {
+    for (const input of [null, undefined, [], "invalid", 1]) {
+      expect(await saveAnalysisAction(input)).toEqual({ ok: false, reason: "invalid" });
+    }
   });
 });

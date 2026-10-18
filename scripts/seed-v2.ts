@@ -2,6 +2,7 @@ import type { PrismaClient, Role } from "@prisma/client";
 import { changedTotal, formatSyncReport, syncOrganizerData } from "../lib/catalog/sync";
 import { MAX_PASSWORD_BYTES, hashPassword, passwordByteLength, verifyPassword } from "../lib/auth/password";
 import { seedDemoProject } from "./seed-demo";
+import { seedBusinessExamples } from "./seed-business-examples";
 
 /**
  * Сев слоя модели по методике ТЗ (tz-1.0.0). Вызывается из scripts/seed.ts после сева
@@ -119,6 +120,7 @@ export async function seedV2(prisma: PrismaClient): Promise<void> {
   }
 
   await seedDemoProject(prisma);
+  await seedBusinessExamples(prisma);
 
   const total = changedTotal(report) + accountsChanged;
   console.log(

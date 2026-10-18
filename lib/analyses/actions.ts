@@ -1,87 +1,61 @@
 "use server";
 
 import { auth } from "@/auth";
-import {
-  createSavedAnalysis,
-  getSolutionApplicability,
-  getTaskCategories,
-  type SavedAnalysisInput,
-} from "@/lib/db/queries";
-import {
-  sanitizeName,
-  validateParams,
-  validateAssumptions,
-  isPlainObject,
-} from "@/lib/analyses/validate";
+import { prisma } from "@/lib/db/client";
+import { createSavedAnalysis, getSolutionApplicability, getSolutionForCalc, getTaskCategories } from "@/lib/db/queries";
+import { sanitizeName, validateParams, validateAssumptions, isPlainObject, validAnalysisInputSize } from "@/lib/analyses/validate";
+import { computeEconomics } from "@/lib/economics/calculate";
+import { toSolutionCapacity } from "@/lib/economics/normalize";
 
 export type SaveResult =
   | { ok: true; id: string }
   | { ok: false; reason: "unauthenticated" | "invalid" | "error" };
 
-export async function saveAnalysisAction(input: SavedAnalysisInput): Promise<SaveResult> {
+/** Save inputs only; the compact legacy economics result is always computed by the server. */
+export async function saveAnalysisAction(input: unknown): Promise<SaveResult> {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false, reason: "unauthenticated" };
+  const userId = session?.user?.id;
+  if (!userId) return { ok: false, reason: "unauthenticated" };
+  if (!isPlainObject(input) || !validAnalysisInputSize(input)) return { ok: false, reason: "invalid" };
 
-  // Validate + bound the client-supplied payload before it's persisted as jsonb (audit S1).
   const name = sanitizeName(input.name);
   const params = validateParams(input.params);
   const assumptions = validateAssumptions(input.assumptions);
-  if (
-    !name ||
-    !params ||
-    !assumptions ||
-    !isPlainObject(input.results) ||
-    typeof input.solutionId !== "string"
-  ) {
+  const solutionId = input.solutionId;
+  const facilityTypeSlug = input.facilityTypeSlug;
+  if (!name || !params || !assumptions || typeof solutionId !== "string" || !solutionId || solutionId.length > 200 ||
+    typeof facilityTypeSlug !== "string" || !facilityTypeSlug || facilityTypeSlug.length > 200) {
     return { ok: false, reason: "invalid" };
   }
 
-  // The facility slug used to be DERIVED from the solution precisely so the client-sent one
-  // was never trusted. A category now serves many facility types, so there is nothing single
-  // to derive — but the guarantee has to survive the schema change, not the mechanism. The
-  // claimed slug must belong to the set the solution actually applies to; anything else is
-  // rejected rather than stored.
-  // Отдельная выборка решения здесь не нужна: getSolutionApplicability возвращает пустой
-  // список для несуществующего id, поэтому проверка ниже отсекает и этот случай. Раньше
-  // запрос делался только ради существования решения и добавлял лишний последовательный
-  // поход в базу на каждое сохранение.
-  const applicable = await getSolutionApplicability(input.solutionId);
-  const claimed = typeof input.facilityTypeSlug === "string" ? input.facilityTypeSlug : "";
-  if (!applicable.includes(claimed)) return { ok: false, reason: "invalid" };
-  const facilityTypeSlug = claimed;
-
-  // Р-4 на границе СОХРАНЕНИЯ. Ключи занятости проверяются на применимость к заявленному типу
-  // объекта — тем же приёмом, что и сам `facilityTypeSlug` строкой выше.
-  //
-  // Экран занятости посторонние ключи уже отбрасывает, но экран — не граница: сюда приходит
-  // payload, а не нажатие кнопки. Сохранённый расчёт мог нести занятость по задаче, которой на
-  // этом объекте нет, и это данные, которые потом кто-то прочитает как истину — в отчёте,
-  // отдаваемом клиенту.
-  //
-  // ОТКЛОНЯЕМ, а не подчищаем: подчистка означала бы, что сохранённое отличается от
-  // присланного и никто об этом не сказал. Тем же правилом живёт validateParams.
-  const declaredTasks = Object.keys(params.taskStaffing ?? {});
-  if (declaredTasks.length > 0) {
-    const applicableTasks = new Set(
-      (await getTaskCategories(facilityTypeSlug)).map((c) => c.slug)
-    );
-    if (declaredTasks.some((slug) => !applicableTasks.has(slug))) {
-      return { ok: false, reason: "invalid" };
-    }
-  }
-
   try {
-    const saved = await createSavedAnalysis(session.user.id, {
-      name,
-      facilityTypeSlug,
-      solutionId: input.solutionId,
-      params,
-      assumptions,
-      results: input.results,
-    });
-    return { ok: true, id: saved.id };
-  } catch (e) {
-    console.error("saveAnalysisAction: failed to persist analysis", e); // REFACTORING #5
+    // Applicability, solution/category inputs and the saved result share one DB snapshot.
+    // This is a small scalar calculation, with no simulation or fleet search.
+    return await prisma.$transaction(async tx => {
+      const applicable = await getSolutionApplicability(solutionId, tx);
+      if (!applicable.includes(facilityTypeSlug)) return { ok: false, reason: "invalid" } as const;
+      const declaredTasks = Object.keys(params.taskStaffing ?? {});
+      if (declaredTasks.length) {
+        const allowed = new Set((await getTaskCategories(facilityTypeSlug, tx)).map(task => task.slug));
+        if (declaredTasks.some(slug => !allowed.has(slug))) return { ok: false, reason: "invalid" } as const;
+      }
+      const solution = await getSolutionForCalc(solutionId, tx);
+      if (!solution) return { ok: false, reason: "invalid" } as const;
+      const capacity = toSolutionCapacity({ ...solution,
+        workloadStream: solution.solutionCategory.workloadStream,
+        categorySlug: solution.solutionCategory.slug,
+        workerOutputPerYear: solution.solutionCategory.workerOutputPerYear });
+      const results = computeEconomics(capacity, params, assumptions);
+      if (Object.values(results).some(value => typeof value === "number" && !Number.isFinite(value))) {
+        return { ok: false, reason: "invalid" } as const;
+      }
+      // Ignore any client-supplied results entirely, including forged financial fields.
+      const saved = await createSavedAnalysis(userId, { name, facilityTypeSlug, solutionId, params, assumptions, results }, tx);
+      return { ok: true, id: saved.id } as const;
+    }, { isolationLevel: "RepeatableRead" });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+    console.error("saveAnalysisAction: failed to persist canonical analysis", { code: typeof code === "string" ? code : undefined });
     return { ok: false, reason: "error" };
   }
 }

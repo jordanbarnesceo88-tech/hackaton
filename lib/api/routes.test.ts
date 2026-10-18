@@ -1,44 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { productForCalcFromSeed } from "../catalog/product-for-calc";
-import { CATALOG } from "../data/organizer/catalog";
 import { paramSpecsFor } from "../data/organizer/params";
-import type { LiveInputs } from "../projects/recalc";
-import { resolveNorms } from "../tz/norms";
-import { applyDefaults } from "../tz/params/schema";
-import { processDef } from "../tz/processes";
-import type { ScenarioOk } from "../tz/types";
-import { withServerCalculation } from "../sim/server-execution";
 import { PROJECT_INPUT_MAX_BYTES } from "../projects/payload-limit";
+import { CalculationRequestError } from "../calculation-jobs/service";
+import { IdempotencyConflict, JobQueueFull } from "../calculation-jobs/types";
 
 // Обработчики API v1 целиком, без Postgres: клиент БД, ограничитель частоты и сессия подменены,
-// живые входы расчёта — данные организатора из кода (как `print-demo-numbers --offline`).
-// Проверяется склейка: доступ, коды ответов, форма ошибок и то, что расчёт через API даёт те же
-// числа, что прямой вызов той же функции, которой пользуется «Новый проект».
+// Проверяется транспорт, доступ и передача CREATE в общую durable-очередь.
+// Числа, валидация замороженного входа и публикация проверяются DB-тестами service/store.
 
 const mocks = vi.hoisted(() => ({
   rateLimit: vi.fn(),
   getSessionUser: vi.fn(),
   getAdminUser: vi.fn(),
+  enqueue: vi.fn(),
   prisma: {} as Record<string, unknown>,
 }));
 vi.mock("@/lib/auth/rate-limit", () => ({ rateLimit: mocks.rateLimit, clientIp: () => "203.0.113.7" }));
 vi.mock("@/lib/auth/guards", () => ({ getSessionUser: mocks.getSessionUser, getAdminUser: mocks.getAdminUser }));
 vi.mock("@/lib/db/client", () => ({ prisma: mocks.prisma }));
-vi.mock("@/lib/projects/recalc", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../projects/recalc")>();
-  return { ...actual, loadLiveInputs: vi.fn(async (_db: unknown, facility: string) => offlineInputs(facility)) };
-});
+vi.mock("@/lib/calculation-jobs/service", async original => ({
+  ...await original<typeof import("../calculation-jobs/service")>(), enqueueCalculation: mocks.enqueue,
+}));
 
-/** Живые входы без БД: данные организатора из кода и нормативы по умолчанию. */
-function offlineInputs(facility: string): LiveInputs {
-  const products = CATALOG.filter((p) => p.level !== "identification")
-    .filter((p) => p.processes.some((s) => processDef(s)?.facilityTypes.includes(facility)))
-    .map(productForCalcFromSeed)
-    .sort((a, b) => a.name.localeCompare(b.name, "ru") || (a.slug < b.slug ? -1 : 1));
-  return { paramDefs: paramSpecsFor(facility), products, norms: resolveNorms(), paramDefsFrom: "code" };
-}
-
-const calculate = await import("@/app/api/v1/calculate/route");
 const norms = await import("@/app/api/v1/norms/route");
 const importRoute = await import("@/app/api/v1/catalog/import/route");
 const catalog = await import("@/app/api/v1/catalog/route");
@@ -46,7 +29,6 @@ const params = await import("@/app/api/v1/facility-types/[slug]/params/route");
 const projects = await import("@/app/api/v1/projects/route");
 const project = await import("@/app/api/v1/projects/[id]/route");
 const openapiRoute = await import("@/app/api/v1/openapi.json/route");
-const { resultsFromInputs } = await import("../projects/recalc");
 const { OPENAPI } = await import("./openapi");
 const { exampleImportSeed } = await import("./openapi");
 
@@ -65,96 +47,10 @@ beforeEach(() => {
   mocks.rateLimit.mockReset().mockResolvedValue({ ok: true, retryAfterSec: 0 });
   mocks.getSessionUser.mockReset().mockResolvedValue(null);
   mocks.getAdminUser.mockReset().mockResolvedValue(null);
+  mocks.enqueue.mockReset();
   for (const k of Object.keys(mocks.prisma)) delete mocks.prisma[k];
 });
 afterEach(() => vi.unstubAllEnvs());
-
-describe("POST /api/v1/calculate", () => {
-  it("admits large project JSON to semantic validation and refuses bodies above the shared cap", async () => {
-    mocks.getSessionUser.mockResolvedValue({ userId: "u1", role: "USER", email: "test@local" });
-    const create = vi.fn(); mocks.prisma.project = { create };
-    for (const [route, url] of [[calculate, "/api/v1/calculate"], [projects, "/api/v1/projects"]] as const) {
-      // An unknown field proves transport admission without running a large fake calculation.
-      const large = await route.POST(jsonReq(url, "POST", { facility: "warehouse", padding: "x".repeat(2_433_182) }));
-      expect(large.status).toBe(422);
-      const tooLarge = await route.POST(jsonReq(url, "POST", { padding: "x".repeat(PROJECT_INPUT_MAX_BYTES) }));
-      expect(tooLarge.status).toBe(413);
-    }
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it("busy calculation admission returns retryable503 on both compute routes without a DBwrite", async () => {
-    let release!: () => void;
-    const barrier = new Promise<void>(r => { release = r; });
-    const slots = [withServerCalculation(async()=>barrier), withServerCalculation(async()=>barrier)];
-    const create = vi.fn(); mocks.prisma.project = { create };
-    mocks.getSessionUser.mockResolvedValue({ userId: "u1", role: "USER", email: "test@local" });
-    try {
-      for (const res of [
-        await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "warehouse" })),
-        await projects.POST(jsonReq("/api/v1/projects", "POST", { name: "Must not create", facility: "warehouse" })),
-      ]) {
-        expect(res.status).toBe(503); expect(res.headers.get("retry-after")).toBe("2");
-        expect((await res.json()).error).toContain("два расчёта");
-      }
-      expect(create).not.toHaveBeenCalled();
-    } finally { release(); await Promise.all(slots); }
-  });
-
-  it("a cancelled compute request returns no successful calculation receipt", async () => {
-    const controller = new AbortController(); controller.abort();
-    const req = new Request("http://localhost/api/v1/calculate", { method: "POST", headers: JSON_HEADERS,
-      body: JSON.stringify({ facility: "warehouse" }), signal: controller.signal });
-    const res = await calculate.POST(req);
-    expect(res.status).toBe(499); expect((await res.json()).error).toContain("отменён");
-  });
-
-  it("склад на демо-данных: те же числа, что у «Нового проекта» на тех же входах", async () => {
-    const res = await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "warehouse" }));
-    expect(res.status).toBe(200);
-    expect(mocks.rateLimit).toHaveBeenCalledWith("api:calc:ip:203.0.113.7", { limit: 60, windowMs: 900_000 });
-    const json = (await res.json()) as {
-      versions: { modelVersion: string; dataVersion: string };
-      summary: { key: string; kind: string; npvRub: number | null; recommended: boolean }[];
-      results: { results: ScenarioOk[]; dataVersion: string };
-      conclusion: { disclaimer: string };
-    };
-    const live = offlineInputs("warehouse");
-    const direct = resultsFromInputs(live, { facility: "warehouse", params: applyDefaults(live.paramDefs, {}) }).results;
-    expect(json.versions.dataVersion).toBe(direct.dataVersion);
-    expect(json.summary.map((s) => s.key)).toEqual(direct.results.map((r) => r.key));
-    for (const r of direct.results) {
-      const s = json.summary.find((x) => x.key === r.key);
-      expect(s?.npvRub, r.key).toBe(r.status === "ok" ? r.npvRub : null);
-    }
-    expect(json.summary.some((s) => s.kind === "purchase")).toBe(true);
-    expect(json.summary.filter((s) => s.recommended).length).toBeLessThanOrEqual(1);
-    expect(json.conclusion.disclaimer).toMatch(/предварительная оценка/);
-  });
-
-  it("лимит частоты — 429 с Retry-After до разбора тела", async () => {
-    mocks.rateLimit.mockResolvedValue({ ok: false, retryAfterSec: 30 });
-    const res = await calculate.POST(jsonReq("/api/v1/calculate", "POST", "not json"));
-    expect(res.status).toBe(429);
-    expect(res.headers.get("retry-after")).toBe("30");
-  });
-
-  it("проверка входа: тип объекта, лишнее поле, ключ параметра, сценарии, Content-Type", async () => {
-    const r1 = await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "factory" }));
-    expect(r1.status).toBe(422);
-    const r2 = await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "warehouse", extra: 1 }));
-    expect(((await r2.json()) as { error: string }).error).toMatch(/Неизвестные поля extra/);
-    const r3 = await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "warehouse", params: { noSuchKey: 1 } }));
-    expect(r3.status).toBe(422);
-    const b3 = (await r3.json()) as { details: { issues: { code: string }[] } };
-    expect(b3.details.issues.map((i) => i.code)).toContain("unknown_key");
-    const r4 = await calculate.POST(jsonReq("/api/v1/calculate", "POST", { facility: "warehouse", scenarios: [] }));
-    expect(r4.status).toBe(422);
-    expect(((await r4.json()) as { details: { errors: string[] } }).details.errors.join(" ")).toMatch(/от 3 до 10 сценариев/);
-    const r5 = await calculate.POST(new Request("http://localhost/api/v1/calculate", { method: "POST", body: "{}" }));
-    expect(r5.status).toBe(415);
-  });
-});
 
 describe("нормативы", () => {
   it("GET: пустая таблица — нормативы из кода", async () => {
@@ -251,43 +147,67 @@ describe("каталог, параметры, проекты, описание",
 describe("проекты по сессии", () => {
   const USER = { userId: "u1", email: "demo@demo.local", role: "USER" };
 
-  it("POST /api/v1/projects: 201, Location, запись с источником api и те же числа, что прямой расчёт", async () => {
+  it("CREATE bounds JSON at 4 MiB and refuses malformed transport before enqueue", async () => {
     mocks.getSessionUser.mockResolvedValue(USER);
-    const create = vi.fn<(args: { data: Record<string, unknown> }) => Promise<{ id: string }>>(async () => ({ id: "p1" }));
-    mocks.prisma.project = { create };
-    const res = await projects.POST(
-      jsonReq("/api/v1/projects", "POST", { name: "  РЦ   Подольск ", facility: "warehouse", objectName: "Распределительный центр" }),
-    );
-    expect(res.status).toBe(201);
-    expect(res.headers.get("location")).toBe("/api/v1/projects/p1");
-    expect(mocks.rateLimit).toHaveBeenCalledWith("api:projects:user:u1", { limit: 30, windowMs: 900_000 });
-    const data = create.mock.calls[0]?.[0].data;
-    expect(data).toMatchObject({
-      userId: "u1",
-      name: "РЦ Подольск",
-      objectName: "Распределительный центр",
-      facilityTypeSlug: "warehouse",
-      paramsSource: { kind: "api" },
-    });
-    const json = (await res.json()) as { id: string; url: string; summary: { key: string; npvRub: number | null }[] };
-    expect(json.id).toBe("p1");
-    expect(json.url).toBe("/projects/p1");
-    const live = offlineInputs("warehouse");
-    const direct = resultsFromInputs(live, { facility: "warehouse", params: applyDefaults(live.paramDefs, {}) }).results;
-    expect(json.summary.map((s) => [s.key, s.npvRub])).toEqual(
-      direct.results.map((r) => [r.key, r.status === "ok" ? r.npvRub : null]),
-    );
+    expect((await projects.POST(jsonReq("/api/v1/projects", "POST", { facility: "warehouse", padding: "x".repeat(2_433_182) }))).status).toBe(422);
+    expect((await projects.POST(jsonReq("/api/v1/projects", "POST", { params: { padding: "x".repeat(PROJECT_INPUT_MAX_BYTES) } }))).status).toBe(413);
+    expect((await projects.POST(new Request("http://localhost/api/v1/projects", { method: "POST", body: "{}" }))).status).toBe(415);
+    expect((await projects.POST(jsonReq("/api/v1/projects", "POST", "{"))).status).toBe(400);
+    expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
-  it("POST /api/v1/projects: пустое название — 422; пользователя нет в базе (P2003) — 401", async () => {
+  it("CREATE preserves semantic errors and durable queue/conflict status codes", async () => {
     mocks.getSessionUser.mockResolvedValue(USER);
-    const noName = await projects.POST(jsonReq("/api/v1/projects", "POST", { name: "   ", facility: "warehouse" }));
-    expect(noName.status).toBe(422);
-    expect(((await noName.json()) as { error: string }).error).toMatch(/^name/);
+    const detail = { issues: [{ key: "invalid", code: "unknown_key" }] };
+    mocks.enqueue.mockRejectedValue(new CalculationRequestError(422, "Неверные параметры", detail));
+    const rejected = await projects.POST(jsonReq("/api/v1/projects", "POST", { facility: "warehouse", params: { invalid: 1 } }));
+    expect(rejected.status).toBe(422); expect((await rejected.json()).details).toEqual(detail);
+    mocks.enqueue.mockRejectedValue(new IdempotencyConflict());
+    expect((await projects.POST(jsonReq("/api/v1/projects", "POST", {}))).status).toBe(409);
+    mocks.enqueue.mockRejectedValue(new JobQueueFull());
+    const full = await projects.POST(jsonReq("/api/v1/projects", "POST", {}));
+    expect(full.status).toBe(429); expect(full.headers.get("retry-after")).toBe("5");
+  });
 
-    mocks.prisma.project = { create: vi.fn(async () => Promise.reject(Object.assign(new Error("fk"), { code: "P2003" }))) };
-    const stale = await projects.POST(jsonReq("/api/v1/projects", "POST", { name: "Склад", facility: "warehouse" }));
-    expect(stale.status).toBe(401);
+  it("CREATE rate limit responds before reading or retaining a body", async () => {
+    mocks.getSessionUser.mockResolvedValue(USER);
+    mocks.rateLimit.mockResolvedValue({ ok: false, retryAfterSec: 30 });
+    const response = await projects.POST(jsonReq("/api/v1/projects", "POST", "not json"));
+    expect(response.status).toBe(429); expect(response.headers.get("retry-after")).toBe("30");
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("POST /api/v1/projects: 202 queues CREATE with an owner, API source and retry key", async () => {
+    mocks.getSessionUser.mockResolvedValue(USER);
+    mocks.enqueue.mockResolvedValue({ id: "job-create", operation: "CREATE", status: "QUEUED" });
+    const body = { name: "РЦ Подольск", facility: "warehouse", objectName: "Распределительный центр" };
+    const res = await projects.POST(jsonReq("/api/v1/projects", "POST", body, { "idempotency-key": "create-key" }));
+    expect(res.status).toBe(202);
+    expect(res.headers.get("location")).toBe("/api/v1/calculation-jobs/job-create");
+    expect(res.headers.get("retry-after")).toBe("1");
+    expect(mocks.enqueue).toHaveBeenCalledWith(mocks.prisma, "u1", { ...body, operation: "CREATE", paramsSource: { kind: "api" } }, "create-key");
+    expect(await res.json()).toEqual({ job: { id: "job-create", operation: "CREATE", status: "QUEUED" } });
+  });
+
+  it("CREATE rejects transport injection before enqueue and propagates durable preconditions", async () => {
+    mocks.getSessionUser.mockResolvedValue(USER);
+    expect((await projects.POST(jsonReq("/api/v1/projects", "POST", { name: "Склад", facility: "warehouse", operation: "SAVE" }))).status).toBe(422);
+    expect((await projects.POST(jsonReq("/api/v1/projects", "POST", {}, { origin: "https://attacker.test" }))).status).toBe(403);
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    const { CalculationRequestError } = await import("../calculation-jobs/service");
+    mocks.enqueue.mockRejectedValue(new CalculationRequestError(422, "Передайте Idempotency-Key"));
+    expect((await projects.POST(jsonReq("/api/v1/projects", "POST", { name: "Склад", facility: "warehouse" }))).status).toBe(422);
+    expect(mocks.enqueue).toHaveBeenCalledWith(mocks.prisma, "u1", expect.objectContaining({ operation: "CREATE" }), "");
+  });
+
+  it("disconnecting CREATE does not turn an accepted durable command into cancellation", async () => {
+    mocks.getSessionUser.mockResolvedValue(USER);
+    mocks.enqueue.mockResolvedValue({ id: "queued", operation: "CREATE", status: "QUEUED" });
+    const controller = new AbortController(); controller.abort();
+    const req = new Request("http://localhost/api/v1/projects", { method: "POST", signal: controller.signal,
+      headers: { ...JSON_HEADERS, "idempotency-key": "disconnected-create" }, body: JSON.stringify({ name: "Склад", facility: "warehouse" }) });
+    expect((await projects.POST(req)).status).toBe(202);
+    expect(mocks.enqueue.mock.calls[0]?.[2]).not.toHaveProperty("signal");
   });
 
   it("GET /api/v1/projects/{id}: чужой проект — 404, запрос ограничен владельцем", async () => {

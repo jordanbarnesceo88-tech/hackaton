@@ -287,7 +287,6 @@ export function EconomicsCalculator({
         solutionId={selectedSolutionId}
         params={params}
         assumptions={effectiveAssumptions}
-        result={result}
       />
       <AssumptionsPanel
         assumptions={effectiveAssumptions}

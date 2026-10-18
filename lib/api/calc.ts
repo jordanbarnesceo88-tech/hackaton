@@ -8,7 +8,7 @@ import type { FacilitySlug } from "../tz/processes";
 import type { Band, ParamIssue, ParamValues, ProjectResults, ScenarioKind, ScenarioSpec } from "../tz/types";
 
 /**
- * Разбор и проверка входа расчёта через API (POST /api/v1/calculate и POST /api/v1/projects,
+ * Разбор и проверка входа расчёта через API (очередь расчётов и POST /api/v1/projects,
  * ТЗ §3.8.1, §3.2.4) и короткая сводка результата для интеграций. Чистые функции: проверка
  * параметров — та же, что у формы и загрузки файла (validateParamValues с origin 'api': лишний
  * ключ — ошибка), проверка сценариев — та же, что у сохранения проекта (validateScenarioSpecs).

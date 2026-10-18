@@ -8,7 +8,7 @@ import { isFacilitySlug } from "@/lib/tz/processes";
  * GET /api/v1/facility-types/{slug}/params — описания параметров объекта (ТЗ §3.2): ключ,
  * раздел, подпись, единица, вид поля, базовое значение и диапазон организатора, пример,
  * подсказка и источник каждого значения. По этим ключам внешняя система (WMS, ERP, 1С)
- * заполняет `params` в POST /api/v1/calculate и POST /api/v1/projects. Вход не нужен.
+ * заполняет `params` в POST /api/v1/calculation-jobs и POST /api/v1/projects. Вход не нужен.
  *
  * Описания — из администрируемой таблицы ParamDefinition; пока данные не засеяны — из кода
  * (те же данные организатора, `source: "code"`), как и у расчёта.

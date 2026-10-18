@@ -7,11 +7,20 @@ import {
   WHOLE_YEAR_ASSUMPTIONS,
 } from "@/lib/economics/assumptions";
 
-// Saved-analysis payloads arrive from the client and are persisted as-is (jsonb), so validate
-// shape and bound sizes here before they touch the DB. Pure + framework-free so it's unit
-// testable; the solution-existence check lives in the server action (needs DB access).
+// Validate and bound client inputs before database access. The server action checks solution
+// applicability and computes the result; client-provided financial output is not persisted.
 
 export const NAME_MAX_LEN = 120;
+
+/** Legacy commands contain scalar economics inputs and at most 40 task keys, never geometry. */
+export const ANALYSIS_INPUT_MAX_BYTES = 64 * 1024;
+
+export function validAnalysisInputSize(input: unknown): boolean {
+  try {
+    const json = JSON.stringify(input);
+    return json !== undefined && new TextEncoder().encode(json).byteLength <= ANALYSIS_INPUT_MAX_BYTES;
+  } catch { return false; }
+}
 
 /**
  * Потолки на карту занятости. Она приходит от клиента и ложится в jsonb как есть, поэтому у

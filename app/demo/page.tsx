@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { BusinessExamples } from "@/components/project/business-examples";
 import { businessExample } from "@/lib/projects/business-examples";
-import { buildBusinessExampleAsync } from "@/lib/projects/business-example-model";
+import { buildBusinessExamplePreview } from "@/lib/projects/business-example-model";
+import { readBusinessExampleSnapshot } from "@/lib/projects/business-example-snapshot";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -15,7 +16,6 @@ import { FACILITY_LABELS } from "@/lib/tz/params/template";
 import { isFacilitySlug, processesForFacility, type FacilitySlug } from "@/lib/tz/processes";
 import type { ParamValues } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
-import { calculationFailure } from "@/lib/sim/server-execution";
 
 export const metadata: Metadata = { title: "Демо-расчёт — Платформа оценки роботизации" };
 
@@ -83,25 +83,21 @@ export default async function DemoPage({
   const defs = live.paramDefs.filter((d) => d.facility === facility);
   const baseValues: ParamValues = Object.fromEntries(defs.map((d) => [d.key, d.base]));
   const processes = dbProcesses.length > 0 ? dbProcesses : processesForFacility(facility);
-  let prepared: Awaited<ReturnType<typeof buildBusinessExampleAsync>> | null;
-  try { prepared = example ? await buildBusinessExampleAsync(live, example.id) : null; }
-  catch (error) {
-    const failure = calculationFailure(error);
-    if (!failure) throw error;
-    return <div className="surface-data flex flex-col gap-4 py-8"><h1>Демо-расчёт временно недоступен</h1>
-      <p role="status">{failure.message}</p>
-      <Link className="tap-target text-primary underline" href={`/demo?example=${example!.id}`}>Повторить расчёт примера</Link>
-      <Link className="tap-target text-primary underline" href="/demo">Открыть исходные параметры</Link></div>;
-  }
-  const demo = prepared ? { params: prepared.params, scenarios: prepared.model.scenarios, model: prepared.model, ms: prepared.ms } : demoProject(live, facility);
+  const prepared = example ? buildBusinessExamplePreview(live, example.id) : null;
+  const snapshot = example ? await readBusinessExampleSnapshot(prisma, live, example.id) : null;
+  const demo = snapshot ? { params: snapshot.model.paramsUsed, model: snapshot.model, ms: 0 }
+    : prepared ? { params: prepared.params, model: prepared.model, ms: prepared.ms } : demoProject(live, facility);
 
   return (
     <div className="surface-data flex flex-col gap-4 py-5 sm:gap-6 sm:py-8">
       <div className="flex flex-col gap-3">
         <h1>{example ? example.title : `Демо-расчёт: ${facilityLabel}`}</h1>
-        <details className="max-w-4xl text-sm text-muted-foreground"><summary className="tap-target cursor-pointer">{prepared ? "Готовый пример" : "Гостевой расчёт"} · не сохранён</summary><p className="mt-2">
-          {prepared ? "Готовый бизнес-пример: объект, парк и денежные допущения уже заданы. " : "Гостевой расчёт на базовых данных организатора. "}
-          Меняйте параметры и пересчитывайте результат. Для записи проекта и PDF/Excel{" "}
+        <p className="max-w-4xl text-sm text-muted-foreground">{snapshot
+          ? `Готовый учебный расчёт с проверкой потока и движения роботов. Подготовлен ${new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Moscow" }).format(new Date(snapshot.results.calculatedAt))} МСК · ${snapshot.results.modelVersion}. Изменения параметров проверяются в вашем браузере.`
+          : "Предварительная оценка. Имитация выполняется в вашем браузере; данные гостевого расчёта не сохраняются на сервере."}</p>
+        <details className="max-w-4xl text-sm text-muted-foreground"><summary className="tap-target cursor-pointer">{prepared ? "Учебный пример" : "Гостевой расчёт"} · ваши изменения не сохраняются</summary><p className="mt-2">
+          {prepared ? "В бизнес-примере уже заданы объект, парк и денежные допущения. " : "Гостевой расчёт на базовых данных организатора. "}
+          Меняйте параметры и проверяйте результат локально. Для серверной проверки, записи проекта и PDF/Excel{" "}
           <Link href="/login" className="tap-target text-primary underline underline-offset-2">
             войдите
           </Link>
@@ -134,7 +130,6 @@ export default async function DemoPage({
         key={`${facility}:${example?.id ?? "baseline"}`}
         initialStep={prepared ? 8 : 1}
         initialFocusKey={prepared ? "purchase" : undefined}
-        initialSims={prepared?.results.sim}
         mode="guest"
         project={{
           name: `Демо-расчёт — ${facilityLabel}`,
@@ -152,6 +147,7 @@ export default async function DemoPage({
         processes={processes}
         initialModel={demo.model}
         initialMs={demo.ms}
+        stored={snapshot ? { results: snapshot.results, liveDataVersion: snapshot.results.dataVersion } : undefined}
       />
     </div>
   );

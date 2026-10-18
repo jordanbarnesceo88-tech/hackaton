@@ -7,6 +7,8 @@
   const projectHash = new URLSearchParams(location.hash.slice(1));
   const projectMode = config.initialCase !== 'sections' && projectHash.has('project');
   const projectRequestId = projectHash.get('project');
+  const viewerUrl = kind => location.protocol === 'file:' ? `./${kind}-3d.html` : `/demo/${kind}`;
+  $('demo-link').href = viewerUrl(config.initialCase === 'sections' ? 'warehouse' : 'cleaning');
   const numberFormats = new Map();
   const format = (value, digits = 1) => {
     if (!Number.isFinite(value)) return '—';
@@ -489,7 +491,7 @@
       $('area').value = cleaning ? result.activeAreaM2 : result.input.layout.activeAreaM2;
       $('sections-panel').hidden = !cleaning; $('coverage-legend').hidden = !cleaning; $('warehouse-legend').hidden = cleaning;
       $('warehouse-examples').hidden = true; $('input-details').open = !cleaning && !matchMedia('(max-width:650px)').matches;
-      $('demo-link').href = cleaning ? './warehouse-3d.html' : './cleaning-3d.html';
+      $('demo-link').href = viewerUrl(cleaning ? 'warehouse' : 'cleaning');
       text('demo-link', cleaning ? 'Основное демо: склад' : 'Дополнительно: уборка');
       sectionRows.clear(); $('section-list').replaceChildren();
       text('page-title', cleaning ? 'Работа роботов внутри секций' : 'Склад. Поток. Состояние каждого робота.');
@@ -525,7 +527,7 @@
         text('header-context', 'Пространственная проверка снимка выбранного сценария');
         text('case-context', `${result.title} · ${result.input.robots.count} роботов · базовый прогон без учебных инцидентов`);
         text('input-note', 'Параметры получены из проекта и здесь доступны только для чтения. Правьте исходный сценарий и откройте новый снимок. Сравнение парков ниже проверяет отдельные варианты и не изменяет проект.');
-        $('presets').hidden = true; $('recalculate').hidden = true; $('demo-link').href = './warehouse-3d.html'; text('demo-link', 'Открыть отдельное демо');
+        $('presets').hidden = true; $('recalculate').hidden = true; $('demo-link').href = viewerUrl('warehouse'); text('demo-link', 'Открыть отдельное демо');
       }
       setDirty(false);
       setTimeout(() => { if (!playing) renderFrame(false); }, 700);
