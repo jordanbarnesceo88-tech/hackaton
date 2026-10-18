@@ -108,8 +108,8 @@ async function upsertDemoAccount(prisma: PrismaClient, account: DemoAccount): Pr
   return "обновлён";
 }
 
-/** Сев слоя модели ТЗ: данные организатора, демо-аккаунты, демо-проект. */
-export async function seedV2(prisma: PrismaClient): Promise<void> {
+/** Reference data and accounts only; the full deployment seed always also calculates demo projects. */
+export async function seedV2Data(prisma: PrismaClient): Promise<number> {
   console.log("Модель по методике ТЗ (tz-1.0.0): синхронизация данных организатора…");
   const report = await syncOrganizerData(prisma, { respectAdminEdits: true });
   for (const line of formatSyncReport(report)) console.log(`  ${line}`);
@@ -125,19 +125,24 @@ export async function seedV2(prisma: PrismaClient): Promise<void> {
     console.log(`  Демо-аккаунт ${account.email} (${account.roleLabel}): ${outcome}`);
   }
 
-  await seedDemoProject(prisma);
-  await seedBusinessExamples(prisma);
-
   const total = changedTotal(report) + accountsChanged;
-  console.log(
-    total === 0
-      ? "  Итог слоя модели ТЗ: изменений нет."
-      : `  Итог слоя модели ТЗ: изменено записей — ${total}.`,
-  );
 
   // Продукт, который не удалось записать, — не повод молча продолжать: каталог неполон,
   // и подбор на показе отличался бы от данных организатора. Отчёт уже напечатан выше.
   if (report.products.failed > 0) {
     throw new Error(`Синхронизация не записала продуктов: ${report.products.failed} (причины — в отчёте выше)`);
   }
+  return total;
+}
+
+/** Сев слоя модели ТЗ: данные организатора, демо-аккаунты и полный расчёт всех демо-проектов. */
+export async function seedV2(prisma: PrismaClient): Promise<void> {
+  const total = await seedV2Data(prisma);
+  await seedDemoProject(prisma);
+  await seedBusinessExamples(prisma);
+  console.log(
+    total === 0
+      ? "  Итог слоя модели ТЗ: изменений нет."
+      : `  Итог слоя модели ТЗ: изменено записей — ${total}.`,
+  );
 }

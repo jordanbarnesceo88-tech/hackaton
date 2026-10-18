@@ -133,7 +133,7 @@ export default async function CatalogProductPage({ params }: { params: Params })
       ))}
 
       <section id="implementation" className="scroll-mt-20">
-        <ImplementationGuidePanel snapshot={buildImplementationSnapshot(product.solutionType?.slug ?? "other", product.manufacturer, serviceOverridesOf(Object.values(product.characteristics).flat()))} />
+        <ImplementationGuidePanel snapshot={buildImplementationSnapshot(product.solutionType?.slug ?? "other", product.manufacturer, serviceOverridesOf(Object.values(product.characteristics).flat()), product.name)} />
       </section>
 
       <p className="border-t pt-4 text-xs text-muted-foreground">

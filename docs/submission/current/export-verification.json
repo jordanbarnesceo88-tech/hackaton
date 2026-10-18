@@ -1,21 +1,8 @@
 {
-  "checks": 446,
-  "excelRecalculated": false,
-  "scope": "ExcelJS read-only cached values; independently recomputed NPV/TCO/effect/payback/ROI from exported cashflow inputs, no full spreadsheet recalculation, no simulation or database access",
-  "project": {
-    "id": "d53f3d4c-21b1-4a2d-93d4-d39063b85f87",
-    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-    "revision": 0
-  },
-  "operation": {
-    "id": "cmve3kt6j000p01s06v1fgyu1",
-    "kind": "CREATE",
-    "status": "SUCCEEDED",
-    "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1"
-  },
-  "modelVersion": "tz-1.0.7",
-  "spatialVersion": "warehouse-dense-underlift-1.9.0",
+  "status": "PASS",
+  "checkedAt": "2026-10-18T21:38:46.004Z",
+  "checks": 7329,
+  "sheets": 14,
   "finance": [
     {
       "key": "asis",
@@ -43,43 +30,437 @@
     }
   ],
   "receipts": {
-    "steady-flow": {
-      "status": "OK",
-      "fleet": 6,
-      "requiredPerH": 51.81818181818181,
-      "achievedPerH": 52,
-      "queueEnd": 2,
-      "waitP95Min": 4.55,
-      "npv": 4079992.1238097674
-    },
-    "peak-overload": {
-      "status": "PARTIAL",
-      "fleet": 6,
-      "requiredPerH": 103.63636363636363,
-      "achievedPerH": 50.5,
-      "queueEnd": 121,
-      "waitP95Min": 61.45,
-      "npv": -21055151.573009025
-    },
-    "retained-staff": {
-      "status": "OK",
-      "fleet": 6,
-      "requiredPerH": 51.81818181818181,
-      "achievedPerH": 52,
-      "queueEnd": 2,
-      "waitP95Min": 4.55,
-      "npv": -60125974.53558995
-    }
+    "source": [
+      {
+        "scenario": "purchase",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "queueEnd": 1,
+          "waitP95Min": 4.916666666666667,
+          "achievedPerH": 51.5,
+          "requiredPerH": 51.81818181818181
+        },
+        "controlledStatus": "PASS",
+        "metrics": {
+          "arrivedPerH": 57,
+          "offeredPerH": 57,
+          "closedCohort": 109,
+          "requiredPerH": 51.81818181818181,
+          "deliveredCohort": 110,
+          "measurementEndS": 8100,
+          "closedCohortPerH": 54.5,
+          "measurementStartS": 900,
+          "deliveredCohortPerH": 55,
+          "oldestUnfinishedAgeS": 268,
+          "unfinishedServiceCount": 3,
+          "unfinishedCustomerCount": 4
+        }
+      },
+      {
+        "scenario": "raas",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "queueEnd": 1,
+          "waitP95Min": 4.916666666666667,
+          "achievedPerH": 51.5,
+          "requiredPerH": 51.81818181818181
+        },
+        "controlledStatus": "PASS",
+        "metrics": {
+          "arrivedPerH": 57,
+          "offeredPerH": 57,
+          "closedCohort": 109,
+          "requiredPerH": 51.81818181818181,
+          "deliveredCohort": 110,
+          "measurementEndS": 8100,
+          "closedCohortPerH": 54.5,
+          "measurementStartS": 900,
+          "deliveredCohortPerH": 55,
+          "oldestUnfinishedAgeS": 268,
+          "unfinishedServiceCount": 3,
+          "unfinishedCustomerCount": 4
+        }
+      }
+    ],
+    "steady-flow": [
+      {
+        "scenario": "purchase",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "requiredPerH": 51.81818181818181,
+          "achievedPerH": 51.5,
+          "queueEnd": 1,
+          "waitP95Min": 4.916666666666667
+        },
+        "controlledStatus": "PASS",
+        "metrics": {
+          "requiredPerH": 51.81818181818181,
+          "offeredPerH": 57,
+          "arrivedPerH": 57,
+          "deliveredCohort": 110,
+          "closedCohort": 109,
+          "deliveredCohortPerH": 55,
+          "closedCohortPerH": 54.5,
+          "measurementStartS": 900,
+          "measurementEndS": 8100,
+          "unfinishedCustomerCount": 4,
+          "unfinishedServiceCount": 3,
+          "oldestUnfinishedAgeS": 268
+        }
+      },
+      {
+        "scenario": "raas",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "requiredPerH": 51.81818181818181,
+          "achievedPerH": 51.5,
+          "queueEnd": 1,
+          "waitP95Min": 4.916666666666667
+        },
+        "controlledStatus": "PASS",
+        "metrics": {
+          "requiredPerH": 51.81818181818181,
+          "offeredPerH": 57,
+          "arrivedPerH": 57,
+          "deliveredCohort": 110,
+          "closedCohort": 109,
+          "deliveredCohortPerH": 55,
+          "closedCohortPerH": 54.5,
+          "measurementStartS": 900,
+          "measurementEndS": 8100,
+          "unfinishedCustomerCount": 4,
+          "unfinishedServiceCount": 3,
+          "oldestUnfinishedAgeS": 268
+        }
+      }
+    ],
+    "peak-overload": [
+      {
+        "scenario": "purchase",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "requiredPerH": 103.63636363636363,
+          "achievedPerH": 69,
+          "queueEnd": 85,
+          "waitP95Min": 42.3
+        },
+        "controlledStatus": "NOT_EVALUATED",
+        "terminal": false,
+        "metrics": {
+          "requiredPerH": 103.63636363636363,
+          "offeredPerH": 114,
+          "arrivedPerH": 0,
+          "deliveredCohort": 0,
+          "closedCohort": 0,
+          "deliveredCohortPerH": 0,
+          "closedCohortPerH": 0,
+          "measurementStartS": 900,
+          "measurementEndS": 8100,
+          "unfinishedCustomerCount": 0,
+          "unfinishedServiceCount": 0,
+          "oldestUnfinishedAgeS": 0
+        }
+      },
+      {
+        "scenario": "raas",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "requiredPerH": 103.63636363636363,
+          "achievedPerH": 69,
+          "queueEnd": 85,
+          "waitP95Min": 42.3
+        },
+        "controlledStatus": "NOT_EVALUATED",
+        "terminal": false,
+        "metrics": {
+          "requiredPerH": 103.63636363636363,
+          "offeredPerH": 114,
+          "arrivedPerH": 0,
+          "deliveredCohort": 0,
+          "closedCohort": 0,
+          "deliveredCohortPerH": 0,
+          "closedCohortPerH": 0,
+          "measurementStartS": 900,
+          "measurementEndS": 8100,
+          "unfinishedCustomerCount": 0,
+          "unfinishedServiceCount": 0,
+          "oldestUnfinishedAgeS": 0
+        }
+      }
+    ],
+    "retained-staff": [
+      {
+        "scenario": "purchase",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "requiredPerH": 51.81818181818181,
+          "achievedPerH": 51.5,
+          "queueEnd": 1,
+          "waitP95Min": 4.916666666666667
+        },
+        "controlledStatus": "PASS",
+        "metrics": {
+          "requiredPerH": 51.81818181818181,
+          "offeredPerH": 57,
+          "arrivedPerH": 57,
+          "deliveredCohort": 110,
+          "closedCohort": 109,
+          "deliveredCohortPerH": 55,
+          "closedCohortPerH": 54.5,
+          "measurementStartS": 900,
+          "measurementEndS": 8100,
+          "unfinishedCustomerCount": 4,
+          "unfinishedServiceCount": 3,
+          "oldestUnfinishedAgeS": 268
+        }
+      },
+      {
+        "scenario": "raas",
+        "nominalStatus": "PARTIAL",
+        "nominal": {
+          "fleet": 6,
+          "requiredPerH": 51.81818181818181,
+          "achievedPerH": 51.5,
+          "queueEnd": 1,
+          "waitP95Min": 4.916666666666667
+        },
+        "controlledStatus": "PASS",
+        "metrics": {
+          "requiredPerH": 51.81818181818181,
+          "offeredPerH": 57,
+          "arrivedPerH": 57,
+          "deliveredCohort": 110,
+          "closedCohort": 109,
+          "deliveredCohortPerH": 55,
+          "closedCohortPerH": 54.5,
+          "measurementStartS": 900,
+          "measurementEndS": 8100,
+          "unfinishedCustomerCount": 4,
+          "unfinishedServiceCount": 3,
+          "oldestUnfinishedAgeS": 268
+        }
+      }
+    ]
   },
-  "sheets": 13,
+  "labourZeroSamples": {
+    "count": 0,
+    "scenarios": [],
+    "status": "NOT_PRESENT_IN_SUBMISSION_SAMPLE",
+    "note": "Zero cash realization and zero automatable labour are different inputs."
+  },
+  "scope": "Read-only JSON/CSV/XLSX14 comparison, independent financial and cohort arithmetic. Cached Excel values and formula references only; no Excel recalculation, simulation replay, DB, browser, PDF text or visual acceptance.",
+  "project": {
+    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 0
+  },
+  "sourceProject": {
+    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 0
+  },
+  "operation": {
+    "id": "cmvebyexr003t01pet92h3qrr",
+    "kind": "CREATE",
+    "status": "SUCCEEDED",
+    "publication": "PUBLISHED",
+    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1"
+  },
+  "modelVersion": "tz-1.0.8",
+  "spatialVersion": "warehouse-dense-underlift-1.9.1",
   "sha256": {
-    "calculation-source.json": "0293bc104d43504acf91fe5cde6815bc09d35bcf33a56edf6fab3964d42d4785",
-    "sample-report.xlsx": "a151555cebcd223d92d49d68f4ad439327fcc0063658ee1ddfd4e59342c09db7",
-    "sample-report.csv": "cbfaf9ebb8494e82b30e40da10e28b1d9d54ee6a01f16fe07f2d2837275000ab",
-    "sample-report.pdf": "983c266ba904bc50bb316fbdae31bce390480acbf38b22ea0f6d7acb1ca53ebf",
-    "steady-flow-receipt.json": "d4e7690beb541822562b469aeab7255669dee7f137594d5c70c89886a086765e",
-    "peak-overload-receipt.json": "fdc98c9dfdd4dc9523fc49aefc174009138954420b635aa75a646039e5f02557",
-    "retained-staff-receipt.json": "d001e9ccc6c6af062af71d1c98d5f1638fc9260a70da0a49f7e227167853a4b9"
+    "calculation-source.json": "9f48dac47094cc8c46114e557ec8f81e63a38712ad878b44c187410f4d19498d",
+    "sample-report.xlsx": "263c0c55aed5b84697d9b3833e9574ab142c28565c6ec038a84ea991ea9710ab",
+    "sample-report.csv": "0535282fd3e469c998a49ea1333bcadcfbae279bc0c3004e1f4159a31087addb",
+    "sample-report.pdf": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6",
+    "steady-flow-receipt.json": "a0b3f75bd92f67a1e249b1a8c6d7d1059dea027512b6b699016d6814f71dcf27",
+    "peak-overload-receipt.json": "e99d4bb6a805bbc75275ad7a5ba60929d3ca05a385d98853fb60e438de3ee265",
+    "retained-staff-receipt.json": "ab78623b561d618e53a693c40803fd22f46ae673d412aea98f042e040895257c"
   },
+  "excelRecalculated": false,
+  "rawXmlZeroCacheEvidence": [
+    {
+      "sheet": "Денежный поток",
+      "address": "G11",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "-B11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H11",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I11",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G11/(1+$B$5)^A11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F12-E12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H11+G12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G12/(1+$B$5)^A12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F13-E13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H12+G13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G13/(1+$B$5)^A13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F14-E14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H13+G14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G14/(1+$B$5)^A14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F15-E15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H14+G15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G15/(1+$B$5)^A15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F16-E16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H15+G16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G16/(1+$B$5)^A16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "B18",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "B11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "B19",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "B8-B9",
+      "rawCache": "0"
+    }
+  ],
   "findings": []
 }

@@ -387,7 +387,9 @@ describe("действия проектов", () => {
     expect(param?.entity).toBe("project");
     expect(param?.autoValue).toBe(120_000);
 
-    const changes = await getProjectChanges(prisma, projectId, userA);
+    const unlabelled = await getProjectChanges(prisma, projectId, userA);
+    expect(unlabelled?.find(c => c.field === "param:forkliftSalaryRubMonth")?.fieldLabel).toBe("Параметр: forkliftSalaryRubMonth");
+    const changes = (await getOwnedProjectSnapshot(prisma, projectId, userA))?.changes;
     const labels = new Map(changes?.map((c) => [c.field, c.fieldLabel]));
     expect(labels.get(`item:${PT}:quantity`)).toBe(
       "Число роботов (Перемещение паллет: приёмка → хранение → отгрузка)",
@@ -565,13 +567,17 @@ describe("spatial financial scenario persistence", () => {
   it("retains cash, staffing, package and exact spatial evidence through save, reopen and reproduction", async () => {
     asUser(userA);
     const live = await loadLiveInputs(prisma, "warehouse");
-    const params = Object.fromEntries(live.paramDefs.filter(d => d.facility === "warehouse").map(d => [d.key, d.base]));
-    const { id } = await insertProject(prisma, live, { userId: userA, name: "TZT22 spatial roundtrip", objectName: null, facility: "warehouse", params, paramsSource: { kind: "demo" }, scenarios: SPECS });
+    // Persistence needs a complete real replay, not three repeats of the full-size stress fixture.
+    const params = { ...Object.fromEntries(live.paramDefs.filter(d => d.facility === "warehouse").map(d => [d.key, d.base])),
+      activeAreaM2: 5000, totalAreaM2: 10000, inboundPalletsPerDay: 500, outboundPalletsPerDay: 500, peakFactor: 1.2 };
+    const roundtripSpecs = SPECS.map(s => ({ ...s, items: s.items.map(i => ({ ...i, quantityOverride: 6, chargersOverride: 2 })) }));
+    const { id } = await insertProject(prisma, live, { userId: userA, name: "TZT22 spatial roundtrip", objectName: null, facility: "warehouse", params, paramsSource: { kind: "demo" }, scenarios: roundtripSpecs });
     const initial = await getProject(prisma, id, userA);
     if (!initial?.results) throw new Error("No initial calculation");
     const input = expectedSpatialInputFromStored(initial.results, "p1");
     if (!input) throw new Error("No warehouse input");
-    const specs = structuredClone(SPECS), spec = specs.find(s => s.key === "p1")!;
+    expect(input.transportWorkflow).toBe("closed-pod-1");
+    const specs = structuredClone(roundtripSpecs), spec = specs.find(s => s.key === "p1")!;
     spec.cashRealizationShare = 0;
     spec.operationsStaffing = { mode: "integrator", billing: "separate", annualFeeRub: 900_000, reason: "Оценка дополнительных расходов на всю площадку" };
     spec.items[0]!.costPackage = { softwareIncludedInIntegration: true, repairsIncludedInService: true, includedChargers: 0, reason: "Условный пакет покупки для проверки сохранения" };

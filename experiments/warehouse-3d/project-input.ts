@@ -9,11 +9,14 @@ import { createWarehouseTrafficState, prepareWarehouseTraffic, stepWarehouseTraf
 import { SPATIAL_MODEL_VERSION, parseSpatialProjectSnapshot } from "../../lib/sim/spatial-bridge";
 import { checkExecution, type CooperativeOptions } from "../../lib/sim/cooperative";
 import { demandMixOf, initialVacantStorageCount } from "../../lib/sim/demand-mix";
+import { assessCapacityRun, createQualificationTracker, deriveCapacityInput, observeQualification, qualificationDiagnostics, type CapacityProof } from "../../lib/sim/capacity-protocol";
 
 /** A project snapshot never goes through catalog defaults or the complex-demo geometry. */
-export function calculateProjectPreview(value: unknown): DemoModel {
+export function calculateProjectPreview(value: unknown, options: CooperativeOptions = {}): DemoModel {
+  checkExecution(options);
   const prepared = prepareProjectPreview(value);
-  while (!isDone(prepared.terminal)) stepWarehouseTraffic(prepared.terminal);
+  while (!isDone(prepared.terminal)) { checkExecution(options); stepWarehouseTraffic(prepared.terminal); observeQualification(prepared.tracker, prepared.terminal); }
+  checkExecution(options);
   return finishProjectPreview(prepared);
 }
 
@@ -31,6 +34,7 @@ export async function calculateProjectPreviewAsync(value: unknown, options: Coop
   while (!isDone(prepared.terminal)) {
     checkExecution(options);
     stepWarehouseTraffic(prepared.terminal);
+    observeQualification(prepared.tracker, prepared.terminal);
     if (now() - sliceStart >= (options.sliceMs ?? 8)) {
       await yieldFn();
       checkExecution(options);
@@ -54,14 +58,15 @@ function prepareProjectPreview(value: unknown) {
   const input = prepareWarehouseTraffic(original);
   input.demoIncidents = { ...input.demoIncidents!, enabled: false, schedule: [] };
   const terminal = createWarehouseTrafficState(input);
-  return { snapshot, original, input, terminal };
+  return { snapshot, original, input, terminal, tracker: createQualificationTracker() };
 }
 
-function finishProjectPreview({ snapshot, original, input, terminal }: ReturnType<typeof prepareProjectPreview>): DemoModel {
+function finishProjectPreview({ snapshot, original, input, terminal, tracker }: ReturnType<typeof prepareProjectPreview>): DemoModel {
   const simModelVersion = SPATIAL_MODEL_VERSION;
   const summary = { ...summarize(terminal, { scenarioKey: snapshot.scenarioKey, assumedUtilPct: snapshot.assumedUtilPct }), incidentSummary: incidentSummary(terminal), verdictScope: "intake-sla" as const, simModelVersion };
   const layout = input.siteLayout!;
   return {
+    qualificationDiagnostics: qualificationDiagnostics(terminal, tracker),
     id: "project", title: snapshot.scenarioName, modelVersion: "spatial-project-1", simModelVersion, dataVersion: "project-snapshot",
     input, layout, racks: layout.obstacles?.filter(r => r.kind === "rack").map(r => ({ ...r })) ?? rackRects(layout).map(r => ({ ...r, y: layout.heightM - r.y - r.h })),
     summary, assessment: assessWarehouse(terminal, summary), finance: null,
@@ -84,4 +89,37 @@ function finishProjectPreview({ snapshot, original, input, terminal }: ReturnTyp
     ],
     projectOrigin: { requestId: snapshot.requestId, scenarioKey: snapshot.scenarioKey, variantId: snapshot.variantId, sourceInput: structuredClone(snapshot.input), sourceInputKey: snapshot.inputKey, executionInputKey: simInputIdentity(input) },
   };
+}
+
+function prepareCapacityPreview(value: unknown) {
+  const source = parseSpatialProjectSnapshot(value);
+  if (source.input.transportWorkflow !== "closed-pod-1" || source.input.demand.peakPerH <= 0) throw new Error("Контролируемый тест применим к closed-pod сценарию с положительной нагрузкой");
+  const input = deriveCapacityInput(source.input);
+  const prepared = prepareProjectPreview({ ...source, input, inputKey: simInputIdentity(input) });
+  return { source: source.input, prepared };
+}
+function finishCapacityPreview({ source, prepared }: ReturnType<typeof prepareCapacityPreview>): CapacityProof {
+  const summary = summarize(prepared.terminal);
+  return assessCapacityRun(source, prepared.terminal, assessWarehouse(prepared.terminal, summary), qualificationDiagnostics(prepared.terminal, prepared.tracker));
+}
+/** Separate server-derived controlled run: never replaces the nominal model or assessment. */
+export function calculateProjectCapacityPreview(value: unknown, options: CooperativeOptions = {}): CapacityProof {
+  checkExecution(options);
+  const run = prepareCapacityPreview(value);
+  while (!isDone(run.prepared.terminal)) { checkExecution(options); stepWarehouseTraffic(run.prepared.terminal); observeQualification(run.prepared.tracker, run.prepared.terminal); }
+  checkExecution(options);
+  return finishCapacityPreview(run);
+}
+export async function calculateProjectCapacityPreviewAsync(value: unknown, options: CooperativeOptions = {}): Promise<CapacityProof> {
+  const now = options.now ?? (() => performance.now()), yieldFn = options.yieldFn ?? (() => new Promise<void>(resolve => setTimeout(resolve, 0)));
+  options = { ...options, now };
+  checkExecution(options); await yieldFn(); checkExecution(options);
+  const run = prepareCapacityPreview(value);
+  let sliceStart = now();
+  while (!isDone(run.prepared.terminal)) {
+    checkExecution(options); stepWarehouseTraffic(run.prepared.terminal); observeQualification(run.prepared.tracker, run.prepared.terminal);
+    if (now() - sliceStart >= (options.sliceMs ?? 8)) { await yieldFn(); checkExecution(options); sliceStart = now(); }
+  }
+  checkExecution(options);
+  return finishCapacityPreview(run);
 }

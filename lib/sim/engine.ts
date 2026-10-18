@@ -51,6 +51,7 @@ export const SIM_LIMITS = {
 /** Ожидаемое число заданий за прогон: λavg × прогрев + λpk × пиковое окно (отрицательные — 0). */
 export function expectedTasks(demand: SimInput["demand"]): number {
   const pos = (v: number) => (v > 0 ? v : 0);
+  if (demand.offered) return pos(demand.offered.perH) * (pos(demand.warmupMin) + pos(demand.peakMin)) / 60;
   return (pos(demand.avgPerH) * pos(demand.warmupMin)) / 60 + (pos(demand.peakPerH) * pos(demand.peakMin)) / 60;
 }
 
@@ -107,7 +108,8 @@ function precheckOf(input: SimInput, count: number, chargeModelled: boolean): Si
     Math.round(d.peakMin * 60) > 0 &&
     !(expectedTasks(d) > SIM_LIMITS.maxExpectedTasks) &&
     (d.mix === undefined || validDemandMix(d.mix)) &&
-    (d.storageVacancyShare === undefined || Number.isFinite(d.storageVacancyShare) && d.storageVacancyShare >= 0 && d.storageVacancyShare <= 0.9);
+    (d.storageVacancyShare === undefined || Number.isFinite(d.storageVacancyShare) && d.storageVacancyShare >= 0 && d.storageVacancyShare <= 0.9) &&
+    (d.offered === undefined || d.offered !== null && d.offered.protocol === "periodic-capacity-1" && Number.isFinite(d.offered.perH) && d.offered.perH > 0 && Object.keys(d.offered).every(k => k === "protocol" || k === "perH"));
   if (
     count < 1 ||
     count > SIM_LIMITS.maxRobots ||
@@ -487,8 +489,19 @@ export function stepSim(state: SimEngineState, dtS = 1, movementGate?: SimMoveme
 
   const perH = t < s.warmupS ? s.input.demand.avgPerH : s.input.demand.peakPerH;
   const rand = () => nextRandom(s.rng);
-  const arrivals = bernoulliArrivals(rand, perH / 3600, dt);
-  for (let i = 0; i < arrivals; i++) addTask(s, rand, t, inWin);
+  if (s.input.demand.offered) {
+    const rate = s.input.demand.offered.perH / 3600;
+    // Event n occurs at n/rate, admitted on its ceiling clock; no initial burst or RNG arrival draw.
+    const first = Math.max(1, Math.floor((t - 1) * rate) + 1);
+    const last = Math.floor((Math.min(t + dt, s.endS) - 1) * rate);
+    for (let n = first; n <= last; n++) {
+      const arrivalS = Math.ceil(n / rate);
+      addTask(s, rand, arrivalS, arrivalS >= s.warmupS && arrivalS < s.endS);
+    }
+  } else {
+    const arrivals = bernoulliArrivals(rand, perH / 3600, dt);
+    for (let i = 0; i < arrivals; i++) addTask(s, rand, t, inWin);
+  }
 
   assignTasks(s, dispatchGate);
   if (inWin) {

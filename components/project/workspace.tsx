@@ -8,6 +8,7 @@ import { simInputIdentity } from "@/lib/sim/identity";
 import { createSpatialProjectSnapshot, type SpatialProjectSnapshot, type SpatialProjectResult } from "@/lib/sim/spatial-bridge";
 import { buildSpatialFinancialScenario, parseSpatialScenarioProposal, type SpatialScenarioProposal } from "@/lib/sim/spatial-proposal";
 import { DecisionSummary } from "./decision-summary";
+import { CapacityCheck } from "./capacity-check";
 import { PilotPlan } from "./pilot-plan";
 import { OperationsStaffing } from "./operations-staffing";
 import { DeploymentLogistics } from "./deployment-logistics";
@@ -21,6 +22,7 @@ import { pluralRu } from "@/lib/format/plural";
 import { formatNum } from "@/lib/format/rub";
 import type { SaveProjectInput, SaveProjectResult } from "@/lib/projects/action-types";
 import { canAdoptSavedSnapshot, projectDraftKey, projectSnapshotModel } from "@/lib/projects/archive";
+import { normRowsFromSnapshot } from "@/lib/tz/methodology";
 import { calculateDemo } from "@/lib/projects/demo-calculation-client";
 import { useDurableCalculation } from "./use-durable-calculation";
 import { CalculationJobStatus } from "./calculation-job-status";
@@ -671,8 +673,8 @@ export function Workspace({
   const currentKey = useMemo(() => stateKey(params, scenarios), [params, scenarios]);
   const dirty = currentKey !== savedKey || pending.length > 0;
   const rows = useMemo(
-    () => normRows.map((r) => ({ ...r, value: (model.normsUsed as Record<string, number>)[r.key] ?? r.value })),
-    [normRows, model.normsUsed],
+    () => archive ? normRowsFromSnapshot({ normsUsed: model.normsUsed, methodologySnapshot: model.methodologySnapshot }) : normRows.map((r) => ({ ...r, value: (model.normsUsed as Record<string, number>)[r.key] ?? r.value })),
+    [archive, normRows, model.normsUsed, model.methodologySnapshot],
   );
 
   const paramChanges = defs
@@ -939,14 +941,30 @@ export function Workspace({
     if (!editable || stale) return;
     const expected = model.simInputs[snapshot.scenarioKey]?.calculated;
     if (!expected || simInputIdentity(expected) !== snapshot.inputKey) return;
+    const source = scenarios.find(s => s.key === snapshot.scenarioKey);
+    const previous = source?.spatialEvidence;
     const evidence = { sourceInputKey: result.sourceInputKey, executionInputKey: result.executionInputKey,
       simModelVersion: result.simModelVersion, input: snapshot.input,
-      assessment: result.assessment as NonNullable<ScenarioSpec["spatialEvidence"]>["assessment"], summary: result.summary };
-    const source = scenarios.find(s => s.key === snapshot.scenarioKey);
+      assessment: result.assessment as NonNullable<ScenarioSpec["spatialEvidence"]>["assessment"], summary: result.summary,
+      ...(previous?.sourceInputKey === snapshot.inputKey && (previous.capacityRequested || previous.capacityProof)
+        ? { capacityRequested: true as const } : {}),
+    };
     if (!source || stableJson(source.spatialEvidence ?? null) === stableJson(evidence)) return;
     setFocusPick(snapshot.scenarioKey);
     // A completed check changes eligibility, not the cash-flow assumptions or the selected fleet.
     recalcWith(params, scenarios.map(s => s.key === source.key ? { ...s, spatialEvidence: evidence } : s));
+  }
+
+  function onCapacityCheck() {
+    const source = scenarios.find(s => s.key === focusKey);
+    const evidence = source?.spatialEvidence;
+    const expected = model.simInputs[focusKey]?.calculated;
+    if (!editable || archive || stale || !calculationReady || !source || !evidence || !expected ||
+      evidence.sourceInputKey !== simInputIdentity(expected)) return;
+    commitScenarios(scenarios.map(s => s.key === source.key
+      ? { ...s, spatialEvidence: { ...evidence, capacityRequested: true } } : s), [], {
+      where: "scenarios", text: "Запрошена серверная проверка мощности: периодическая подача 110%, прогрев 15 минут и измерение 120 минут. Исходная нагрузка и номинальный результат сохраняются отдельно.",
+    });
   }
 
 
@@ -1707,6 +1725,7 @@ export function Workspace({
           <p>{model.conclusion.headline}</p>
           <ul className="list-disc pl-5">{model.conclusion.bullets.map((text, index) => <li key={index}>{text}</li>)}</ul>
           <p className="text-xs text-muted-foreground">{model.conclusion.disclaimer}</p>
+          {focusSpec?.spatialEvidence?.capacityProof && <CapacityCheck evidence={focusSpec.spatialEvidence} fresh={false} archived />}
         </section> : !calculationReady ? <section className="grid gap-3" aria-label="Расчёт выбранного сценария" data-decision-pending>
           <h3>{serverRun.kind === "error" ? "Серверный расчёт не завершён" : serverRun.kind === "edited" ? "Новые условия ещё не проверены" : "Рассчитываем выбранный сценарий"}</h3>
           <p>Заключение, выполнение нагрузки и финансовые показатели текущих условий появятся после ответа сервера. {serverRun.kind === "error" ? "Повторите расчёт в общей панели выше; предварительные числа не являются результатом проверки." : "Можно изучать исходные данные и подготовить правки на остальных шагах."}</p>
@@ -1714,6 +1733,7 @@ export function Workspace({
           expectedInput={model.simInputs[focusKey]?.calculated ?? null}
           onCompare={() => goToStep(6, { focusHeading: true })}
           onSimulation={() => goToStep(7, { focusHeading: true })}
+          onCapacityCheck={editable && !archive ? onCapacityCheck : undefined}
           onPilot={() => { const plan = document.getElementById(`${uid}-pilot`); plan?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }); }} />}
         {calculationReady && focusResult?.status === "ok" && focusResult.kind !== "asis" && <section id={`${uid}-pilot`} tabIndex={-1} className="min-w-0 scroll-mt-24"><PilotPlan
           key={`${focusKey}:${calc.token}`} model={model} scenarioKey={focusKey}

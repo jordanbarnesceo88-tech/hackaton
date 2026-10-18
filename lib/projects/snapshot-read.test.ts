@@ -28,4 +28,26 @@ describe("owned project and journal read snapshot", () => {
     expect(await getOwnedProjectSnapshot(db, "foreign", "owner")).toBeNull();
     expect(tx.changeLog.findMany).not.toHaveBeenCalled();
   });
+
+  it.each([true, false])("keeps journal parameter labels in the owned snapshot (metadata=%s)", async savedMetadata => {
+    const at = new Date("2026-10-18T00:00:00Z");
+    const results = {
+      modelVersion: "saved", dataVersion: "saved", facility: "warehouse", results: [], scenarios: [],
+      productSnapshots: {}, normsUsed: {}, paramsUsed: { forkliftOperatorsCount: 20 },
+      ...(savedMetadata ? { runtime: { paramDefs: [{ key: "forkliftOperatorsCount", label: "Сохранённая численность" }] } } : {}),
+    };
+    const liveDefinitions = vi.fn(async () => [{ key: "forkliftOperatorsCount", label: "LIVE_ADMIN_RENAMED", options: [], usedBy: [] }]);
+    const tx = {
+      project: { findFirst: vi.fn(async (args: { include?: unknown }) => args.include ? {
+        id: "p", userId: "owner", revision: 1, name: "Архив", facilityTypeSlug: "warehouse", params: {}, paramsSource: {}, results,
+        createdAt: at, updatedAt: at, scenarios: [],
+      } : { id: "p", facilityTypeSlug: "warehouse" }) },
+      changeLog: { findMany: vi.fn(async () => [{ id: "change", createdAt: at, field: "param:forkliftOperatorsCount", autoValue: 10, oldValue: 10, newValue: 20 }]) },
+      paramDefinition: { findMany: liveDefinitions },
+    };
+    const db = { $transaction: (read: (client: typeof tx) => unknown) => read(tx) } as unknown as PrismaClient;
+    const snapshot = await getOwnedProjectSnapshot(db, "p", "owner");
+    expect(snapshot?.changes[0]?.fieldLabel).toBe(`Параметр: ${savedMetadata ? "Сохранённая численность" : "forkliftOperatorsCount"}`);
+    expect(liveDefinitions).not.toHaveBeenCalled();
+  });
 });

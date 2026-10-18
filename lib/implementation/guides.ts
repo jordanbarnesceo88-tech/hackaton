@@ -10,7 +10,7 @@ export type ImplementationGuide = {
   customer: string[];
 };
 
-export const IMPLEMENTATION_VERSION = "implementation-guide-1";
+export const IMPLEMENTATION_VERSION = "implementation-guide-2";
 
 type Profile = Pick<ImplementationGuide, "scope" | "bottlenecks" | "preparation" | "acceptance" | "operations">;
 const profiles: Record<string, Profile> = {
@@ -100,4 +100,3 @@ export function implementationGuide(solutionType: string): ImplementationGuide |
 }
 
 export const IMPLEMENTATION_CLASSES = Object.keys(classes);
-

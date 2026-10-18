@@ -45,6 +45,7 @@ export const DEMO_CASES = [
 export type DemoOverrides = { fleet?: number; peakFactor?: number; areaM2?: number };
 type Finance = Pick<ScenarioOk, "capexRub" | "npvRub" | "paybackYears" | "tcoRub">;
 export type DemoModel = {
+  qualificationDiagnostics?: import("../../lib/sim/capacity-protocol").QualificationDiagnostics;
   id: string;
   title: string;
   modelVersion: string;

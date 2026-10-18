@@ -1,6 +1,6 @@
 import type { SimInput, SimSummaryStored } from "../sim/types";
 import { simSummaryMatchesInput } from "../sim/identity";
-import { spatialEvidenceMatchesInput } from "../sim/spatial-evidence";
+import { capacityEvidenceQualifies, spatialEvidenceMatchesInput } from "../sim/spatial-evidence";
 import { endQueueLimit } from "../sim/metrics";
 import { formatNum } from "../format/rub";
 import { coverage } from "./econ/fleet";
@@ -9,10 +9,9 @@ import { isViableScenario } from "./econ/conclusion";
 import { scenarioNorms } from "../report/tz/rows";
 import { originLabel } from "./characteristics";
 import { processDef } from "./processes";
-import { normDef } from "./norms";
 import type { ProjectResults, ScenarioSpec } from "./types";
 
-export type DecisionModel = Pick<ProjectResults, "results" | "scenarios" | "normsUsed" | "conclusion" | "paramsUsed">;
+export type DecisionModel = Pick<ProjectResults, "results" | "scenarios" | "normsUsed" | "conclusion" | "paramsUsed" | "methodologySnapshot">;
 export type DecisionStatus = "missing" | "refused" | "baseline" | "stale" | "unsupported" | "unverified" | "partial" | "invalid" | "financial-limit" | "suitable";
 type SpatialEvidence = NonNullable<ScenarioSpec["spatialEvidence"]>;
 
@@ -28,6 +27,7 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   const evidence: SpatialEvidence | null = spec?.spatialEvidence ?? null;
   const evidenceStale = result?.risks.some(r => r.code === "SPATIAL_STALE") ?? false;
   const fresh = !stale && !evidenceStale && spatialEvidenceMatchesInput(evidence, expectedInput);
+  const capacityCandidate = fresh && capacityEvidenceQualifies(evidence, expectedInput);
   const partialFacts: string[] = [];
   const measured = fresh && evidence?.assessment.status === "PARTIAL" ? evidence.summary : null;
   const insufficientOutput = measured !== null && measured.achievedPerH + 1e-8 < measured.requiredPerH;
@@ -105,7 +105,8 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
       : excessiveQueue ? "Заданный выпуск достигнут; превышена допустимая очередь"
       : "Часть критериев пространственной модели не выполнена";
     nextAction = [...partialFacts, ...(!insufficientOutput && !excessiveWait && !excessiveQueue ? [evidence.assessment.headline] : []),
-      "Откройте прогон в 3D и проверьте нарушенные критерии перед сравнением изменений."].join(" ");
+      capacityCandidate ? "Отдельный контролируемый тест подтвердил целевую мощность этой конфигурации полными циклами. Сравните экономику покупки и RaaS; наблюдённое ограничение номинального окна остаётся в результате и требует проверки на объекте."
+        : "Откройте прогон в 3D и проверьте нарушенные критерии перед сравнением изменений."].join(" ");
   } else if (!verified) {
     status = "unverified"; headline = verificationKind === "analytical" ? "Финансы рассчитаны; актуальная аналитическая проверка нагрузки отсутствует"
       : spatialState === "stale" ? "Финансы рассчитаны; пространственная проверка устарела" : "Финансы рассчитаны; выполнение нагрузки в 3D ещё не подтверждено";
@@ -128,11 +129,12 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
     : "Сохранённая пространственная проверка не подтверждает текущие условия; её числа относятся к прежнему входу.");
   const sources = [...new Set((ok ? [...ok.capexLines, ...ok.opexLines] : []).map(line => `${line.label}: ${originLabel(line.origin)}${line.originNote ? ` — ${line.originNote}` : ""}${line.overridden ? "; корректировка сценария" : ""}`))];
   const criteria = processes.map(p => ({ label: p.label, requiredPerH: p.requiredPerH, unit: p.unit }));
+  const laborDefinition = model.methodologySnapshot?.normDefinitions?.find(def => def.key === "laborShareAutomatable");
   return {
-    scenarioKey: result?.key ?? selectedKey ?? null, scenarioName: result?.name ?? "Сценарий не выбран", status, headline, nextAction,
+    scenarioKey: result?.key ?? selectedKey ?? null, scenarioName: result?.name ?? "Сценарий не выбран", status, headline, nextAction, capacityCandidate,
     horizonYears, discountRate: norms.discountRate, processes, constraints, sources,
     analyticAssumptions: { utilization: norms.utilization, availability: norms.availability, laborShare: norms.laborShareAutomatable,
-      laborSource: spec?.normOverrides?.laborShareAutomatable !== undefined ? "задано в сценарии" : originLabel(normDef("laborShareAutomatable").origin) },
+      laborSource: spec?.normOverrides?.laborShareAutomatable !== undefined ? "задано в сценарии" : laborDefinition ? originLabel(laborDefinition.origin) : "источник не сохранён" },
     spatial: { state: spatialState, evidence, metrics: evidence && evidence.assessment.status !== "NOT_EVALUATED" ? evidence.summary : null, partialFacts },
     finance: ok ? { capexRub: ok.capexRub, opexYearRub: ok.opexYearRub, effectYearRub: ok.effectYearRub, npvRub: ok.npvRub, paybackYears: ok.paybackYears, discountedPaybackYears: ok.discountedPaybackYears, tcoRub: ok.tcoRub, tcoYears: ok.tcoYears, viable: financialViable } : null,
     cashRealizationShare, cashRealizationExplicit: spec?.cashRealizationShare !== undefined,

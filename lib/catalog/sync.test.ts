@@ -4,7 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { CATALOG, catalogProduct } from "../data/organizer/catalog";
 import { DEFAULT_NORMS, NORM_DEFS } from "../tz/norms";
 import type { ProductSeed } from "../tz/types";
-import { DEMO_ACCOUNTS, demoPassword, seedV2 } from "../../scripts/seed-v2";
+import { DEMO_ACCOUNTS, demoPassword, seedV2Data } from "../../scripts/seed-v2";
 import { productForCalcFromSeed } from "./product-for-calc";
 import { getCalcProducts } from "./queries";
 import type { Db } from "./queries";
@@ -275,6 +275,16 @@ describe("syncOrganizerData: правки администратора", () => {
     expect(strip(restored)).toEqual(strip(before));
   }, 120_000);
 
+  it("новые границы доли труда обновляются без перезаписи значения администратора", async () => {
+    await inRolledBackTx(async tx => {
+      await tx.norm.update({ where: { key: "laborShareAutomatable" }, data: { value: 0.9, min: 0.3, max: 0.7, editedByAdmin: true } });
+      await syncOrganizerData(tx, { only: [] });
+      expect(await tx.norm.findUniqueOrThrow({ where: { key: "laborShareAutomatable" } })).toMatchObject({
+        value: 0.9, min: 0, max: 1, editedByAdmin: true,
+      });
+    });
+  }, 120_000);
+
   it("нормативы и параметры: правка администратора сохраняется, respectAdminEdits: false её снимает", async () => {
     await inRolledBackTx(async (tx) => {
       const warehouse = await tx.facilityType.findUniqueOrThrow({ where: { slug: "warehouse" } });
@@ -481,7 +491,7 @@ describe("сев v2: демо-аккаунты", () => {
     // Заготовки других тестов не в данных организатора: без уборки полный сев отправил бы их
     // в архив, а проверяются здесь только аккаунты.
     await cleanup();
-    await seedV2(db);
+    await seedV2Data(db);
     const cleaningSlugs = VENDOR_CLEANING_PRODUCTS.map(p => p.slug);
     const cleaningBefore = await db.catalogProduct.findMany({ where: { slug: { in: cleaningSlugs } }, include: { characteristics: { orderBy: { key: "asc" } } }, orderBy: { slug: "asc" } });
     expect(cleaningBefore).toHaveLength(3);
@@ -500,7 +510,7 @@ describe("сев v2: демо-аккаунты", () => {
       ["admin@demo.local", "ADMIN"],
       ["demo@demo.local", "USER"],
     ]);
-    await seedV2(db);
+    await seedV2Data(db);
     expect(await db.catalogProduct.findMany({ where: { slug: { in: cleaningSlugs } }, include: { characteristics: { orderBy: { key: "asc" } } }, orderBy: { slug: "asc" } })).toEqual(cleaningBefore);
     const again = await db.user.findMany({
       where: { email: { in: DEMO_ACCOUNTS.map((a) => a.email) } },

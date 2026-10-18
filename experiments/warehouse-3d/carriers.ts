@@ -5,11 +5,12 @@ import { underliftHandlingBudgetS } from "../../lib/sim/underlift-timing";
 export { prepareUnderliftLayout, validateUnderliftConfig } from "../../lib/sim/underlift-layout";
 export type { Dock, UnderliftConfig } from "../../lib/sim/underlift-layout";
 import { orientedBounds, podBounds, rectangleGap, cardinalHeading, ROBOT_LENGTH_M, ROBOT_WIDTH_M } from "./pod-collision";
-import { route, routeLengthM, positionAlong } from "../../lib/sim/routing";
+import { routeLengthM, positionAlong } from "../../lib/sim/routing";
 import { demandMixOf, initialVacantStorageCount } from "../../lib/sim/demand-mix";
 
 export const POD_RADIUS_M = 0.9;
 export const POD_SPACING_M = 1.95;
+export const WAREHOUSE_STATION_INTENT_LIMIT = 2;
 export const PLATFORM_REST_M = 0.38;
 export type CarrierContents = "full" | "empty";
 export type CarrierSpec = { kind: "pallet" | "mobile-rack"; lengthM: number; widthM: number; heightM: number; baseClearanceM: number; liftHeightM: number; levels: number; label: string; rateUnit: string; sourceNote: string };
@@ -54,6 +55,21 @@ export function dockOf(state: UnderliftState, point: { x: number; y: number }, t
   return dock;
 }
 function podOf(state:UnderliftState,task:SimTask) {const runtime=state.demoUnderlift;return runtime&&task.podId?runtime.pods[runtime.podIndex[task.podId]!]:undefined;}
+export function isResidentStationPickup(state:UnderliftState,task:SimTask):boolean {
+  if(task.startS!==null||task.fromPoint<0||task.fromPoint>=state.layout.receiving.length+state.layout.shipping.length)return false;
+  const pod=podOf(state,task);
+  return !!pod&&pod.robotId===null&&pod.phase!=="carrying"&&same(pod,{x:task.fromX,y:task.fromY});
+}
+function stationIntentCount(state:UnderliftState,task:SimTask,podId:string):number {
+  const ids=new Set(state.demoUnderlift!.pods.filter(p=>same(p,{x:task.toX,y:task.toY})).map(p=>p.id));
+  for(const r of state.robots)if(r.task?.toPoint===task.toPoint&&r.task.podId)ids.add(r.task.podId);
+  ids.delete(podId);return ids.size;
+}
+export function underliftDestinationIsClear(state:UnderliftState,task:SimTask,podId:string):boolean {
+  const runtime=state.demoUnderlift;if(!runtime)return true;
+  const destination=dockOf(state,{x:task.toX,y:task.toY}),targetBox=orientedBounds(destination,1.4,1,destination.heading);
+  return !runtime.pods.some(p=>p.id!==podId&&Math.abs(p.x-destination.x)<=POD_SPACING_M&&Math.abs(p.y-destination.y)<=POD_SPACING_M&&rectangleGap(podBounds(p),targetBox)<.15-1e-8);
+}
 function internalTask(state:UnderliftState,pod:RackCarrier,parent:SimTask,operation:"prefetch-pod"|"return-pod") {
   const prefetch=operation==="prefetch-pod",to=prefetch?{x:parent.fromX,y:parent.fromY}:pod.home;
   const task:SimTask={id:state.demoUnderlift!.nextInternalId--,kind:parent.kind,operation,countsTowardDemand:false,parentTaskId:parent.id,podId:pod.id,fromPoint:prefetch?-1:parent.toPoint,fromX:pod.x,fromY:pod.y,toPoint:prefetch?parent.fromPoint:-1,toX:to.x,toY:to.y,arrivalS:state.tS,startS:null,doneS:null};
@@ -96,9 +112,10 @@ function evaluateUnderliftAssignment(state:UnderliftState,robot:SimRobot,task:Si
     if(task.kind==="outbound"&&!same(pod,pod.home))return false;
   }
   if(!pod||pod.robotId!==null||!same(pod,{x:task.fromX,y:task.fromY}))return false;
-  const destination=dockOf(state,{x:task.toX,y:task.toY}),targetBox=orientedBounds(destination,1.4,1,destination.heading);
-  if(runtime.pods.some(p=>p.id!==pod!.id&&Math.abs(p.x-destination.x)<=POD_SPACING_M&&Math.abs(p.y-destination.y)<=POD_SPACING_M&&rectangleGap(podBounds(p),targetBox)<.15-1e-8))return false;
-  if(state.robots.some(r=>r.id!==robot.id&&r.task&&Math.hypot(r.task.toX-task.toX,r.task.toY-task.toY)<POD_SPACING_M))return false;
+  // One physical station spot plus one next transport intent; this does not add a second drop position.
+  if(task.toPoint>=0&&stationIntentCount(state,task,pod.id)>=WAREHOUSE_STATION_INTENT_LIMIT)return false;
+  // A station may have remote intents; a unique storage home must remain reserved before dispatch.
+  if(task.toPoint<0&&(!underliftDestinationIsClear(state,task,pod.id)||state.robots.some(r=>r.id!==robot.id&&r.task&&Math.hypot(r.task.toX-task.toX,r.task.toY-task.toY)<POD_SPACING_M)))return false;
   return true;
 }
 export function assignUnderlift(state:UnderliftState,robot:SimRobot,task:SimTask|null):void {
@@ -118,7 +135,7 @@ export function prepareUnderliftRoute(state:UnderliftState,robot:SimRobot,planne
   const stage=pickup?"pickup":"drop";if(u.routeStage===stage)return true;
   const point=pickup?{x:task.fromX,y:task.fromY}:{x:task.toX,y:task.toY},dock=dockOf(state,point),source=dockOf(state,{x:task.fromX,y:task.fromY});
   const extracting=drop&&(u.stage==="lift"||u.stage==="extract"),from=extracting?source.entry:robot;
-  const prefix=planner(from,dock.entry,pickup)??(extracting?route(state.layout,from,dock.entry):null);if(!prefix)return false;
+  const prefix=planner(from,dock.entry,pickup);if(!prefix)return false;
   const exit=extracting?[{x:robot.x,y:robot.y},{...source.entry}]:[];
   robot.path=[...exit,...prefix.slice(exit.length?1:0),{x:point.x,y:point.y}];robot.pathLenM=routeLengthM(robot.path);robot.distM=0;u.routeStage=stage;
   if(extracting){u.stage="extract";u.headingRad=source.heading;u.extractionUntilM=routeLengthM(exit);u.entryOffsetM=2;}

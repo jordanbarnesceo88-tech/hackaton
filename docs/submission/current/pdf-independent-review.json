@@ -1,0 +1,170 @@
+{
+  "status": "PASS_IN_REVIEWED_SCOPE_WITH_MINOR_FINDING",
+  "reviewer": "/root/db_gate_profiler",
+  "reviewedAt": "2026-10-18T21:42:15.716Z",
+  "scope": "Independent all-pages visual review of final PDF render, not whole-product acceptance, financial recalculation, OEM certification, or load acceptance.",
+  "pdfSha256": {
+    "documentation": "a54ea44353cb81d8c0adc03384d86b11c73d4eff9cfe9cf9b248bb40099deb80",
+    "presentation": "ff433ca81b7c99f85abf900b6ccd2b14ff9702f72263c64aa343df1e9c45ccdd",
+    "sample-report": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6"
+  },
+  "pageCounts": {
+    "documentation": 21,
+    "presentation": 15,
+    "sample-report": 40
+  },
+  "totalPages": 76,
+  "independentAllPagesPersonallyViewed": true,
+  "method": "Personally inspected all 15 contact sheets covering every page. Reinspected all changed documentation/presentation contacts after regeneration. Dense/uncertain pages inspected as originals. The unchanged report PDF and all 40 page PNG hashes match the previously personally inspected report.",
+  "contactSheetsPersonallyViewed": [
+    {
+      "name": "documentation-contact-1.png",
+      "sha256": "95db7e265fb3da9a9ee63458fe0ed959551ebd51d8abe1b09fc63717b23b5c00"
+    },
+    {
+      "name": "documentation-contact-2.png",
+      "sha256": "99cfcc7834f6ac8916fdc67ede28fb0f73a0967fb83c05285fddc5d100db7559"
+    },
+    {
+      "name": "documentation-contact-3.png",
+      "sha256": "054e04bf06299fdf792ebf64d1b511f9d531070bdec5b558aec3cd177caa7d9c"
+    },
+    {
+      "name": "documentation-contact-4.png",
+      "sha256": "ff429adbb5f905276bf439ff3786bbff616149d12472d70e0b01938c0dcb9ec9"
+    },
+    {
+      "name": "presentation-contact-1.png",
+      "sha256": "13b5e0e9e57c59a50ebed11cf62bee81a18f1443ee527d20114971d469ca8aab"
+    },
+    {
+      "name": "presentation-contact-2.png",
+      "sha256": "b06ffec390ed10471a3e0934bec2e3a94d4f06ee1eaeee7dd158abf7836d52dd"
+    },
+    {
+      "name": "presentation-contact-3.png",
+      "sha256": "ae33b1b49d05d8ff6b1591a02d98cfa92f2558121d64b33825155e779bfec78a"
+    },
+    {
+      "name": "presentation-contact-4.png",
+      "sha256": "5cf2d1bf89f74744f516a4cbece88b8ac85717c88a9bf443edbbab46ca960853"
+    },
+    {
+      "name": "sample-report-contact-1.png",
+      "sha256": "19a0393af0be6d2b0dec84b7b694ec98b1020d7b13060a61ab4545809d0b6197"
+    },
+    {
+      "name": "sample-report-contact-2.png",
+      "sha256": "c1f6358ab42872ecf53aa596fd169cd9369c817ebbfa9224df904a23641c540a"
+    },
+    {
+      "name": "sample-report-contact-3.png",
+      "sha256": "b1f4e953e84207350bfa397d671e0dc6c2775d6799c2a71a3fe30c917772191b"
+    },
+    {
+      "name": "sample-report-contact-4.png",
+      "sha256": "328da893986d8c2b0a09b7c8d482d604faaeebee8c472820c6c2649a346ff4f8"
+    },
+    {
+      "name": "sample-report-contact-5.png",
+      "sha256": "98e5bbde2352c6d11b9a2aa77f5a298332102b5421bf62225bbfe98cba13f1b7"
+    },
+    {
+      "name": "sample-report-contact-6.png",
+      "sha256": "08fd8434ee75a30d8f121f1cac8866d626b36d7822308def62f73328c24f86bd"
+    },
+    {
+      "name": "sample-report-contact-7.png",
+      "sha256": "63a4dcfbd1384514a9aff880e4d94487c92c4f2a9633d5fb6bb0afef53d78a77"
+    }
+  ],
+  "originalPagesPersonallyViewed": [
+    {
+      "name": "documentation-15.png",
+      "sha256": "e929f8e9c26d71cdd282d0f800732ae0be857c74e932e1bbdc98f374b4541b67"
+    },
+    {
+      "name": "documentation-16.png",
+      "sha256": "99660705c48538592a435e623b434a587ca6800dbf8fb2fd2dfba9132ec52295"
+    },
+    {
+      "name": "presentation-09.png",
+      "sha256": "a1ed8e066bac1108a957abd4810e2932ce17b08e982be11a04e51b218dd2db1b"
+    },
+    {
+      "name": "presentation-15.png",
+      "sha256": "91a87fdff65a1224cb3669d5f6d53622fd44cf165f5992e70fcd6d7a36624d1d"
+    },
+    {
+      "name": "sample-report-01.png",
+      "sha256": "5ee5a5ea5272e28f0260308839d2885c6932a89f3b6f970eeca86eb973248e11"
+    },
+    {
+      "name": "sample-report-03.png",
+      "sha256": "d3f3a16321e17c475f5ca7588e2a45d96ef798304424d0de9515d1609f6e263e"
+    },
+    {
+      "name": "sample-report-04.png",
+      "sha256": "c2d9c009e15c16e95c006172b285af03d38ce15ca834fb77b60a96849fda4c04"
+    },
+    {
+      "name": "sample-report-09.png",
+      "sha256": "cb9f853d172bcad25937a9c7e57da661e68b49b781d53bb35188cc3774df4aa0"
+    },
+    {
+      "name": "sample-report-18.png",
+      "sha256": "a590f5aac53a4af5f2e294da85377692312389e67c260236b5221567e27dd688"
+    },
+    {
+      "name": "sample-report-19.png",
+      "sha256": "6691cf5dfd7b5c24ffa45bf5a4f6b58a0b0438fe96d77effe3be597c4da8f005"
+    },
+    {
+      "name": "sample-report-32.png",
+      "sha256": "6dc30341570f0f114421f5632320bb8e534b7004e04d94713e3ed111b5641117"
+    },
+    {
+      "name": "sample-report-38.png",
+      "sha256": "05b162babea868ff4a0d5e757428cdd7564bd5ff48dd2076d16ea4e4993cb2d2"
+    }
+  ],
+  "fixedFindings": [
+    {
+      "severity": "P2",
+      "artifact": "presentation",
+      "page": 15,
+      "result": "Current50/50 results, compute p95 8.01s, client-result p95 185.18s and failed60s deadline now visibly present."
+    },
+    {
+      "severity": "P3",
+      "artifact": "documentation",
+      "page": 16,
+      "result": "Section12A fits one page; no orphan continuation page remains. Historical e937/da53b43 rows clearly separated from current a944/client60FAIL."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "P3",
+      "artifact": "sample-report",
+      "page": 19,
+      "issue": "Single complete limitations bullet occupies an otherwise nearly empty page.",
+      "impact": "Minor pagination waste; no missing, clipped or unreadable content.",
+      "status": "OPEN_DISCLOSED"
+    }
+  ],
+  "observations": [
+    "No clipped text, overlapping tables, missing glyphs or unintended blank pages observed in inspected pages.",
+    "NominalPARTIAL51.5/51.82 retained separately from controlledPASS55deliveries/54.5closedcycles. N6/C2 and NPV4079992RUB are readable and unchanged.",
+    "Documentation shows36/50clients over60s and keeps historical baselines separate.",
+    "Presentation shows7329numeric/4078methodology checks. Independent PDF text proof404 remains a separate evidence scope."
+  ],
+  "knownExclusions": [
+    "Known P2 OEM verification semantics remain outside PDF layout acceptance.",
+    "No natural calibration, safety certification, Excel recalculation, or whole-product PASS is claimed."
+  ],
+  "packageWritten": false,
+  "baselineReview": {
+    "filename": "independent-pdf-review-beforefix.json",
+    "sha256": "000e2a7c29a9acfed2cc4fbc6f8081392a20dc1f0cb100127fdc11bd8ca73df9"
+  }
+}

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { implementationGuide, IMPLEMENTATION_VERSION } from "@/lib/implementation/guides";
+import { implementationResources } from "@/lib/implementation/resources";
+import { ModelResources } from "@/components/implementation/model-resources";
 
 type Props = { params: Promise<{ type: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -20,8 +22,8 @@ export default async function ClassKnowledgePage({ params }: Props) {
       ["Как принимать пилот", guide.acceptance], ["Инженеру: эксплуатация и разбор отказов", guide.operations],
       ["Заказчику: как пройти от пилота к внедрению", guide.customer],
     ] as const).map(([title, items]) => <section key={title} className="grid gap-3 border-t pt-4"><h2>{title}</h2><ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed">{items.map(item => <li key={item}>{item}</li>)}</ul></section>)}
+    <ModelResources resources={implementationResources(guide.solutionType)} />
     <p className="text-sm text-muted-foreground">Контакты обслуживания и происхождение сведений показаны в карточке конкретного робота и в плане пилота. Выработка считается принятой после проверки результата заказчиком, а не по одному факту движения робота.</p>
     <Link href={`/catalog?solutionType=${encodeURIComponent(guide.solutionType)}`} className="tap-target w-fit text-primary underline">Решения этого класса в каталоге →</Link>
   </div>;
 }
-

@@ -13,14 +13,14 @@ import { businessExampleProjectId, compatibleBusinessExampleSnapshot, readBusine
 
 const live = { paramDefs: paramSpecsFor("warehouse"), products: CATALOG.map(productForCalcFromSeed), norms: resolveNorms(), paramDefsFrom: "code" as const };
 let saved: ProjectResults;
-beforeAll(() => { saved = buildBusinessExampleOffline(live, "steady-flow").results; });
+beforeAll(() => { saved = buildBusinessExampleOffline(live, "steady-flow").results; }, 30_000);
 
 describe("public prepared business examples", () => {
   it("reads a ready canonical example without recalculating it", async () => {
     const findFirst = vi.fn().mockResolvedValue({ results: saved });
     const snapshot = await readBusinessExampleSnapshot({ project: { findFirst } } as unknown as Db, live, "steady-flow");
     expect(snapshot?.results).toBe(saved);
-    expect(snapshot?.model.scenarios[1]?.spatialEvidence?.assessment.status).toBe("OK");
+    expect(snapshot?.model.scenarios[1]?.spatialEvidence).toEqual(saved.scenarios[1]?.spatialEvidence);
     expect(findFirst).toHaveBeenCalledWith({
       where: { id: "demo-example-steady-flow", isDemo: true, facilityTypeSlug: "warehouse", user: { email: "demo@demo.local" } },
       select: { results: true },

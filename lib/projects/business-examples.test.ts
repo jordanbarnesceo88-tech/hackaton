@@ -7,18 +7,27 @@ import { buildDecision } from "../tz/decision";
 import { buildBusinessExampleOffline as buildBusinessExample } from "./business-example-offline";
 import { businessExample, businessExampleInputs } from "./business-examples";
 import { resultsFromInputs } from "./recalc";
+import { capacityEvidenceQualifies } from "../sim/spatial-evidence";
 
 const products = CATALOG.map(productForCalcFromSeed);
 const live = { paramDefs: paramSpecsFor("warehouse"), products, norms: resolveNorms(), paramDefsFrom: "code" as const };
 describe("reproducible end-to-end business examples", () => {
-  it("provides a real workload-qualified financial option without hand-written ROI", () => {
+  it("provides a controlled-capacity financial candidate while preserving the nominal shortfall", () => {
     const model = buildBusinessExample(live, "steady-flow").model;
     const d = buildDecision(model, "purchase", model.simInputs.purchase?.calculated);
-    expect(d.spatial.state).toBe("fresh"); expect(d.spatial.evidence?.assessment.status).toBe("OK");
+    expect(d.spatial.state).toBe("fresh"); expect(d.spatial.evidence?.assessment.status).toBe("PARTIAL");
+    expect(d.spatial.evidence!.summary.achievedPerH).toBeLessThan(d.spatial.evidence!.summary.requiredPerH);
+    expect(capacityEvidenceQualifies(d.spatial.evidence, model.simInputs.purchase?.calculated)).toBe(true);
+    expect(d.capacityCandidate).toBe(true);
+    expect(d.nextAction).toContain("полными циклами");
+    expect(d.spatial.evidence?.capacityProof?.metrics.closedCohortPerH).toBeGreaterThanOrEqual(d.spatial.evidence!.summary.requiredPerH);
     expect(d.finance?.npvRub).toBeGreaterThan(0); expect(d.finance?.effectYearRub).toBeGreaterThan(0);
-    expect(d.status).toBe("suitable");
+    expect(d.status).toBe("partial");
+    expect(model.conclusion.recommendedScenarioKey).toBeNull();
+    expect(model.conclusion.headline).toContain("кандидаты для целевой мощности");
+    expect(model.conclusion.bullets.some(text => text.includes("Номинальный прогон: PARTIAL"))).toBe(true);
     expect(d.processes[0]).toMatchObject({ n: 6, chargers: 2 });
-  });
+  }, 30_000); // Includes the full nominal and controlled 135-minute physical replays.
   it("does not recommend full implementation when the doubled peak is not handled", () => {
     const model = buildBusinessExample(live, "peak-overload").model;
     const d = buildDecision(model, "purchase", model.simInputs.purchase?.calculated);

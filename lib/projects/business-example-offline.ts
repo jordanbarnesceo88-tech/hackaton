@@ -14,6 +14,7 @@ export function buildBusinessExampleOffline(live: LiveInputs, id: BusinessExampl
     return { ...spec, spatialEvidence: {
       input, sourceInputKey: simInputIdentity(input), executionInputKey: "offline-example-replay-request",
       simModelVersion: SPATIAL_MODEL_VERSION,
+      capacityRequested: true as const,
       assessment: { status: "NOT_EVALUATED" as const, headline: "Запрос проверки учебного примера", terminal: true as const },
       summary: { fleet: input.robots.count, requiredPerH: input.demand.peakPerH, achievedPerH: 0, queueEnd: 0, waitP95Min: 0 },
     } };

@@ -1,8 +1,7 @@
 import { checkSpatialEvidence } from "./validate";
 import type { Prisma, PrismaClient, ScenarioKind as DbScenarioKind } from "@prisma/client";
-import { getParamDefinitions, type Db } from "../catalog/queries";
+import type { Db } from "../catalog/queries";
 import { productsAtEvidenceDate } from "../catalog/evidence-date";
-import { paramSpecsFor } from "../data/organizer/params";
 import { processesForFacility } from "../tz/processes";
 import type { ParamValues, PendingChange, ProjectResults, ScenarioKind, ScenarioSpec } from "../tz/types";
 import { changeFieldLabel, projectAuditDiff, serverAutoFrom, toChangeLogRows } from "./changes";
@@ -12,6 +11,7 @@ import { checkScenarioPedestrians, checkScenarioSiteLayout, validProjectRevision
 import { parsePilotPlanInput } from "../tz/pilot-budget";
 import { parseOperationsStaffing } from "../tz/econ/labour";
 import { parseDeploymentLogistics } from "../tz/deployment-logistics";
+import { normLabelsFromSnapshot } from "../tz/methodology";
 
 /**
  * Чтение и запись проектов (ТЗ §3.1.3 — проекты пользователя, §4.4.2 — изоляция данных).
@@ -275,25 +275,26 @@ export type ProjectChangeEntry = {
 
 /**
  * Журнал корректировок проекта в порядке записи; null — проекта нет или он чужой. Подписи
- * полей — по описаниям параметров объекта и названиям процессов.
+ * полей — по переданным определениям сохранённого расчёта и названиям процессов.
  */
-export async function getProjectChanges(db: Db, projectId: string, userId: string): Promise<ProjectChangeEntry[] | null> {
+export async function getProjectChanges(
+  db: Db,
+  projectId: string,
+  userId: string,
+  normLabels: Readonly<Record<string, string>> = {},
+  paramLabels: Readonly<Record<string, string>> = {},
+): Promise<ProjectChangeEntry[] | null> {
   if (typeof projectId !== "string" || projectId === "" || typeof userId !== "string" || userId === "") return null;
   const project = await db.project.findFirst({ where: { id: projectId, userId }, select: { id: true, facilityTypeSlug: true } });
   if (!project) return null;
-  const [rows, dbDefs] = await Promise.all([
-    db.changeLog.findMany({
-      where: { projectId },
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      include: {
-        user: { select: { email: true } },
-        scenario: { select: { key: true, name: true } },
-      },
-    }),
-    getParamDefinitions(db, project.facilityTypeSlug),
-  ]);
-  const defs = dbDefs.length > 0 ? dbDefs : paramSpecsFor(project.facilityTypeSlug);
-  const paramLabels = Object.fromEntries(defs.map((d) => [d.key, d.label]));
+  const rows = await db.changeLog.findMany({
+    where: { projectId },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    include: {
+      user: { select: { email: true } },
+      scenario: { select: { key: true, name: true } },
+    },
+  });
   const processNames = Object.fromEntries(processesForFacility(project.facilityTypeSlug).map((p) => [p.slug, p.name]));
   return rows.map((r) => ({
     id: r.id,
@@ -303,7 +304,7 @@ export async function getProjectChanges(db: Db, projectId: string, userId: strin
     scenarioKey: r.scenario?.key ?? (r.entity === "scenario" && r.scenarioId === null ? r.entityId : null),
     scenarioName: r.scenario?.name ?? null,
     field: r.field,
-    fieldLabel: changeFieldLabel(r.field, paramLabels, processNames),
+    fieldLabel: changeFieldLabel(r.field, paramLabels, processNames, normLabels),
     auto: r.autoValue,
     old: r.oldValue,
     new: r.newValue,
@@ -319,7 +320,8 @@ export async function getOwnedProjectSnapshot(db: PrismaClient, projectId: strin
   return db.$transaction(async tx => {
     const project = await getProject(tx, projectId, userId);
     if (!project) return null;
-    const changes = await getProjectChanges(tx, projectId, userId);
+    const paramLabels = Object.fromEntries(project.results?.runtime?.paramDefs?.map(def => [def.key, def.label]) ?? []);
+    const changes = await getProjectChanges(tx, projectId, userId, normLabelsFromSnapshot(project.results), paramLabels);
     return { project, changes: changes ?? [] };
   }, { isolationLevel: "RepeatableRead" });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { CapacityCheck } from "./capacity-check";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNum, formatRub } from "@/lib/format/rub";
 import { formatYearsRu } from "@/lib/format/plural";
@@ -16,9 +17,10 @@ export type DecisionSummaryProps = {
   onCompare?: () => void;
   onSimulation?: () => void;
   onPilot?: () => void;
+  onCapacityCheck?: () => void;
 };
 
-export function DecisionSummary({ model, scenarioKey, stale = false, expectedInput, simSummary, onCompare, onSimulation, onPilot }: DecisionSummaryProps) {
+export function DecisionSummary({ model, scenarioKey, stale = false, expectedInput, simSummary, onCompare, onSimulation, onPilot, onCapacityCheck }: DecisionSummaryProps) {
   const d = buildDecision(model, scenarioKey, expectedInput, stale, simSummary), e = d.spatial.evidence, f = d.finance;
   const spatial = d.verification.kind === "spatial", analytical = d.verification.kind === "analytical";
   const metrics = d.verification.metrics, unit = d.processes.length === 1 ? d.processes[0]!.unit : "ед./ч";
@@ -39,6 +41,7 @@ export function DecisionSummary({ model, scenarioKey, stale = false, expectedInp
           <div><dt className="text-xs text-muted-foreground">Чистый эффект в год</dt><dd className="m-0 font-semibold">{formatRub(f.effectYearRub)}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Простая окупаемость</dt><dd className="m-0 font-semibold">{f.paybackYears === null ? 'Не достигается' : `${formatNum(f.paybackYears,1)} лет`}</dd></div>
         </dl>}
+        {spatial && e && <CapacityCheck evidence={e} expectedInput={expectedInput} fresh={d.spatial.state === "fresh"} onRequest={onCapacityCheck} />}
         <p className="callout" data-tone={tone}>{d.nextAction}</p>
         {(onSimulation || onCompare || onPilot) && <div className="no-print flex flex-wrap gap-2">
           {onSimulation&&d.verification.supported&&needsSimulation&&<Button type="button" className="min-h-11" onClick={onSimulation} disabled={stale}>{spatial && d.spatial.state==='fresh'?'Разобрать ограничения в 3D':analytical?'Открыть аналитическую имитацию':'Открыть проверку сценария'}</Button>}

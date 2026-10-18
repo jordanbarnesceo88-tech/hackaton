@@ -1,24 +1,24 @@
 {
   "versions": {
-    "economics": "tz-1.0.7",
-    "analytical": "sim-1.2.0",
-    "spatial": "warehouse-dense-underlift-1.9.0"
+    "economics": "tz-1.0.8",
+    "analytical": "sim-1.2.1",
+    "spatial": "warehouse-dense-underlift-1.9.1"
   },
-  "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1",
+  "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
   "runtime": {
     "url": "http://localhost:3085/demo/warehouse",
     "status": 200,
-    "bytes": 3905151,
-    "servedSha256": "342ce2356260851cdb37e70062b0ac8e1adf4f6abd538508d2de58e19fe0785b",
-    "localSha256": "342ce2356260851cdb37e70062b0ac8e1adf4f6abd538508d2de58e19fe0785b",
+    "bytes": 3985890,
+    "servedSha256": "3710cdc8c322ccf96576d5ba013754443013b62c26b5d8172202da6a6d00856a",
+    "localSha256": "3710cdc8c322ccf96576d5ba013754443013b62c26b5d8172202da6a6d00856a",
     "health": {
       "ok": true,
       "db": true,
-      "modelVersion": "tz-1.0.7",
-      "simModelVersion": "sim-1.2.0"
+      "modelVersion": "tz-1.0.8",
+      "simModelVersion": "sim-1.2.1"
     },
-    "appRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00",
-    "workerRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00",
+    "appRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
+    "workerRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
     "matched": true
   },
   "standalone": [
@@ -40,6 +40,31 @@
         "No cartons for empty carrier",
         "Grounded unassigned empty carrier remains rendered",
         "Canonical rewind exact"
+      ],
+      "assessment": {
+        "status": "PARTIAL"
+      },
+      "samples": [
+        {
+          "label": "full-carry",
+          "t": 960,
+          "carrierId": "pod-home-46"
+        },
+        {
+          "label": "empty-carry",
+          "t": 1082,
+          "carrierId": "pod-home-46"
+        },
+        {
+          "label": "returned-home",
+          "t": 1142,
+          "carrierId": "pod-home-46"
+        },
+        {
+          "label": "grounded-unassigned",
+          "t": 1142,
+          "carrierId": "pod-home-46"
+        }
       ]
     },
     {
@@ -50,8 +75,8 @@
         "carrierId": "pod-home-25",
         "robotId": 0,
         "parentTaskId": 8,
-        "returnTaskId": -14,
-        "returnedAt": 1173
+        "returnTaskId": -12,
+        "returnedAt": 889
       },
       "checks": [
         "Actual full->empty carrier cycle",
@@ -60,6 +85,31 @@
         "No cartons for empty carrier",
         "Grounded unassigned empty carrier remains rendered",
         "Canonical rewind exact"
+      ],
+      "assessment": {
+        "status": "PARTIAL"
+      },
+      "samples": [
+        {
+          "label": "full-carry",
+          "t": 460,
+          "carrierId": "pod-home-25"
+        },
+        {
+          "label": "empty-carry",
+          "t": 659,
+          "carrierId": "pod-home-25"
+        },
+        {
+          "label": "returned-home",
+          "t": 889,
+          "carrierId": "pod-home-25"
+        },
+        {
+          "label": "grounded-unassigned",
+          "t": 889,
+          "carrierId": "pod-home-25"
+        }
       ]
     },
     {
@@ -70,8 +120,8 @@
         "carrierId": "pod-home-75",
         "robotId": 0,
         "parentTaskId": 28,
-        "returnTaskId": -36,
-        "returnedAt": 1729
+        "returnTaskId": -39,
+        "returnedAt": 1562
       },
       "checks": [
         "Actual full->empty carrier cycle",
@@ -80,6 +130,31 @@
         "No cartons for empty carrier",
         "Grounded unassigned empty carrier remains rendered",
         "Canonical rewind exact"
+      ],
+      "assessment": {
+        "status": "PARTIAL"
+      },
+      "samples": [
+        {
+          "label": "full-carry",
+          "t": 1031,
+          "carrierId": "pod-home-75"
+        },
+        {
+          "label": "empty-carry",
+          "t": 1479,
+          "carrierId": "pod-home-75"
+        },
+        {
+          "label": "returned-home",
+          "t": 1562,
+          "carrierId": "pod-home-75"
+        },
+        {
+          "label": "grounded-unassigned",
+          "t": 1562,
+          "carrierId": "pod-home-75"
+        }
       ]
     },
     {
@@ -87,11 +162,11 @@
       "status": "PASS",
       "carrierCount": 1932,
       "cycle": {
-        "carrierId": "pod-home-1913",
+        "carrierId": "pod-home-75",
         "robotId": 0,
-        "parentTaskId": 18,
-        "returnTaskId": -18,
-        "returnedAt": 999
+        "parentTaskId": 28,
+        "returnTaskId": -31,
+        "returnedAt": 1577
       },
       "checks": [
         "Actual full->empty carrier cycle",
@@ -100,6 +175,31 @@
         "No cartons for empty carrier",
         "Grounded unassigned empty carrier remains rendered",
         "Canonical rewind exact"
+      ],
+      "assessment": {
+        "status": "PARTIAL"
+      },
+      "samples": [
+        {
+          "label": "full-carry",
+          "t": 1057,
+          "carrierId": "pod-home-75"
+        },
+        {
+          "label": "empty-carry",
+          "t": 1494,
+          "carrierId": "pod-home-75"
+        },
+        {
+          "label": "returned-home",
+          "t": 1577,
+          "carrierId": "pod-home-75"
+        },
+        {
+          "label": "grounded-unassigned",
+          "t": 1577,
+          "carrierId": "pod-home-75"
+        }
       ]
     },
     {
@@ -120,6 +220,31 @@
         "No cartons for empty carrier",
         "Grounded unassigned empty carrier remains rendered",
         "Canonical rewind exact"
+      ],
+      "assessment": {
+        "status": "PARTIAL"
+      },
+      "samples": [
+        {
+          "label": "full-carry",
+          "t": 142,
+          "carrierId": "pod-home-1896"
+        },
+        {
+          "label": "empty-carry",
+          "t": 212,
+          "carrierId": "pod-home-1896"
+        },
+        {
+          "label": "returned-home",
+          "t": 246,
+          "carrierId": "pod-home-1896"
+        },
+        {
+          "label": "grounded-unassigned",
+          "t": 246,
+          "carrierId": "pod-home-1896"
+        }
       ]
     },
     {
@@ -127,11 +252,11 @@
       "status": "PASS",
       "carrierCount": 1932,
       "cycle": {
-        "carrierId": "pod-home-1855",
+        "carrierId": "pod-home-98",
         "robotId": 0,
-        "parentTaskId": 14,
+        "parentTaskId": 22,
         "returnTaskId": -22,
-        "returnedAt": 1389
+        "returnedAt": 1161
       },
       "checks": [
         "Actual full->empty carrier cycle",
@@ -140,62 +265,82 @@
         "No cartons for empty carrier",
         "Grounded unassigned empty carrier remains rendered",
         "Canonical rewind exact"
-      ]
-    }
-  ],
-  "projectPopup": [
-    {
-      "id": "project-popup",
-      "status": "PASS",
-      "carrierCount": 896,
-      "cycle": {
-        "carrierId": "pod-home-46",
-        "robotId": 0,
-        "parentTaskId": 8,
-        "returnTaskId": -9,
-        "returnedAt": 1142
+      ],
+      "assessment": {
+        "status": "PARTIAL"
       },
-      "checks": [
-        "Actual full->empty carrier cycle",
-        "Carrier identities conserved",
-        "5 shelf trays in actual scene batches at all stages",
-        "No cartons for empty carrier",
-        "Grounded unassigned empty carrier remains rendered",
-        "Canonical rewind exact"
+      "samples": [
+        {
+          "label": "full-carry",
+          "t": 940,
+          "carrierId": "pod-home-98"
+        },
+        {
+          "label": "empty-carry",
+          "t": 1088,
+          "carrierId": "pod-home-98"
+        },
+        {
+          "label": "returned-home",
+          "t": 1161,
+          "carrierId": "pod-home-98"
+        },
+        {
+          "label": "grounded-unassigned",
+          "t": 1161,
+          "carrierId": "pod-home-98"
+        }
       ]
     }
   ],
-  "person": {
-    "status": "PASS",
-    "views": 3,
-    "errors": []
+  "interaction": {
+    "cases": [
+      {
+        "id": "complex",
+        "fleet": 11,
+        "assessment": {
+          "status": "PARTIAL",
+          "headline": "Прогон завершён с ограничением: начало заданий и очередь."
+        }
+      },
+      {
+        "id": "sections",
+        "fleet": 4,
+        "assessment": {
+          "status": "OK",
+          "headline": "Заданные критерии модели выполнены; фактический результат пилота не проверен."
+        }
+      }
+    ],
+    "errors": [],
+    "factsSha256": "d858c4f9abef3fddd7b48a85f28eabbf16b84217b0d2af838d5be7ed03e7cbc8"
   },
-  "scope": "Сводка фактических функциональных проверок. Источники, неизвестные цены/условия и ограничения модели сохраняются. Не заменяет физические измерения объекта.",
+  "scope": "Текущий a944: функциональная проверка носителей и интерфейса, не натурная калибровка. Все шесть nominal складских сцен PARTIAL по потоку. Controlled capacity receipt проверяется отдельно.",
   "siteQuality": {
     "status": "PASS",
     "testsPassed": 3,
     "views": 33,
-    "routes": [
-      "/",
-      "/catalog",
-      "/methodology",
-      "/demo"
-    ],
-    "wizardSteps": 8,
     "viewports": [
       {
-        "width": 1920,
-        "height": 1080,
-        "theme": "light",
+        "viewport": {
+          "name": "desktop-1920x1080",
+          "width": 1920,
+          "height": 1080,
+          "theme": "light"
+        },
         "views": 11,
-        "realCalculationPosts": 1,
+        "passed": true,
         "errors": 0,
         "warnings": 0,
-        "editedInputRetained": true,
-        "visibleTableValuesChecked": 102,
+        "editNavigation": {
+          "salary": "123 456",
+          "status": "edited",
+          "posts": 1
+        },
+        "realCalculationPosts": 1,
         "minTextLeftInsetPx": 12,
         "minTextRightInsetPx": 24.578125,
-        "factsSha256": "6bfbf8660e9b8879af2d2dc56638496840d80c535f1a0eb0fb7451c9da5fc056",
+        "factsSha256": "265ec174076ac7c57487e1403ba430e836a555865d1f5d6b44c922f6bfb83ec9",
         "screenshots": [
           {
             "name": "home.png",
@@ -203,7 +348,7 @@
           },
           {
             "name": "catalog.png",
-            "sha256": "366b4ccc81b9943c668381a32c476e758a398049dd872d0b365c393fbb039ee4"
+            "sha256": "898caaa3bd43b4173e1d1dce445794ccd3cd3dc8cff084cf34c4bf3186bc2bc8"
           },
           {
             "name": "methodology.png",
@@ -223,7 +368,7 @@
           },
           {
             "name": "demo-step-4.png",
-            "sha256": "949627a2e20bd6ccdf89aa547322686a490251fc9b52e5fc9e5e8eba60afd3cd"
+            "sha256": "ed9e41d6e855753439063972b6e2d3475721fd3acf96001b04981e82baeab927"
           },
           {
             "name": "demo-step-5.png",
@@ -231,11 +376,11 @@
           },
           {
             "name": "demo-step-6.png",
-            "sha256": "175f25fe7a005e4a2edd7d7e1e2c5336550a22c417739e62fc11328847f43cb8"
+            "sha256": "6bd8665921bd2b3adbf64fa14e9da6dcd1ae3d61327f4a256dc4ec09a5b9a6e7"
           },
           {
             "name": "demo-step-7.png",
-            "sha256": "bd21bb28680bfb38b432f9bf15ddb8ec146ba072de54a19c8360fb856b820f72"
+            "sha256": "983a7a4429689de522577b836395ee5b05f10e7b2909cc9fc7598a6566e9b085"
           },
           {
             "name": "demo-step-8.png",
@@ -244,26 +389,33 @@
         ]
       },
       {
-        "width": 1366,
-        "height": 768,
-        "theme": "dark",
+        "viewport": {
+          "name": "desktop-1366x768",
+          "width": 1366,
+          "height": 768,
+          "theme": "dark"
+        },
         "views": 11,
-        "realCalculationPosts": 1,
+        "passed": true,
         "errors": 0,
         "warnings": 0,
-        "editedInputRetained": true,
-        "visibleTableValuesChecked": 48,
+        "editNavigation": {
+          "salary": "123 456",
+          "status": "edited",
+          "posts": 1
+        },
+        "realCalculationPosts": 1,
         "minTextLeftInsetPx": 12,
         "minTextRightInsetPx": 38.4375,
-        "factsSha256": "730ba01cc65275550053b3eb2c19ec29873f795cffcee665f082b29f78c6c922",
+        "factsSha256": "cbf20ebf0e0160aba54ddc710b558358236680f8e20f026022c8d03543cb0c90",
         "screenshots": [
           {
             "name": "home.png",
-            "sha256": "3d2eb789203934e7979af8d6cc480ca9819cc4427a8fa6966e6df5d235d5e96a"
+            "sha256": "ed05b70557af8a88a5e56c41dc171310d6f1ada7b781b1a98b4e0c0960fe5647"
           },
           {
             "name": "catalog.png",
-            "sha256": "4964aa636faada9c7e54b1810043ac1c3349f460eef6239c89bb0262ac981c9e"
+            "sha256": "ae5c68ea271ce23f1cb4d2008303b26158accee6acd29981b45839d4e276ae4f"
           },
           {
             "name": "methodology.png",
@@ -283,7 +435,7 @@
           },
           {
             "name": "demo-step-4.png",
-            "sha256": "af0c908be2f718e479d72f6e5b908757904a3560824d0bbfcc4185787e1915fe"
+            "sha256": "94a9feda6b200bce168c69ba757f34c443cd1d268ae78d191cd797be55aabd61"
           },
           {
             "name": "demo-step-5.png",
@@ -291,11 +443,11 @@
           },
           {
             "name": "demo-step-6.png",
-            "sha256": "8b52378455b96ffd7c8c8470fa819f8928ea76e60c3cb53a971a0a1f2619818f"
+            "sha256": "55d5f7854ee3f3f5fe4fa3f529e2da3c0bb55d527537280b2bcb8b755c7a0689"
           },
           {
             "name": "demo-step-7.png",
-            "sha256": "a62e41625c76dbbbc034d623ca95829fe5781e72206caa4722d5a2d22e6b864f"
+            "sha256": "d69a3175bbdd9941090a268164ffba812ccbcd72447a4c174501d1f7af32e4ef"
           },
           {
             "name": "demo-step-8.png",
@@ -304,18 +456,25 @@
         ]
       },
       {
-        "width": 390,
-        "height": 844,
-        "theme": "light",
+        "viewport": {
+          "name": "mobile-390x844",
+          "width": 390,
+          "height": 844,
+          "theme": "light"
+        },
         "views": 11,
-        "realCalculationPosts": 1,
+        "passed": true,
         "errors": 0,
         "warnings": 0,
-        "editedInputRetained": true,
-        "visibleTableValuesChecked": 16,
+        "editNavigation": {
+          "salary": "123 456",
+          "status": "edited",
+          "posts": 1
+        },
+        "realCalculationPosts": 1,
         "minTextLeftInsetPx": 12,
         "minTextRightInsetPx": 40.4375,
-        "factsSha256": "c266e890da06b30956cafdb74da27a140b85b5ec9c1b7c59dfc59140f6d49972",
+        "factsSha256": "1891bbdf10f927e7653f77734e41f1dfdb1f3d279c46b0c0f1e4109e5458521a",
         "screenshots": [
           {
             "name": "home.png",
@@ -323,7 +482,7 @@
           },
           {
             "name": "catalog.png",
-            "sha256": "74916fe206d150bc5f6fb114a1bd00fda4ccb366f8a949055de43ceaea1592af"
+            "sha256": "470d424a66b3f116c919aa1efa9ebc338842f1405d43fc772d3729caf0339920"
           },
           {
             "name": "methodology.png",
@@ -364,13 +523,42 @@
         ]
       }
     ],
-    "logSha256": "efe715c999fcfe57a328f6fb5724e10a87f0cea5b778960c11654336d0a6c6c6",
-    "scope": "Публичный UI-аудит №46 на итоговом localhost:3085: ошибки JavaScript/console, глобальный горизонтальный выход, видимость ключевого содержимого, границы текста таблицы и сохранение изменённого ввода. Лично просмотрены 33 экрана и повторно три таблицы после увеличения минимальной ширины колонок. Это не полный accessibility-аудит, не проверка мощности модели и не нагрузочный тест.",
-    "visual": {
-      "status": "PASS",
-      "authorAll33AcceptedScreensPersonallyViewed": true,
-      "independentAll33AcceptedScreensPersonallyViewed": true,
-      "visualReceiptSha256": "5fdd088ece1c62db6cc7ca58218b0b6c210d4ad386cb6a2b7e6ac41191dff3c3"
-    }
+    "rootVisualReview": "Root лично просмотрел все девять контактных листов 33 экранов. Таблицы на мобильном имеют горизонтальную прокрутку внутри своего блока; глобального выхода страницы тестом не обнаружено."
+  },
+  "spatialVisual": {
+    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
+    "scope": "Независимый GPU-прогон: 33 PNG, шесть жизненных циклов носителя, пешеход и уборка. Root просмотрел четыре контактных листа и два исходных критических кадра.",
+    "review": {
+      "reviewedAt": "2026-10-18T21:09:07.245Z",
+      "scope": "Four contact sheets covering 33 reviewer-inspected PNGs, plus two original key frames personally viewed by coordinator; not a claim of reading every telemetry value in each thumbnail.",
+      "status": "PASS_IN_VIEWED_SCOPE",
+      "files": [
+        {
+          "name": "contact-carriers-1.jpg",
+          "sha256": "14fe455419849da820d3430012b174bed655ae6447ac7ad438b2cedc20449d0e"
+        },
+        {
+          "name": "contact-carriers-2.jpg",
+          "sha256": "dfefeb5e2723836c7f74cc15d0cb8c2b6f9b4859be3c947ca1dbf2419512e65b"
+        },
+        {
+          "name": "contact-carriers-3.jpg",
+          "sha256": "638368f9181b229955c5f2ce83e16971e3fb6372d0f574ef38f3304c39e870f0"
+        },
+        {
+          "name": "contact-interaction.jpg",
+          "sha256": "f0af071f0125425a6e84fa9076ae8fe2fe0c0639294c61d229b30daf17479985"
+        },
+        {
+          "name": "carriers/complex-empty-carry-detail.png",
+          "sha256": "eebfbe64dc57db5abfe6485c0fd143c5b27d3e809c1f2ee8b23516c035c57a38"
+        },
+        {
+          "name": "interaction/pedestrian-stop-telemetry-390.png",
+          "sha256": "f30e47cbedcf0749bae50c74f5dd99a33459634c12c397e57fb168cc856cb71c"
+        }
+      ]
+    },
+    "rawNominal": "Все шесть складских сценариев PARTIAL по своему потоку; controlled capacity проверяется отдельно. Complex N11/C1: 78/129,545 операций/ч. Уборка — модельное покрытие, не доказанная чистота."
   }
 }

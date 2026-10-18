@@ -248,6 +248,7 @@ export function changeFieldLabel(
   field: string,
   paramLabels: Readonly<Record<string, string>> = {},
   processNames: Readonly<Record<string, string>> = {},
+  normLabels?: Readonly<Record<string, string>>,
 ): string {
   if (field === "scenario:add") return "Сценарий добавлен";
   if (field === "scenario:remove") return "Сценарий удалён";
@@ -264,7 +265,7 @@ export function changeFieldLabel(
   }
   if (field.startsWith("norm:")) {
     const key = field.slice("norm:".length);
-    return `Норматив: ${isNormKey(key) ? normDef(key).label : key}`;
+    return `Норматив: ${normLabels !== undefined ? normLabels[key] ?? key : isNormKey(key) ? normDef(key).label : key}`;
   }
   const m = /^item:([a-z0-9-]+):([A-Za-z]+)$/.exec(field);
   if (m) {

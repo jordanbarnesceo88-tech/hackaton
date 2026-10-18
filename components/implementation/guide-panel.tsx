@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ImplementationSnapshot } from "@/lib/implementation/snapshot";
 import type { ServiceProvider } from "@/lib/implementation/service-directory";
+import { ModelResources } from "./model-resources";
 
 export function ServiceContacts({ providers }: { providers: readonly ServiceProvider[] }) {
   return <section className="grid min-w-0 gap-3 text-sm" aria-label="Внедрение и сервис">
@@ -40,7 +41,7 @@ export function ImplementationGuidePanel({ snapshot, expanded = false }: { snaps
       <p className="text-xs text-muted-foreground">Методический шаблон платформы; условия и численные пороги согласуются для конкретного объекта. Руководство модели и программа безопасности поставщика обязательны для запуска.</p>
       <Link className="tap-target w-fit text-primary underline" href={`/knowledge/${encodeURIComponent(guide.solutionType)}`}>База знаний по классу: инженер и заказчик →</Link>
     </>}
+    <ModelResources resources={snapshot.resources ?? []} />
     <ServiceContacts providers={snapshot.providers} />
   </section>;
 }
-

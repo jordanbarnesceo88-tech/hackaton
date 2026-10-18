@@ -8,7 +8,7 @@ import {
   sortRisks,
   type FormulaKey,
 } from "../../tz/econ";
-import { DEFAULT_NORMS, NORM_DEFS, isNormKey, normDef, type NormDef } from "../../tz/norms";
+import { normRowsFromSnapshot } from "../../tz/methodology";
 import { formatParamValue } from "../../tz/params/messages";
 import { processDef } from "../../tz/processes";
 import { SELECTION_STATUS_LABELS } from "../../tz/selection";
@@ -318,7 +318,7 @@ export type NormReportRow = {
   label: string;
   value: number;
   unit: string;
-  defaultValue: number;
+  defaultValue: number | null;
   min: number | null;
   max: number | null;
   origin: string;
@@ -328,7 +328,7 @@ export type NormReportRow = {
   changed: boolean;
 };
 
-function normSource(d: NormDef): string {
+function normSource(d: { sourceRef?: string; sourceUrl?: string; formula?: string }): string {
   const parts = [d.sourceRef, d.sourceUrl, d.formula ? `Формула: ${d.formula}` : undefined].filter(
     (x): x is string => typeof x === "string" && x.length > 0,
   );
@@ -341,24 +341,20 @@ function normSource(d: NormDef): string {
  * в описании нормативов (по группам).
  */
 export function normsReportRows(results: ReportResults): NormReportRow[] {
-  const used = results.normsUsed as Readonly<Record<string, number | undefined>>;
-  return (NORM_DEFS as readonly NormDef[]).map((d) => {
-    const def = DEFAULT_NORMS[d.key as keyof typeof DEFAULT_NORMS];
-    const raw = used[d.key];
-    const value = typeof raw === "number" && Number.isFinite(raw) ? raw : def;
+  return normRowsFromSnapshot(results).map(d => {
     return {
       key: d.key,
       group: d.group,
       label: d.label,
-      value,
+      value: d.value,
       unit: d.unit,
-      defaultValue: d.value,
+      defaultValue: d.defaultValue,
       min: d.min,
       max: d.max,
-      origin: originLabel(d.origin),
+      origin: d.origin === null ? "Не сохранено" : originLabel(d.origin),
       basis: d.basis,
       source: normSource(d),
-      changed: value !== d.value,
+      changed: d.defaultValue !== null && d.value !== d.defaultValue,
     };
   });
 }
@@ -369,13 +365,14 @@ export type NormOverrideRow = { scenarioTitle: string; key: string; label: strin
 /** Нормативы, переопределённые в сценариях. */
 export function normOverrideRows(results: ReportResults): NormOverrideRow[] {
   const out: NormOverrideRow[] = [];
+  const definitions = new Map(normRowsFromSnapshot(results).map(d => [d.key, d]));
   for (const spec of results.scenarios) {
     const o = spec.normOverrides ?? {};
     const r = results.results.find((x) => x.key === spec.key);
     const title = r ? scenarioTitle(results, r) : spec.name;
     for (const [key, value] of Object.entries(o)) {
       if (typeof value !== "number" || !Number.isFinite(value)) continue;
-      const d = isNormKey(key) ? normDef(key) : null;
+      const d = definitions.get(key);
       out.push({ scenarioTitle: title, key, label: d?.label ?? key, value, unit: d?.unit ?? "" });
     }
   }

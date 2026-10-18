@@ -14,7 +14,10 @@ import {
   reapExpiredJobs,
 } from "./store";
 import { engineRelease } from "./types";
-import { computeFrozenCalculation, enqueueCalculation, publishFrozenCalculation, type FrozenCalculationInput } from "./service";
+import type { ClaimedJob } from "./types";
+import { executeClaim } from "./worker";
+import type { ProjectResults } from "../tz/types";
+import { computeFrozenCalculation, enqueueCalculation, type FrozenCalculationInput } from "./service";
 
 /** Independent real-PostgreSQL failure cases. Store-only cases use tiny computed values;
  * the evidence-date case also executes the actual frozen calculation.
@@ -63,6 +66,15 @@ async function projectFixture() {
 
 const unpublished = async () => ({ projectId: null, revision: null, state: "NONE" as const });
 
+/** Real worker execution renews its default lease during long spatial calculations. */
+async function executePublished(claim: ClaimedJob): Promise<{ results: ProjectResults }> {
+  await executeClaim(prisma, claim);
+  const completed = await getOwnedJobResult(prisma, owner, claim.job.id);
+  expect(completed?.job).toMatchObject({ status: "SUCCEEDED", publicationState: "PUBLISHED" });
+  if (!completed?.run.results) throw new Error("Expected durable calculation results");
+  return { results: completed.run.results as unknown as ProjectResults };
+}
+
 /** Interleave actual SQL commits at the preparation boundary, without mocking DB results. */
 function duringPreparation(interleave: (tx: Prisma.TransactionClient, prepare: () => Promise<unknown>) => Promise<unknown>): PrismaClient {
   return { $transaction: (
@@ -77,8 +89,7 @@ describe("independent durable-calculation failure boundaries", () => {
     const create = await enqueueCalculation(prisma, owner, { operation: "CREATE", name: `${prefix}evidence-date`, facility: "warehouse" }, randomUUID());
     const claim = await claimJob(prisma, { workerId: "evidence-date-create" });
     if (!claim || claim.job.id !== create.id) throw new Error("Expected isolated CREATE claim");
-    const computed = await computeFrozenCalculation(claim.run.input);
-    await completeJob(prisma, claim, computed, publishFrozenCalculation);
+    const computed = await executePublished(claim);
     const published = await getOwnedJob(prisma, owner, create.id);
     if (!published?.projectId) throw new Error("Expected published project");
     const archived = structuredClone(computed.results), product = archived.productSnapshots["ronavi-h1500"];
@@ -580,8 +591,7 @@ describe("independent enqueue intent, quota and lost-receipt recovery", () => {
     expect(await prisma.project.count({ where: { userId: owner } })).toBe(0);
     const claim = await claimJob(prisma, { workerId: "adversary-create" });
     if (!claim) throw new Error("Expected a create claim");
-    const computed = await computeFrozenCalculation(claim.run.input);
-    expect(await completeJob(prisma, claim, computed, publishFrozenCalculation)).toBe(true);
+    const computed = await executePublished(claim);
     // Simulate loss of the acknowledgement: do not consume the completion result; send
     // the exact original request as a newly started client would after a network failure.
     const recovered = await enqueueCalculation(prisma, owner, intent, key);
@@ -601,8 +611,7 @@ describe("independent enqueue intent, quota and lost-receipt recovery", () => {
     const accepted = await enqueueCalculation(prisma, owner, intent, key);
     const claim = await claimJob(prisma, { workerId: "adversary-deleted-create-replay" });
     if (!claim) throw new Error("Expected a create claim");
-    const computed = await computeFrozenCalculation(claim.run.input);
-    await completeJob(prisma, claim, computed, publishFrozenCalculation);
+    await executePublished(claim);
     const completed = await getOwnedJob(prisma, owner, accepted.id);
     if (!completed?.projectId) throw new Error("Expected project publication");
     await prisma.project.delete({ where: { id: completed.projectId } });
@@ -617,8 +626,7 @@ describe("independent enqueue intent, quota and lost-receipt recovery", () => {
     const create = await enqueueCalculation(prisma, owner, { operation: "CREATE", name: `${prefix}save-recovery`, facility: "warehouse" }, randomUUID());
     const firstClaim = await claimJob(prisma, { workerId: "adversary-create-for-save" });
     if (!firstClaim) throw new Error("Expected initial claim");
-    const initial = await computeFrozenCalculation(firstClaim.run.input);
-    await completeJob(prisma, firstClaim, initial, publishFrozenCalculation);
+    const initial = await executePublished(firstClaim);
     const created = await getOwnedJob(prisma, owner, create.id);
     if (!created?.projectId) throw new Error("Expected published project");
     const key = randomUUID();
@@ -631,8 +639,7 @@ describe("independent enqueue intent, quota and lost-receipt recovery", () => {
     expect(before.results).toEqual(JSON.parse(JSON.stringify(initial.results)));
     const claim = await claimJob(prisma, { workerId: "adversary-save" });
     if (!claim) throw new Error("Expected save claim");
-    const computed = await computeFrozenCalculation(claim.run.input);
-    expect(await completeJob(prisma, claim, computed, publishFrozenCalculation)).toBe(true);
+    await executePublished(claim);
     const recovered = await enqueueCalculation(prisma, owner, intent, key);
     expect(recovered.id).toBe(accepted.id);
     expect(recovered.status).toBe("SUCCEEDED");

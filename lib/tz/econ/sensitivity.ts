@@ -1,4 +1,4 @@
-import { normDef, type NormKey } from "../norms";
+import { LABOR_SHARE_SENSITIVITY_RANGE, normDef, type NormKey } from "../norms";
 import type { ProcessDef } from "../processes";
 import type { ScenarioItem, ScenarioOk, ScenarioResult, ScenarioSpec, SensitivityRow } from "../types";
 import {
@@ -110,7 +110,7 @@ export function leverBounds(ctx: ScenarioContext, base: number, o: BoundsOpts): 
   const pb = o.paramKey ? ctx.paramBounds?.[o.paramKey] : undefined;
   const def = o.normKey ? normDef(o.normKey) : undefined;
   const organizer = (pb ? rangeOf(pb.min, pb.max) : null) ?? (o.organizerDefault ? rangeOf(...o.organizerDefault) : null);
-  const norm = def ? rangeOf(def.min, def.max) : null;
+  const norm = o.normKey === "laborShareAutomatable" ? [...LABOR_SHARE_SENSITIVITY_RANGE] : def ? rangeOf(def.min, def.max) : null;
   if (organizer) {
     [low, high] = organizer;
     source = "организатор";

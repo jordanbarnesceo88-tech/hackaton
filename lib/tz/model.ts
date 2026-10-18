@@ -11,6 +11,7 @@ import { validateProjectSiteLayout } from "../sim/site-layout";
 import { BOTTLENECK_LABELS } from "../sim/export-rows";
 import { simSummaryMatchesInput } from "../sim/identity";
 import { spatialEvidenceMatchesInput } from "../sim/spatial-evidence";
+import { withCapacityCandidates } from "./capacity-conclusion";
 import { LAYOUT_LIMITS, buildWarehouseLayout, isWarehouseLike } from "../sim/layout";
 import {
   SIM_MODEL_VERSION,
@@ -950,7 +951,9 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
   // Смена вывода по горизонту пересчитывает сценарии по их описаниям: сценарий с отказом из-за
   // планировки туда не передаётся, иначе он посчитался бы по паспортной норме.
   const conclusionSpecs = layoutProblem ? specs.filter((s) => !layoutBlocked(s)) : specs;
-  const conclusion = conclusionOf(results, ctx, conclusionSpecs, blockedScenarios(ctx, conclusionSpecs, exclusions));
+  const blocked = blockedScenarios(ctx, conclusionSpecs, exclusions);
+  const conclusion = withCapacityCandidates(conclusionOf(results, ctx, conclusionSpecs, blocked), results,
+    conclusionSpecs.filter(spec => !blocked.has(spec.key)), simInputs);
   const productSnapshots = snapshotsOf(specs, productsBySlug);
   const normsUsed = { ...norms };
 
@@ -980,13 +983,19 @@ export function storedPartOf(model: ProjectModel, paramDefs?: readonly ParamSpec
   const { layout: _layout, simInputs: _simInputs, ...rest } = model;
   // A current model's exact inputs are exportable facts; old archives without them stay unavailable.
   if (rest.runtime || (!paramDefs && !Object.values(_simInputs).some(entry => entry.calculated !== null))) return rest;
+  const closedLayouts = new Map<string, SimLayout>();
   return { ...rest, runtime: { layout: structuredClone(_layout), simInputs: structuredClone(_simInputs),
     layouts: Object.fromEntries(Object.entries(_simInputs).flatMap(([key, entry]) => {
       const input = entry.calculated;
       if (!input) return [];
-      const source = input.transportWorkflow === "closed-pod-1"
-        ? buildClosedPodLayout(input.layout, input.siteLayout).layout
-        : input.siteLayout ?? buildWarehouseLayout(input.layout);
+      let source: SimLayout;
+      if (input.transportWorkflow === "closed-pod-1") {
+        // The source builder depends only on these two inputs; never cache caller-owned plans globally.
+        const key = stableJson({ params: input.layout, source: input.siteLayout });
+        const cached = closedLayouts.get(key);
+        source = cached ?? buildClosedPodLayout(input.layout, input.siteLayout).layout;
+        if (!cached) closedLayouts.set(key, source);
+      } else source = input.siteLayout ?? buildWarehouseLayout(input.layout);
       return [[key, structuredClone(source)]];
     })),
     ...(paramDefs ? { paramDefs: structuredClone([...paramDefs]) } : {}),

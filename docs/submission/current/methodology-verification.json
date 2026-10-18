@@ -1,36 +1,269 @@
 {
-  "checks": 401,
-  "sourceProject": {
-    "id": "d53f3d4c-21b1-4a2d-93d4-d39063b85f87",
-    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-    "revision": 0
-  },
-  "operation": {
-    "id": "cmve3kt6j000p01s06v1fgyu1",
-    "kind": "CREATE",
-    "status": "SUCCEEDED",
-    "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1"
-  },
+  "status": "PASS",
+  "checkedAt": "2026-10-18T21:38:47.675Z",
+  "checks": 4078,
   "methodology": {
     "schemaVersion": "methodology-snapshot-1",
-    "modelVersion": "tz-1.0.7",
+    "modelVersion": "tz-1.0.8",
     "formulas": 48,
-    "limitations": 12
+    "limitations": 13,
+    "frozenNormDefinitions": 49,
+    "labour": {
+      "min": 0,
+      "max": 1,
+      "origin": "estimate",
+      "value": 0.5
+    }
   },
   "implementation": {
-    "guide": "Подъёмные AMR",
+    "resources": [
+      {
+        "id": "ronavi-h1500-spec",
+        "kind": "specification",
+        "manufacturer": "Ronavi Robotics",
+        "models": [
+          "Ronavi H1500"
+        ],
+        "url": "https://ronavi-robotics.ru/catalogue/h1500",
+        "checkedAt": "2026-10-18"
+      }
+    ],
     "providers": [
       {
         "name": "Ronavi Robotics",
-        "sourceUrl": "https://ronavi-robotics.ru/about",
+        "verification": "public-source",
         "checkedAt": "2026-10-18",
         "responseSla": null,
         "onsiteSla": null
       }
     ],
-    "persistedPilot": false
+    "persistedPilot": false,
+    "rows": 19
   },
-  "scope": "Read-only ExcelJS cached/schema/formula/source trace checks. Saved methodology definitions checked exactly. No Excel recalculation, DB, browser, simulation or visual acceptance. Sample has no persisted pilotPlan; PDF default guide is not falsely claimed as persisted CSV/XLSX pilot export.",
+  "capacity": [
+    {
+      "scenario": "purchase",
+      "nominal": "PARTIAL",
+      "controlled": "PASS",
+      "requiredPerH": 51.81818181818181,
+      "deliveredCohortPerH": 55,
+      "closedCohortPerH": 54.5
+    },
+    {
+      "scenario": "raas",
+      "nominal": "PARTIAL",
+      "controlled": "PASS",
+      "requiredPerH": 51.81818181818181,
+      "deliveredCohortPerH": 55,
+      "closedCohortPerH": 54.5
+    }
+  ],
+  "scope": "Read-only saved methodology/norm/trace verification and model-scoped OEM/implementation plus separate nominal/controlled export rows. No live registry lookups, numeric input substitution, Excel recalculation, PDF text/visual review, DB, browser, simulation or contractual SLA verification.",
+  "project": {
+    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 0
+  },
+  "sourceProject": {
+    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 0
+  },
+  "operation": {
+    "id": "cmvebyexr003t01pet92h3qrr",
+    "kind": "CREATE",
+    "status": "SUCCEEDED",
+    "publication": "PUBLISHED",
+    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1"
+  },
+  "modelVersion": "tz-1.0.8",
+  "spatialVersion": "warehouse-dense-underlift-1.9.1",
+  "sha256": {
+    "calculation-source.json": "9f48dac47094cc8c46114e557ec8f81e63a38712ad878b44c187410f4d19498d",
+    "sample-report.xlsx": "263c0c55aed5b84697d9b3833e9574ab142c28565c6ec038a84ea991ea9710ab",
+    "sample-report.csv": "0535282fd3e469c998a49ea1333bcadcfbae279bc0c3004e1f4159a31087addb",
+    "sample-report.pdf": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6",
+    "steady-flow-receipt.json": "a0b3f75bd92f67a1e249b1a8c6d7d1059dea027512b6b699016d6814f71dcf27",
+    "peak-overload-receipt.json": "e99d4bb6a805bbc75275ad7a5ba60929d3ca05a385d98853fb60e438de3ee265",
+    "retained-staff-receipt.json": "ab78623b561d618e53a693c40803fd22f46ae673d412aea98f042e040895257c"
+  },
+  "excelRecalculated": false,
+  "rawXmlZeroCacheEvidence": [
+    {
+      "sheet": "Денежный поток",
+      "address": "G11",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "-B11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H11",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I11",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G11/(1+$B$5)^A11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F12-E12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H11+G12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I12",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G12/(1+$B$5)^A12",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F13-E13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H12+G13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I13",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G13/(1+$B$5)^A13",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F14-E14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H13+G14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I14",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G14/(1+$B$5)^A14",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F15-E15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H14+G15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I15",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G15/(1+$B$5)^A15",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "F16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "$B$8-C16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "G16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "F16-E16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "H16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "H15+G16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "I16",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "G16/(1+$B$5)^A16",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "B18",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "B11",
+      "rawCache": "0"
+    },
+    {
+      "sheet": "Денежный поток",
+      "address": "B19",
+      "part": "xl/worksheets/sheet7.xml",
+      "formula": "B8-B9",
+      "rawCache": "0"
+    }
+  ],
   "findings": []
 }

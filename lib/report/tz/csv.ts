@@ -1,6 +1,8 @@
 import { toCsv, type CsvCell } from "../../files/csv";
 import type { ScenarioOk } from "../../tz/types";
 import { lineGroups } from "./tables";
+import { implementationReportRows } from "./implementation";
+import { capacityReportRows } from "./capacity";
 import {
   CASHFLOW_HEADER,
   MANUAL_NOTE,
@@ -135,6 +137,20 @@ export function projectCsv(results: ReportResults, opts: { projectName: string }
   if (pilotRows.length) {
     rows.push(["Планы пилотов и оценочные бюджеты"], ["Сценарий", "Статья / условие", "Сумма, ₽", "Значение", "Источник / допущение"]);
     for (const row of pilotRows) rows.push([row.scenarioName, row.label, row.valueRub === null ? "" : Math.round(row.valueRub), row.text, row.source]);
+    rows.push([]);
+  }
+
+  const capacityRows = capacityReportRows(results);
+  if (capacityRows.length) {
+    rows.push(["Контролируемая проверка мощности — отдельное наблюдение"], ["Сценарий", "Показатель", "Значение", "Единица"]);
+    for (const row of capacityRows) rows.push([row.scenarioName, row.label, row.value, row.unit]);
+    rows.push([]);
+  }
+
+  const implementationRows = implementationReportRows(results);
+  if (implementationRows.length) {
+    rows.push(["Подготовка внедрения и материалы производителей"], ["Решение", "Раздел", "Сведения", "Источник и границы"]);
+    for (const row of implementationRows) rows.push([row.productName, row.label, row.text, row.source]);
     rows.push([]);
   }
 

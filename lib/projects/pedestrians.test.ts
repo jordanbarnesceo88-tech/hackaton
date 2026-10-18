@@ -19,7 +19,9 @@ describe("canonical pedestrian assumption lifecycle",()=>{
   it("validates, builds, reopens and audits the same typed assumption instead of dropping it",()=>{
     const input=source(),before=structuredClone(input),checked=validateScenarioSpecs(input.scenarios,"warehouse",[FIXTURE_H1500.slug],["pallet-transport"]);
     expect(checked.ok).toBe(true);if(!checked.ok)return;
-    const model=buildProjectModel({...input,scenarios:checked.value}),physical=model.simInputs.p1!.calculated!;
+    // Validate the complete submitted set, but build only the scenario under test.
+    // RaaS economics would repeat the same geometry without testing another assumption.
+    const model=buildProjectModel({...input,scenarios:checked.value.filter(s=>s.key!=="r1")}),physical=model.simInputs.p1!.calculated!;
     expect(model.results.find(r=>r.key==="p1")!.status).toBe("ok");expect(physical.pedestrians).toEqual(input.scenarios[1]!.pedestrians);
     const row=scenarioFromRow({key:"p1",name:"Покупка",kind:"PURCHASE",spec:JSON.parse(JSON.stringify(checked.value[1]))});
     expect(row.pedestrians).toEqual(physical.pedestrians);expect(input).toEqual(before);

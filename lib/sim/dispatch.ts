@@ -4,7 +4,7 @@ import { initialVacantStorageCount } from "./demand-mix";
 
 /** Optional experiment admission policy; absent in the production calculation. Null task means charging. */
 export type SimDispatchGate = ((state: SimEngineState, robot: SimRobot, task: SimTask | null) => boolean) & {
-  policy?: { pendingLookahead: number };
+  policy?: { pendingLookahead: number; isUnblockingTask?: (state:SimEngineState,task:SimTask)=>boolean };
   onAssigned?: (state: SimEngineState, robot: SimRobot, task: SimTask | null) => void;
 };
 
@@ -98,7 +98,7 @@ export function assignTasks(s: SimEngineState, dispatchGate?: SimDispatchGate): 
     queue.indices.sort((a, b) => Number(s.tasks[a]!.countsTowardDemand !== false) - Number(s.tasks[b]!.countsTowardDemand !== false) || a - b);
   }
   while (s.head < s.tasks.length && idle.length > 0) {
-    const candidates = policy ? [...s.dispatchQueue!.indices.filter(i => s.tasks[i]!.countsTowardDemand === false), ...s.dispatchQueue!.indices.filter(i => s.tasks[i]!.countsTowardDemand !== false).slice(0, policy.pendingLookahead)] : [s.head];
+    const candidates = policy ? [...new Set([...s.dispatchQueue!.indices.filter(i => s.tasks[i]!.countsTowardDemand === false), ...s.dispatchQueue!.indices.filter(i => s.tasks[i]!.countsTowardDemand !== false).slice(0, policy.pendingLookahead),...s.dispatchQueue!.indices.filter(i=>policy.isUnblockingTask?.(s,s.tasks[i]!))])] : [s.head];
     let task: SimTask | undefined;
     let selectedQueueIndex = -1;
     let bestIdx = -1;

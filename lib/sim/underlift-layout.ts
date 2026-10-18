@@ -12,8 +12,33 @@ export type UnderliftConfig = { version: "underlift-1"; docks: Dock[] };
 type Point = { x: number; y: number };
 export type Bounds = { x0: number; x1: number; y0: number; y1: number };
 const EPS = 1e-8;
-const same = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) < 1e-7;
+const same = (a: Point, b: Point) =>
+  (a === b && Number.isFinite(a.x) && Number.isFinite(a.y)) ||
+  Math.hypot(a.x - b.x, a.y - b.y) < 1e-7;
 const pointKey = (p: Point) => `${p.x};${p.y}`;
+/** Neighbour cells only select candidates; the original distance predicate decides equality. */
+function pointIndex<T extends Point>(points: readonly T[]): (point: Point) => T[] {
+  const cells = new Map<string, number[]>();
+  const cell = (value: number) => Math.floor(value / 1e-7);
+  points.forEach((point, index) => {
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+    const key = `${cell(point.x)};${cell(point.y)}`;
+    const entries = cells.get(key);
+    if (entries) entries.push(index); else cells.set(key, [index]);
+  });
+  return point => {
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return [];
+    const x = cell(point.x), y = cell(point.y), matches: number[] = [];
+    if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || Math.max(Math.abs(x), Math.abs(y)) >= Number.MAX_SAFE_INTEGER - 1)
+      return points.filter(candidate => same(candidate, point));
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      for (const index of cells.get(`${x + dx};${y + dy}`) ?? []) {
+        if (same(points[index]!, point)) matches.push(index);
+      }
+    }
+    return matches.sort((a, b) => a - b).map(index => points[index]!);
+  };
+}
 /** All docking and routing directions are cardinal; their oriented boxes are exact AABBs. */
 export function orientedBounds(
   point: Point,
@@ -201,7 +226,13 @@ export function validateUnderliftConfig(
   config: UnderliftConfig,
 ): void {
   const points = [...layout.slots, ...layout.receiving, ...layout.shipping],
-    unique = points.filter((p, i) => points.findIndex((q) => same(p, q)) === i),
+    pointsAt = pointIndex(points),
+    seenPoints = new Set<Point>(),
+    unique = points.filter(p => {
+      const repeated = seenPoints.has(p);
+      seenPoints.add(p);
+      return !repeated && pointsAt(p)[0] === p;
+    }),
     graph = layout.routingGraph;
   if (
     config.version !== "underlift-1" ||
@@ -213,13 +244,14 @@ export function validateUnderliftConfig(
     throw new Error(
       "Повреждён подстеллажный план: неполная карта заездов или недостаточный габарит",
     );
+  const docksAt = pointIndex(config.docks), nodesAt = pointIndex(graph.nodes);
   const stock = layout.slots.map((p) => {
-    const d = config.docks.find((d) => same(d, p));
+    const d = docksAt(p)[0];
     if (!d) throw new Error("Нет заезда домашнего места");
     return { point: p, bounds: orientedBounds(p, 1.4, 1, d.heading) };
   });
   for (const p of unique) {
-    const matches = config.docks.filter((d) => same(d, p)),
+    const matches = docksAt(p),
       d = matches[0];
     if (
       matches.length !== 1 ||
@@ -230,7 +262,7 @@ export function validateUnderliftConfig(
       Math.abs(d.heading - Math.atan2(d.y - d.entry.y, d.x - d.entry.x)) >
         1e-8 ||
       !siteSegmentIsClear(layout, d, d.entry) ||
-      !graph.nodes.some((n) => same(n, d.entry))
+      nodesAt(d.entry).length === 0
     )
       throw new Error("Повреждён подстеллажный план: неверный прямой заезд");
     const box = orientedBounds(d, 1.4, 1, d.heading),

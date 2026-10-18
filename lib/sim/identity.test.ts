@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { warehouseBaseInput } from "./fixtures";
-import { simInputIdentity, simSummaryMatchesInput } from "./identity";
+import { legacySimInputIdentityVersion, simInputIdentity, simSummaryMatchesInput } from "./identity";
+import { stableJson } from "../tz/version";
 import { runSimSync } from "./runner";
 import { toStored } from "./metrics";
 import { SPATIAL_MODEL_VERSION } from "./spatial-version";
@@ -37,5 +38,17 @@ describe("полная идентичность входа имитации", ()
     expect(simInputIdentity({ ...input, robots: { ...input.robots, autonomyH: Number.NaN } })).not.toBe(
       simInputIdentity({ ...input, robots: { ...input.robots, autonomyH: null } }),
     );
+  });
+
+  it("accepts only bounded canonical older identities with the exact saved input", () => {
+    const key = stableJson({ version: "sim-1.2.0", input });
+    expect(legacySimInputIdentityVersion(key, input)).toBe("sim-1.2.0");
+    for (const bad of [
+      simInputIdentity(input), stableJson({ version: "sim-9999.0.0", input }),
+      stableJson({ version: "other-1.0.0", input }), stableJson({ version: "sim-01.2.0", input }),
+      stableJson({ version: "sim-1.2.0", input, ignored: true }), JSON.stringify({ version: "sim-1.2.0", input }),
+      stableJson({ version: "sim-1.2.0", input: { ...input, seed: input.seed + 1 } }),
+      "x".repeat(1_900_001), "{}", "[]", "not-json",
+    ]) expect(legacySimInputIdentityVersion(bad, input)).toBeNull();
   });
 });

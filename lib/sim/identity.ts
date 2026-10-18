@@ -10,6 +10,26 @@ export function simInputIdentity(input: SimInput): string {
   return stableJson({ version: SIM_MODEL_VERSION, input: normalized });
 }
 
+/** Recalculation may carry a canonical older receipt; this never makes that receipt current. */
+export function legacySimInputIdentityVersion(key: unknown, input: SimInput): string | null {
+  if (typeof key !== "string" || key.length === 0 || key.length > 1_900_000) return null;
+  try {
+    const parsed: unknown = JSON.parse(key);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const value = parsed as Record<string, unknown>;
+    if (Object.keys(value).length !== 2 || !Object.hasOwn(value, "input") || !Object.hasOwn(value, "version") ||
+        typeof value.version !== "string" || !/^sim-(0|[1-9]\d{0,3})\.(0|[1-9]\d{0,3})\.(0|[1-9]\d{0,3})$/.test(value.version)) return null;
+    const previous = value.version.slice(4).split(".").map(Number), current = SIM_MODEL_VERSION.slice(4).split(".").map(Number);
+    const different = previous.findIndex((number, index) => number !== current[index]);
+    if (different < 0 || previous[different]! > current[different]!) return null;
+    const normalized = JSON.parse(simInputIdentity(input)) as { input: unknown };
+    if (stableJson(value) !== key || stableJson(value.input) !== stableJson(normalized.input)) return null;
+    return value.version;
+  } catch {
+    return null;
+  }
+}
+
 /** Старые сводки без полного входа нельзя использовать как актуальное подтверждение. */
 export function simSummaryMatchesInput(
   summary: SimSummaryStored | null | undefined,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createSim, isDone, stepSim } from "../../lib/sim/engine";
 import { warehouseBaseInput } from "../../lib/sim/fixtures";
 import { siteSegmentIsClear } from "../../lib/sim/site-layout";
@@ -12,11 +12,15 @@ import { buildWarehouseLayout } from "../../lib/sim/layout";
 import { validateProjectSiteLayout, validateSiteLayout } from "../../lib/sim/site-layout";
 import { summarize } from "../../lib/sim/metrics";
 import { createIncidentRuntime } from "./incidents";
+import { assignUnderlift, underliftCanAssign, prepareUnderliftRoute } from "./carriers";
+import * as carrierMechanics from "./carriers";
+import { requestDock, dockPathAllowed } from "./dock-access";
+import { sendToCharger } from "../../lib/sim/dispatch";
 import { beginTrafficStep, createTrafficController, createWarehouseTrafficState, freeGraphRoute, isTrafficInput, isWarehouseTrafficState, prepareWarehouseTraffic, reserveTrafficMotion, segmentDistance, stepWarehouseTraffic } from "./traffic";
 
-function commonSite(maxFleet = 12,physical=true) {
+function commonSite(maxFleet = 12,physical=true,mobileStorage=false) {
   const input = warehouseBaseInput(maxFleet);
-  input.siteLayout = complexSite(10000, 1);
+  input.siteLayout = complexSite(10000, 1,mobileStorage);
   input.layout.receivingDocksCount = 2; input.layout.shippingDocksCount = 2;
   const prepared = prepareWarehouseTraffic(input);
   if(!physical)delete prepared.demoUnderlift;
@@ -49,6 +53,220 @@ function encounterState() {
 }
 
 describe("metric traffic safety", () => {
+  it("does not give an unusable replan turn to a protected extraction while another failed plan becomes available",()=>{
+    const input=commonSite(4);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),pool=state.demoUnderlift!;
+    const pods=[pool.pods[0]!,pool.pods[Math.floor(pool.pods.length/2)]!];
+    const tasks=pods.map((pod,id):SimTask=>({id,kind:"outbound",podId:pod.id,fromPoint:-1,fromX:pod.x,fromY:pod.y,toPoint:state.layout.receiving.length+id,toX:state.layout.shipping[id]!.x,toY:state.layout.shipping[id]!.y,arrivalS:0,startS:0,doneS:null}));
+    const exits=pods.map(p=>pool.docks.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<1e-8)!.entry);
+    for(const id of [0,1]){
+      const r=state.robots[id]!,pod=pods[id]!,task=tasks[id]!;
+      Object.assign(r,{x:pod.x,y:pod.y,phase:"toDrop",loaded:true,task,soc:1});assignUnderlift(state,r,task);
+      r.path=route(state.layout,r,{x:task.toX,y:task.toY});r.pathLenM=routeLengthM(r.path);r.distM=0;
+      Object.assign(r.underlift!,{stage:"extract",podLiftM:.06,platformTopM:.5,contact:true,contactGapM:0,routeStage:id===0?"drop":undefined,extractionUntilM:id===0?2:undefined});
+      Object.assign(pod,{phase:"carrying",liftM:.06});
+    }
+    Object.assign(state.robots[3]!,{...exits[0]!,phase:"waitCharger",pointIdx:-1});
+    Object.assign(state.robots[2]!,{...exits[1]!,soc:.1});sendToCharger(state,state.robots[2]!);
+    state.tasks=tasks;state.head=2;state.nextDemandTaskId=2;pool.stockRevision++;
+    stepWarehouseTraffic(state);expect(state.demoTraffic.bodies[1]!.routePlanFailed).toBe(true);
+    // A controlled obstacle-clear fixture; this is not asserted to be the third robot's trajectory.
+    Object.assign(state.robots[2]!,{...input.demoTraffic.initialPositions[2]!,phase:"waitCharger",pointIdx:-1});
+    for(let t=1;t<20;t++)stepWarehouseTraffic(state);
+    const b=state.robots[1]!;expect(Math.hypot(b.x-tasks[1]!.fromX,b.y-tasks[1]!.fromY)).toBeGreaterThan(0);
+    expect(state.demoTraffic.bodies[1]!.routePlanFailed).toBe(false);expect(state.demoTraffic.collisionCount).toBe(0);
+  });
+
+  it("escapes a physically clear receiving dock through a checked existing bay when an incoming robot blocks the direct route anchor",()=>{
+    const base=warehouseBaseInput(2);base.layout.activeAreaM2=5000;base.layout.chargers=2;base.demand.avgPerH=0;base.demand.peakPerH=0;
+    const input=prepareWarehouseTraffic(base);input.demoIncidents={version:"incidents-1.0.0",enabled:false,schedule:[]};
+    const state=createWarehouseTrafficState(input),pool=state.demoUnderlift!,station=state.layout.receiving[0]!,dock=pool.docks.find(d=>Math.hypot(d.x-station.x,d.y-station.y)<1e-8)!;
+    const a=pool.pods.find(p=>Math.hypot(p.home.x-74.5,p.home.y-14.5)<1e-8)!,b=pool.pods.find(p=>Math.hypot(p.home.x-28.1,p.home.y-21.1)<1e-8)!;
+    const parent=(id:number,pod:typeof a,startS:number|null):SimTask=>({id,kind:"inbound",podId:pod.id,fromPoint:0,fromX:station.x,fromY:station.y,toPoint:-1,toX:pod.home.x,toY:pod.home.y,arrivalS:0,startS,doneS:null});
+    const first=parent(28,a,0),last=parent(32,b,null),prefetch:SimTask={id:-32,kind:"inbound",operation:"prefetch-pod",countsTowardDemand:false,parentTaskId:32,podId:b.id,fromPoint:-1,fromX:b.home.x,fromY:b.home.y,toPoint:0,toX:station.x,toY:station.y,arrivalS:0,startS:0,doneS:null};
+    for(const [id,r]of state.robots.entries()){
+      const task=id===0?first:prefetch,pod=id===0?a:b,position=id===0?{x:station.x,y:station.y}:{x:6.4,y:15};
+      Object.assign(r,{...position,phase:"toDrop",task,loaded:true,soc:1});assignUnderlift(state,r,task);
+      Object.assign(r.underlift!,{stage:id===0?"extract":"carry",podLiftM:.06,platformTopM:.5,contact:true,contactGapM:0,headingRad:id===0?dock.heading:-Math.PI/2,...(id===1?{routeStage:"drop"}:{})});
+      Object.assign(pod,{...position,phase:"carrying",liftM:.06,heading:r.underlift!.headingRad});
+      r.path=id===0?route(state.layout,r,a.home):[{...position},{x:6.4,y:dock.entry.y},{...dock.entry},{x:station.x,y:station.y}];r.pathLenM=routeLengthM(r.path);r.distM=0;
+    }
+    state.tasks=[first,prefetch,last];state.head=2;state.nextDemandTaskId=33;pool.nextInternalId=-33;pool.stockRevision++;
+    expect(requestDock(state.dockAccess,{robotId:0,key:"28:pickup",center:dock,entry:dock.entry,tS:0},state.robots)).toBe(true);
+    for(let t=0;t<120;t++)stepWarehouseTraffic(state);
+    expect(state.dockAccess.grants.some(g=>g.key==="28:pickup")).toBe(false);
+    while(state.tS<1800&&state.physicalDoneCount!==3)stepWarehouseTraffic(state);
+    expect(state.physicalDoneCount).toBe(3);expect([first,prefetch,last].every(t=>t.doneS!==null)).toBe(true);
+    for(const pod of [a,b]){expect(pod.robotId).toBeNull();expect(pod.x).toBeCloseTo(pod.home.x,8);expect(pod.y).toBeCloseTo(pod.home.y,8);}
+    expect(state.demoTraffic.collisionCount).toBe(0);expect(state.demoTraffic.minimumClearanceM).toBeGreaterThanOrEqual(.15-1e-8);
+  });
+
+  it("retries immediately after an occupied destination entry clears without repeating a full failed floor search",()=>{
+    const input=commonSite(2);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),r=state.robots[0]!,pod=state.demoUnderlift!.pods[0]!,destination=state.layout.shipping[0]!;
+    const task:SimTask={id:0,kind:"outbound",podId:pod.id,fromPoint:-1,fromX:pod.home.x,fromY:pod.home.y,toPoint:state.layout.receiving.length,toX:destination.x,toY:destination.y,arrivalS:0,startS:0,doneS:null};
+    Object.assign(r,{...pod.home,phase:"toDrop",task,loaded:true,soc:1});assignUnderlift(state,r,task);
+    r.path=route(state.layout,r,destination);r.pathLenM=routeLengthM(r.path);r.distM=0;
+    Object.assign(r.underlift!,{stage:"lift",podLiftM:.06,platformTopM:.5,contact:true,contactGapM:0});Object.assign(pod,{phase:"carrying",liftM:.06});
+    const target=state.demoUnderlift!.docks.find(d=>Math.hypot(d.x-destination.x,d.y-destination.y)<1e-8)!;
+    Object.assign(state.robots[1]!,{...target.entry,phase:"waitCharger",pointIdx:-1});state.demoUnderlift!.stockRevision++;state.tasks=[task];state.head=1;
+    stepWarehouseTraffic(state);stepWarehouseTraffic(state);
+    expect(r.x).toBe(pod.home.x);expect(r.y).toBe(pod.home.y);
+    Object.assign(state.robots[1]!,input.demoTraffic.initialPositions[1]!);
+    stepWarehouseTraffic(state);
+    expect(Math.hypot(r.x-pod.home.x,r.y-pod.home.y)).toBeGreaterThan(0);expect(task.doneS).toBeNull();expect(state.demoTraffic.collisionCount).toBe(0);
+  });
+
+  it("bounds a station to two distinct transport intents while deduplicating a resident pod that is still unloading",()=>{
+    const input=commonSite(3);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),pool=state.demoUnderlift!,station=state.layout.shipping[0]!;
+    const tasks=pool.pods.slice(0,3).map((pod,id):SimTask=>({id,kind:"outbound",podId:pod.id,fromPoint:-1,fromX:pod.home.x,fromY:pod.home.y,toPoint:state.layout.receiving.length,toX:station.x,toY:station.y,arrivalS:0,startS:null,doneS:null}));
+    state.tasks=tasks;state.nextDemandTaskId=3;stepWarehouseTraffic(state);
+    expect(state.robots.filter(r=>r.task)).toHaveLength(2);expect(tasks[2]!.startS).toBeNull();
+    const first=state.robots.find(r=>r.task===tasks[0])!,second=state.robots.find(r=>r.task===tasks[1])!,third=state.robots.find(r=>!r.task)!;
+    // One carrier transitioning from incoming to resident still consumes only one logical intent.
+    Object.assign(pool.pods[0]!,{x:station.x,y:station.y,phase:"unloading"});Object.assign(first,{x:station.x,y:station.y,phase:"unloading"});
+    second.task=null;second.phase="idle";pool.revision++;pool.stockRevision++;
+    expect(underliftCanAssign(state,third,tasks[2]!)).toBe(true);
+  });
+
+  it("clears a resident station carrier beyond the sixteen-customer lookahead before a backlog of prefetched carriers",()=>{
+    const input=commonSite(2);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),pool=state.demoUnderlift!,station=state.layout.receiving[0]!,shipping=state.layout.shipping[0]!,resident=pool.pods[0]!;
+    const blocked:Array<SimTask>=Array.from({length:16},(_,id)=>({id,kind:"outbound",podId:resident.id,fromPoint:-1,fromX:resident.home.x,fromY:resident.home.y,toPoint:state.layout.receiving.length,toX:shipping.x,toY:shipping.y,arrivalS:0,startS:null,doneS:null}));
+    const parents=pool.pods.slice(0,11).map((pod,i):SimTask=>({id:16+i,kind:"inbound",podId:pod.id,fromPoint:0,fromX:station.x,fromY:station.y,toPoint:-1,toX:pod.home.x,toY:pod.home.y,arrivalS:0,startS:null,doneS:null}));
+    Object.assign(resident,{x:station.x,y:station.y,phase:"delivered",reservedForTaskId:16});
+    const prefetch=parents.slice(1).map((parent,i):SimTask=>{const pod=pool.pods[i+1]!;pod.reservedForTaskId=parent.id;return {id:-1-i,kind:"inbound",operation:"prefetch-pod",countsTowardDemand:false,parentTaskId:parent.id,podId:pod.id,fromPoint:-1,fromX:pod.x,fromY:pod.y,toPoint:0,toX:station.x,toY:station.y,arrivalS:0,startS:null,doneS:null};});
+    state.tasks=[...blocked,...parents,...prefetch];state.nextDemandTaskId=27;pool.nextInternalId=-11;pool.stockRevision++;
+    stepWarehouseTraffic(state);
+    expect(parents[0]!.startS).toBe(0);
+    while(state.tS<1800&&parents.slice(0,3).some(t=>t.doneS===null))stepWarehouseTraffic(state);
+    expect(parents.slice(0,3).every(t=>t.doneS!==null)).toBe(true);
+    expect(state.demoTraffic.collisionCount).toBe(0);
+  });
+
+  it.each(["robot","grounded-pod"])("still refuses loaded extraction when a real %s blocks the source exit",(obstacle)=>{
+    const input=commonSite(2);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),r=state.robots[0]!,pod=state.demoUnderlift!.pods[0]!,destination=state.layout.shipping[0]!;
+    const task:SimTask={id:0,kind:"outbound",podId:pod.id,fromPoint:-1,fromX:pod.home.x,fromY:pod.home.y,toPoint:state.layout.receiving.length,toX:destination.x,toY:destination.y,arrivalS:0,startS:0,doneS:null};
+    Object.assign(r,{...pod.home,phase:"toDrop",task,loaded:true,soc:1});assignUnderlift(state,r,task);
+    r.path=route(state.layout,r,destination);r.pathLenM=routeLengthM(r.path);r.distM=0;
+    Object.assign(r.underlift!,{stage:"lift",podLiftM:.06,platformTopM:.5,contact:true,contactGapM:0});Object.assign(pod,{phase:"carrying",liftM:.06});
+    const exit=state.demoUnderlift!.docks.find(d=>Math.hypot(d.x-pod.home.x,d.y-pod.home.y)<1e-8)!.entry;
+    if(obstacle==="robot")Object.assign(state.robots[1]!,{...exit,phase:"waitCharger",pointIdx:-1});
+    else Object.assign(state.demoUnderlift!.pods[1]!,{...exit,phase:"delivered",robotId:null});
+    state.demoUnderlift!.stockRevision++;state.tasks=[task];state.head=1;
+    const attempts:number[]=[],original=carrierMechanics.prepareUnderliftRoute;
+    const planning=vi.spyOn(carrierMechanics,"prepareUnderliftRoute").mockImplementation((s,robot,planner)=>original(s,robot,(from,to,pickup)=>{if(robot.id===0)attempts.push(s.tS);return planner(from,to,pickup);}));
+    try{for(let t=0;t<20;t++)stepWarehouseTraffic(state);}finally{planning.mockRestore();}
+    expect(attempts).toEqual([0,5,10,15]);
+    expect(r.x).toBe(pod.home.x);expect(r.y).toBe(pod.home.y);expect(task.doneS).toBeNull();expect(r.task).toBe(task);
+    expect(state.physicalDoneCount).toBe(0);expect(state.demoTraffic.collisionCount).toBe(0);
+  });
+
+  it("clears two source capsules before waiting for the other destination capsule without bypassing local access",()=>{
+    const input=commonSite(2,true,true);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),station=state.layout.shipping[0]!,pool=state.demoUnderlift!;
+    const a=pool.pods.find(p=>Math.hypot(p.home.x-4.9,p.home.y-50.9)<1e-8)!,b=pool.pods.find(p=>Math.hypot(p.home.x-8.9,p.home.y-52.1)<1e-8)!;
+    const tasks:SimTask[]=[{id:-100,kind:"outbound",operation:"return-pod",countsTowardDemand:false,parentTaskId:0,podId:a.id,fromPoint:state.layout.receiving.length,fromX:station.x,fromY:station.y,toPoint:-1,toX:a.home.x,toY:a.home.y,arrivalS:0,startS:0,doneS:null},{id:1,kind:"outbound",podId:b.id,fromPoint:-1,fromX:b.home.x,fromY:b.home.y,toPoint:state.layout.receiving.length,toX:station.x,toY:station.y,arrivalS:0,startS:0,doneS:null}];
+    const sourceDocks=[pool.docks.find(d=>Math.hypot(d.x-station.x,d.y-station.y)<1e-8)!,pool.docks.find(d=>Math.hypot(d.x-b.home.x,d.y-b.home.y)<1e-8)!];
+    Object.assign(a,{x:station.x,y:station.y});
+    for(const [id,r]of state.robots.entries()){
+      const task=tasks[id]!,pod=[a,b][id]!,dock=sourceDocks[id]!;
+      Object.assign(r,{x:task.fromX,y:task.fromY,phase:"toDrop",task,loaded:true,soc:1});assignUnderlift(state,r,task);
+      Object.assign(r.underlift!,{stage:"extract",podLiftM:.06,platformTopM:.5,contact:true,contactGapM:0,headingRad:dock.heading});
+      Object.assign(pod,{phase:"carrying",liftM:.06,heading:dock.heading});
+      r.path=route(state.layout,r,{x:task.toX,y:task.toY});r.pathLenM=routeLengthM(r.path);r.distM=0;
+      expect(requestDock(state.dockAccess,{robotId:id,key:`${task.id}:pickup`,center:dock,entry:dock.entry,tS:0},state.robots)).toBe(true);
+    }
+    state.tasks=tasks;state.head=2;state.nextDemandTaskId=2;pool.nextInternalId=-101;pool.stockRevision++;
+    // A planned future destination is not a right to enter the other robot's capsule.
+    expect(dockPathAllowed(state.dockAccess,0,[{x:6.9,y:50.9}])).toBe(false);
+    expect(dockPathAllowed(state.dockAccess,1,[sourceDocks[0]!.entry])).toBe(false);
+    for(let t=0;t<200;t++)stepWarehouseTraffic(state);
+    expect(state.dockAccess.grants.some(g=>g.key==="-100:pickup"||g.key==="1:pickup")).toBe(false);
+    while(state.tS<1800&&state.physicalDoneCount!==3)stepWarehouseTraffic(state);
+    expect(state.physicalDoneCount).toBe(3);expect(tasks.every(t=>t.doneS!==null)).toBe(true);
+    for(const pod of [a,b]){expect(pod.robotId).toBeNull();expect(pod.x).toBeCloseTo(pod.home.x,8);expect(pod.y).toBeCloseTo(pod.home.y,8);}
+    expect(state.demoTraffic.collisionCount).toBe(0);expect(state.demoTraffic.minimumClearanceM).toBeGreaterThanOrEqual(.15-1e-8);
+  });
+
+  it("does not replace a rejected loaded extraction plan with an unchecked graph route",()=>{
+    const input=commonSite(1);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),r=state.robots[0]!,pod=state.demoUnderlift!.pods[0]!,destination=state.layout.shipping[0]!;
+    const task:SimTask={id:0,kind:"outbound",fromPoint:-1,fromX:pod.home.x,fromY:pod.home.y,toPoint:state.layout.receiving.length,toX:destination.x,toY:destination.y,arrivalS:0,startS:0,doneS:null};
+    Object.assign(r,{...pod.home,phase:"toDrop",task,loaded:true});assignUnderlift(state,r,task);r.underlift!.stage="lift";
+    const path=r.path;
+    expect(prepareUnderliftRoute(state,r,()=>null)).toBe(false);expect(r.path).toBe(path);expect(r.underlift!.routeStage).toBeUndefined();
+  });
+
+  it.each(["outbound","inbound"] as const)("pipelines distinct %s pods at one shared station while keeping its physical dock exclusive through service legs",(kind)=>{
+    const input=commonSite(2);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),station=kind==="outbound"?state.layout.shipping[0]!:state.layout.receiving[0]!,pods=[state.demoUnderlift!.pods[0]!,state.demoUnderlift!.pods[Math.floor(state.demoUnderlift!.pods.length/2)]!];
+    const tasks=pods.map((pod,id):SimTask=>({id,kind,fromPoint:kind==="outbound"?-1:0,fromX:kind==="outbound"?pod.home.x:station.x,fromY:kind==="outbound"?pod.home.y:station.y,toPoint:kind==="outbound"?state.layout.receiving.length:-1,toX:kind==="outbound"?station.x:pod.home.x,toY:kind==="outbound"?station.y:pod.home.y,arrivalS:0,startS:null,doneS:null}));
+    state.tasks=tasks;state.nextDemandTaskId=2;
+    stepWarehouseTraffic(state);
+    if(kind==="inbound")stepWarehouseTraffic(state);
+    const active=state.robots.filter(r=>r.task);
+    expect(active).toHaveLength(2);
+    if(kind==="outbound"){expect(tasks[0]!.startS).toBe(0);expect(tasks[1]!.startS).toBe(0);expect(Math.hypot(active[0]!.x-station.x,active[0]!.y-station.y)).toBeGreaterThan(50);}
+    else expect(active.every(r=>r.task!.operation==="prefetch-pod")).toBe(true);
+    const first=active[0]!;
+    expect(underliftCanAssign(state,state.robots.find(r=>r.id!==first.id)!,{...tasks[0]!,id:100,startS:null})).toBe(false);
+    let maximumDockOwners=0;
+    while(state.tS<2400&&state.physicalDoneCount!==4){
+      stepWarehouseTraffic(state);
+      maximumDockOwners=Math.max(maximumDockOwners,new Set(state.dockAccess.grants.filter(g=>Math.hypot(g.center.x-station.x,g.center.y-station.y)<1e-8).map(g=>g.robotId)).size);
+    }
+    expect(maximumDockOwners).toBe(1);expect(state.physicalDoneCount).toBe(4);expect(tasks.every(t=>t.doneS!==null)).toBe(true);
+    for(const pod of pods){expect(pod.robotId).toBeNull();expect(pod.reservedForTaskId).toBeNull();expect(pod.contents).toBe(kind==="outbound"?"empty":"full");expect(pod.x).toBeCloseTo(pod.home.x,8);expect(pod.y).toBeCloseTo(pod.home.y,8);}
+    expect(state.demoTraffic.collisionCount).toBe(0);expect(state.demoTraffic.minimumClearanceM).toBeGreaterThanOrEqual(.15-1e-8);
+  });
+
+  it.each(["delivery","parking"])("routes an evacuating %s robot around the real waiting curb person before granting the crossing",(mode)=>{
+    const input=commonSite(1,false);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    input.pedestrians={version:"pedestrians-1",policy:"controlled-crossing",crossingWidthM:2,reactionTimeS:.5,decelerationMps2:.8,accelerationMps2:.8,clearanceM:.25,people:[{id:"curb-person",radiusM:.3,trajectory:[{tS:0,x:124,y:30},{tS:20,x:124,y:10}]}]};
+    input.demoTraffic.initialPositions[0]={x:144,y:24};
+    const state=createWarehouseTrafficState(input),r=state.robots[0]!,goal=state.layout.shipping[1]!;
+    const task:SimTask={id:0,kind:"outbound",fromPoint:-1,fromX:110,fromY:28.8,toPoint:state.layout.receiving.length+1,toX:goal.x,toY:goal.y,arrivalS:0,startS:0,doneS:null};
+    Object.assign(r,{x:123,y:28.8,phase:"toDrop",loaded:true,task,soc:1,path:[{x:123,y:28.8},{x:goal.x,y:28.8},{...goal}],distM:0});r.pathLenM=routeLengthM(r.path);
+    if(mode==="parking"){r.phase="idle";r.task=null;r.loaded=false;state.demoTraffic.bodies[r.id]!.parking=true;}
+    else{state.tasks=[task];state.head=1;}
+    for(let t=0;t<90;t++)stepWarehouseTraffic(state);
+    const person=state.demoPedestrians!,crossing=person.controlled["curb-person"]!;
+    expect(crossing.history).toHaveLength(1);expect(crossing.history[0]!.completedAtS).not.toBeNull();
+    if(mode==="delivery")expect(task.doneS).not.toBeNull();
+    else{expect(r.x).toBeCloseTo(goal.x,8);expect(r.y).toBeCloseTo(goal.y,8);}
+    expect(state.demoTraffic.bodies[r.id]!.replans).toBeGreaterThan(0);
+    expect(person.collisionCount).toBe(0);expect(person.brakingViolations).toBe(0);expect(person.minimumClearanceM).toBeGreaterThanOrEqual(.25-1e-8);
+    expect(state.demoTraffic.collisionCount).toBe(0);
+  });
+
+  it("drops an obsolete yield waypoint when replacing a 100 m route with a short underlift approach",()=>{
+    const input=commonSite(1);input.demand.avgPerH=0;input.demand.peakPerH=0;
+    const state=createWarehouseTrafficState(input),r=state.robots[0]!,home=state.layout.slots[0]!;
+    const dock=state.demoUnderlift!.docks.find(d=>Math.hypot(d.x-home.x,d.y-home.y)<1e-8)!,shipping=state.layout.shipping[0]!;
+    const task:SimTask={id:0,kind:"outbound",fromPoint:-1,fromX:home.x,fromY:home.y,toPoint:state.layout.receiving.length,toX:shipping.x,toY:shipping.y,arrivalS:0,startS:0,doneS:null};
+    Object.assign(r,{...dock.entry,phase:"toPickup",task,loaded:false,soc:1});
+    state.tasks=[task];state.head=1;assignUnderlift(state,r,task);
+    r.path=[{...dock.entry},{x:dock.entry.x+100,y:dock.entry.y}];r.pathLenM=100;r.distM=0;
+    const body=state.demoTraffic.bodies[r.id]!;body.yieldDistanceM=1;body.yieldStartedS=0;
+
+    // A marker on an unchanged route must still enforce yielding.
+    const sameRoute=structuredClone(state),sameRobot=sameRoute.robots[0]!;
+    sameRobot.path=[{...dock.entry},{x:home.x,y:home.y}];sameRobot.pathLenM=2;sameRobot.underlift!.routeStage="pickup";
+    stepWarehouseTraffic(sameRoute);
+    expect(sameRoute.demoTraffic.bodies[0]!.yieldDistanceM).toBe(1);
+    expect(sameRobot.distM).toBeLessThanOrEqual(1);
+
+    stepWarehouseTraffic(state);
+    expect(r.pathLenM).toBeCloseTo(2,8);
+    expect(body.yieldDistanceM).toBeNull();expect(body.yieldStartedS).toBeNull();
+    for(let i=0;i<4;i++)stepWarehouseTraffic(state);
+    expect(r.phase).toBe("loading");expect(r.task?.id).toBe(0);
+    expect(state.demoTraffic.collisionCount).toBe(0);
+  });
+
   it("replays the dense N60/C5 baseline workload exactly over a ten-minute replay window",()=>{
     const input=warehouseBaseInput(60);input.layout.chargers=5;input.demand.warmupMin=0;input.demand.peakMin=10;
     const prepared=prepareWarehouseTraffic(input),headless=createWarehouseTrafficState(prepared),playback=createPlayback(prepared);

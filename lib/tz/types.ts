@@ -1,4 +1,5 @@
 import type { SimInput, SimLayout, SimSummaryStored } from "../sim/types";
+import type { CapacityProof, QualificationDiagnostics } from "../sim/capacity-protocol";
 import type { SimProvenance } from "../sim/adapter";
 import type { NormKey, NormValues } from "./norms";
 import type { OperatingEvidence, OperatingEvidenceDecision } from "../catalog/operating-evidence";
@@ -350,6 +351,11 @@ export type SpatialEvidence = {
   input: SimInput;
   assessment: { status: "OK" | "PARTIAL" | "FAIL" | "NOT_EVALUATED"; headline: string; terminal: true };
   summary: { fleet: number; requiredPerH: number; achievedPerH: number; queueEnd: number; waitP95Min: number };
+  /** Explicit opt-in; a saved proof is always replayed on the server when recalculating. */
+  capacityRequested?: true;
+  capacityNominalReview?: { eligible: boolean; reasons: string[]; diagnostics?: QualificationDiagnostics };
+  /** A separate controlled-load observation; never replaces the nominal assessment. */
+  capacityProof?: CapacityProof;
 };
 
 export type PilotPlanInput = {
@@ -722,6 +728,21 @@ export type MethodologySnapshot = {
   simModelVersion: string;
   formulas: { key: string; title: string; expression: string; units: string; source: string }[];
   limitations: string[];
+  /** Optional only for compatibility: never backfill definitions into an older archive. */
+  normDefinitions?: {
+    key: string;
+    label: string;
+    value: number;
+    min: number | null;
+    max: number | null;
+    unit: string;
+    origin: Origin;
+    group: string;
+    basis: string;
+    sourceRef?: string;
+    sourceUrl?: string;
+    formula?: string;
+  }[];
 };
 
 export type ProjectResults = {

@@ -15,7 +15,7 @@
  * данных» вместо молчаливой подмены результата. Повышается при любом изменении логики
  * движка, которое меняет числа сводки.
  */
-export const SIM_MODEL_VERSION = "sim-1.2.0" as const;
+export const SIM_MODEL_VERSION = "sim-1.2.1" as const;
 
 /**
  * Параметры объекта, из которых строится планировка. Это подмножество параметров склада
@@ -138,7 +138,10 @@ export type SimInput = {
    * Поток заданий: сначала `warmupMin` минут на среднем потоке, затем `peakMin` минут на
    * пиковом. Метрики считаются только по пиковому окну.
    */
-  demand: { avgPerH: number; peakPerH: number; warmupMin: number; peakMin: number; mix?: import("./demand-mix").DemandMix; storageVacancyShare?: number };
+  demand: { avgPerH: number; peakPerH: number; warmupMin: number; peakMin: number; mix?: import("./demand-mix").DemandMix; storageVacancyShare?: number;
+    /** Server-derived qualification workload; peakPerH remains the original required rate. */
+    offered?: { protocol: "periodic-capacity-1"; perH: number };
+  };
   /** Масса перевозимой единицы, кг (средняя масса паллеты объекта); null — не проверяется. */
   loadMassKg: number | null;
   /** Пороги вердикта из нормативов simServedShareMin, simP95WaitMaxMin, simOversizedIdleShare. */

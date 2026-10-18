@@ -73,6 +73,11 @@ export function parseSpatialProjectSnapshot(value: unknown): SpatialProjectSnaps
   if (!finite(robots.handlingSec) || robots.handlingSec < 0) throw new Error("Неверное время обработки");
   for (const field of ["autonomyH", "chargeMin", "payloadKg"]) if (robots[field] !== null && (!finite(robots[field]) || Number(robots[field]) <= 0)) throw new Error("Неверные характеристики робота");
   for (const field of ["avgPerH", "peakPerH", "warmupMin", "peakMin"]) if (!finite(demand[field]) || Number(demand[field]) < 0) throw new Error("Неверное окно или нагрузка проекта");
+  if (demand.offered !== undefined) {
+    const offered = record(demand.offered);
+    if (Object.keys(offered).some(key => !["protocol", "perH"].includes(key)) || offered.protocol !== "periodic-capacity-1" ||
+        !finite(offered.perH) || offered.perH <= 0 || offered.perH > 1e9) throw new Error("Неверный профиль контролируемой нагрузки");
+  }
   if (demand.mix !== undefined && !validDemandMix(demand.mix)) throw new Error("Доли приёмки, отгрузки и внутренних перемещений должны быть неотрицательными и давать сумму 1");
   if (demand.storageVacancyShare !== undefined && (!finite(demand.storageVacancyShare) || demand.storageVacancyShare < 0 || demand.storageVacancyShare > 0.9)) throw new Error("Начальная доля свободных мест должна быть от 0 до 0,9");
   if (input.loadMassKg !== null && (!finite(input.loadMassKg) || input.loadMassKg < 0)) throw new Error("Неверная масса груза");

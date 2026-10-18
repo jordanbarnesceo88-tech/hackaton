@@ -89,6 +89,10 @@ export function beginPedestrians(runtime:PedestrianRuntime|undefined,bodies:Body
     if(clear){c.phase="crossing";c.actualStartS=runtime.tS;c.history.push({desiredStartS:leg.a.tS,actualStartS:runtime.tS,completedAtS:null,waitS:runtime.tS-leg.a.tS});}
   }
 }
+/** A committed robot must route around the waiting body, never through its curb position. */
+export function evacuationPedestrians(runtime:PedestrianRuntime|undefined,robotId:number){
+  return runtime?.config.people.filter(p=>{const c=runtime.controlled[p.id];return c?.phase==="requesting"&&!!c.evacuating[robotId];}).map(p=>({...runtimePose(runtime,p,runtime.tS),radiusM:p.radiusM}))??[];
+}
 /** Constant relative velocity on one pair of actual motion segments, not unrelated swept envelopes. */
 export function relativeMotionDistance(a: Point, b: Point, c: Point, d: Point) {
   const x = a.x - c.x, y = a.y - c.y, vx = b.x - a.x - d.x + c.x, vy = b.y - a.y - d.y + c.y;

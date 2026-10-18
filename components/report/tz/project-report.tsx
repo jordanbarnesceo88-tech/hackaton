@@ -15,6 +15,7 @@ import { pluralRu } from "@/lib/format/plural";
 import { formatMlnRub, formatNum, formatRub, mlnInText } from "@/lib/format/rub";
 import type { ParamsSource } from "@/lib/projects/queries";
 import { displayDataText } from "@/lib/tz/characteristics";
+import { capacityReportRows } from "@/lib/report/tz/capacity";
 import {
   MANUAL_NOTE,
   changeRows,
@@ -46,6 +47,7 @@ import { SPATIAL_MODEL_VERSION } from "@/lib/sim/spatial-version";
 import { DISCLAIMER } from "@/lib/tz/econ";
 import { fx } from "@/lib/tz/econ/text";
 import { DEFAULT_NORMS } from "@/lib/tz/norms";
+import { normLabelsFromSnapshot } from "@/lib/tz/methodology";
 import { rangeText } from "@/lib/tz/params/messages";
 import type { ParamSpec, ProjectResults, ScenarioOk, ScenarioResult, SelectionResult } from "@/lib/tz/types";
 import { TZ_MODEL_VERSION } from "@/lib/tz/version";
@@ -840,6 +842,7 @@ function simValueText(v: number | string): string {
 
 function SimSection({ results }: { results: ProjectResults }) {
   const table = simTable(results);
+  const capacityRows = capacityReportRows(results);
   const norms = { ...DEFAULT_NORMS, ...results.normsUsed };
   const groups = layoutGroups(results);
   return (
@@ -895,6 +898,14 @@ function SimSection({ results }: { results: ProjectResults }) {
         </>
       )}
       {table.notChecked.length > 0 && <Note>Имитацией не проверялись: {table.notChecked.join(", ")}.</Note>}
+      {capacityRows.length > 0 && <section className="grid gap-3" aria-label="Сохранённые проверки целевой мощности">
+        <h3 className="text-base font-semibold">Контролируемая проверка мощности</h3>
+        <p className="text-sm">Ниже сохранён отдельный тест. Он не изменяет статус номинального прогона и не является подтверждением годовой экономики или реальной эксплуатации.</p>
+        <div className={TABLE_WRAP}><table className={TABLE}>
+          <thead className="border-b"><tr>{["Сценарий", "Показатель", "Значение", "Единица"].map(label => <th key={label} scope="col" className={TH}>{label}</th>)}</tr></thead>
+          <tbody>{capacityRows.map((row, index) => <tr key={`${row.scenarioName}:${index}`}><td className={TD}>{row.scenarioName}</td><th scope="row" className={`${TD} text-left font-normal`}>{row.label}</th><td className={TD}>{typeof row.value === "number" ? formatNum(row.value, 2) : row.value}</td><td className={TD}>{row.unit}</td></tr>)}</tbody>
+        </table></div>
+      </section>}
       {groups.map((g) => {
         const layout = g.layout;
         if (!layout) {
@@ -1041,7 +1052,7 @@ function NormsSection({ results }: { results: ProjectResults }) {
                   <th scope="row" className={`${TD} text-left font-normal`}>{r.label}</th>
                   <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>
                     {normValueText(r.value, r.unit)}
-                    {r.changed && (
+                    {r.changed && r.defaultValue !== null && (
                       <div className="text-xs text-caution">по умолчанию {normValueText(r.defaultValue, r.unit)}</div>
                     )}
                   </td>
@@ -1179,6 +1190,7 @@ function ChangesSection({ results, defs, changes }: { results: ProjectResults; d
   const rows = changeRows(changes, {
     paramLabels: Object.fromEntries(defs.map((d) => [d.key, d.label])),
     scenarioTitles: scenarioTitleMap(results),
+    normLabels: normLabelsFromSnapshot(results),
   });
   return (
     <Section id="changes" title={SECTION_TITLES.changes}>

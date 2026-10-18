@@ -28,21 +28,21 @@ describe("chosen fleet to canonical finance verification", () => {
     expect(finance.model.scenarios.find(s => s.key === "purchase")!.spatialEvidence!.assessment.status).toBe("PARTIAL");
   }, 60_000); // Two complete 135-minute physical runs, including the reserve's charging failure.
 
-  it("carries the actually qualified six-robot workload and its exact physical receipt into finance", () => {
+  it("carries the six-robot nominal shortfall and its exact physical receipt into finance", () => {
     const products = CATALOG.map(productForCalcFromSeed);
     const data = businessExampleInputs("steady-flow", baseValuesFor("warehouse"), products);
     const { model: project, results } = resultsFromInputs({ products, paramDefs: paramSpecsFor("warehouse"),
       norms: norms.resolveNorms(), paramDefsFrom: "code" }, { facility: "warehouse", params: data.params, scenarios: data.scenarios });
     const input = project.simInputs.purchase!.calculated!;
     const evidence = project.scenarios.find(s => s.key === "purchase")!.spatialEvidence!;
-    expect(evidence.assessment.status).toBe("OK");
-    expect(evidence.summary.achievedPerH).toBeGreaterThanOrEqual(evidence.summary.requiredPerH);
+    expect(evidence.assessment.status).toBe("PARTIAL");
+    expect(evidence.summary.achievedPerH).toBeLessThan(evidence.summary.requiredPerH);
     const purchase = results.results.find(result => result.key === "purchase");
     if (purchase?.status !== "ok") throw new Error("Expected valid canonical financial result");
     expect(purchase.items[0]).toMatchObject({ n: 6, chargers: 2 });
     expect(purchase.npvRub).toBeGreaterThan(0);
     expect(evidence.sourceInputKey).toBe(simInputIdentity(input));
-    expect(results.sim.purchase).toMatchObject({ fleet: 6, verdict: "CONFIRMED", achievedPerH: evidence.summary.achievedPerH });
+    expect(results.sim.purchase).toMatchObject({ fleet: 6, verdict: "NOT_CONFIRMED", achievedPerH: evidence.summary.achievedPerH });
     const standalone = calculateCase("steady-flow");
     expect(simInputIdentity(standalone.financialSourceInput!)).toBe(evidence.sourceInputKey);
     expect(standalone.input).toMatchObject({ demoIncidents: { enabled: false }, layout: { chargers: 2 } });

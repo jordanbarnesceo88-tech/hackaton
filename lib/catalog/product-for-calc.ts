@@ -429,7 +429,7 @@ export function fromCharacteristics(meta: ProductMeta, chars: readonly CharRow[]
     hasCases: isCharPresent(byKey.get("cases")),
     completenessPct: meta.completenessPct,
     confirmedSharePct: meta.confirmedSharePct,
-    implementation: buildImplementationSnapshot(meta.solutionTypeSlug, meta.manufacturer, serviceOverridesOf(chars)),
+    implementation: buildImplementationSnapshot(meta.solutionTypeSlug, meta.manufacturer, serviceOverridesOf(chars), meta.name),
     ...(operatingEvidence ? { operatingEvidence, operatingEvidenceConfirmed: evidenceRow!.confirmed,
       ...(evidenceEvaluatedOn ? { operatingEvidenceEvaluatedOn: evidenceEvaluatedOn } : {}) } : {}),
     sources: [...chars]

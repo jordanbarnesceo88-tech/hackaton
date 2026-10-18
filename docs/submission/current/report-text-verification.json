@@ -1,74 +1,4287 @@
 {
-  "checks": 124,
+  "status": "PASS",
+  "scope": "Read-only saved JSON to PDF text/link and source identity checks. No visual layout, clipping, spreadsheet recalculation, DB access, server replay, load acceptance or industrial validation.",
+  "requestedProject": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+  "requestedOperation": "cmvebyexr003t01pet92h3qrr",
+  "expectedEngine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
+  "expectedVersions": {
+    "economic": "tz-1.0.8",
+    "analytical": "sim-1.2.1",
+    "spatial": "warehouse-dense-underlift-1.9.1"
+  },
+  "package": "C:\\workspace\\hackaton\\alfa-robot\\docs\\submission\\current",
+  "pdf": "C:\\workspace\\hackaton\\alfa-robot\\docs\\submission\\current\\sample-report.pdf",
+  "evaluatedAt": "2026-10-18T21:24:05.087920+00:00",
+  "project": {
+    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 0
+  },
+  "operation": {
+    "id": "cmvebyexr003t01pet92h3qrr",
+    "kind": "CREATE",
+    "status": "SUCCEEDED",
+    "publication": "PUBLISHED",
+    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1"
+  },
+  "pages": 40,
+  "checks": 404,
+  "checkResults": [
+    {
+      "name": "new source and PDF exist",
+      "passed": true
+    },
+    {
+      "name": "exact new project ID",
+      "passed": true
+    },
+    {
+      "name": "exact new operation ID",
+      "passed": true
+    },
+    {
+      "name": "CREATE revision zero",
+      "passed": true
+    },
+    {
+      "name": "terminal successful publication",
+      "passed": true
+    },
+    {
+      "name": "hard a944 durable engine identity",
+      "passed": true
+    },
+    {
+      "name": "saved current economics version",
+      "passed": true
+    },
+    {
+      "name": "saved current analytical version",
+      "passed": true
+    },
+    {
+      "name": "one selected purchase scenario",
+      "passed": true
+    },
+    {
+      "name": "saved original closed workflow without offered override",
+      "passed": true
+    },
+    {
+      "name": "separate current spatial observations",
+      "passed": true
+    },
+    {
+      "name": "nominal stays terminal PARTIAL",
+      "passed": true
+    },
+    {
+      "name": "controlled terminal PASS with declared protocol",
+      "passed": true
+    },
+    {
+      "name": "no full implementation recommendation",
+      "passed": true
+    },
+    {
+      "name": "saved nominal admission eligible without hidden reasons",
+      "passed": true
+    },
+    {
+      "name": "nominal individual wait guard pendingWaitMaxS",
+      "passed": true
+    },
+    {
+      "name": "nominal individual wait guard blockedWaitMaxS",
+      "passed": true
+    },
+    {
+      "name": "original required rate unchanged",
+      "passed": true,
+      "detail": {
+        "actual": 51.81818181818181,
+        "expected": 51.81818181818181
+      }
+    },
+    {
+      "name": "nominal measured delivery remains 51.5",
+      "passed": true,
+      "detail": {
+        "actual": 51.5,
+        "expected": 51.5
+      }
+    },
+    {
+      "name": "controlled offered 57",
+      "passed": true,
+      "detail": {
+        "actual": 57,
+        "expected": 57
+      }
+    },
+    {
+      "name": "controlled cohort deliveries 110",
+      "passed": true,
+      "detail": {
+        "actual": 110,
+        "expected": 110
+      }
+    },
+    {
+      "name": "controlled closed cohort 109",
+      "passed": true,
+      "detail": {
+        "actual": 109,
+        "expected": 109
+      }
+    },
+    {
+      "name": "controlled delivered rate 55",
+      "passed": true,
+      "detail": {
+        "actual": 55,
+        "expected": 55
+      }
+    },
+    {
+      "name": "controlled closed rate 54.5",
+      "passed": true,
+      "detail": {
+        "actual": 54.5,
+        "expected": 54.5
+      }
+    },
+    {
+      "name": "controlled actual periodic arrivals rate",
+      "passed": true,
+      "detail": {
+        "actual": 57,
+        "expected": 57
+      }
+    },
+    {
+      "name": "controlled original required",
+      "passed": true,
+      "detail": {
+        "actual": 51.81818181818181,
+        "expected": 51.81818181818181
+      }
+    },
+    {
+      "name": "measurement begins after 15 minutes",
+      "passed": true,
+      "detail": {
+        "actual": 900,
+        "expected": 900
+      }
+    },
+    {
+      "name": "measurement ends after 15+120 minutes",
+      "passed": true,
+      "detail": {
+        "actual": 8100,
+        "expected": 8100
+      }
+    },
+    {
+      "name": "declared periodic cohort arrivals count",
+      "passed": true,
+      "detail": {
+        "actual": 114,
+        "expected": 114
+      }
+    },
+    {
+      "name": "saved arrival rate corresponds to the actual periodic cohort",
+      "passed": true,
+      "detail": {
+        "actual": 114,
+        "expected": 114
+      }
+    },
+    {
+      "name": "closed cycles are a subset of delivered cohort",
+      "passed": true
+    },
+    {
+      "name": "source N6/C2 retained",
+      "passed": true
+    },
+    {
+      "name": "derived input changes only declared offered profile/horizon",
+      "passed": true
+    },
+    {
+      "name": "nominal and controlled full source identities",
+      "passed": true
+    },
+    {
+      "name": "test identity binds actual derived input",
+      "passed": true
+    },
+    {
+      "name": "same prepared physical execution apart from demand profile",
+      "passed": true
+    },
+    {
+      "name": "actual PDF has nonempty pages",
+      "passed": true,
+      "detail": {
+        "pages": 40
+      }
+    },
+    {
+      "name": "printed current economic version",
+      "passed": true,
+      "detail": {
+        "expected": "tz-1.0.8"
+      },
+      "pages": [
+        1,
+        36,
+        40
+      ]
+    },
+    {
+      "name": "printed current analytical version",
+      "passed": true,
+      "detail": {
+        "expected": "sim-1.2.1"
+      },
+      "pages": [
+        1,
+        40
+      ]
+    },
+    {
+      "name": "printed current spatial version",
+      "passed": true,
+      "detail": {
+        "expected": "warehouse-dense-underlift-1.9.1"
+      },
+      "pages": [
+        2,
+        3,
+        8,
+        9,
+        12
+      ]
+    },
+    {
+      "name": "printed saved data version",
+      "passed": true,
+      "detail": {
+        "expected": "f181ea2e"
+      },
+      "pages": [
+        1,
+        40
+      ]
+    },
+    {
+      "name": "printed saved project name",
+      "passed": true,
+      "detail": {
+        "expected": "Сдаточный пример - полный цикл мобильного стеллажа"
+      },
+      "pages": [
+        1,
+        40
+      ]
+    },
+    {
+      "name": "printed exact saved calculation date in Moscow timezone",
+      "passed": true,
+      "detail": {
+        "expected": "19.10.2026 00:21 МСК"
+      },
+      "pages": [
+        1,
+        40
+      ]
+    },
+    {
+      "name": "nonempty actual financial scenarios",
+      "passed": true
+    },
+    {
+      "name": "printed financial scenario purchase",
+      "passed": true,
+      "detail": {
+        "expected": "Покупка — Ronavi H1500"
+      },
+      "pages": [
+        1,
+        3,
+        4,
+        8,
+        9,
+        10,
+        11,
+        14,
+        15,
+        16,
+        30,
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance purchase:capexRub",
+      "passed": true
+    },
+    {
+      "name": "printed money purchase:capexRub",
+      "passed": true,
+      "detail": {
+        "expected": "22 605 000 ₽"
+      },
+      "pages": [
+        1,
+        2,
+        30,
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance purchase:opexYearRub",
+      "passed": true
+    },
+    {
+      "name": "printed money purchase:opexYearRub",
+      "passed": true,
+      "detail": {
+        "expected": "30 214 319 ₽"
+      },
+      "pages": [
+        2,
+        30,
+        31
+      ]
+    },
+    {
+      "name": "finite saved finance purchase:effectYearRub",
+      "passed": true
+    },
+    {
+      "name": "printed money purchase:effectYearRub",
+      "passed": true,
+      "detail": {
+        "expected": "7 283 281 ₽"
+      },
+      "pages": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "finite saved finance purchase:npvRub",
+      "passed": true
+    },
+    {
+      "name": "printed money purchase:npvRub",
+      "passed": true,
+      "detail": {
+        "expected": "4 079 992 ₽"
+      },
+      "pages": [
+        1,
+        2,
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance purchase:tcoRub",
+      "passed": true
+    },
+    {
+      "name": "printed money purchase:tcoRub",
+      "passed": true,
+      "detail": {
+        "expected": "173 271 596 ₽"
+      },
+      "pages": [
+        2,
+        32
+      ]
+    },
+    {
+      "name": "printed financial scenario raas",
+      "passed": true,
+      "detail": {
+        "expected": "Услуга (RaaS) — Ronavi H1500"
+      },
+      "pages": [
+        3,
+        4,
+        8,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        31,
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance raas:capexRub",
+      "passed": true
+    },
+    {
+      "name": "printed money raas:capexRub",
+      "passed": true,
+      "detail": {
+        "expected": "1 540 000 ₽"
+      },
+      "pages": [
+        31,
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance raas:opexYearRub",
+      "passed": true
+    },
+    {
+      "name": "printed money raas:opexYearRub",
+      "passed": true,
+      "detail": {
+        "expected": "34 723 319 ₽"
+      },
+      "pages": [
+        31,
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance raas:effectYearRub",
+      "passed": true
+    },
+    {
+      "name": "printed money raas:effectYearRub",
+      "passed": true,
+      "detail": {
+        "expected": "2 774 281 ₽"
+      },
+      "pages": [
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance raas:npvRub",
+      "passed": true
+    },
+    {
+      "name": "printed money raas:npvRub",
+      "passed": true,
+      "detail": {
+        "expected": "8 460 661 ₽"
+      },
+      "pages": [
+        32
+      ]
+    },
+    {
+      "name": "finite saved finance raas:tcoRub",
+      "passed": true
+    },
+    {
+      "name": "printed money raas:tcoRub",
+      "passed": true,
+      "detail": {
+        "expected": "175 156 596 ₽"
+      },
+      "pages": [
+        32
+      ]
+    },
+    {
+      "name": "printed row: Номинальный прогон — сохранённый статус",
+      "passed": true,
+      "detail": {
+        "expected": "Номинальный прогон — сохранённый статус PARTIAL"
+      },
+      "pages": [
+        9,
+        11
+      ]
+    },
+    {
+      "name": "printed row: Номинальный прогон — доставлено",
+      "passed": true,
+      "detail": {
+        "expected": "Номинальный прогон — доставлено 51,50"
+      },
+      "pages": [
+        9,
+        11
+      ]
+    },
+    {
+      "name": "printed row: Сохранённый статус теста",
+      "passed": true,
+      "detail": {
+        "expected": "Сохранённый статус теста PASS"
+      },
+      "pages": [
+        9,
+        11
+      ]
+    },
+    {
+      "name": "printed row: Протокол",
+      "passed": true,
+      "detail": {
+        "expected": "Протокол periodic-110-15-120-cohort-closed-1"
+      },
+      "pages": [
+        9,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Требуемая мощность исходного сценария",
+      "passed": true,
+      "detail": {
+        "expected": "Требуемая мощность исходного сценария 51,82"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Периодическая тестовая подача",
+      "passed": true,
+      "detail": {
+        "expected": "Периодическая тестовая подача 57,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Фактически поступило в измерительное окно",
+      "passed": true,
+      "detail": {
+        "expected": "Фактически поступило в измерительное окно 57,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Доставлено из поступлений окна",
+      "passed": true,
+      "detail": {
+        "expected": "Доставлено из поступлений окна 110,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Закрыто полных циклов поступлений окна",
+      "passed": true,
+      "detail": {
+        "expected": "Закрыто полных циклов поступлений окна 109,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Выпуск по доставкам когорты",
+      "passed": true,
+      "detail": {
+        "expected": "Выпуск по доставкам когорты 55,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Выпуск по полным циклам когорты",
+      "passed": true,
+      "detail": {
+        "expected": "Выпуск по полным циклам когорты 54,50"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Начало измерения после старта",
+      "passed": true,
+      "detail": {
+        "expected": "Начало измерения после старта 900,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Конец измерения после старта",
+      "passed": true,
+      "detail": {
+        "expected": "Конец измерения после старта 8 100,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Незавершённые клиентские задания",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённые клиентские задания 4,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Незавершённые подачи и возвраты",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённые подачи и возвраты 3,00"
+      },
+      "pages": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "printed row: Возраст старейшей незавершённой работы",
+      "passed": true,
+      "detail": {
+        "expected": "Возраст старейшей незавершённой работы 268,00"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed cohort exclusion/warmup boundary",
+      "passed": true,
+      "detail": {
+        "expected": "Задания прогрева и работа после окна не дают зачёта"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed nominal remains separate",
+      "passed": true,
+      "detail": {
+        "expected": "Номинальный прогон и его статус сохраняются отдельно"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed modeled profile scope",
+      "passed": true,
+      "detail": {
+        "expected": "не подтверждение годовой эксплуатации"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed unfinished controlled task 123",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённое задание 123"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed unfinished controlled task 125",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённое задание 125"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed unfinished controlled task -125",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённое задание -125"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed unfinished controlled task 126",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённое задание 126"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed unfinished controlled task -126",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённое задание -126"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed unfinished controlled task -127",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённое задание -127"
+      },
+      "pages": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "printed unfinished controlled task 127",
+      "passed": true,
+      "detail": {
+        "expected": "Незавершённое задание 127"
+      },
+      "pages": [
+        11,
+        13
+      ]
+    },
+    {
+      "name": "saved methodology belongs to current version",
+      "passed": true
+    },
+    {
+      "name": "nonempty saved formulas and limitations",
+      "passed": true
+    },
+    {
+      "name": "saved formula expression workHours",
+      "passed": true,
+      "detail": {
+        "expected": "Hсут = смен в сутки × длительность смены (не более 24 ч); Hгод = Hсут × рабочих дней в году"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula title workHours",
+      "passed": true,
+      "detail": {
+        "expected": "Часы работы объекта"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula expression demandDay",
+      "passed": true,
+      "detail": {
+        "expected": "Qсут = Σ объёмов процесса × (доля процесса / 100) × Π множителей × (1 − доля негабарита / 100)"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula title demandDay",
+      "passed": true,
+      "detail": {
+        "expected": "Суточный спрос процесса"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula expression peakPerHour",
+      "passed": true,
+      "detail": {
+        "expected": "λср = Qсут / Hсут; λпик = λср × пиковый коэффициент"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula title peakPerHour",
+      "passed": true,
+      "detail": {
+        "expected": "Пиковый часовой поток"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula expression thrNorm",
+      "passed": true,
+      "detail": {
+        "expected": "thrнорм = производительность из карточки продукта, если она на один робот или станцию, в единицах процесса и не «до X» (предел, а не типичное значение)"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula title thrNorm",
+      "passed": true,
+      "detail": {
+        "expected": "Паспортная производительность"
+      },
+      "pages": [
+        36
+      ]
+    },
+    {
+      "name": "saved formula expression thrCycle",
+      "passed": true,
+      "detail": {
+        "expected": "thrцикл = 3600 / (Lпорож / v + Lгруз / (v × kгруз) + tопераций). Для single-leg-pallet-1: tопераций = 2 × tзахв. Для closed-pod-1: tопераций = (2 − dвнутр) / 2 × [2H + 2 × (2H/3 + max(H/3; 2/v))], H = max(6; tзахв), dвнутр — доля внутренних клиентских перевозок. Приёмка и отгрузка включают две физические перевозки с подачей или возвратом носителя; внутренняя перестановка — одну. Lпорож и Lгруз — средние суммарные пробеги на заявку с учётом состава потока."
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title thrCycle",
+      "passed": true,
+      "detail": {
+        "expected": "Производительность по циклу на планировке объекта"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression thrEff",
+      "passed": true,
+      "detail": {
+        "expected": "thrэфф = значение, заданное вами, иначе min(thrнорм; thrцикл) из известных"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title thrEff",
+      "passed": true,
+      "detail": {
+        "expected": "Принятая производительность робота"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression fleet",
+      "passed": true,
+      "detail": {
+        "expected": "Nточн = λпик / (thrэфф × U × A) × (1 + резерв); N = значение, заданное вами, иначе max(1; ⌈Nточн⌉)"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title fleet",
+      "passed": true,
+      "detail": {
+        "expected": "Число роботов"
+      },
+      "pages": [
+        7,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression coverage",
+      "passed": true,
+      "detail": {
+        "expected": "κ = min(1; N × thrэфф × U × A / λпик)"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title coverage",
+      "passed": true,
+      "detail": {
+        "expected": "Доля пикового спроса, которую закрывает парк"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression chargers",
+      "passed": true,
+      "detail": {
+        "expected": "C = max(1; ⌈N × tзар / (автономность × 60 + tзар) × kзапас⌉); без данных о зарядке C = max(1; ⌈N / роботов на станцию⌉); для стационарных решений C = 0"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title chargers",
+      "passed": true,
+      "detail": {
+        "expected": "Число зарядных станций"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression roleCost",
+      "passed": true,
+      "detail": {
+        "expected": "c = зарплата × 12 × коэффициент начислений на ФОТ"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title roleCost",
+      "passed": true,
+      "detail": {
+        "expected": "Годовая стоимость одной ставки"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression baselineLabour",
+      "passed": true,
+      "detail": {
+        "expected": "ФОТбаз = численность × c"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title baselineLabour",
+      "passed": true,
+      "detail": {
+        "expected": "ФОТ персонала процесса («Как есть»)"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression releasedFte",
+      "passed": true,
+      "detail": {
+        "expected": "F = численность × доля автоматизируемого труда × (1 − доля негабарита / 100) × κ (негабарит перевозят только люди, поэтому он исключён и из спроса роботов, и из высвобождаемого труда — это не двойной учёт)"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title releasedFte",
+      "passed": true,
+      "detail": {
+        "expected": "Высвобождаемые ставки"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression remainingLabour",
+      "passed": true,
+      "detail": {
+        "expected": "ФОТост = (численность − F) × c"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title remainingLabour",
+      "passed": true,
+      "detail": {
+        "expected": "ФОТ оставшегося персонала процесса"
+      },
+      "pages": [
+        31,
+        32,
+        37,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression operatingStaff",
+      "passed": true,
+      "detail": {
+        "expected": "посты = ⌈N / роботов на пост⌉; ФОТэксп = посты × Hсут × дней в году / фонд ставки в год × c"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title operatingStaff",
+      "passed": true,
+      "detail": {
+        "expected": "Персонал эксплуатации (диспетчер парка)"
+      },
+      "pages": [
+        30,
+        32,
+        37,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression capex:equipment",
+      "passed": true,
+      "detail": {
+        "expected": "N × цена робота"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:equipment",
+      "passed": true,
+      "detail": {
+        "expected": "Оборудование (роботы)"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:chargers",
+      "passed": true,
+      "detail": {
+        "expected": "C × цена зарядной станции"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:chargers",
+      "passed": true,
+      "detail": {
+        "expected": "Зарядные станции"
+      },
+      "pages": [
+        5,
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:infrastructure",
+      "passed": true,
+      "detail": {
+        "expected": "площадь активной зоны × удельная стоимость инфраструктуры (для мобильных роботов)"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:infrastructure",
+      "passed": true,
+      "detail": {
+        "expected": "Инфраструктура площадки (разметка, Wi-Fi)"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:software",
+      "passed": true,
+      "detail": {
+        "expected": "разовая цена ПО из карточки продукта, иначе норматив на объект"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:software",
+      "passed": true,
+      "detail": {
+        "expected": "ПО управления парком"
+      },
+      "pages": [
+        7,
+        8,
+        30,
+        31,
+        33,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:integration",
+      "passed": true,
+      "detail": {
+        "expected": "стоимость внедрения из карточки продукта, иначе норматив на объект"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:integration",
+      "passed": true,
+      "detail": {
+        "expected": "Интеграция с WMS/ERP"
+      },
+      "pages": [
+        5,
+        30,
+        31,
+        33,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:commissioning",
+      "passed": true,
+      "detail": {
+        "expected": "N × пусконаладка на один робот"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:commissioning",
+      "passed": true,
+      "detail": {
+        "expected": "Пусконаладка"
+      },
+      "pages": [
+        18,
+        30,
+        31,
+        33,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:training",
+      "passed": true,
+      "detail": {
+        "expected": "стоимость обучения из карточки продукта, иначе норматив на объект"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:training",
+      "passed": true,
+      "detail": {
+        "expected": "Обучение персонала"
+      },
+      "pages": [
+        5,
+        30,
+        31,
+        33,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:logistics",
+      "passed": true,
+      "detail": {
+        "expected": "явная разовая стоимость доставки всего сценария; 0 отдельного платежа при подтверждённом включении в цену"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:logistics",
+      "passed": true,
+      "detail": {
+        "expected": "Доставка полного внедрения"
+      },
+      "pages": [
+        3,
+        4,
+        16,
+        17,
+        18,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capex:reserve",
+      "passed": true,
+      "detail": {
+        "expected": "доля резерва CAPEX × сумма остальных статей CAPEX"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capex:reserve",
+      "passed": true,
+      "detail": {
+        "expected": "Резерв"
+      },
+      "pages": [
+        3,
+        4,
+        5,
+        16,
+        17,
+        30,
+        31,
+        33,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression capexTotal",
+      "passed": true,
+      "detail": {
+        "expected": "оборудование + зарядные станции + инфраструктура + ПО + интеграция + пусконаладка + обучение + явно заданная доставка + резерв"
+      },
+      "pages": [
+        37
+      ]
+    },
+    {
+      "name": "saved formula title capexTotal",
+      "passed": true,
+      "detail": {
+        "expected": "CAPEX"
+      },
+      "pages": [
+        2,
+        3,
+        4,
+        16,
+        17,
+        18,
+        21,
+        23,
+        25,
+        29,
+        30,
+        31,
+        32,
+        33,
+        37,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression opex:subscription",
+      "passed": true,
+      "detail": {
+        "expected": "N × 12 × ставка за робота в месяц"
+      },
+      "pages": [
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:subscription",
+      "passed": true,
+      "detail": {
+        "expected": "Подписка RaaS"
+      },
+      "pages": [
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression opex:service",
+      "passed": true,
+      "detail": {
+        "expected": "N × сервис за робота в год (из карточки продукта, иначе доля сервиса × цена)"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:service",
+      "passed": true,
+      "detail": {
+        "expected": "Сервисное обслуживание"
+      },
+      "pages": [
+        30,
+        31,
+        35,
+        37,
+        39
+      ]
+    },
+    {
+      "name": "saved formula expression opex:licences",
+      "passed": true,
+      "detail": {
+        "expected": "годовая плата за ПО из карточки продукта (на объект), иначе 0"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:licences",
+      "passed": true,
+      "detail": {
+        "expected": "Лицензии ПО"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression opex:electricity",
+      "passed": true,
+      "detail": {
+        "expected": "N × средняя мощность робота × Hгод × U × тариф"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:electricity",
+      "passed": true,
+      "detail": {
+        "expected": "Электроэнергия"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression opex:connectivity",
+      "passed": true,
+      "detail": {
+        "expected": "N × связь на один робот в год"
+      },
+      "pages": [
+        30,
+        31,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:connectivity",
+      "passed": true,
+      "detail": {
+        "expected": "Связь и сеть"
+      },
+      "pages": [
+        30,
+        31,
+        35,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression opex:consumables",
+      "passed": true,
+      "detail": {
+        "expected": "N × расходники за робота в год (из карточки продукта, иначе доля × цена)"
+      },
+      "pages": [
+        30,
+        32,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:consumables",
+      "passed": true,
+      "detail": {
+        "expected": "Расходные материалы"
+      },
+      "pages": [
+        30,
+        32,
+        35,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression opex:repair",
+      "passed": true,
+      "detail": {
+        "expected": "доля ремонта в год × стоимость оборудования"
+      },
+      "pages": [
+        30,
+        32,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:repair",
+      "passed": true,
+      "detail": {
+        "expected": "Ремонт вне сервисного договора"
+      },
+      "pages": [
+        30,
+        32,
+        35,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression opex:battery",
+      "passed": true,
+      "detail": {
+        "expected": "N × стоимость комплекта АКБ / срок замены; в денежном потоке — замена по возрасту оборудования, новая техника включает новую АКБ"
+      },
+      "pages": [
+        30,
+        32,
+        37
+      ]
+    },
+    {
+      "name": "saved formula title opex:battery",
+      "passed": true,
+      "detail": {
+        "expected": "Замена АКБ (в среднем за год)"
+      },
+      "pages": [
+        30,
+        32,
+        37
+      ]
+    },
+    {
+      "name": "saved formula expression opex:operatingStaff",
+      "passed": true,
+      "detail": {
+        "expected": "посты = ⌈N / роботов на пост⌉; посты × Hсут × дней в году / фонд ставки в год × c"
+      },
+      "pages": [
+        30,
+        32,
+        38
+      ]
+    },
+    {
+      "name": "saved formula title opex:operatingStaff",
+      "passed": true,
+      "detail": {
+        "expected": "Персонал эксплуатации (диспетчер парка)"
+      },
+      "pages": [
+        30,
+        32,
+        37,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression opex:remainingLabour",
+      "passed": true,
+      "detail": {
+        "expected": "(численность − F) × c"
+      },
+      "pages": [
+        37,
+        38
+      ]
+    },
+    {
+      "name": "saved formula title opex:remainingLabour",
+      "passed": true,
+      "detail": {
+        "expected": "ФОТ оставшегося персонала процесса"
+      },
+      "pages": [
+        31,
+        32,
+        37,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression opex:uncoveredLabour",
+      "passed": true,
+      "detail": {
+        "expected": "Σ ФОТбаз процессов охвата сравнения, которые этот сценарий не роботизирует"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title opex:uncoveredLabour",
+      "passed": true,
+      "detail": {
+        "expected": "ФОТ процессов без роботов (охват сравнения)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression opex:baselineLabour",
+      "passed": true,
+      "detail": {
+        "expected": "Σ численность × c по процессам охвата сравнения"
+      },
+      "pages": [
+        29,
+        38
+      ]
+    },
+    {
+      "name": "saved formula title opex:baselineLabour",
+      "passed": true,
+      "detail": {
+        "expected": "ФОТ персонала процессов («Как есть»)"
+      },
+      "pages": [
+        29,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression opexTotal",
+      "passed": true,
+      "detail": {
+        "expected": "сумма статей OPEX сценария"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title opexTotal",
+      "passed": true,
+      "detail": {
+        "expected": "OPEX за год"
+      },
+      "pages": [
+        29,
+        30,
+        31,
+        32,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression effect",
+      "passed": true,
+      "detail": {
+        "expected": "E = OPEXкак есть − OPEXсценария (охват сравнения один для всех сценариев)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title effect",
+      "passed": true,
+      "detail": {
+        "expected": "Чистый годовой эффект"
+      },
+      "pages": [
+        2,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression payback",
+      "passed": true,
+      "detail": {
+        "expected": "PB = CAPEX / E при E > 0"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title payback",
+      "passed": true,
+      "detail": {
+        "expected": "Простой срок окупаемости"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression roiTz",
+      "passed": true,
+      "detail": {
+        "expected": "ROI = Σ CFt (t = 1…H) / CAPEX × 100 %, при CAPEX > 0"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title roiTz",
+      "passed": true,
+      "detail": {
+        "expected": "ROI валовый"
+      },
+      "pages": [
+        4,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression roiNet",
+      "passed": true,
+      "detail": {
+        "expected": "ROIчист = ROI валовый − 100 % (доход сверх возврата вложений)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title roiNet",
+      "passed": true,
+      "detail": {
+        "expected": "ROI чистый"
+      },
+      "pages": [
+        4,
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression npv",
+      "passed": true,
+      "detail": {
+        "expected": "NPV = Σ CFt / (1 + r)^t, t = 0…H"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title npv",
+      "passed": true,
+      "detail": {
+        "expected": "Чистая приведённая стоимость (NPV)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression discountedPayback",
+      "passed": true,
+      "detail": {
+        "expected": "год, в котором накопленный дисконтированный поток становится неотрицательным и остаётся таким до конца горизонта H"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title discountedPayback",
+      "passed": true,
+      "detail": {
+        "expected": "Дисконтированный срок окупаемости"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression tco",
+      "passed": true,
+      "detail": {
+        "expected": "TCO = CAPEX + Σ (OPEXt + докупкаt), t = 1…T; T = max(H; минимальный горизонт TCO)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title tco",
+      "passed": true,
+      "detail": {
+        "expected": "Совокупная стоимость владения (TCO)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression cashflow",
+      "passed": true,
+      "detail": {
+        "expected": "CF0 = −CAPEX; CFt = OPEXкак есть − OPEXt − докупкаt"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title cashflow",
+      "passed": true,
+      "detail": {
+        "expected": "Денежный поток года"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression batteryYear",
+      "passed": true,
+      "detail": {
+        "expected": "a = t mod срок службы; АКБt = N × стоимость комплекта, если a > 0, a кратно сроку замены и t < T; OPEXt = OPEX − АКБср + АКБt"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title batteryYear",
+      "passed": true,
+      "detail": {
+        "expected": "Замена АКБ в году t"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression reinvest",
+      "passed": true,
+      "detail": {
+        "expected": "докупкаt = N × цена, если t кратно сроку службы и t < T (только оборудование)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title reinvest",
+      "passed": true,
+      "detail": {
+        "expected": "Докупка оборудования"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula expression breakEvenSalary",
+      "passed": true,
+      "detail": {
+        "expected": "зарплата, при которой NPV покупки = 0; NPV линеен по зарплате, поэтому порог находится по двум расчётам"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved formula title breakEvenSalary",
+      "passed": true,
+      "detail": {
+        "expected": "Пороговая зарплата"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved limitation 0 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Аналитическая производительность по циклу рассчитана для свободного маршрута."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 0 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "Для замкнутого цикла мобильного стеллажа closed-pod-1 выполнение нагрузки проверяется одной пространственной моделью: подача, подхват, перевозка, возврат, корпуса, встречное движение, защитные остановки и объезды."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 0 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "Для одиночной перевозки вилочным роботом или тягачом single-leg-pallet-1 используется аналитическая 2D-имитация очередей к точкам и зарядке; пространственную безопасность она не проверяет."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 0 sentence 3",
+      "passed": true,
+      "detail": {
+        "expected": "Каждый результат относится к указанным входу и версии."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 0 sentence 4",
+      "passed": true,
+      "detail": {
+        "expected": "Только при явном входе pedestrians-1 добавляется учебная модель пешеходного перехода с оценочным торможением и запасом на реакцию; в остальных входах люди не моделируются."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 0 sentence 5",
+      "passed": true,
+      "detail": {
+        "expected": "Произвольное поведение людей, реальная задержка датчиков и промышленная безопасность не подтверждаются."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 1 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Перевозка и порожний пробег рассчитаны по маршрутам указанной планировки и долям приёмки, отгрузки и внутренних перемещений."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 1 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "В closed-pod-1 приёмка и отгрузка включают две физические перевозки с подачей или возвратом носителя, внутренняя перестановка — одну перевозку между местами хранения."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 1 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "Служебные подачи и возвраты не добавляют клиентских паллет к выпуску."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 1 sentence 3",
+      "passed": true,
+      "detail": {
+        "expected": "Без явного плана используется типовая геометрия; переданный план использует собственные стены, препятствия и граф."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 1 sentence 4",
+      "passed": true,
+      "detail": {
+        "expected": "Демонстрационная планировка не является обследованным объектом."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 2 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Для внутренних перестановок начальная доля свободных мест задаётся нормативом simStorageVacancyShare (по умолчанию 10%, явная оценка, не обследование склада)."
+      },
+      "pages": [
+        17
+      ]
+    },
+    {
+      "name": "saved limitation 2 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "Число свободных мест округляется вниз.",
+        "adjacentPageReadingOrder": [
+          17,
+          18
+        ]
+      },
+      "pages": [
+        17,
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 2 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "Стеллаж резервирует свободное назначение и после перевозки освобождает исходное место; при нулевой свободной ёмкости перенос не подтверждается."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 2 sentence 3",
+      "passed": true,
+      "detail": {
+        "expected": "Товарные остатки и наличие конкретной номенклатуры не моделируются."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 3 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Пространственный результат зависит от правил диспетчера: у станции одно физическое место для носителя, допускается не более двух незавершённых намерений подачи с учётом находящегося там носителя."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 3 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "Это ограничение очереди модели, а не два места разгрузки."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 3 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "При ожидающем вывозе стоящего носителя последний доступный робот не назначается на новую подачу; задание вывоза доступно за пределами обычного окна поиска очереди."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 3 sentence 3",
+      "passed": true,
+      "detail": {
+        "expected": "Невыполнение потока требует разбора маршрутов, ожиданий и диспетчеризации и само по себе не доказывает нехватку роботов или невозможность другой стратегии управления."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 4 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Если за окно имитации не поступило клиентских заявок, нагрузка получает статус NOT_EVALUATED: нет наблюдений для подтверждения потока, минимального парка или пилота."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 4 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "Увеличьте окно или проверьте воспроизводимый нагруженный сценарий."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 4 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "Исторические входы без состава потока используют прежнее допущение 50/50 приёмки и отгрузки."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 5 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Стоимость существующего парка погрузчиков и его обслуживания в исходных данных не задана, поэтому её экономия в эффект не входит — эффект занижен, оценка консервативна."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 6 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "По умолчанию состав подписки RaaS принят по допущению: оборудование, зарядные станции, ПО, сервис, ремонт, расходники и замена АКБ входят в ставку; интеграция и обучение оплачиваются отдельно."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 6 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "Состав конкретного сценария уточняется в его комплектации."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 6 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "Для полного внедрения принят договор на 12 месяцев с ежегодным продлением на весь расчётный период по неизменной месячной ставке, без выкупа оборудования."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 6 sentence 3",
+      "passed": true,
+      "detail": {
+        "expected": "Это условия модели, не подтверждённый договор поставщика."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 6 sentence 4",
+      "passed": true,
+      "detail": {
+        "expected": "Короткий пилот требует отдельного соглашения; его бюджет не означает согласия поставщика на помесячный пилот."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 7 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Цены оборудования из каталога приняты с НДС."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 7 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "Пусконаладка и интеграция по умолчанию считаются отдельными статьями CAPEX; включение в поставку задаётся в комплектации сценария."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 7 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "Доставка полного внедрения задаётся отдельной разовой суммой с источником либо явным включением в уже учтённую цену."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 7 sentence 3",
+      "passed": true,
+      "detail": {
+        "expected": "Без этих данных доставка не оценена и исключена из CAPEX, о чём выводится предупреждение."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 7 sentence 4",
+      "passed": true,
+      "detail": {
+        "expected": "Общий резерв начисляется один раз на известные статьи, включая отдельно заданную доставку; он не заменяет оценку доставки."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 7 sentence 5",
+      "passed": true,
+      "detail": {
+        "expected": "Доставка и возврат в смете пилота считаются независимо и не переносятся автоматически в полное внедрение."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 8 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Часть статей CAPEX и OPEX — оценки или нормативы-аналоги другого производителя (пометка «аналог: …»); у каждой такой статьи показано происхождение и обоснование."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 9 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Дополнительный доход и предотвращённые потери (брак, травматизм, текучесть персонала) в годовой эффект не включены — только сокращение текущих затрат за вычетом дополнительного OPEX."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 10 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Налог на прибыль, амортизация, лизинг и инфляция не моделируются: денежные потоки считаются в ценах расчёта без индексации."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 11 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Остаточная стоимость по умолчанию равна 0."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 11 sentence 1",
+      "passed": true,
+      "detail": {
+        "expected": "Явно заданная чистая сумма от собственных активов учитывается один раз в конце TCO-периода T, уменьшает TCO и входит в NPV только при горизонте H ≥ T."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 11 sentence 2",
+      "passed": true,
+      "detail": {
+        "expected": "Замены оборудования учитываются отдельно; переход через срок службы может менять NPV и вывод немонотонно."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 11 sentence 3",
+      "passed": true,
+      "detail": {
+        "expected": "Цена продажи требует подтверждения."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved limitation 12 sentence 0",
+      "passed": true,
+      "detail": {
+        "expected": "Экономика рассчитывается для перемещения паллет на складе; остальные процессы и типы объектов показаны на уровне параметров, подбора и доступных решений (прототип)."
+      },
+      "pages": [
+        18
+      ]
+    },
+    {
+      "name": "saved product set is nonempty",
+      "passed": true
+    },
+    {
+      "name": "saved implementation/OEM guidance exists ronavi-h1500",
+      "passed": true
+    },
+    {
+      "name": "saved platform guide exists ronavi-h1500",
+      "passed": true
+    },
+    {
+      "name": "saved guide ronavi-h1500:title",
+      "passed": true,
+      "detail": {
+        "expected": "Подъёмные AMR"
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "saved guide ronavi-h1500:scope",
+      "passed": true,
+      "detail": {
+        "expected": "Горизонтальное перемещение паллет, мобильных стеллажей и тележек."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "nonempty saved guide section ronavi-h1500:acceptance",
+      "passed": true
+    },
+    {
+      "name": "saved guide ronavi-h1500:acceptance:0",
+      "passed": true,
+      "detail": {
+        "expected": "Считать только завершённые клиентские перевозки; служебные подачи и возвраты учитывать отдельно."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "saved guide ronavi-h1500:acceptance:1",
+      "passed": true,
+      "detail": {
+        "expected": "Измерить поток и p95 до начала обработки в пик, простои и долю вмешательств; проверить возврат того же носителя."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "nonempty saved guide section ronavi-h1500:operations",
+      "passed": true
+    },
+    {
+      "name": "saved guide ronavi-h1500:operations:0",
+      "passed": true,
+      "detail": {
+        "expected": "Перед сменой проверить опоры носителей, крепление груза, доступность станций и зарядок."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "saved guide ronavi-h1500:operations:1",
+      "passed": true,
+      "detail": {
+        "expected": "При блокировке сохранить ID робота, носителя, задания и время; восстановление выполнять по инструкции поставщика."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "nonempty saved guide section ronavi-h1500:bottlenecks",
+      "passed": true
+    },
+    {
+      "name": "saved guide ronavi-h1500:bottlenecks:0",
+      "passed": true,
+      "detail": {
+        "expected": "Совместимость опор и нижнего просвета носителя с подъёмной платформой; центр тяжести и масса полного груза."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "saved guide ronavi-h1500:bottlenecks:1",
+      "passed": true,
+      "detail": {
+        "expected": "Плотность хранения, места временной постановки, встречные потоки и очереди у станций."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "nonempty saved guide section ronavi-h1500:preparation",
+      "passed": true
+    },
+    {
+      "name": "saved guide ronavi-h1500:preparation:0",
+      "passed": true,
+      "detail": {
+        "expected": "Измерить носитель, проёмы и рабочие проходы; отметить свободные позиции и станции на плане в метрах."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "saved guide ronavi-h1500:preparation:1",
+      "passed": true,
+      "detail": {
+        "expected": "Согласовать выдачу заданий из WMS и полный цикл: подача → обработка → возврат пустого носителя."
+      },
+      "pages": [
+        6
+      ]
+    },
+    {
+      "name": "class knowledge link ronavi-h1500",
+      "passed": true
+    },
+    {
+      "name": "saved OEM resources exist ronavi-h1500",
+      "passed": true
+    },
+    {
+      "name": "saved OEM resource ronavi-h1500-spec:title",
+      "passed": true,
+      "detail": {
+        "expected": "Ronavi H1500: назначение и технические характеристики"
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved OEM resource ronavi-h1500-spec:summary",
+      "passed": true,
+      "detail": {
+        "expected": "Перемещение паллет, мобильных стеллажей, тележек и конвейерных модулей; опубликованы масса, габариты, нагрузка, навигация и связь."
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved OEM resource ronavi-h1500-spec:manufacturer",
+      "passed": true,
+      "detail": {
+        "expected": "Ronavi Robotics"
+      },
+      "pages": [
+        7,
+        33,
+        35
+      ]
+    },
+    {
+      "name": "saved OEM resource ronavi-h1500-spec:checkedAt",
+      "passed": true,
+      "detail": {
+        "expected": "2026-10-18"
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved OEM ronavi-h1500-spec:models:0",
+      "passed": true,
+      "detail": {
+        "expected": "Ronavi H1500"
+      },
+      "pages": [
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        21,
+        22,
+        30,
+        31,
+        32,
+        33,
+        35,
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved OEM ronavi-h1500-spec:sections:0",
+      "passed": true,
+      "detail": {
+        "expected": "Технические характеристики Ronavi H1500"
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved OEM ronavi-h1500-spec:sections:1",
+      "passed": true,
+      "detail": {
+        "expected": "Назначение и интеграция с WMS/MES"
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved OEM ronavi-h1500-spec:limits:0",
+      "passed": true,
+      "detail": {
+        "expected": "Публичная спецификация не заменяет руководство эксплуатации, обследование объекта или согласованную программу испытаний."
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved OEM ronavi-h1500-spec:limits:1",
+      "passed": true,
+      "detail": {
+        "expected": "Проезд 750 мм указан для робота; пригодность прохода для полного носителя и встречного движения этим не доказана. До 10 ч относится к окну заряда 80–20%, а не к гарантированной смене."
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved OEM resource clickable ronavi-h1500-spec",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/catalogue/h1500"
+    },
+    {
+      "name": "saved provider ronavi:name",
+      "passed": true,
+      "detail": {
+        "expected": "Ronavi Robotics"
+      },
+      "pages": [
+        7,
+        33,
+        35
+      ]
+    },
+    {
+      "name": "saved provider ronavi:role",
+      "passed": true,
+      "detail": {
+        "expected": "Производитель и внедрение логистических роботов"
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved provider ronavi:coverage",
+      "passed": true,
+      "detail": {
+        "expected": "Поддержка по России заявлена поставщиком; выезд на конкретный объект согласовать."
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved provider ronavi:checkedAt",
+      "passed": true,
+      "detail": {
+        "expected": "2026-10-18"
+      },
+      "pages": [
+        7
+      ]
+    },
+    {
+      "name": "saved provider clickable ronavi:sourceUrl",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/about"
+    },
+    {
+      "name": "saved provider clickable ronavi:contactUrl",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/about"
+    },
+    {
+      "name": "nonempty frozen product sources ronavi-h1500",
+      "passed": true
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:manufacturer",
+      "passed": true,
+      "detail": {
+        "expected": "Производитель"
+      },
+      "pages": [
+        7,
+        8,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        37,
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:manufacturer",
+      "passed": true,
+      "detail": {
+        "expected": "ООО \"Ронави Роботикс\""
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:manufacturer",
+      "passed": true,
+      "detail": {
+        "expected": "Каталог › №1, 66"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:manufacturer",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:modelName",
+      "passed": true,
+      "detail": {
+        "expected": "Наименование (модель)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:modelName",
+      "passed": true,
+      "detail": {
+        "expected": "Ronavi H1500 (грузоподъемность до 1 500 кг)"
+      },
+      "pages": [
+        2,
+        8,
+        16,
+        17,
+        18,
+        19,
+        21,
+        22,
+        30,
+        31,
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:modelName",
+      "passed": true,
+      "detail": {
+        "expected": "Каталог › №1, 66"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:modelName",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:solutionType",
+      "passed": true,
+      "detail": {
+        "expected": "Тип решения"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:solutionType",
+      "passed": true,
+      "detail": {
+        "expected": "AMR паллетный (подъёмный)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:solutionType",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:purpose",
+      "passed": true,
+      "detail": {
+        "expected": "Назначение"
+      },
+      "pages": [
+        7,
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:purpose",
+      "passed": true,
+      "detail": {
+        "expected": "Внутрискладская логистика; Внутрипроизводственная логистика"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:purpose",
+      "passed": true,
+      "detail": {
+        "expected": "Каталог › №1, 66"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:purpose",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:countryOfOrigin",
+      "passed": true,
+      "detail": {
+        "expected": "Страна происхождения"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:countryOfOrigin",
+      "passed": true,
+      "detail": {
+        "expected": "Россия"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:countryOfOrigin",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:countryOfOrigin",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/catalogue/h1500"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:availabilityStatus",
+      "passed": true,
+      "detail": {
+        "expected": "Статус доступности"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:availabilityStatus",
+      "passed": true,
+      "detail": {
+        "expected": "в эксплуатации"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:availabilityStatus",
+      "passed": true,
+      "detail": {
+        "expected": "Каталог › №1, 66"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:availabilityStatus",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:payloadKg",
+      "passed": true,
+      "detail": {
+        "expected": "Грузоподъёмность"
+      },
+      "pages": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:payloadKg",
+      "passed": true,
+      "detail": {
+        "expected": "до 1 500 кг"
+      },
+      "pages": [
+        2,
+        8,
+        16,
+        17,
+        18,
+        19,
+        21,
+        22,
+        24,
+        30,
+        31,
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:payloadKg",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:payloadKg",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:dimensionsMm",
+      "passed": true,
+      "detail": {
+        "expected": "Габариты (Д × Ш × В)"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:dimensionsMm",
+      "passed": true,
+      "detail": {
+        "expected": "1044 × 654 × 380"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:dimensionsMm",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:dimensionsMm",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:speedMps",
+      "passed": true,
+      "detail": {
+        "expected": "Скорость"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:speedMps",
+      "passed": true,
+      "detail": {
+        "expected": "до 1,5 м/с"
+      },
+      "pages": [
+        38
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:speedMps",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:speedMps",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:throughput",
+      "passed": true,
+      "detail": {
+        "expected": "Производительность"
+      },
+      "pages": [
+        8,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        37,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:throughput",
+      "passed": true,
+      "detail": {
+        "expected": "80–100 паллет/ч (на робота)"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:throughput",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:throughput",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:autonomyH",
+      "passed": true,
+      "detail": {
+        "expected": "Автономность"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:autonomyH",
+      "passed": true,
+      "detail": {
+        "expected": "до 6 ч"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:autonomyH",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:autonomyH",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:positioningMm",
+      "passed": true,
+      "detail": {
+        "expected": "Точность позиционирования"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:positioningMm",
+      "passed": true,
+      "detail": {
+        "expected": "≈ 3 мм"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:positioningMm",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:positioningMm",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:navigation",
+      "passed": true,
+      "detail": {
+        "expected": "Навигация"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:navigation",
+      "passed": true,
+      "detail": {
+        "expected": "QR-метки, SLAM"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:navigation",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:navigation",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:operatingConditions",
+      "passed": true,
+      "detail": {
+        "expected": "Условия эксплуатации"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:operatingConditions",
+      "passed": true,
+      "detail": {
+        "expected": "+5…+25 °C, ровный промышленный пол"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:operatingConditions",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:operatingConditions",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:massKg",
+      "passed": true,
+      "detail": {
+        "expected": "Собственная масса"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:massKg",
+      "passed": true,
+      "detail": {
+        "expected": "250 кг"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:massKg",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:massKg",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:tempMinC",
+      "passed": true,
+      "detail": {
+        "expected": "Минимальная температура эксплуатации"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:tempMinC",
+      "passed": true,
+      "detail": {
+        "expected": "5 °C"
+      },
+      "pages": [
+        21,
+        22,
+        26,
+        27,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:tempMinC",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:tempMinC",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:tempMaxC",
+      "passed": true,
+      "detail": {
+        "expected": "Максимальная температура эксплуатации"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:tempMaxC",
+      "passed": true,
+      "detail": {
+        "expected": "25 °C"
+      },
+      "pages": [
+        21,
+        22,
+        26,
+        27,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:tempMaxC",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:tempMaxC",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:floorRequirements",
+      "passed": true,
+      "detail": {
+        "expected": "Требования к полу"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:floorRequirements",
+      "passed": true,
+      "detail": {
+        "expected": "перепады/препятствия на полу не более 5 мм (высота преодолеваемого препятствия)"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:floorRequirements",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:floorRequirements",
+      "passed": true,
+      "detail": "https://robob2b.ru/upload/iblock/2f5/ik7heolyu7ny1sqhromm4vxemfwe3632.pdf"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:minAisleM",
+      "passed": true,
+      "detail": {
+        "expected": "Минимальная ширина прохода"
+      },
+      "pages": [
+        21,
+        22,
+        28,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:minAisleM",
+      "passed": true,
+      "detail": {
+        "expected": "0,75 м"
+      },
+      "pages": [
+        21,
+        28,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:minAisleM",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:minAisleM",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/catalogue/h1500"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:chargeMin",
+      "passed": true,
+      "detail": {
+        "expected": "Время зарядки"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:chargeMin",
+      "passed": true,
+      "detail": {
+        "expected": "≈ 18 мин"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:chargeMin",
+      "passed": true,
+      "detail": {
+        "expected": "Подборка примеров › Склад, Аэропорт › Ronavi H1500"
+      },
+      "pages": [
+        38,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:chargeMin",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:connectivity",
+      "passed": true,
+      "detail": {
+        "expected": "Связь"
+      },
+      "pages": [
+        30,
+        31,
+        35,
+        37,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:connectivity",
+      "passed": true,
+      "detail": {
+        "expected": "Wi-Fi 5 ГГц 802.11 a/c/n; открытое API, полная совместимость с логистическими платформами (WMS)"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:connectivity",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:connectivity",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/catalogue/h1500"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:integration",
+      "passed": true,
+      "detail": {
+        "expected": "Интеграция (WMS/ERP, API)"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:integration",
+      "passed": true,
+      "detail": {
+        "expected": "Wi-Fi 5 ГГц 802.11 a/c/n; открытое API, полная совместимость с логистическими платформами (WMS)"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:integration",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:integration",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/catalogue/h1500"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:priceRub",
+      "passed": true,
+      "detail": {
+        "expected": "Цена оборудования"
+      },
+      "pages": [
+        28,
+        29,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:priceRub",
+      "passed": true,
+      "detail": {
+        "expected": "2 700 000 ₽"
+      },
+      "pages": [
+        5,
+        15,
+        30,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:priceRub",
+      "passed": true,
+      "detail": {
+        "expected": "Каталог › №1, 66"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:priceRub",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:softwareRubOneTime",
+      "passed": true,
+      "detail": {
+        "expected": "ПО (разово)"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:softwareRubOneTime",
+      "passed": true,
+      "detail": {
+        "expected": "1 000 000 ₽"
+      },
+      "pages": [
+        30,
+        33,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:softwareRubOneTime",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:softwareRubOneTime",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/software-information"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:implementationRub",
+      "passed": true,
+      "detail": {
+        "expected": "Внедрение и интеграция"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:implementationRub",
+      "passed": true,
+      "detail": {
+        "expected": "500 000–2 000 000 ₽"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:implementationRub",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:implementationRub",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/media/tpost/l8s0fty3m1-kak-schitat-stoimost-vladeniya-tco-logis"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:serviceRubYear",
+      "passed": true,
+      "detail": {
+        "expected": "Сервисное обслуживание"
+      },
+      "pages": [
+        30,
+        31,
+        35,
+        37,
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:serviceRubYear",
+      "passed": true,
+      "detail": {
+        "expected": "≈ 300 000 ₽/год"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:serviceRubYear",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:serviceRubYear",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/media/tpost/l8s0fty3m1-kak-schitat-stoimost-vladeniya-tco-logis"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:acquisitionModels",
+      "passed": true,
+      "detail": {
+        "expected": "Модели приобретения"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:acquisitionModels",
+      "passed": true,
+      "detail": {
+        "expected": "покупка, лизинг, аренда / RaaS"
+      },
+      "pages": [
+        39
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:acquisitionModels",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:acquisitionModels",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/catalogue/h1500"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:raasRubMonth",
+      "passed": true,
+      "detail": {
+        "expected": "Ставка RaaS"
+      },
+      "pages": [
+        15,
+        16,
+        17,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:raasRubMonth",
+      "passed": true,
+      "detail": {
+        "expected": "от 100 000 ₽/мес"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:raasRubMonth",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:raasRubMonth",
+      "passed": true,
+      "detail": "https://robotrends.ru/robopedia/ronavi-robotics"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:batteryReplacementYears",
+      "passed": true,
+      "detail": {
+        "expected": "Замена АКБ, раз в"
+      },
+      "pages": [
+        35,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:batteryReplacementYears",
+      "passed": true,
+      "detail": {
+        "expected": "5 лет, но только для Ronavi H2000 (этот PDF и есть паспорт H2000). Данных по H1500 на странице нет, в том числе про ≥2000 циклов."
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:batteryReplacementYears",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:batteryReplacementYears",
+      "passed": true,
+      "detail": "https://robob2b.ru/upload/iblock/a34/rbxhakrl7mzsarwb0sxjscpd2iwea2h1.pdf"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:applicability",
+      "passed": true,
+      "detail": {
+        "expected": "Процессы и типы объектов"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:applicability",
+      "passed": true,
+      "detail": {
+        "expected": "Перемещение паллет: приёмка → хранение → отгрузка (склад)"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:applicability",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:cases",
+      "passed": true,
+      "detail": {
+        "expected": "Кейсы внедрения"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:cases",
+      "passed": true,
+      "detail": {
+        "expected": "Внедрено 48 роботов на складах ГК «Восток-Сервис» для транспортировки грузов между зонами хранения. В результате производительность выросла вдвое - с 4 до 8 тысяч отгрузок за смену, количество ошибок…"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source reference ronavi-h1500:cases",
+      "passed": true,
+      "detail": {
+        "expected": "Каталог › №1, 66"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:cases",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-22"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:primarySourceUrl",
+      "passed": true,
+      "detail": {
+        "expected": "Основной источник"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:primarySourceUrl",
+      "passed": true,
+      "detail": {
+        "expected": "https://ronavi-robotics.ru/catalogue/h1500"
+      },
+      "pages": [
+        7,
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:primarySourceUrl",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source clickable ronavi-h1500:primarySourceUrl",
+      "passed": true,
+      "detail": "https://ronavi-robotics.ru/catalogue/h1500"
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:verifiedAt",
+      "passed": true,
+      "detail": {
+        "expected": "Дата проверки"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:verifiedAt",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:verifiedAt",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source label ronavi-h1500:confirmation",
+      "passed": true,
+      "detail": {
+        "expected": "Подтверждение"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic value ronavi-h1500:confirmation",
+      "passed": true,
+      "detail": {
+        "expected": "9 из 31 подтверждены; строка сводной таблицы исследования: да"
+      },
+      "pages": [
+        40
+      ]
+    },
+    {
+      "name": "saved characteristic source date ronavi-h1500:confirmation",
+      "passed": true,
+      "detail": {
+        "expected": "2026-09-23"
+      },
+      "pages": [
+        38,
+        39,
+        40
+      ]
+    },
+    {
+      "name": "no invented complete delivery price",
+      "passed": true,
+      "detail": {
+        "expected": "Доставка полного внедрения не оценена"
+      },
+      "pages": [
+        3,
+        4,
+        16,
+        17
+      ]
+    },
+    {
+      "name": "planning/reaction assumptions explicitly model-scoped",
+      "passed": true
+    },
+    {
+      "name": "PDF SHA unchanged throughout read-only evaluation",
+      "passed": true
+    },
+    {
+      "name": "source JSON SHA unchanged throughout evaluation",
+      "passed": true
+    }
+  ],
   "passed": [
-    "33 PDF pages",
-    "project revision 0",
-    "actual CREATE job identity",
-    "published CREATE terminal status",
-    "fresh 8099 engine identity",
-    "econ model printed",
-    "base sim model printed",
-    "spatial model printed",
-    "selected fleet and chargers printed",
-    "selected throughput printed",
-    "customer unstarted queue printed",
-    "rounded intake p95 printed",
-    "purchase capexRub PDF/source",
-    "purchase opexYearRub PDF/source",
-    "purchase effectYearRub PDF/source",
-    "purchase npvRub PDF/source",
-    "purchase tcoRub PDF/source",
-    "page 5 exact intake criterion",
-    "PDF unchanged during validation",
-    "saved methodology version printed",
-    "saved formula workHours",
-    "saved formula demandDay",
-    "saved formula peakPerHour",
-    "saved formula thrNorm",
-    "saved formula thrCycle",
-    "saved formula thrEff",
-    "saved formula fleet",
-    "saved formula coverage",
-    "saved formula chargers",
-    "saved formula roleCost",
-    "saved formula baselineLabour",
-    "saved formula releasedFte",
-    "saved formula remainingLabour",
-    "saved formula operatingStaff",
-    "saved formula capex:equipment",
-    "saved formula capex:chargers",
-    "saved formula capex:infrastructure",
-    "saved formula capex:software",
-    "saved formula capex:integration",
-    "saved formula capex:commissioning",
-    "saved formula capex:training",
-    "saved formula capex:logistics",
-    "saved formula capex:reserve",
-    "saved formula capexTotal",
-    "saved formula opex:subscription",
-    "saved formula opex:service",
-    "saved formula opex:licences",
-    "saved formula opex:electricity",
-    "saved formula opex:connectivity",
-    "saved formula opex:consumables",
-    "saved formula opex:repair",
-    "saved formula opex:battery",
-    "saved formula opex:operatingStaff",
-    "saved formula opex:remainingLabour",
-    "saved formula opex:uncoveredLabour",
-    "saved formula opex:baselineLabour",
-    "saved formula opexTotal",
-    "saved formula effect",
-    "saved formula payback",
-    "saved formula roiTz",
-    "saved formula roiNet",
-    "saved formula npv",
-    "saved formula discountedPayback",
-    "saved formula tco",
-    "saved formula cashflow",
-    "saved formula batteryYear",
-    "saved formula reinvest",
-    "saved formula breakEvenSalary",
+    "new source and PDF exist",
+    "exact new project ID",
+    "exact new operation ID",
+    "CREATE revision zero",
+    "terminal successful publication",
+    "hard a944 durable engine identity",
+    "saved current economics version",
+    "saved current analytical version",
+    "one selected purchase scenario",
+    "saved original closed workflow without offered override",
+    "separate current spatial observations",
+    "nominal stays terminal PARTIAL",
+    "controlled terminal PASS with declared protocol",
+    "no full implementation recommendation",
+    "saved nominal admission eligible without hidden reasons",
+    "nominal individual wait guard pendingWaitMaxS",
+    "nominal individual wait guard blockedWaitMaxS",
+    "original required rate unchanged",
+    "nominal measured delivery remains 51.5",
+    "controlled offered 57",
+    "controlled cohort deliveries 110",
+    "controlled closed cohort 109",
+    "controlled delivered rate 55",
+    "controlled closed rate 54.5",
+    "controlled actual periodic arrivals rate",
+    "controlled original required",
+    "measurement begins after 15 minutes",
+    "measurement ends after 15+120 minutes",
+    "declared periodic cohort arrivals count",
+    "saved arrival rate corresponds to the actual periodic cohort",
+    "closed cycles are a subset of delivered cohort",
+    "source N6/C2 retained",
+    "derived input changes only declared offered profile/horizon",
+    "nominal and controlled full source identities",
+    "test identity binds actual derived input",
+    "same prepared physical execution apart from demand profile",
+    "actual PDF has nonempty pages",
+    "printed current economic version",
+    "printed current analytical version",
+    "printed current spatial version",
+    "printed saved data version",
+    "printed saved project name",
+    "printed exact saved calculation date in Moscow timezone",
+    "nonempty actual financial scenarios",
+    "printed financial scenario purchase",
+    "finite saved finance purchase:capexRub",
+    "printed money purchase:capexRub",
+    "finite saved finance purchase:opexYearRub",
+    "printed money purchase:opexYearRub",
+    "finite saved finance purchase:effectYearRub",
+    "printed money purchase:effectYearRub",
+    "finite saved finance purchase:npvRub",
+    "printed money purchase:npvRub",
+    "finite saved finance purchase:tcoRub",
+    "printed money purchase:tcoRub",
+    "printed financial scenario raas",
+    "finite saved finance raas:capexRub",
+    "printed money raas:capexRub",
+    "finite saved finance raas:opexYearRub",
+    "printed money raas:opexYearRub",
+    "finite saved finance raas:effectYearRub",
+    "printed money raas:effectYearRub",
+    "finite saved finance raas:npvRub",
+    "printed money raas:npvRub",
+    "finite saved finance raas:tcoRub",
+    "printed money raas:tcoRub",
+    "printed row: Номинальный прогон — сохранённый статус",
+    "printed row: Номинальный прогон — доставлено",
+    "printed row: Сохранённый статус теста",
+    "printed row: Протокол",
+    "printed row: Требуемая мощность исходного сценария",
+    "printed row: Периодическая тестовая подача",
+    "printed row: Фактически поступило в измерительное окно",
+    "printed row: Доставлено из поступлений окна",
+    "printed row: Закрыто полных циклов поступлений окна",
+    "printed row: Выпуск по доставкам когорты",
+    "printed row: Выпуск по полным циклам когорты",
+    "printed row: Начало измерения после старта",
+    "printed row: Конец измерения после старта",
+    "printed row: Незавершённые клиентские задания",
+    "printed row: Незавершённые подачи и возвраты",
+    "printed row: Возраст старейшей незавершённой работы",
+    "printed cohort exclusion/warmup boundary",
+    "printed nominal remains separate",
+    "printed modeled profile scope",
+    "printed unfinished controlled task 123",
+    "printed unfinished controlled task 125",
+    "printed unfinished controlled task -125",
+    "printed unfinished controlled task 126",
+    "printed unfinished controlled task -126",
+    "printed unfinished controlled task -127",
+    "printed unfinished controlled task 127",
+    "saved methodology belongs to current version",
+    "nonempty saved formulas and limitations",
+    "saved formula expression workHours",
+    "saved formula title workHours",
+    "saved formula expression demandDay",
+    "saved formula title demandDay",
+    "saved formula expression peakPerHour",
+    "saved formula title peakPerHour",
+    "saved formula expression thrNorm",
+    "saved formula title thrNorm",
+    "saved formula expression thrCycle",
+    "saved formula title thrCycle",
+    "saved formula expression thrEff",
+    "saved formula title thrEff",
+    "saved formula expression fleet",
+    "saved formula title fleet",
+    "saved formula expression coverage",
+    "saved formula title coverage",
+    "saved formula expression chargers",
+    "saved formula title chargers",
+    "saved formula expression roleCost",
+    "saved formula title roleCost",
+    "saved formula expression baselineLabour",
+    "saved formula title baselineLabour",
+    "saved formula expression releasedFte",
+    "saved formula title releasedFte",
+    "saved formula expression remainingLabour",
+    "saved formula title remainingLabour",
+    "saved formula expression operatingStaff",
+    "saved formula title operatingStaff",
+    "saved formula expression capex:equipment",
+    "saved formula title capex:equipment",
+    "saved formula expression capex:chargers",
+    "saved formula title capex:chargers",
+    "saved formula expression capex:infrastructure",
+    "saved formula title capex:infrastructure",
+    "saved formula expression capex:software",
+    "saved formula title capex:software",
+    "saved formula expression capex:integration",
+    "saved formula title capex:integration",
+    "saved formula expression capex:commissioning",
+    "saved formula title capex:commissioning",
+    "saved formula expression capex:training",
+    "saved formula title capex:training",
+    "saved formula expression capex:logistics",
+    "saved formula title capex:logistics",
+    "saved formula expression capex:reserve",
+    "saved formula title capex:reserve",
+    "saved formula expression capexTotal",
+    "saved formula title capexTotal",
+    "saved formula expression opex:subscription",
+    "saved formula title opex:subscription",
+    "saved formula expression opex:service",
+    "saved formula title opex:service",
+    "saved formula expression opex:licences",
+    "saved formula title opex:licences",
+    "saved formula expression opex:electricity",
+    "saved formula title opex:electricity",
+    "saved formula expression opex:connectivity",
+    "saved formula title opex:connectivity",
+    "saved formula expression opex:consumables",
+    "saved formula title opex:consumables",
+    "saved formula expression opex:repair",
+    "saved formula title opex:repair",
+    "saved formula expression opex:battery",
+    "saved formula title opex:battery",
+    "saved formula expression opex:operatingStaff",
+    "saved formula title opex:operatingStaff",
+    "saved formula expression opex:remainingLabour",
+    "saved formula title opex:remainingLabour",
+    "saved formula expression opex:uncoveredLabour",
+    "saved formula title opex:uncoveredLabour",
+    "saved formula expression opex:baselineLabour",
+    "saved formula title opex:baselineLabour",
+    "saved formula expression opexTotal",
+    "saved formula title opexTotal",
+    "saved formula expression effect",
+    "saved formula title effect",
+    "saved formula expression payback",
+    "saved formula title payback",
+    "saved formula expression roiTz",
+    "saved formula title roiTz",
+    "saved formula expression roiNet",
+    "saved formula title roiNet",
+    "saved formula expression npv",
+    "saved formula title npv",
+    "saved formula expression discountedPayback",
+    "saved formula title discountedPayback",
+    "saved formula expression tco",
+    "saved formula title tco",
+    "saved formula expression cashflow",
+    "saved formula title cashflow",
+    "saved formula expression batteryYear",
+    "saved formula title batteryYear",
+    "saved formula expression reinvest",
+    "saved formula title reinvest",
+    "saved formula expression breakEvenSalary",
+    "saved formula title breakEvenSalary",
     "saved limitation 0 sentence 0",
     "saved limitation 0 sentence 1",
     "saved limitation 0 sentence 2",
@@ -87,58 +4300,207 @@
     "saved limitation 3 sentence 0",
     "saved limitation 3 sentence 1",
     "saved limitation 3 sentence 2",
+    "saved limitation 3 sentence 3",
     "saved limitation 4 sentence 0",
+    "saved limitation 4 sentence 1",
+    "saved limitation 4 sentence 2",
     "saved limitation 5 sentence 0",
-    "saved limitation 5 sentence 1",
-    "saved limitation 5 sentence 2",
-    "saved limitation 5 sentence 3",
-    "saved limitation 5 sentence 4",
     "saved limitation 6 sentence 0",
     "saved limitation 6 sentence 1",
     "saved limitation 6 sentence 2",
     "saved limitation 6 sentence 3",
     "saved limitation 6 sentence 4",
-    "saved limitation 6 sentence 5",
     "saved limitation 7 sentence 0",
+    "saved limitation 7 sentence 1",
+    "saved limitation 7 sentence 2",
+    "saved limitation 7 sentence 3",
+    "saved limitation 7 sentence 4",
+    "saved limitation 7 sentence 5",
     "saved limitation 8 sentence 0",
     "saved limitation 9 sentence 0",
     "saved limitation 10 sentence 0",
-    "saved limitation 10 sentence 1",
-    "saved limitation 10 sentence 2",
-    "saved limitation 10 sentence 3",
     "saved limitation 11 sentence 0",
-    "saved guide title",
-    "saved guide scope",
-    "saved guide acceptance 0",
-    "saved guide acceptance 1",
-    "saved guide operations 0",
-    "saved guide operations 1",
-    "saved guide bottlenecks 0",
-    "saved guide bottlenecks 1",
-    "saved guide preparation 0",
-    "saved guide preparation 1",
-    "class knowledge link present",
-    "saved provider name",
-    "saved provider coverage",
-    "saved provider checked date",
-    "saved provider source URL clickable",
-    "no invented full delivery price",
-    "explicit planning reserve not industrial people claim",
-    "PDF unchanged after extended read-only check"
+    "saved limitation 11 sentence 1",
+    "saved limitation 11 sentence 2",
+    "saved limitation 11 sentence 3",
+    "saved limitation 12 sentence 0",
+    "saved product set is nonempty",
+    "saved implementation/OEM guidance exists ronavi-h1500",
+    "saved platform guide exists ronavi-h1500",
+    "saved guide ronavi-h1500:title",
+    "saved guide ronavi-h1500:scope",
+    "nonempty saved guide section ronavi-h1500:acceptance",
+    "saved guide ronavi-h1500:acceptance:0",
+    "saved guide ronavi-h1500:acceptance:1",
+    "nonempty saved guide section ronavi-h1500:operations",
+    "saved guide ronavi-h1500:operations:0",
+    "saved guide ronavi-h1500:operations:1",
+    "nonempty saved guide section ronavi-h1500:bottlenecks",
+    "saved guide ronavi-h1500:bottlenecks:0",
+    "saved guide ronavi-h1500:bottlenecks:1",
+    "nonempty saved guide section ronavi-h1500:preparation",
+    "saved guide ronavi-h1500:preparation:0",
+    "saved guide ronavi-h1500:preparation:1",
+    "class knowledge link ronavi-h1500",
+    "saved OEM resources exist ronavi-h1500",
+    "saved OEM resource ronavi-h1500-spec:title",
+    "saved OEM resource ronavi-h1500-spec:summary",
+    "saved OEM resource ronavi-h1500-spec:manufacturer",
+    "saved OEM resource ronavi-h1500-spec:checkedAt",
+    "saved OEM ronavi-h1500-spec:models:0",
+    "saved OEM ronavi-h1500-spec:sections:0",
+    "saved OEM ronavi-h1500-spec:sections:1",
+    "saved OEM ronavi-h1500-spec:limits:0",
+    "saved OEM ronavi-h1500-spec:limits:1",
+    "saved OEM resource clickable ronavi-h1500-spec",
+    "saved provider ronavi:name",
+    "saved provider ronavi:role",
+    "saved provider ronavi:coverage",
+    "saved provider ronavi:checkedAt",
+    "saved provider clickable ronavi:sourceUrl",
+    "saved provider clickable ronavi:contactUrl",
+    "nonempty frozen product sources ronavi-h1500",
+    "saved characteristic source label ronavi-h1500:manufacturer",
+    "saved characteristic value ronavi-h1500:manufacturer",
+    "saved characteristic source reference ronavi-h1500:manufacturer",
+    "saved characteristic source date ronavi-h1500:manufacturer",
+    "saved characteristic source label ronavi-h1500:modelName",
+    "saved characteristic value ronavi-h1500:modelName",
+    "saved characteristic source reference ronavi-h1500:modelName",
+    "saved characteristic source date ronavi-h1500:modelName",
+    "saved characteristic source label ronavi-h1500:solutionType",
+    "saved characteristic value ronavi-h1500:solutionType",
+    "saved characteristic source date ronavi-h1500:solutionType",
+    "saved characteristic source label ronavi-h1500:purpose",
+    "saved characteristic value ronavi-h1500:purpose",
+    "saved characteristic source reference ronavi-h1500:purpose",
+    "saved characteristic source date ronavi-h1500:purpose",
+    "saved characteristic source label ronavi-h1500:countryOfOrigin",
+    "saved characteristic value ronavi-h1500:countryOfOrigin",
+    "saved characteristic source date ronavi-h1500:countryOfOrigin",
+    "saved characteristic source clickable ronavi-h1500:countryOfOrigin",
+    "saved characteristic source label ronavi-h1500:availabilityStatus",
+    "saved characteristic value ronavi-h1500:availabilityStatus",
+    "saved characteristic source reference ronavi-h1500:availabilityStatus",
+    "saved characteristic source date ronavi-h1500:availabilityStatus",
+    "saved characteristic source label ronavi-h1500:payloadKg",
+    "saved characteristic value ronavi-h1500:payloadKg",
+    "saved characteristic source reference ronavi-h1500:payloadKg",
+    "saved characteristic source date ronavi-h1500:payloadKg",
+    "saved characteristic source label ronavi-h1500:dimensionsMm",
+    "saved characteristic value ronavi-h1500:dimensionsMm",
+    "saved characteristic source reference ronavi-h1500:dimensionsMm",
+    "saved characteristic source date ronavi-h1500:dimensionsMm",
+    "saved characteristic source label ronavi-h1500:speedMps",
+    "saved characteristic value ronavi-h1500:speedMps",
+    "saved characteristic source reference ronavi-h1500:speedMps",
+    "saved characteristic source date ronavi-h1500:speedMps",
+    "saved characteristic source label ronavi-h1500:throughput",
+    "saved characteristic value ronavi-h1500:throughput",
+    "saved characteristic source reference ronavi-h1500:throughput",
+    "saved characteristic source date ronavi-h1500:throughput",
+    "saved characteristic source label ronavi-h1500:autonomyH",
+    "saved characteristic value ronavi-h1500:autonomyH",
+    "saved characteristic source reference ronavi-h1500:autonomyH",
+    "saved characteristic source date ronavi-h1500:autonomyH",
+    "saved characteristic source label ronavi-h1500:positioningMm",
+    "saved characteristic value ronavi-h1500:positioningMm",
+    "saved characteristic source reference ronavi-h1500:positioningMm",
+    "saved characteristic source date ronavi-h1500:positioningMm",
+    "saved characteristic source label ronavi-h1500:navigation",
+    "saved characteristic value ronavi-h1500:navigation",
+    "saved characteristic source reference ronavi-h1500:navigation",
+    "saved characteristic source date ronavi-h1500:navigation",
+    "saved characteristic source label ronavi-h1500:operatingConditions",
+    "saved characteristic value ronavi-h1500:operatingConditions",
+    "saved characteristic source reference ronavi-h1500:operatingConditions",
+    "saved characteristic source date ronavi-h1500:operatingConditions",
+    "saved characteristic source label ronavi-h1500:massKg",
+    "saved characteristic value ronavi-h1500:massKg",
+    "saved characteristic source reference ronavi-h1500:massKg",
+    "saved characteristic source date ronavi-h1500:massKg",
+    "saved characteristic source label ronavi-h1500:tempMinC",
+    "saved characteristic value ronavi-h1500:tempMinC",
+    "saved characteristic source reference ronavi-h1500:tempMinC",
+    "saved characteristic source date ronavi-h1500:tempMinC",
+    "saved characteristic source label ronavi-h1500:tempMaxC",
+    "saved characteristic value ronavi-h1500:tempMaxC",
+    "saved characteristic source reference ronavi-h1500:tempMaxC",
+    "saved characteristic source date ronavi-h1500:tempMaxC",
+    "saved characteristic source label ronavi-h1500:floorRequirements",
+    "saved characteristic value ronavi-h1500:floorRequirements",
+    "saved characteristic source date ronavi-h1500:floorRequirements",
+    "saved characteristic source clickable ronavi-h1500:floorRequirements",
+    "saved characteristic source label ronavi-h1500:minAisleM",
+    "saved characteristic value ronavi-h1500:minAisleM",
+    "saved characteristic source date ronavi-h1500:minAisleM",
+    "saved characteristic source clickable ronavi-h1500:minAisleM",
+    "saved characteristic source label ronavi-h1500:chargeMin",
+    "saved characteristic value ronavi-h1500:chargeMin",
+    "saved characteristic source reference ronavi-h1500:chargeMin",
+    "saved characteristic source date ronavi-h1500:chargeMin",
+    "saved characteristic source label ronavi-h1500:connectivity",
+    "saved characteristic value ronavi-h1500:connectivity",
+    "saved characteristic source date ronavi-h1500:connectivity",
+    "saved characteristic source clickable ronavi-h1500:connectivity",
+    "saved characteristic source label ronavi-h1500:integration",
+    "saved characteristic value ronavi-h1500:integration",
+    "saved characteristic source date ronavi-h1500:integration",
+    "saved characteristic source clickable ronavi-h1500:integration",
+    "saved characteristic source label ronavi-h1500:priceRub",
+    "saved characteristic value ronavi-h1500:priceRub",
+    "saved characteristic source reference ronavi-h1500:priceRub",
+    "saved characteristic source date ronavi-h1500:priceRub",
+    "saved characteristic source label ronavi-h1500:softwareRubOneTime",
+    "saved characteristic value ronavi-h1500:softwareRubOneTime",
+    "saved characteristic source date ronavi-h1500:softwareRubOneTime",
+    "saved characteristic source clickable ronavi-h1500:softwareRubOneTime",
+    "saved characteristic source label ronavi-h1500:implementationRub",
+    "saved characteristic value ronavi-h1500:implementationRub",
+    "saved characteristic source date ronavi-h1500:implementationRub",
+    "saved characteristic source clickable ronavi-h1500:implementationRub",
+    "saved characteristic source label ronavi-h1500:serviceRubYear",
+    "saved characteristic value ronavi-h1500:serviceRubYear",
+    "saved characteristic source date ronavi-h1500:serviceRubYear",
+    "saved characteristic source clickable ronavi-h1500:serviceRubYear",
+    "saved characteristic source label ronavi-h1500:acquisitionModels",
+    "saved characteristic value ronavi-h1500:acquisitionModels",
+    "saved characteristic source date ronavi-h1500:acquisitionModels",
+    "saved characteristic source clickable ronavi-h1500:acquisitionModels",
+    "saved characteristic source label ronavi-h1500:raasRubMonth",
+    "saved characteristic value ronavi-h1500:raasRubMonth",
+    "saved characteristic source date ronavi-h1500:raasRubMonth",
+    "saved characteristic source clickable ronavi-h1500:raasRubMonth",
+    "saved characteristic source label ronavi-h1500:batteryReplacementYears",
+    "saved characteristic value ronavi-h1500:batteryReplacementYears",
+    "saved characteristic source date ronavi-h1500:batteryReplacementYears",
+    "saved characteristic source clickable ronavi-h1500:batteryReplacementYears",
+    "saved characteristic source label ronavi-h1500:applicability",
+    "saved characteristic value ronavi-h1500:applicability",
+    "saved characteristic source date ronavi-h1500:applicability",
+    "saved characteristic source label ronavi-h1500:cases",
+    "saved characteristic value ronavi-h1500:cases",
+    "saved characteristic source reference ronavi-h1500:cases",
+    "saved characteristic source date ronavi-h1500:cases",
+    "saved characteristic source label ronavi-h1500:primarySourceUrl",
+    "saved characteristic value ronavi-h1500:primarySourceUrl",
+    "saved characteristic source date ronavi-h1500:primarySourceUrl",
+    "saved characteristic source clickable ronavi-h1500:primarySourceUrl",
+    "saved characteristic source label ronavi-h1500:verifiedAt",
+    "saved characteristic value ronavi-h1500:verifiedAt",
+    "saved characteristic source date ronavi-h1500:verifiedAt",
+    "saved characteristic source label ronavi-h1500:confirmation",
+    "saved characteristic value ronavi-h1500:confirmation",
+    "saved characteristic source date ronavi-h1500:confirmation",
+    "no invented complete delivery price",
+    "planning/reaction assumptions explicitly model-scoped",
+    "PDF SHA unchanged throughout read-only evaluation",
+    "source JSON SHA unchanged throughout evaluation"
   ],
-  "pages": 33,
-  "sourceProject": {
-    "id": "d53f3d4c-21b1-4a2d-93d4-d39063b85f87",
-    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-    "revision": 0
-  },
-  "operation": {
-    "id": "cmve3kt6j000p01s06v1fgyu1",
-    "kind": "CREATE",
-    "status": "SUCCEEDED",
-    "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1"
-  },
-  "pdfSha256": "983c266ba904bc50bb316fbdae31bce390480acbf38b22ea0f6d7acb1ca53ebf",
-  "scope": "Read-only PDF text and source identity checks; no visual layout acceptance, spreadsheet recalculation, DB access or simulation"
+  "failed": [],
+  "pdfSha256": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6",
+  "pdfSha256After": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6",
+  "sourceSha256": "9f48dac47094cc8c46114e557ec8f81e63a38712ad878b44c187410f4d19498d",
+  "sourceSha256After": "9f48dac47094cc8c46114e557ec8f81e63a38712ad878b44c187410f4d19498d",
+  "linkCount": 8
 }

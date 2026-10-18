@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_NORMS, normDef, type NormKey } from "@/lib/tz/norms";
+import { DEFAULT_NORMS, LABOR_SHARE_SENSITIVITY_RANGE, isNormKey, normDef, type NormKey } from "@/lib/tz/norms";
 import { fx, rangeText } from "@/lib/tz/econ/text";
 import type { Origin } from "@/lib/tz/types";
 import { OverrideInput } from "./override-input";
@@ -33,7 +33,7 @@ export const SCENARIO_NORM_KEYS = [
   "simStorageVacancyShare",
 ] as const satisfies readonly NormKey[];
 
-export type ScenarioNormKey = (typeof SCENARIO_NORM_KEYS)[number];
+export type ScenarioNormKey = NormKey;
 
 /**
  * Строка таблицы: метаданные норматива и действующее значение. Совместима и со строкой
@@ -44,7 +44,7 @@ export type NormPanelRow = {
   value: number;
   label: string;
   unit: string | null;
-  origin: Origin;
+  origin: Origin | null;
   basis: string;
   sourceUrl?: string | null;
   sourceRef?: string | null;
@@ -122,7 +122,7 @@ function NormsTable({ rows, print }: { rows: readonly NormPanelRow[]; print: boo
                   {print ? (
                     <PrintSource row={r} />
                   ) : (
-                    <SourceBadge origin={r.origin} sourceUrl={r.sourceUrl} sourceRef={r.sourceRef} />
+                    r.origin === null ? <span>Не сохранено</span> : <SourceBadge origin={r.origin} sourceUrl={r.sourceUrl} sourceRef={r.sourceRef} />
                   )}
                 </td>
                 <td className={`${TD} min-w-72 text-xs text-muted-foreground`}>{r.basis}</td>
@@ -141,7 +141,7 @@ function PrintSource({ row }: { row: NormPanelRow }) {
   const url = safeHttpUrl(row.sourceUrl);
   return (
     <div className="flex flex-col gap-0.5">
-      <SourceBadge origin={row.origin} />
+      {row.origin === null ? <span>Не сохранено</span> : <SourceBadge origin={row.origin} />}
       {ref !== "" && <span className="text-xs break-words">{ref}</span>}
       {url !== null && <span className="text-xs break-all text-muted-foreground">{url}</span>}
     </div>
@@ -172,7 +172,11 @@ export function NormsPanel({
 }) {
   const byKey = new Map(rows.map((r) => [r.key, r]));
   const editable = !print && !readOnly && onOverride !== undefined;
-  const setKeys = SCENARIO_NORM_KEYS.filter((k) => overrides?.[k] !== undefined);
+  const overridesByKey: Readonly<Record<string, number | undefined>> = overrides ?? {};
+  const setKeys = Object.keys(overridesByKey).filter(key => Number.isFinite(overridesByKey[key]));
+  const shownKeys = editable
+    ? [...new Set([...SCENARIO_NORM_KEYS.filter(key => key !== "simStorageVacancyShare" || storageTransfers || overridesByKey[key] !== undefined), ...setKeys])]
+    : setKeys;
   const showOverrides = editable || setKeys.length > 0;
 
   return (
@@ -184,27 +188,32 @@ export function NormsPanel({
             Корректировки сценария{scenarioName ? ` «${scenarioName}»` : ""}
           </p>
           <p className="text-xs text-muted-foreground">
-            Значения вводятся в процентах, в пределах диапазона норматива. Каждое изменение записывается в журнал
+            Доли вводятся в процентах, остальные значения — в указанных единицах, в пределах диапазона норматива. Каждое изменение записывается в журнал
             корректировок.
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(editable ? SCENARIO_NORM_KEYS.filter(key => key !== "simStorageVacancyShare" || storageTransfers || overrides?.[key] !== undefined) : setKeys).map((key) => {
-              const def = normDef(key);
-              const auto = byKey.get(key)?.value ?? DEFAULT_NORMS[key];
-              const share = isShareUnit(def.unit);
-              const range = def.min !== null && def.max !== null ? `диапазон ${rangeText(def.min, def.max, def.unit)}` : undefined;
+            {shownKeys.map((key) => {
+              // Read-only archives must not inherit a newer release's metadata or bounds.
+              const knownKey = isNormKey(key) ? key : null;
+              const canEdit = editable && knownKey !== null;
+              const def = canEdit ? normDef(knownKey) : byKey.get(key) ?? { label: key, unit: "", min: null, max: null };
+              const unit = def.unit ?? "";
+              const auto = byKey.get(key)?.value ?? (canEdit ? DEFAULT_NORMS[knownKey] : overridesByKey[key] ?? 0);
+              const share = isShareUnit(unit);
+              const min = def.min ?? null, max = def.max ?? null;
+              const range = min !== null && max !== null ? `диапазон ${rangeText(min, max, unit)}` : undefined;
               return (
                 <OverrideInput
                   key={key}
                   label={def.label}
-                  unit={share ? percentUnit(def.unit) : def.unit}
+                  unit={share ? percentUnit(unit) : unit}
                   percent={share}
                   auto={auto}
-                  value={overrides?.[key]}
-                  range={[def.min, def.max]}
-                  readOnly={!editable}
-                  hint={key === "simStorageVacancyShare" ? `${range}. Явное допущение о свободных местах до начала внутренних перемещений; не измерение склада. Число свободных мест округляется вниз.` : range}
-                  onChange={editable ? (v, reason) => onOverride?.(key, v, reason) : undefined}
+                  value={overridesByKey[key]}
+                  range={[min, max]}
+                  readOnly={!canEdit}
+                  hint={canEdit && key === "laborShareAutomatable" ? `${range}. Оценка доли труда до исключения нестандартных грузов; они вычитаются отдельно. Уже очищенную долю роботизируемого времени не подставляйте. Типовой оценочный диапазон чувствительности ${rangeText(...LABOR_SHARE_SENSITIVITY_RANGE, "доля")}, расширяемый до выбранной базы; ввод не подтверждает хронометраж. Обоснование укажите в причине изменения.` : canEdit && key === "simStorageVacancyShare" ? `${range}. Явное допущение о свободных местах до начала внутренних перемещений; не измерение склада. Число свободных мест округляется вниз.` : range}
+                  onChange={canEdit ? (v, reason) => onOverride?.(knownKey, v, reason) : undefined}
                 />
               );
             })}

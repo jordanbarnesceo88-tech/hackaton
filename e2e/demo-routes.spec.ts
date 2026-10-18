@@ -13,7 +13,7 @@ import { buildProjectModel } from "../lib/tz/model";
 import { resolveNorms } from "../lib/tz/norms";
 
 type DemoWindow = Window & {
-  warehouseDemo: { calculationMode(): string; snapshot(): { input: SimInput; projectOrigin?: { requestId: string; scenarioKey: string; sourceInput: SimInput; sourceInputKey: string }; frame: { tS: number }; busy: boolean } };
+  warehouseDemo: { calculationMode(): string; snapshot(): { caseId: string; input: SimInput; projectOrigin?: { requestId: string; scenarioKey: string; sourceInput: SimInput; sourceInputKey: string }; frame: { tS: number }; busy: boolean } };
   routingPeer?: { snapshot: SpatialProjectSnapshot; child: Window | null; ready: boolean; result: unknown; error: string | null };
   spatialMessages?: { origin: string; fromChild: boolean; data: { requestId?: string } }[];
 };
@@ -122,10 +122,49 @@ test("warehouse case URL selects its scenario and explicit switching preserves o
   expect(switched.searchParams.get("case")).toBe("complex");
   expect(switched.searchParams.get("flag")).toBe("1");
   expect(switched.hash).toBe("#history");
-  await page.reload();
-  await ready(page, "warehouse");
-  await expect(page.locator('[data-case="complex"]')).toHaveAttribute("aria-pressed", "true");
   expect(errors).toEqual([]);
+});
+
+test("reloading a selected warehouse case rebuilds its full history from the same input", async ({ page, browser }, testInfo) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  observeErrors(page, errors);
+  const lifecycle: { event: string; at: string }[] = [];
+  const record = (event: string) => lifecycle.push({ event, at: new Date().toISOString() });
+  const onCrash = () => { record("page-crash"); };
+  const onClose = () => { record("page-close"); };
+  const onDisconnect = () => { record("browser-disconnected"); };
+  page.on("crash", onCrash);
+  page.on("close", onClose);
+  browser.on("disconnected", onDisconnect);
+  try {
+    await page.goto("/demo/warehouse?case=complex&flag=1#history");
+    record("initial-navigation-loaded");
+    await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
+    await expect.poll(() => page.evaluate(() => {
+      const state = (window as unknown as DemoWindow).warehouseDemo.snapshot();
+      return !state.busy && state.caseId === "complex";
+    })).toBe(true);
+    await expect(page.locator('[data-case="complex"]')).toHaveAttribute("aria-pressed", "true");
+    const beforeReload = await page.evaluate(() => (window as unknown as DemoWindow).warehouseDemo.snapshot().input);
+    const beforeUrl = page.url();
+
+    // The route contract needs the installed worker result; full-history replay is checked after reload.
+    await page.reload();
+    await ready(page, "warehouse");
+    await expect(page.locator('[data-case="complex"]')).toHaveAttribute("aria-pressed", "true");
+    expect(page.url()).toBe(beforeUrl);
+    const reloaded = await page.evaluate(() => (window as unknown as DemoWindow).warehouseDemo.snapshot());
+    expect(reloaded.caseId).toBe("complex");
+    expect(reloaded.input).toEqual(beforeReload);
+    expect(errors).toEqual([]);
+    record("full-reload-history-and-input-verified");
+  } finally {
+    await testInfo.attach("viewer-lifecycle", { body: JSON.stringify({ lifecycle, errors }, null, 2), contentType: "application/json" });
+    page.off("crash", onCrash);
+    page.off("close", onClose);
+    browser.off("disconnected", onDisconnect);
+  }
 });
 
 test("guest closed-pod scenario opens its exact server input through the clean 3D popup route", async ({ page, baseURL }) => {

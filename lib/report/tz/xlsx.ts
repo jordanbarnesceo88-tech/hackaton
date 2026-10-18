@@ -1,11 +1,14 @@
 // только сервер: exceljs не попадает в клиентский бандл
 import ExcelJS from "exceljs";
+import { normLabelsFromSnapshot } from "../../tz/methodology";
 import { ORGANIZER_DATA_VERSION } from "../../data/organizer/version.generated";
 import { displayDataText } from "../../tz/characteristics";
 import { boundsSourceLabel } from "../../tz/econ";
 import type { ParamSpec, ScenarioResult } from "../../tz/types";
 import { TZ_MODEL_VERSION } from "../../tz/version";
 import { SIM_MODEL_VERSION } from "../../sim/types";
+import { implementationReportRows } from "./implementation";
+import { capacityReportRows } from "./capacity";
 import {
   CHANGES_HEADER,
   MANUAL_NOTE,
@@ -66,7 +69,7 @@ import {
  * «,» в формулах — как «;».
  */
 
-/** Листы книги в порядке показа (13 листов). */
+/** Основные листы книги в порядке показа; бюджет пилота добавляется при сохранённом плане. */
 export const XLSX_SHEET_NAMES = [
   "Сводка",
   "Параметры объекта",
@@ -81,6 +84,7 @@ export const XLSX_SHEET_NAMES = [
   "Источники",
   "Журнал корректировок",
   "О расчёте",
+  "Внедрение",
 ] as const;
 
 export type ProjectXlsxInput = {
@@ -658,6 +662,12 @@ function simSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
     r++;
     noteRow(ws, r++, `Без имитации: ${t.notChecked.join("; ")}`);
   }
+  const capacityRows = capacityReportRows(input.results);
+  if (capacityRows.length) {
+    r += 2;
+    headerRow(ws, r++, ["Сценарий", "Контролируемая проверка мощности", "Значение", "Единица"]);
+    for (const row of capacityRows) putRow(ws, r++, [row.scenarioName, row.label, row.value, row.unit]);
+  }
 }
 
 // ——————————————————————————— 10. Нормативы и допущения ———————————————————————————
@@ -725,7 +735,7 @@ function changesSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
     titles[c.key] = c.title;
     titles[c.name] = c.title;
   }
-  const rows = changeRows(input.changes ?? [], { paramLabels: labels, scenarioTitles: titles });
+  const rows = changeRows(input.changes ?? [], { paramLabels: labels, scenarioTitles: titles, normLabels: normLabelsFromSnapshot(input.results) });
   let r = 2;
   if (rows.length === 0) noteRow(ws, r++, "Корректировок в журнале нет");
   for (const c of rows) putRow(ws, r++, c.cells);
@@ -789,7 +799,7 @@ function aboutSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
 // ——————————————————————————— Сборка книги ———————————————————————————
 
 /**
- * Книга XLSX проекта: 13 листов (`XLSX_SHEET_NAMES`) — сводка с выводом и таблицей сценариев,
+ * Книга XLSX проекта: основные листы (`XLSX_SHEET_NAMES`) — сводка с выводом и таблицей сценариев,
  * параметры, подбор и сравнение, состав оборудования, статьи CAPEX и OPEX, денежный поток с
  * формулами, чувствительность, имитация, нормативы, источники, журнал корректировок и лист «О
  * расчёте» (версии, формулы, ограничения, оговорка). Сценарий с решением, добавленным вручную,
@@ -821,6 +831,15 @@ export async function buildProjectXlsx(input: ProjectXlsxInput): Promise<Uint8Ar
     widths(ws, [35, 35, 22, 70, 95]);
     headerRow(ws, 1, ["Сценарий", "Статья / условие", "Сумма, ₽", "Значение", "Источник / допущение"]);
     pilotRows.forEach((row, index) => putRow(ws, index + 2, [row.scenarioName, row.label, row.valueRub ?? "", row.text, row.source], [undefined, undefined, FMT.rub]));
+  }
+
+  const implementationRows = implementationReportRows(input.results);
+  {
+    const ws = sheet(wb, "Внедрение", true);
+    widths(ws, [40, 32, 100, 100]);
+    headerRow(ws, 1, ["Решение", "Раздел", "Сведения", "Источник и границы"]);
+    implementationRows.forEach((row, index) => putRow(ws, index + 2, [row.productName, row.label, row.text, row.source]));
+    if (!implementationRows.length) noteRow(ws, 2, "В сценариях нет выбранных решений; модельные сведения о внедрении не определены.");
   }
 
   if (input.results.modelVersion !== TZ_MODEL_VERSION || input.results.simModelVersion !== SIM_MODEL_VERSION) {

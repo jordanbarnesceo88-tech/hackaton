@@ -14,6 +14,15 @@ function fixture() {
 }
 
 describe("optional oldest-feasible dispatch", () => {
+  it("keeps normal order and can recover an eligible unblocking task beyond the lookahead exactly once",()=>{
+    const {s,task}=fixture();s.tasks=Array.from({length:18},(_,i)=>task(i));
+    const assigned:number[]=[];
+    const gate:SimDispatchGate=Object.assign(((_s,_r,t)=>t?.id===16) as SimDispatchGate,{policy:{pendingLookahead:16,isUnblockingTask:(_s:unknown,t:SimTask)=>t.id===16},onAssigned:(_s:unknown,_r:unknown,t:SimTask|null)=>{if(t)assigned.push(t.id);}});
+    assignTasks(s,gate);
+    expect(assigned).toEqual([16]);expect(s.head).toBe(1);expect(s.tasks[16]!.startS).toBe(0);expect(s.tasks[17]!.startS).toBeNull();
+    expect(s.dispatchQueue!.indices).toHaveLength(17);
+  });
+
   it("preserves legacy FIFO without the policy hook", () => {
     const { s } = fixture();
     assignTasks(s, (_s, _r, t) => t?.id !== 0);

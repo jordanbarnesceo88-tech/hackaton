@@ -11,11 +11,18 @@ test("class preparation and sourced cleaning cards stay reachable and readable",
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/knowledge/cleaner");
     await expect(page.getByRole("heading", { name: "Как принимать пилот", exact: true })).toBeVisible();
+    const classResources = page.getByRole("region", { name: "Материалы производителей", exact: true });
+    await expect(classResources.getByRole("link", { name: /PUDU CC1/ })).toHaveAttribute("href", "https://academy.pudutech.com/en/docs/PUDU-CC1-Operation-Guide-V6");
+    await expect(classResources).toContainText("Спецификация");
     await expect(page.locator("main")).toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
     await testInfo.attach(`cleaning-guide-${width}`, { body: await page.screenshot({ path: testInfo.outputPath(`cleaning-guide-${width}.png`), fullPage: true }), contentType: "image/png" });
     await page.goto("/catalog/pudu-cc1");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("PUDU CC1");
+    const modelResources = page.getByRole("region", { name: "Материалы производителей", exact: true });
+    await expect(modelResources).toContainText("Руководство");
+    await expect(modelResources.getByRole("link", { name: /PUDU CC1/ })).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(modelResources).not.toContainText("VIGGO");
     await expect(page.locator("body")).toContainText("Цена не подтверждена");
     await expect(page.locator("a[href='/knowledge/cleaner']")).toBeVisible();
     await expect(page.locator("a[href='https://pudurobots.ru/support']").first()).toBeVisible();

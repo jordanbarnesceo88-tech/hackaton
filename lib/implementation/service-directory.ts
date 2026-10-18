@@ -100,4 +100,3 @@ export function serviceProviders(solutionType: string, manufacturer: string | nu
   if (solutionType === "cleaner") selected.push(providers.alfa);
   return parseServiceProviderList(structuredClone(selected));
 }
-

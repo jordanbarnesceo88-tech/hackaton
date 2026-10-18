@@ -63,9 +63,9 @@ beforeAll(async () => {
 });
 
 describe("книга XLSX проекта", () => {
-  it("13 листов в заданном порядке", () => {
+  it("14 листов в заданном порядке, включая сохранённые сведения внедрения", () => {
     expect(wb.worksheets.map((w) => w.name)).toEqual([...XLSX_SHEET_NAMES]);
-    expect(XLSX_SHEET_NAMES).toHaveLength(13);
+    expect(XLSX_SHEET_NAMES).toHaveLength(14);
   });
 
   it("имя проекта «=cmd» записано текстом, а не формулой; оговорка на сводке", () => {

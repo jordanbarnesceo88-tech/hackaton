@@ -10,7 +10,7 @@ import { FIXTURE_CARRIER_P, FIXTURE_H1500, WAREHOUSE_BASE_PARAMS, fixtureSpecs }
 import { runSimSync } from "../sim/runner";
 import { toStored } from "../sim/metrics";
 import { SIM_MODEL_VERSION } from "../sim/types";
-import { resolveNorms } from "./norms";
+import { normDef, resolveNorms } from "./norms";
 import { buildDecision } from "./decision";
 import type { OperatingEvidence } from "../catalog/operating-evidence";
 import type { ScenarioOk, SpatialEvidence } from "./types";
@@ -230,6 +230,24 @@ describe("one selected technical-economic decision", () => {
     const d = buildDecision(model({ scenarios: specs }), "p1");
     expect(d.analyticAssumptions).toMatchObject({ laborShare: .3, laborSource: "задано в сценарии" });
     expect(buildDecision(model(), "p1").analyticAssumptions.laborSource).toBe("Оценка");
+  });
+
+  it("uses the recorded labour origin after the current normative definition changes", () => {
+    const saved = model(), definition = normDef("laborShareAutomatable"), origin = definition.origin;
+    const recorded = JSON.stringify(saved);
+    try {
+      definition.origin = "research";
+      expect(buildDecision(saved, "p1").analyticAssumptions.laborSource).toBe("Оценка");
+      expect(JSON.stringify(saved)).toBe(recorded);
+    } finally { definition.origin = origin; }
+  });
+
+  it("marks a missing archived labour source rather than adopting the current definition", () => {
+    const saved = model();
+    delete saved.methodologySnapshot!.normDefinitions;
+    expect(buildDecision(saved, "p1").analyticAssumptions.laborSource).toBe("источник не сохранён");
+    saved.scenarios.find(scenario => scenario.key === "p1")!.normOverrides = { laborShareAutomatable: 0.1 };
+    expect(buildDecision(saved, "p1").analyticAssumptions.laborSource).toBe("задано в сценарии");
   });
 
   it("shows unchanged physical FTE separately from zero monetary realization and the actual labour cash result", () => {

@@ -717,10 +717,10 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
  * паллет: количество роботов», «Норматив «Коэффициент загрузки робота»», «Сценарий добавлен».
  * `paramLabels` — подписи параметров проекта (из описаний), иначе встроенные.
  */
-export function changeFieldLabel(field: string, paramLabels?: Readonly<Record<string, string>>): string {
+export function changeFieldLabel(field: string, paramLabels?: Readonly<Record<string, string>>, normLabels?: Readonly<Record<string, string>>): string {
   const [kind, a, b] = field.split(":");
   if (kind === "param" && a) return `Параметр «${paramLabels?.[a] ?? DEFAULT_PARAM_LABELS[a] ?? a}»`;
-  if (kind === "norm" && a) return isNormKey(a) ? `Норматив «${normDef(a).label}»` : `Норматив «${a}»`;
+  if (kind === "norm" && a) return `Норматив «${normLabels !== undefined ? normLabels[a] ?? a : isNormKey(a) ? normDef(a).label : a}»`;
   if (kind === "item" && a) {
     const what = b ? (ITEM_FIELD_LABELS[b] ?? b) : "позиция";
     return `${processLabel(a)}: ${what}`;
@@ -739,6 +739,8 @@ export function changeRows(
     paramLabels?: Readonly<Record<string, string>>;
     /** Название сценария для показа по его ключу или имени (с ⚠ у ручного решения). */
     scenarioTitles?: Readonly<Record<string, string>>;
+    /** Pass the saved definitions (or an empty map for an old archive), never live metadata. */
+    normLabels?: Readonly<Record<string, string>>;
   } = {},
 ): ChangeReportRow[] {
   return changes.map((c) => {
@@ -746,7 +748,7 @@ export function changeRows(
     const user = c.user?.trim() || "—";
     const rawScenario = c.scenario?.trim() ?? "";
     const scenario = (rawScenario && opts.scenarioTitles?.[rawScenario]) || rawScenario || "—";
-    const fieldLabel = c.fieldLabel?.trim() || changeFieldLabel(c.field, opts.paramLabels);
+    const fieldLabel = c.fieldLabel?.trim() || changeFieldLabel(c.field, opts.paramLabels, opts.normLabels);
     const auto = valueText(c.auto);
     const old = valueText(c.old);
     const next = valueText(c.new);

@@ -1,5 +1,5 @@
 import { pluralRu } from "../../format/plural";
-import { normDef } from "../norms";
+import { LABOR_SHARE_SENSITIVITY_RANGE, normDef } from "../norms";
 import type { ItemResult, ProductForCalc, Risk, ScenarioItem, ScenarioResult, ScenarioSpec, SensitivityRow } from "../types";
 import { FACILITY_PARAM_KEYS, normsForSpec, optNum, type ScenarioContext } from "./context";
 import { costPackageWarnings } from "./cost-package";
@@ -222,7 +222,7 @@ export function scenarioRisks(
       add(
         "LABOR_SHARE_ESTIMATE",
         "low",
-        `Доля труда, которую берут роботы (${share(ls, 0)}), — оценка: в исходных данных её нет; диапазон ${rangeText(d.min ?? ls, d.max ?? ls, "доля")} входит в анализ чувствительности`,
+        `Доля труда до исключения нестандартных грузов (${share(ls, 0)}) — оценка: в исходных данных её нет. Нестандарт исключается отдельно; уже очищенная доля роботизируемого времени сюда не подставляется. Типовой оценочный диапазон ${rangeText(...LABOR_SHARE_SENSITIVITY_RANGE, "доля")} входит в анализ чувствительности; при выборе базы вне диапазона он расширяется до неё. Допустимость 0–100 % не означает измеренную неопределённость`,
       );
     }
     const leg = ok.items.find((r) => r.thrCycle !== null && r.routeLoadedM !== null);

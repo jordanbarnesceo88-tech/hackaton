@@ -1,7 +1,9 @@
 import { validatePedestrians } from "../../experiments/warehouse-3d/pedestrians";
 import type { PedestrianInput } from "../sim/types";
 import { fx } from "../tz/econ/text";
-import { parseSpatialProjectSnapshot } from "../sim/spatial-bridge";
+import { parseSpatialProjectSnapshot, SPATIAL_MODEL_VERSION } from "../sim/spatial-bridge";
+import { parseCapacityNominalReview, parseCapacityProof } from "../sim/spatial-evidence";
+import { legacySimInputIdentityVersion, simInputIdentity } from "../sim/identity";
 import { validateSiteLayout, validateProjectSiteLayout, SITE_LAYOUT_LIMITS } from "../sim/site-layout";
 import type { SimLayout } from "../sim/types";
 import { LAYOUT_LIMITS } from "../sim/layout";
@@ -120,7 +122,7 @@ const INPUT_SHAPE: InputShape = {
   pedestrians: { version:null, policy:null, crossingWidthM:null, reactionTimeS:null,decelerationMps2:null,accelerationMps2:null,clearanceM:null,people:[{id:null,radiusM:null,trajectory:[{tS:null,x:null,y:null}]}] },
   layout: { activeAreaM2: null, mainAisleWidthM: null, rackAisleWidthM: null, receivingDocksCount: null, shippingDocksCount: null, chargers: null },
   robots: { count: null, speedMps: null, loadedSpeedFactor: null, handlingSec: null, autonomyH: null, chargeMin: null, payloadKg: null },
-  demand: { avgPerH: null, peakPerH: null, warmupMin: null, peakMin: null, mix: { inbound: null, outbound: null, internal: null }, storageVacancyShare: null },
+  demand: { avgPerH: null, peakPerH: null, warmupMin: null, peakMin: null, mix: { inbound: null, outbound: null, internal: null }, storageVacancyShare: null, offered: { protocol: null, perH: null } },
   thresholds: { servedShareMin: null, p95WaitMaxMin: null, oversizedIdleShare: null },
   charge: { startSoc: null, stopSoc: null },
   siteLayout: {
@@ -152,7 +154,8 @@ function checkInputShape(value: unknown, shape: InputShape): void {
 }
 
 export function checkSpatialEvidence(raw: unknown): SpatialEvidence {
-  if (!isPlainObject(raw) || unknownFields(raw, new Set(["sourceInputKey", "executionInputKey", "simModelVersion", "input", "assessment", "summary"])).length) throw new Error("Неверные поля проверки 3D");
+  if (!isPlainObject(raw) || unknownFields(raw, new Set(["sourceInputKey", "executionInputKey", "simModelVersion", "input", "assessment", "summary", "capacityRequested", "capacityProof", "capacityNominalReview"])).length) throw new Error("Неверные поля проверки 3D");
+  if (raw.capacityRequested !== undefined && raw.capacityRequested !== true) throw new Error("Контролируемая проверка запрашивается только явным признаком true");
   for (const key of ["sourceInputKey", "executionInputKey", "simModelVersion"] as const) {
     if (typeof raw[key] !== "string" || raw[key].length < 1 || raw[key].length > (key === "simModelVersion" ? 200 : 1_900_000)) throw new Error("Некорректный идентификатор проверки 3D");
   }
@@ -166,11 +169,27 @@ export function checkSpatialEvidence(raw: unknown): SpatialEvidence {
   }
   if (!Number.isInteger(s.fleet) || Number(s.fleet) < 1 || Number(s.fleet) > QUANTITY_MAX || !Number.isInteger(s.queueEnd)) throw new Error("Неверный парк или очередь 3D");
   checkInputShape(raw.input, INPUT_SHAPE);
-  const { input } = parseSpatialProjectSnapshot({ schemaVersion: "spatial-project-1", requestId: "validation", scenarioKey: "validation", scenarioName: "Проверка", variantId: "calculated", input: raw.input, inputKey: raw.sourceInputKey });
+  const currentKey = simInputIdentity(raw.input as SpatialEvidence["input"]);
+  const legacy = raw.sourceInputKey !== currentKey;
+  if (legacy && !legacySimInputIdentityVersion(raw.sourceInputKey, raw.input as SpatialEvidence["input"])) throw new Error("Идентификатор не соответствует исходному входу проекта или каноническому архивному снимку");
+  const { input } = parseSpatialProjectSnapshot({ schemaVersion: "spatial-project-1", requestId: "validation", scenarioKey: "validation", scenarioName: "Проверка", variantId: "calculated", input: raw.input, inputKey: currentKey });
+  if (input.demand.offered !== undefined) throw new Error("Тестовый профиль не может подменять исходный номинальный вход проекта");
   if (input.layout.activeAreaM2 > LAYOUT_LIMITS.maxActiveAreaM2 || [input.layout.chargers, input.layout.receivingDocksCount, input.layout.shippingDocksCount].some(n => n > LAYOUT_LIMITS.maxPointsPerKind) || input.demand.warmupMin + input.demand.peakMin > 10_080) throw new Error("Превышены границы площади, инфраструктуры или окна 3D");
   if (input.siteLayout && validateSiteLayout(input.siteLayout).length) throw new Error("Неверная явная планировка 3D");
   if (s.fleet !== input.robots.count || s.requiredPerH !== input.demand.peakPerH) throw new Error("Показатели 3D не соответствуют исходному парку и нагрузке");
-  return structuredClone({ ...raw, input }) as SpatialEvidence;
+  const capacityProof = raw.capacityProof === undefined ? undefined : parseCapacityProof(raw.capacityProof, input, { allowLegacyIdentity: true });
+  if (capacityProof && capacityProof.sourceInputKey !== raw.sourceInputKey) throw new Error("Доказательство мощности относится к другому номинальному снимку");
+  const capacityNominalReview = raw.capacityNominalReview === undefined ? undefined : parseCapacityNominalReview(raw.capacityNominalReview, input);
+  if (capacityNominalReview && raw.capacityRequested !== true && !capacityProof) throw new Error("Обоснование проверки мощности должно относиться к явному запросу или сохранённому доказательству");
+  const checked = structuredClone({ ...raw, input, ...(capacityProof === undefined ? {} : { capacityProof }),
+    ...(capacityNominalReview === undefined ? {} : { capacityNominalReview }) }) as SpatialEvidence;
+  if (legacy || (capacityProof && capacityProof.simModelVersion !== SPATIAL_MODEL_VERSION)) {
+    // Explicit recalculation upgrades requests; the database archive itself is read unchanged.
+    if (checked.capacityRequested || capacityProof || capacityNominalReview) checked.capacityRequested = true;
+    delete checked.capacityProof;
+    delete checked.capacityNominalReview;
+  }
+  return checked;
 }
 
 export function checkScenarioSiteLayout(raw: unknown): SimLayout {
