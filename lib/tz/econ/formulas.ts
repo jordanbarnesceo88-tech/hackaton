@@ -42,6 +42,7 @@ export const CAPEX_LINE_KEYS = [
   "integration",
   "commissioning",
   "training",
+  "logistics",
   "reserve",
 ] as const;
 export type CapexLineKey = (typeof CAPEX_LINE_KEYS)[number];
@@ -245,6 +246,12 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     units: "₽",
     source: "ТЗ §3.5.2",
   },
+  "capex:logistics": {
+    title: "Доставка полного внедрения",
+    expression: "явная разовая стоимость доставки всего сценария; 0 отдельного платежа при подтверждённом включении в цену",
+    units: "₽",
+    source: "наш выбор",
+  },
   "capex:reserve": {
     title: "Резерв",
     expression: "доля резерва CAPEX × сумма остальных статей CAPEX",
@@ -254,7 +261,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
   capexTotal: {
     title: "CAPEX",
     expression:
-      "оборудование + зарядные станции + инфраструктура + ПО + интеграция + пусконаладка + обучение + резерв",
+      "оборудование + зарядные станции + инфраструктура + ПО + интеграция + пусконаладка + обучение + явно заданная доставка + резерв",
     units: "₽",
     source: "ТЗ §3.5.2",
   },

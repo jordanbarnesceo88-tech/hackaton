@@ -330,7 +330,7 @@ function processSlugs(links: readonly { process: { slug: string } }[]): string[]
  * Исключённые продукты возвращаются тоже — подбор показывает их с причиной (ТЗ §3.4).
  * Полнота и доля подтверждённых берутся из вынесенных колонок, остальное — из характеристик.
  */
-export async function getCalcProducts(db: Db, facilitySlug: string): Promise<ProductForCalc[]> {
+export async function getCalcProducts(db: Db, facilitySlug: string, evidenceEvaluatedOn = new Date().toISOString().slice(0, 10)): Promise<ProductForCalc[]> {
   const rows = await db.catalogProduct.findMany({
     where: {
       archived: false,
@@ -366,6 +366,7 @@ export async function getCalcProducts(db: Db, facilitySlug: string): Promise<Pro
         confirmedSharePct: r.confirmedSharePct,
       },
       r.characteristics.map(toCharRow),
+      evidenceEvaluatedOn,
     ),
   );
 }
@@ -442,7 +443,7 @@ export type CatalogList = {
   pageCount: number;
 };
 
-const STATUS_VALUES: ReadonlySet<string> = new Set<ProductStatus>(["operation", "piloting", "rnd"]);
+const STATUS_VALUES: ReadonlySet<string> = new Set<ProductStatus>(["operation", "piloting", "rnd", "unknown"]);
 const LEVEL_VALUES: ReadonlySet<string> = new Set<ProductLevel>(["identification", "enriched", "examples"]);
 const MAX_QUERY_LENGTH = 100;
 
@@ -571,7 +572,7 @@ export async function getCatalogList(db: Db, filters: CatalogFilters = {}): Prom
       speedMps: r.speedMps,
       completenessPct: r.completenessPct,
       confirmedSharePct: r.confirmedSharePct,
-      needsVerification: r.needsVerification,
+      needsVerification: r.needsVerification || asStatus(r.status) === "unknown",
       excluded: r.excluded,
       excludedReason: r.excludedReason,
       flags: asFlags(r.flags),
@@ -775,7 +776,7 @@ function toDetail(r: DetailRow, facilities: ReadonlyMap<string, FacilityRow>): C
     speedMps: r.speedMps,
     completenessPct: r.completenessPct,
     confirmedSharePct: r.confirmedSharePct,
-    needsVerification: r.needsVerification,
+    needsVerification: r.needsVerification || asStatus(r.status) === "unknown",
     excluded: r.excluded,
     excludedReason: r.excludedReason,
     flags: asFlags(r.flags),

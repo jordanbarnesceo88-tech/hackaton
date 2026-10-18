@@ -3,7 +3,7 @@ import { SIM_MODEL_VERSION, TZ_MODEL_VERSION, dataVersionOf, fnv1a32, stableJson
 
 describe("версии моделей", () => {
   it("зафиксированы в контракте", () => {
-    expect(TZ_MODEL_VERSION).toBe("tz-1.0.6");
+    expect(TZ_MODEL_VERSION).toBe("tz-1.0.7");
     expect(SIM_MODEL_VERSION).toBe("sim-1.2.0");
   });
 });

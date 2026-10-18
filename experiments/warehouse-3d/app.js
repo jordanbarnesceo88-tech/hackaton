@@ -10,12 +10,17 @@
   const viewerUrl = kind => location.protocol === 'file:' ? `./${kind}-3d.html` : `/demo/${kind}`;
   $('complex-demo-link').href = `${viewerUrl('warehouse')}?case=complex`;
   $('cleaning-demo-link').href = viewerUrl('cleaning');
+  if (location.protocol === 'file:') $('cad-methodology').hidden = true;
   $('demo-link').href = viewerUrl(config.initialCase === 'sections' ? 'warehouse' : 'cleaning');
   const numberFormats = new Map();
   const format = (value, digits = 1) => {
     if (!Number.isFinite(value)) return '—';
     if (!numberFormats.has(digits)) numberFormats.set(digits, new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits }));
     return numberFormats.get(digits).format(value);
+  };
+  const pedestrianScope = input => {
+    const p = input.pedestrians;
+    return `${p.policy === 'controlled-crossing' ? 'Учебный управляемый переход: человек ждёт освобождения у бордюра; занявшие переход роботы сначала выезжают.' : 'Учебный человек идёт по фиксированному расписанию; поздний выход может нарушить безопасный зазор и дать FAIL.'} Запас на реакцию ${format(p.reactionTimeS, 2)} с плюс шаг 1 с, торможение ${format(p.decelerationMps2, 2)} м/с², разгон ${format(p.accelerationMps2, 2)} м/с², зазор ${format(p.clearanceM, 2)} м — оценочные допущения. Это не натурная проверка и не сертификация безопасности.`;
   };
   const money = value => Number.isFinite(value) ? `${format(value / 1e6, 2)} млн ₽` : '—';
   const clockText = seconds => {
@@ -250,6 +255,8 @@
     if (!frame || !current) return;
     if (sendScene) viewer?.setFrame(frame);
     inspection.updateFrame(frame);
+    const person = frame.people?.[0]; $('pedestrian-status').hidden = !person;
+    if (person) text('pedestrian-status', `Пешеход · ${person.phase === 'requesting' ? 'ждёт освобождения перехода у бордюра' : person.phase === 'crossing' ? 'идёт по переходу' : person.phase === 'fixed-trajectory' ? 'идёт по фиксированному расписанию' : 'у бордюра'} · ожидание ${format(person.waitS || 0, 1)} с · завершено переходов ${(person.crossings || []).filter(c => c.completedAtS !== null).length}. Желаемое начало ${person.desiredStartS == null ? '—' : clockText(person.desiredStartS)}; фактическое ${person.actualStartS == null ? 'ещё не начат' : clockText(person.actualStartS)}. ${person.phase === 'fixed-trajectory' ? 'Фиксированная траектория без разрешения на переход.' : 'Контролируемый переход, не произвольное поведение людей.'}`);
     incidents.updateFrame(frame);
     renderFleetCount();
     const phase = Core.isPlaybackDone(state) ? 'окончен' : isCleaning() ? 'уборка секций' : frame.tS < frame.warmupS ? 'прогрев' : 'пиковое окно';
@@ -260,7 +267,7 @@
     text('live-charge', t.chargingRobots ?? '—'); text('live-done', t.customerTasksDone ?? t.tasksDone ?? '—');
     text('live-distance', format((t.distanceM || 0) / 1000, 2));
     const origin = frame.provenance;
-    if (frame.safety) text('scope-limit', isCleaning() ? 'Учитываем взаимные защитные остановки и доступные обходы. Люди, качество уборки и тормозной путь не моделируются.' : 'Учитываем габариты, защитные остановки и обходы по свободным проходам. Люди и тормозной путь не моделируются.');
+    if (frame.safety) text('scope-limit', current.input.pedestrians ? pedestrianScope(current.input) : isCleaning() ? 'Учитываем взаимные защитные остановки и доступные обходы. Люди, качество уборки и тормозной путь не моделируются.' : 'Учитываем габариты, защитные остановки и обходы по свободным проходам. Люди и тормозной путь не моделируются.');
     text('telemetry-origin', isCleaning() ? `Источник: модель уборки · последний шаг ${clockText(origin?.observedAtS ?? frame.tS)} · закраска из рабочего следа, не из времени анимации` : origin ? `Источник: имитация · шаг ${origin.stepS} с · последний шаг ${clockText(origin.observedAtS)} · координаты в метрах плана · маршрут плановый` : 'Источник: имитация, не реальное оборудование');
     updateSelectedRobot(); updateSelectedSection(); renderFleet(); renderTasks(); renderEvents();
     if (isCleaning()) renderSections();
@@ -519,6 +526,7 @@
       sectionRows.clear(); $('section-list').replaceChildren();
       text('page-title', cleaning ? 'Работа роботов внутри секций' : 'Склад. Поток. Состояние каждого робота.');
       text('header-context', cleaning ? 'Дополнительная модель уборки · все параметры условные' : 'Перевозка грузов · полный цикл мобильных стеллажей');
+      text('playback-help', result.input.pedestrians ? 'Показаны роботы и учебный пешеход на плане в метрах. Сравните план и факт выше; выберите робота, чтобы увидеть причину замедления или ожидания, историю и выбранный момент. Расписание перехода желаемое; фактический проход начинается после освобождения. Параметры торможения оценочные, безопасность объекта не подтверждена.' : cleaning ? 'Показан рабочий след уборки пяти секций: закраска означает уникальную пройденную площадь, а не качество мытья. Сравните задание и покрытие выше; выберите робота для истории. Люди и тормозной путь не моделируются.' : 'Роботы и задания показаны на плане в метрах. Сравните план и факт выше; выберите робота для телеметрии и истории, затем перемотайте нужный момент. Люди и тормозной путь не моделируются.');
       text('scope-note', cleaning ? 'Моделируем выполнение уборки в пяти секциях: доступный пол, рабочие полосы, переезды и зарядку. Покрытие — уникальная площадь пройденных рабочих ячеек.' : 'Проверяем поток, очереди и зарядку на типовой планировке. Прохождение модели — основание для обследования и пилота.');
       text('scope-limit', cleaning ? 'Геометрия и робот условные. Качество мытья, люди и взаимное уклонение роботов не моделируются.' : 'Поставленные носители остаются на полу; подача и возврат проходят по маршрутам. Подача и возврат — внутренние рейсы; они занимают роботов, но не увеличивают выполненный клиентский поток. Габариты и контактная механика — допущения модели; учёт нагрузки остаётся в паллетах.');
       text('result-title', 'Итог полного прогона');
@@ -533,7 +541,7 @@
       text('case-context', `${modified ? 'Изменённые условия' : result.title} · ${format(cleaning ? result.activeAreaM2 : result.input.layout.activeAreaM2, 0)} м² · парк: ${result.input.robots.count} · ${result.product.name}`);
       text('dimensions', `${format(result.layout.widthM)} × ${format(result.layout.heightM)} м`);
       text('input-note', cleaning ? `Объект ${format(result.activeAreaM2)} м²; доступный пол задания ${format(result.summary.targetM2)} м². Стены, оборудование, защитные отступы и недоступные клетки исключены. Параметры робота — допущения.` : `Средняя нагрузка ${format(result.input.demand.avgPerH)} пал./ч × пиковый коэффициент ${format(result.input.demand.peakPerH / result.input.demand.avgPerH, 2)} = ${format(result.input.demand.peakPerH)} пал./ч. ${result.input.layout.chargers} зарядных станций по опорному расчёту. ${carrier().sourceNote}`);
-      text('speed-note', cleaning ? `×1 — реальное время. Ускорение обзора: ×5, ×10, ×50, ×500. Уборка ${format(result.input.robots.speedMps, 2)} м/с, переход ${format(result.input.robots.transitSpeedMps, 2)} м/с; след ${format(result.input.robots.brushWidthM, 2)} м. Только рабочее движение увеличивает покрытие.` : `×1 — секунда модели за секунду реального времени. ×5, ×10, ×50 и ×500 ускоряют воспроизведение. Скорость робота: ${format(result.input.robots.speedMps, 2)} м/с без груза, ${format(result.input.robots.speedMps * result.input.robots.loadedSpeedFactor, 2)} м/с с грузом.`);
+      text('speed-note', (cleaning ? `×1 — реальное время. Ускорение обзора: ×5, ×10, ×50, ×500. Уборка ${format(result.input.robots.speedMps, 2)} м/с, переход ${format(result.input.robots.transitSpeedMps, 2)} м/с; след ${format(result.input.robots.brushWidthM, 2)} м. Только рабочее движение увеличивает покрытие.` : `×1 — секунда модели за секунду реального времени. ×5, ×10, ×50 и ×500 ускоряют воспроизведение. Скорость робота: ${format(result.input.robots.speedMps, 2)} м/с без груза, ${format(result.input.robots.speedMps * result.input.robots.loadedSpeedFactor, 2)} м/с с грузом.`) + ' Фактический темп ограничен производительностью устройства; шаги модели не пропускаются.');
       text('versions', `Модель ${result.modelVersion || 'платформы'}, имитация ${result.simModelVersion || result.summary.simModelVersion}, seed ${result.input.seed}.`);
       text('source-note', result.sources.join(' '));
       $('assumptions').replaceChildren(...[...result.assumptions, ...config.visualAssumptions].map(value => { const li = document.createElement('li'); li.textContent = value; return li; }));
@@ -589,7 +597,8 @@
   $('pause').addEventListener('click', () => { playing = false; last = 0; updateControls(); });
   $('restart').addEventListener('click', () => { if (current) { playing = false; resetPlayback(); updateControls(); } });
   $('finish').addEventListener('click', () => { if (current) seekTo(Number($('timeline').max)); });
-  $('speed').addEventListener('change', () => { speed = Number($('speed').value); last = 0; });
+  // A new rate must not replay wall-time debt accumulated at the previous rate.
+  $('speed').addEventListener('change', () => { speed = Number($('speed').value); carry = 0; last = 0; });
   document.addEventListener('visibilitychange', () => { last = 0; if (!document.hidden) scheduleTick(); });
   async function seekTo(seconds) {
     if (!current || busy || seeking) return;
@@ -754,7 +763,7 @@
   });
   $('pilot-close').addEventListener('click', () => $('pilot-dialog').close());
   window.addEventListener('pagehide', () => { cancelAnimationFrame(animation); calculationWorker?.terminate(); if (workerUrl) URL.revokeObjectURL(workerUrl); comparisonPanel.dispose(); incidents.dispose(); inspection.dispose(); viewer?.dispose(); });
-  window.warehouseDemo = { calculationMode: () => calculationWorker ? 'worker' : 'main', comparisonStats: () => comparisonPanel.stats(), fleetComparison: () => comparisonPanel.snapshot(), stats: () => viewer?.getStats?.(), detailStats: () => inspection.getStats(), workHistory: () => inspection.getHistory(), projectRobot: id => viewer?.projectRobot?.(id), projectObject: id => viewer?.projectObject?.(id), snapshot: () => JSON.parse(JSON.stringify({ caseId: activeCase, input: current?.input, summary: current?.summary, assessment: current?.assessment, projectOrigin: current?.projectOrigin, comparisonOrigin: current?.comparisonOrigin, frame, playing, mode, speed, dirty, busy, comparing })) };
+  window.warehouseDemo = { calculationMode: () => calculationWorker ? 'worker' : 'main', comparisonStats: () => comparisonPanel.stats(), fleetComparison: () => comparisonPanel.snapshot(), stats: () => viewer?.getStats?.(), detailStats: () => inspection.getStats(), workHistory: () => inspection.getHistory(), projectRobot: id => viewer?.projectRobot?.(id), projectObject: id => viewer?.projectObject?.(id), snapshot: () => JSON.parse(JSON.stringify({ caseId: activeCase, input: current?.input, summary: current?.summary, assessment: current?.assessment, projectOrigin: current?.projectOrigin, comparisonOrigin: current?.comparisonOrigin, frame, playing, mode, speed, playbackClock: { canonicalS: state?.tS, pendingS: carry }, dirty, busy, comparing })) };
   if (matchMedia('(max-width:650px)').matches) $('input-details')?.removeAttribute('open');
   let projectMessageHandler = null, projectTimer = null;
   if (projectMode) {

@@ -21,7 +21,7 @@ describe("chosen fleet to canonical finance verification", () => {
     expect(reserve.financialSourceInput!.robots.count).toBe(14);
     expect(reserve.assessment.status).toBe("PARTIAL");
     expect(reserve.summary.achievedPerH).toBeLessThan(reserve.summary.requiredPerH);
-    expect(reserve.assessment.checks.filter(c => c.category === "safety").every(c => c.status === "PASS")).toBe(true);
+    expect(reserve.assessment.checks.filter(c => c.category === "safety").every(c => c.status === "PASS" || (c.id === "pedestrians" && c.status === "NOT_APPLICABLE"))).toBe(true);
     const finance = calculateSpatialFinance(reserve, { annualCoverageShare: 1, cashRealizationShare: 0.5 });
     expect(finance.purchase.items[0]).toMatchObject({ n: 14, chargers: reserve.input.layout.chargers });
     expect(finance.assumptions.spatialMatchesFinancialInput).toBe(true);

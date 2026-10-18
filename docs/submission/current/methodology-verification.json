@@ -1,0 +1,36 @@
+{
+  "checks": 401,
+  "sourceProject": {
+    "id": "d53f3d4c-21b1-4a2d-93d4-d39063b85f87",
+    "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+    "revision": 0
+  },
+  "operation": {
+    "id": "cmve3kt6j000p01s06v1fgyu1",
+    "kind": "CREATE",
+    "status": "SUCCEEDED",
+    "publication": "PUBLISHED",
+    "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1"
+  },
+  "methodology": {
+    "schemaVersion": "methodology-snapshot-1",
+    "modelVersion": "tz-1.0.7",
+    "formulas": 48,
+    "limitations": 12
+  },
+  "implementation": {
+    "guide": "Подъёмные AMR",
+    "providers": [
+      {
+        "name": "Ronavi Robotics",
+        "sourceUrl": "https://ronavi-robotics.ru/about",
+        "checkedAt": "2026-10-18",
+        "responseSla": null,
+        "onsiteSla": null
+      }
+    ],
+    "persistedPilot": false
+  },
+  "scope": "Read-only ExcelJS cached/schema/formula/source trace checks. Saved methodology definitions checked exactly. No Excel recalculation, DB, browser, simulation or visual acceptance. Sample has no persisted pilotPlan; PDF default guide is not falsely claimed as persisted CSV/XLSX pilot export.",
+  "findings": []
+}

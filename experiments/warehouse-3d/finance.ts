@@ -60,6 +60,7 @@ export function calculateSpatialFinance(
     { key: "purchase", name: "Покупка", kind: "purchase", items: [{ ...item }], cashRealizationShare, spatialEvidence: structuredClone(evidence), simSeed: source.input.seed, ...(source.input.siteLayout ? { siteLayout: structuredClone(source.input.siteLayout) } : {}) },
     { key: "raas", name: "RaaS", kind: "raas", items: [{ ...item }], cashRealizationShare, spatialEvidence: structuredClone(evidence), simSeed: source.input.seed, ...(source.input.siteLayout ? { siteLayout: structuredClone(source.input.siteLayout) } : {}) },
   ];
+  for (const spec of scenarios) if(spec.kind!=="asis" && source.input.pedestrians)spec.pedestrians=structuredClone(source.input.pedestrians);
   for (const spec of scenarios) if (spec.kind !== "asis" && operationsStaffing) spec.operationsStaffing = structuredClone(operationsStaffing);
   if (costPackage) scenarios.find(spec => spec.kind === "purchase")!.items[0]!.costPackage = structuredClone(costPackage);
   const model = buildProjectModel({ facility: "warehouse", params: structuredClone(demo.financialParams), paramDefs: paramSpecsFor("warehouse"), products, norms: resolveNorms(), scenarios });

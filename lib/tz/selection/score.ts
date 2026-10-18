@@ -51,6 +51,7 @@ export const MATURITY_VALUE: Readonly<Record<ProductStatus, number>> = {
   operation: 1,
   piloting: SELECTION_CONSTANTS.maturityPiloting.value,
   rnd: 0,
+  unknown: 0,
 };
 
 /** Вход расчёта балла одного продукта. */
@@ -135,7 +136,7 @@ function maturityPart(p: ProductForCalc): { value01: number; explanation: string
       ? "серийная эксплуатация"
       : p.status === "piloting"
         ? `пилотная эксплуатация — засчитывается ${fmtNum(v)} от серийной`
-        : "стадия НИОКР";
+        : p.status === "unknown" ? "статус эксплуатации не подтверждён; доказанная зрелость не засчитывается" : "стадия НИОКР";
   return { value01: v, explanation: text };
 }
 

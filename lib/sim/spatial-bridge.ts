@@ -3,6 +3,7 @@ import type { SimProvenance } from "./adapter";
 import { simInputIdentity } from "./identity";
 import type { SimInput } from "./types";
 import { validDemandMix } from "./demand-mix";
+import { validatePedestrians } from "../../experiments/warehouse-3d/pedestrians";
 
 export { SPATIAL_MODEL_VERSION } from "./spatial-version";
 
@@ -60,7 +61,7 @@ export function parseSpatialProjectSnapshot(value: unknown): SpatialProjectSnaps
       !text(v.scenarioKey, 200) || !text(v.scenarioName, 1000) ||
       !["calculated", "minStable", "byNorm"].includes(String(v.variantId))) throw new Error("Неподдерживаемый пространственный снимок");
   const input = record(v.input), layout = record(input.layout), robots = record(input.robots), demand = record(input.demand);
-  const sourceFields = new Set(["seed", "transportWorkflow", "layout", "siteLayout", "robots", "demand", "loadMassKg", "thresholds", "charge"]);
+  const sourceFields = new Set(["seed", "transportWorkflow", "layout", "siteLayout", "pedestrians", "robots", "demand", "loadMassKg", "thresholds", "charge"]);
   if (Object.keys(input).some(field => !sourceFields.has(field))) throw new Error("Снимок должен содержать исходный вход проекта без исполнительных настроек просмотра");
   if (input.transportWorkflow !== undefined && !["closed-pod-1", "single-leg-pallet-1"].includes(String(input.transportWorkflow))) throw new Error("Неподдерживаемая версия транспортного процесса");
   const charge = record(input.charge), thresholds = record(input.thresholds);
@@ -82,6 +83,11 @@ export function parseSpatialProjectSnapshot(value: unknown): SpatialProjectSnaps
     if (![site.widthM, site.heightM].every(n => finite(n) && n > 0) || ![site.receiving, site.shipping, site.chargers].every(Array.isArray)) throw new Error("Неверная явная планировка проекта");
     const problems = validateProjectSiteLayout(site as unknown as NonNullable<SimInput["siteLayout"]>, layout as unknown as SimInput["layout"]);
     if (problems.length) throw new Error(problems.join("; "));
+  }
+  if (input.pedestrians !== undefined) {
+    if(Number(robots.count)>60||Number(robots.speedMps)>3)throw new Error("Пешеходная модель: до 60 роботов и до 3 м/с");
+    if (input.transportWorkflow !== "closed-pod-1" || !input.siteLayout) throw new Error("Для пешеходов нужен явный пространственный план");
+    validatePedestrians(input.pedestrians, input.siteLayout as SimInput["siteLayout"]);
   }
   if (v.inputKey !== simInputIdentity(input as SimInput)) throw new Error("Идентификатор не соответствует входу проекта");
   if (v.assumedUtilPct !== undefined && (!finite(v.assumedUtilPct) || v.assumedUtilPct < 0 || v.assumedUtilPct > 100)) throw new Error("Неверная расчётная загрузка");

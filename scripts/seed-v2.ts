@@ -3,6 +3,8 @@ import { changedTotal, formatSyncReport, syncOrganizerData } from "../lib/catalo
 import { MAX_PASSWORD_BYTES, hashPassword, passwordByteLength, verifyPassword } from "../lib/auth/password";
 import { seedDemoProject } from "./seed-demo";
 import { seedBusinessExamples } from "./seed-business-examples";
+import { importProducts, validateProductSeeds } from "../lib/api/import";
+import { VENDOR_CLEANING_PRODUCTS } from "../lib/data/vendor-cleaning";
 
 /**
  * Сев слоя модели по методике ТЗ (tz-1.0.0). Вызывается из scripts/seed.ts после сева
@@ -111,6 +113,10 @@ export async function seedV2(prisma: PrismaClient): Promise<void> {
   console.log("Модель по методике ТЗ (tz-1.0.0): синхронизация данных организатора…");
   const report = await syncOrganizerData(prisma, { respectAdminEdits: true });
   for (const line of formatSyncReport(report)) console.log(`  ${line}`);
+  const cleaningSeeds = validateProductSeeds(VENDOR_CLEANING_PRODUCTS);
+  if (!cleaningSeeds.ok) throw new Error(`Карточки уборщиков не прошли проверку: ${JSON.stringify(cleaningSeeds.issues)}`);
+  const cleaningImport = await importProducts(prisma, cleaningSeeds.seeds);
+  if (cleaningImport.failed || cleaningImport.refused) throw new Error("Не удалось загрузить публичные карточки уборщиков");
 
   let accountsChanged = 0;
   for (const account of DEMO_ACCOUNTS) {

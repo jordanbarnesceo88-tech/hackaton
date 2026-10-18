@@ -3,6 +3,7 @@ import { normDef } from "../norms";
 import type { ItemResult, ProductForCalc, Risk, ScenarioItem, ScenarioResult, ScenarioSpec, SensitivityRow } from "../types";
 import { FACILITY_PARAM_KEYS, normsForSpec, optNum, type ScenarioContext } from "./context";
 import { costPackageWarnings } from "./cost-package";
+import { deploymentLogisticsText } from "../deployment-logistics";
 import { baseOutsideSourceRange } from "./sensitivity";
 import { fx, mrub, q, rangeText, rub, share, unitShort } from "./text";
 
@@ -76,6 +77,7 @@ export function scenarioRisks(
   const norms = spec ? normsForSpec(ctx, spec) : ctx.norms;
   const views = itemViews(ctx, result, spec);
   const ok = result.status === "ok" ? result : null;
+  add(spec?.logistics ? "LOGISTICS_ASSUMPTION" : "LOGISTICS_NOT_ASSESSED", "medium", deploymentLogisticsText(spec?.logistics));
   if (ok?.operationsStaffing) {
     const staffing = ok.operationsStaffing;
     add("OPERATIONS_STAFFING_ASSUMPTION", "medium", `Дополнительные расходы на эксплуатационный персонал площадки: ${rub(staffing.annualCostRub)} в год, режим ${staffing.mode}. Основание: ${staffing.reason}. ${staffing.includedInService ? "Включение в оплачиваемый сервис — допущение, не подтверждённое договором; проверьте состав услуг" : "Оценка дополнительных расходов, не полная стоимость существующего сотрудника; подтвердите фактическую нагрузку и оплату"}`);
@@ -96,6 +98,7 @@ export function scenarioRisks(
       for (const warning of costPackageWarnings(p, v.spec, norms)) add("COST_PACKAGE_SCOPE_UNCONFIRMED", "medium", `${q(v.name)}: ${warning}`);
     }
     const r = v.result;
+    if (r?.thrEvidence) add(r.thrEvidence.applied ? "FIELD_OBSERVATION_APPLIED" : "FIELD_OBSERVATION_NOT_APPLIED", r.thrEvidence.applied ? "low" : "medium", `${q(v.name)}: ${r.thrEvidence.reason}${r.thrEvidence.applied ? " Наблюдение ограничивает расчётную выработку; это не подтверждение других объектов или режимов." : " Полевой факт не подтверждает этот расчёт; исходный паспорт или цикл остаётся модельным допущением."}`);
     const process = r ? ctx.processes[r.process] : v.spec ? ctx.processes[v.spec.process] : undefined;
     const unit = unitShort(process?.throughputUnit ?? "ед./ч");
 

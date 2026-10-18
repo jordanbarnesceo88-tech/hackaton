@@ -50,6 +50,7 @@ export const CHARACTERISTIC_KEYS = {
   solutionType: { group: "IDENTIFICATION", label: "Тип решения", unit: null, kind: "text", required: true },
   purpose: { group: "IDENTIFICATION", label: "Назначение", unit: null, kind: "text", required: true },
   countryOfOrigin: { group: "IDENTIFICATION", label: "Страна происхождения", unit: null, kind: "text", required: true },
+  manufacturerCountry: { group: "IDENTIFICATION", label: "Страна производителя / штаб-квартиры", unit: null, kind: "text", required: false },
   availabilityStatus: {
     group: "IDENTIFICATION",
     label: "Статус доступности",
@@ -93,6 +94,11 @@ export const CHARACTERISTIC_KEYS = {
     required: false,
   },
   chargerPowerKw: { group: "INFRASTRUCTURE", label: "Мощность зарядной станции", unit: "кВт", kind: "num", required: false },
+  serviceRegion: { group: "INFRASTRUCTURE", label: "Территория и доступность сервиса", unit: null, kind: "text", required: false },
+  warrantyTerms: { group: "INFRASTRUCTURE", label: "Условия гарантии", unit: null, kind: "text", required: false },
+  maintenanceTerms: { group: "INFRASTRUCTURE", label: "Регламент и состав ТО", unit: null, kind: "text", required: false },
+  operatingEvidence: { group: "TECHNICAL", label: "Полевой замер выработки", unit: null, kind: "text", required: false },
+  serviceProviders: { group: "APPLICABILITY", label: "Контакты интегратора и сервиса", unit: null, kind: "text", required: false },
 
   // ——— Экономика (6 обязательных) ———
   priceRub: { group: "ECONOMICS", label: "Цена оборудования", unit: "₽", kind: "range", required: true },

@@ -9,6 +9,7 @@ import { horizonOf, normsForSpec } from "./econ/context";
 import type { OperationsStaffing, ParamValues, ProductForCalc, ScenarioItem, ScenarioResult, ScenarioSpec, SpatialEvidence } from "./types";
 import type { NormValues } from "./norms";
 import { TZ_MODEL_VERSION } from "./version";
+import { deploymentLogisticsText } from "./deployment-logistics";
 
 export type MatchedPhysicalState = {
   status: "confirmed" | "partial" | "failed" | "stale" | "not-checked" | "unavailable";
@@ -159,6 +160,8 @@ export function buildMatchedComparison({ input, source, maxProducts = 3 }: {
       };
       delete spec.spatialEvidence;
       delete spec.pilotPlan;
+      // A delivery quote for one product/acquisition cannot establish another supplier's terms.
+      if (!sameProduct || kind !== original.kind) delete spec.logistics;
       specs.push(spec);
     }
   }
@@ -191,6 +194,7 @@ export function buildMatchedComparison({ input, source, maxProducts = 3 }: {
       same ? "Сохранены явные цены и коммерческие корректировки исходной модели." : "Используются собственные цены и характеристики карточки; корректировки и пакет исходного продукта не перенесены.",
       "Остаточная стоимость исключена у всех строк этого сравнения. Исходный сценарий сохранён без изменений.",
       "План и бюджет пилота задаются отдельно после выбора варианта.",
+      deploymentLogisticsText(spec.logistics),
       "Проверьте совместимость паллет и грузоносителя, габариты и интервал SOC опубликованной зарядки. Числовое совпадение характеристик не подтверждает одинаковые условия измерения.",
     ];
     if (spec.kind === "raas") costBasis.push("Ставка из карточки либо явной корректировки исходной модели; неизвестная ставка автоматически не оценивается. Пакет покупки не переносится в RaaS.");

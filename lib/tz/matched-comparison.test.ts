@@ -53,12 +53,18 @@ describe("bounded matched warehouse comparison", () => {
 
   it("retains only the source product's explicit purchase contract and clears every pilot", () => {
     const { source, input } = setup();
+    source.logistics = { mode: "included", source: "КП только для покупки исходной модели" };
     source.items[0]!.priceRubOverride = 2_000_000;
     source.items[0]!.serviceRubYearOverride = 100_000;
     source.items[0]!.costPackage = { softwareIncludedInIntegration: true, repairsIncludedInService: true, includedChargers: 1, reason: "Пакет только этой модели" };
     const comparison = buildMatchedComparison({ source, input });
     const purchase = comparison.rows.find(r => r.product.slug === FIXTURE_H1500.slug && r.spec.kind === "purchase")!;
     expect(purchase.spec.items[0]?.costPackage).toEqual(source.items[0]?.costPackage);
+    expect(purchase.spec.logistics).toEqual(source.logistics);
+    for (const row of comparison.rows.filter(row => row !== purchase)) {
+      expect(row.spec.logistics).toBeUndefined();
+      expect(row.costBasis.join(" ")).toContain("Доставка полного внедрения не оценена");
+    }
     expect(purchase.spec.items[0]?.priceRubOverride).toBe(2_000_000);
     for (const row of comparison.rows) {
       expect(row.spec.pilotPlan).toBeUndefined();

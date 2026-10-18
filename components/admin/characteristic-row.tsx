@@ -7,6 +7,8 @@ import { FormStatus, useAdminForm } from "./admin-form";
 import { SCOPE_LABELS, charEditorDefaults } from "./format";
 import type { CharEditorValues, CharKind } from "./format";
 import { CHECK_LABEL_CLASS, INPUT_CLASS, LABEL_CLASS, LABEL_TEXT_CLASS, SELECT_CLASS } from "./styles";
+import { OPERATING_EVIDENCE_MAX_CHARS } from "@/lib/catalog/operating-evidence";
+import { SERVICE_PROVIDERS_MAX_CHARS } from "@/lib/implementation/service-directory";
 
 /**
  * Строка характеристики в карточке продукта (ТЗ §3.3.4 — значение, источник, дата, признак
@@ -130,11 +132,13 @@ export function CharacteristicRow({
                 <textarea
                   name="valueText"
                   rows={listRows}
-                  maxLength={kind === "list" ? 3000 : 1000}
+                  maxLength={charKey === "operatingEvidence" ? OPERATING_EVIDENCE_MAX_CHARS : charKey === "serviceProviders" ? SERVICE_PROVIDERS_MAX_CHARS : kind === "list" ? 3000 : 1000}
                   defaultValue={d.valueText}
                   placeholder={kind === "list" ? "например:\nWi-Fi 5 ГГц\n4G" : undefined}
                   className={INPUT_CLASS}
                 />
+                {charKey === "operatingEvidence" && <span className="text-xs text-muted-foreground">Структурированная запись замера: operating-evidence-1. Обязательны модель, процесс, тип объекта, режим, единица, участок, даты, источник, наблюдатель, число повторов, объём, чистое и полное время и базис operating-hour / shift-hour. Подтверждение отмечается отдельно; паспортные характеристики этим полем не заменяются.</span>}
+                {charKey === "serviceProviders" && <span className="text-xs text-muted-foreground">JSON-массив до пяти организаций: название, роль, территория, контакты, источник, дата и вид подтверждения. SLA допустим только со ссылкой на подтверждённый договор. Отсутствующие сроки укажите null; пустой массив явно снимает контакты этой карточки.</span>}
               </label>
               <label className={`${LABEL_CLASS} sm:col-span-2`}>
                 <span className={LABEL_TEXT_CLASS}>Ссылка на первоисточник</span>

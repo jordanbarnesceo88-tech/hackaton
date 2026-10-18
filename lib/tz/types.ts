@@ -1,6 +1,8 @@
 import type { SimInput, SimLayout, SimSummaryStored } from "../sim/types";
 import type { SimProvenance } from "../sim/adapter";
 import type { NormKey, NormValues } from "./norms";
+import type { OperatingEvidence, OperatingEvidenceDecision } from "../catalog/operating-evidence";
+import type { ImplementationSnapshot } from "../implementation/snapshot";
 
 /**
  * Контракты модели tz-1.0.0 — общий словарь для данных организатора (T1.1), экономики (T1.2),
@@ -16,7 +18,7 @@ import type { NormKey, NormValues } from "./norms";
  * источник у каждой характеристики, поэтому происхождение — обязательное поле везде, где число
  * попадает в расчёт или на экран:
  * - organizer — датасет, каталог или «Примеры решений» организатора;
- * - research — открытый источник со ссылкой;
+ * - research — внешний источник: публичная ссылка либо идентифицируемый акт или договор;
  * - estimate — наша оценка (обязательно обоснование);
  * - derived — вычислено из других чисел (обязательна формула);
  * - choice — решение владельца модели, а не факт о мире;
@@ -36,6 +38,8 @@ export type SourceType =
   | "organizer:examples"
   | "manufacturer"
   | "manufacturer-doc"
+  | "field-measurement"
+  | "contract-reference"
   | "dealer"
   | "aggregator"
   | "press"
@@ -122,7 +126,7 @@ export type ProductFlag =
 export type ProductLevel = "identification" | "enriched" | "examples";
 
 /** Статус продукта из каталога организатора: серийная эксплуатация, пилот, НИОКР. */
-export type ProductStatus = "operation" | "piloting" | "rnd";
+export type ProductStatus = "operation" | "piloting" | "rnd" | "unknown";
 
 /**
  * Способ взаимодействия с грузом — от него зависит время погрузки в цикле (нормативы
@@ -213,6 +217,11 @@ export type ProductForCalc = {
   hasCases: boolean;
   completenessPct: number;
   confirmedSharePct: number;
+  /** A field observation never overwrites the manufacturer's nameplate values. */
+  operatingEvidence?: OperatingEvidence;
+  operatingEvidenceConfirmed?: boolean;
+  operatingEvidenceEvaluatedOn?: string;
+  implementation?: ImplementationSnapshot;
   /** Все характеристики с источниками — для раскрытия «Откуда число» и отчёта. */
   sources: {
     key: string;
@@ -313,6 +322,8 @@ export type ScenarioKind = "asis" | "purchase" | "raas";
 export type ScenarioItem = {
   process: string;
   productSlug: string;
+  /** Explicit operating mode; an observation is never adopted for an unspecified mode. */
+  operatingMode?: string;
   /** Ручное число роботов вместо расчётного. */
   quantityOverride?: number;
   /** Фиксированная инфраструктура сценария, включая отсутствие зарядок. */
@@ -375,6 +386,11 @@ export type CostPackage = {
   reason: string;
 };
 
+/** Explicit one-off delivery for the whole deployment; absence means unassessed, not free. */
+export type DeploymentLogistics =
+  | { mode: "separate"; costRub: number; source: string }
+  | { mode: "included"; source: string };
+
 /** Сценарий проекта. Ключ — ^[a-z0-9-]{1,40}$, стабилен и используется в журнале и API. */
 export type ScenarioSpec = {
   key: string;
@@ -389,9 +405,12 @@ export type ScenarioSpec = {
   spatialEvidence?: SpatialEvidence;
   /** Explicit physical source geometry; never the traffic controller's augmented parking graph. */
   siteLayout?: SimLayout;
+  /** Explicit optional person/crosswalk assumptions; part of the canonical spatial input. */
+  pedestrians?: SimInput["pedestrians"];
   simSeed?: number;
   pilotPlan?: PilotPlanInput;
   terminalResidualRub?: number;
+  logistics?: DeploymentLogistics;
 };
 
 // ——————————————————————————— Результаты расчёта ———————————————————————————
@@ -466,7 +485,8 @@ export type ItemResult = {
   thrCycle: number | null;
   /** Принятая производительность, ед./ч. */
   thrEff: number | null;
-  thrSource: "норма" | "цикл" | "задано вами" | null;
+  thrSource: "норма" | "цикл" | "задано вами" | "замер" | null;
+  thrEvidence?: OperatingEvidenceDecision;
   /** Средняя длина плеча с грузом по планировке, м. */
   routeLoadedM: number | null;
   /** Средняя длина порожнего плеча по планировке, м. */
@@ -696,9 +716,19 @@ export type PendingChange = {
  * параметры, нормативы, продукты, сценарии — и версии модели и данных, чтобы повторное
  * открытие воспроизводило расчёт бит-в-бит, а расхождение с живыми данными было видно (§3.1.5).
  */
+export type MethodologySnapshot = {
+  schemaVersion: "methodology-snapshot-1";
+  modelVersion: string;
+  simModelVersion: string;
+  formulas: { key: string; title: string; expression: string; units: string; source: string }[];
+  limitations: string[];
+};
+
 export type ProjectResults = {
   modelVersion: string;
   simModelVersion: string;
+  /** Definitions and limitations captured with this calculation, absent in older archives. */
+  methodologySnapshot?: MethodologySnapshot;
   /** Хэш снимков продуктов, нормативов и версии данных организатора (dataVersionOf). */
   dataVersion: string;
   /** Момент расчёта, ISO 8601. */

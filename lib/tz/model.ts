@@ -1,3 +1,4 @@
+import { validatePedestrians } from "../../experiments/warehouse-3d/pedestrians";
 import { ORGANIZER_DATA_VERSION } from "../data/organizer/version.generated";
 import { pluralRu } from "../format/plural";
 import { handlingSecFor, toSimInput } from "../sim/adapter";
@@ -58,6 +59,7 @@ import type {
 } from "./types";
 export type { ScenarioSimInputs } from "./types";
 import { TZ_MODEL_VERSION, dataVersionOf, stableJson } from "./version";
+import { captureMethodologySnapshot } from "./methodology";
 
 /**
  * Сборка модели проекта tz-1.0.0: параметры объекта → проверка → планировка и цикл → подбор
@@ -748,6 +750,7 @@ function simInputsOf(
       norms,
       seed: spec.simSeed ?? PROJECT_SIM_SEED,
       ...(spec.siteLayout ? { siteLayout: spec.siteLayout } : {}),
+      ...(spec.pedestrians ? { pedestrians: spec.pedestrians } : {}),
       paramSpecs: defs,
       throughputPerHOverride: item.throughputPerHOverride,
       ...(ctx.facility === "warehouse" ? { transportWorkflow: product.handlingClass === "jacking" ? "closed-pod-1" as const : "single-leg-pallet-1" as const } : {}),
@@ -910,6 +913,12 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
     const computed = computeScenarios(ctx, specs);
     results = computed.map((r, i) => {
       const spec = specs[i];
+      if (spec?.pedestrians) {
+        try {
+          if (facility !== "warehouse" || spec.kind === "asis" || !spec.siteLayout || !spec.items.some(item => productsBySlug[item.productSlug]?.handlingClass === "jacking")) throw new Error("Пешеходная модель допустима только в сценарии подстеллажной роботизации склада с явным планом");
+          validatePedestrians(spec.pedestrians, spec.siteLayout);
+        } catch (error) { return refusedInvalid(spec, ["scenario:pedestrians"], error instanceof Error ? error.message : "Неверная модель пешеходов"); }
+      }
       return spec && layoutProblem && layoutBlocked(spec) ? refusedForLayout(spec, layoutProblem) : r;
     });
   }
@@ -948,6 +957,7 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
   return {
     modelVersion: TZ_MODEL_VERSION,
     simModelVersion: SIM_MODEL_VERSION,
+    methodologySnapshot: captureMethodologySnapshot(),
     dataVersion: projectDataVersion(productSnapshots, normsUsed, defs),
     facility,
     paramsUsed,

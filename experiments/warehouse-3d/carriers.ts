@@ -159,7 +159,7 @@ export function syncUnderlift(state:UnderliftState,before:Map<number,SimTask>):v
     if(completed.countsTowardDemand!==false&&completed.kind==="outbound")internalTask(state,pod,completed,"return-pod");else pod.reservedForTaskId=null;
   }
 }
-export function underliftHandling(state:UnderliftState,robot:SimRobot,dt:number,reserve:(robot:SimRobot,next:number)=>boolean):boolean {
+export function underliftHandling(state:UnderliftState,robot:SimRobot,dt:number,reserve:(robot:SimRobot,next:number)=>boolean|number):boolean {
   const u=robot.underlift,task=robot.task;if(!state.demoUnderlift||!u||!task)return true;
   const pod=podOf(state,task)!,loading=robot.phase==="loading";
   if(loading&&!same(robot,pod))return false;
@@ -179,8 +179,8 @@ export function underliftHandling(state:UnderliftState,robot:SimRobot,dt:number,
     u.contactGapM=pod.spec.baseClearanceM-PLATFORM_REST_M;u.contact=false;pod.liftM=0;
     if(u.routeStage!=="exit") {const dock=dockOf(state,{x:task.toX,y:task.toY});robot.path=[{x:task.toX,y:task.toY},{...dock.entry}];robot.pathLenM=routeLengthM(robot.path);robot.distM=0;u.routeStage="exit";u.headingRad=dock.heading;}
     const exitSpeed=Math.min(state.input.robots.speedMps,robot.pathLenM/(total/3));
-    const next=Math.min(robot.pathLenM,robot.distM+exitSpeed*dt);
-    if(next>robot.distM&&!reserve(robot,next))return false;
+    let next=Math.min(robot.pathLenM,robot.distM+exitSpeed*dt);
+    if(next>robot.distM){const allowed=reserve(robot,next);if(allowed===false)return false;if(typeof allowed==="number")next=Math.max(robot.distM,Math.min(next,allowed));if(next<=robot.distM)return false;}
     robot.distM=next;const point=positionAlong(robot.path,next);robot.x=point.x;robot.y=point.y;
     if(robot.timerS<=dt+1e-9&&robot.distM<robot.pathLenM-1e-8)return false;
   }

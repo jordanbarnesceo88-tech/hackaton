@@ -19,6 +19,9 @@ import { fx } from "@/lib/tz/econ/text";
 import { isNormKey, normDef } from "@/lib/tz/norms";
 import { coerce, isNumericKind, isOutOfRange } from "@/lib/tz/params/schema";
 import type { ParamKind, ParamSpec } from "@/lib/tz/types";
+import { OPERATING_EVIDENCE_MAX_CHARS, parseOperatingEvidence } from "@/lib/catalog/operating-evidence";
+import { parseServiceCharacteristic } from "@/lib/catalog/service-evidence";
+import { SERVICE_PROVIDERS_MAX_CHARS } from "@/lib/implementation/service-directory";
 
 /*
  * Серверные действия администратора (ТЗ §3.1.1 — роль «администратор»; §3.1.4 и §3.3.5 —
@@ -356,7 +359,7 @@ async function writeIdentityChar(
 
 // ——————————————————————————— Продукты: поля идентификации ———————————————————————————
 
-const STATUSES = ["operation", "piloting", "rnd"] as const;
+const STATUSES = ["operation", "piloting", "rnd", "unknown"] as const;
 type Status = (typeof STATUSES)[number];
 
 /** Текст статуса доступности — как в каталоге организатора (характеристика availabilityStatus). */
@@ -364,6 +367,7 @@ const STATUS_TEXT: Readonly<Record<Status, string>> = {
   operation: "в эксплуатации",
   piloting: "пилотирование",
   rnd: "НИОКР",
+  unknown: "Статус эксплуатации не подтверждён",
 };
 
 function isStatus(v: string): v is Status {
@@ -883,7 +887,7 @@ function parseCharInput(fd: FormData, key: keyof typeof CHARACTERISTIC_KEYS): Pa
     fd,
     "valueText",
     `${label}: ${def.kind === "list" ? "пункты" : "текст"}`,
-    def.kind === "list" ? MAX_CHAR_LIST_TEXT : MAX_CHAR_TEXT,
+    key === "operatingEvidence" ? OPERATING_EVIDENCE_MAX_CHARS : key === "serviceProviders" ? SERVICE_PROVIDERS_MAX_CHARS : def.kind === "list" ? MAX_CHAR_LIST_TEXT : MAX_CHAR_TEXT,
   );
   if (!text.ok) return text;
 
@@ -948,6 +952,18 @@ function parseCharInput(fd: FormData, key: keyof typeof CHARACTERISTIC_KEYS): Pa
   if (!date.ok) return date;
   const note = optionalText(fd, "note", `${label}: примечание`, MAX_CHAR_TEXT);
   if (!note.ok) return note;
+  if (key === "operatingEvidence") {
+    try {
+      const evidence = parseOperatingEvidence(valueText);
+      if (evidence.productSlug !== field(fd, "slug")) return { ok: false, message: "Замер относится к другому продукту" };
+      if (checked(fd, "confirmed") && !evidence.confirmed) return { ok: false, message: "Нельзя подтвердить характеристику, если сам замер не подтверждён" };
+      valueText = JSON.stringify(evidence);
+    } catch (error) { return { ok: false, message: error instanceof Error ? error.message : "Некорректные данные замера" }; }
+  }
+  if (key === "serviceProviders") {
+    try { valueText = JSON.stringify(parseServiceCharacteristic(valueText, checked(fd, "confirmed"))); }
+    catch (error) { return { ok: false, message: error instanceof Error ? error.message : "Некорректные сведения сервиса" }; }
+  }
 
   return {
     ok: true,
@@ -1098,7 +1114,8 @@ export async function updateCharacteristicAction(prev: AdminFormState, formData:
         );
       if (v.confirmed && v.sourceUrl === null) {
         const keepsOrganizerConfirmation = valueSame && old.confirmed && old.sourceRef !== null;
-        if (!keepsOrganizerConfirmation) {
+        const documentedObservation = key === "operatingEvidence" && parseOperatingEvidence(v.valueText).confirmed || key === "serviceProviders" && parseServiceCharacteristic(v.valueText, true).every(p => p.verification === "contract-reference");
+        if (!keepsOrganizerConfirmation && !documentedObservation) {
           return {
             kind: "fail",
             message: `${label}: отметка «подтверждено первоисточником» у нового или изменённого значения требует ссылки на первоисточник — вставьте ссылку или снимите отметку`,

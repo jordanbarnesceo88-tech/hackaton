@@ -52,6 +52,7 @@
     const ownNodes = [], listeners = [], persistent = new Set();
     let disposed = false, lost = false, raf = 0, model = null;
     let root = null, rackGroup = null, robotsGroup = null, routesGroup = null;
+    const peopleMeshes = new Map();
     let width = 1, height = 1, W = 1, H = 1, fitSpan = 10, view = 'iso', layer = 'all', slice = null;
     let selected = null, transition = null, robotParts = [], robotCapacity = 0, carrierParts = [], carrierCapacity = 0, carrierSpec = null;
     let quality = 'balanced', followId = null, dirty = true, rendering = false, pendingFrame = null, frameKey = '';
@@ -524,6 +525,7 @@
       routes.forEach((r) => r.geometry.dispose()); routes.clear();
       labels.forEach((l) => { l.el.remove(); l.leader?.remove(); }); labels = [];
       records.clear(); points.clear(); previous.clear(); robotLabels.clear(); incidentLabels.clear(); frameIncidents.clear(); sections.clear(); frameRobots.clear(); taskEndpoints.clear(); taskRobotId = null; pickables = []; robotParts = []; robotCapacity = 0; carrierParts = []; carrierCapacity = 0; brushMesh = safetyMesh = null; hovered = null; hoverInfo.hidden = true;
+      peopleMeshes.clear(); delete stats.personCount;
       delete stats.coverageVersion; delete stats.coveredCells; delete stats.coverageCells;
       delete stats.carrierCount;
       carrierTransforms.clear(); carrierRecordKey = '';
@@ -827,11 +829,32 @@
       }
       for (const [id, rec] of records) if (rec.kind === 'incident' && !seen.has(id) && (selected !== id || !frameIncidents.has(id))) records.delete(id);
     }
+    function updatePeople(people) {
+      const seen = new Set();
+      (people || []).forEach(p => {
+        seen.add(p.id); let item = peopleMeshes.get(p.id);
+        if (!item) {
+          const group = new T.Group(); root.add(group);
+          const rec = record('person:' + p.id, 'Пешеход · модель', 'person', new T.Vector3(p.x, .85, p.y), new T.Vector3(p.radiusM*2,1.7,p.radiusM*2), { Основание:'Заданная траектория и оценочные параметры реакции/торможения. Не датчик и не сертифицированная система безопасности.' });
+          const add = (geo, mat, x, y, z) => { const m=mesh(ownGeometry(geo),mat,group,rec);m.position.set(x,y,z);return m; };
+          add(new T.SphereGeometry(.16,10,8),mats.loadLight,0,1.55,0);
+          add(new T.CylinderGeometry(.19,.23,.65,10),mats.busy,0,1.05,0);
+          for(const side of [-1,1]){add(new T.CylinderGeometry(.075,.07,.65,8),mats.dark,side*.11,.36,0);add(new T.CylinderGeometry(.055,.055,.6,8),mats.busy,side*.26,1.02,0);}
+          const ring=add(new T.RingGeometry(p.radiusM,p.radiusM+.025,24),mats.emergency,0,.004,0);ring.rotation.x=-Math.PI/2;
+          if(p.crosswalk){const a=p.crosswalk.from,b=p.crosswalk.to,vertical=Math.abs(a.x-b.x)<.001,length=Math.hypot(b.x-a.x,b.y-a.y),count=Math.max(1,Math.floor(length));for(let n=0;n<count;n++){const stripe=mesh(boxGeo,mats.marking,root,rec);stripe.position.set(a.x+(b.x-a.x)*(n+.5)/count,.003,a.y+(b.y-a.y)*(n+.5)/count);stripe.scale.set(vertical?p.crosswalk.widthM:.45,.002,vertical?.45:p.crosswalk.widthM);stripe.castShadow=false;}}
+          item={group,rec,label:label(rec,'Пешеход · модель',1.9,'person')};peopleMeshes.set(p.id,item);
+        }
+        item.group.position.set(p.x,0,p.y);item.rec.center.set(p.x,.85,p.y);item.rec.details.Положение=fmt(p.x)+' × '+fmt(p.y)+' м';item.rec.details.Состояние=({'at-curb':'Ожидает у бордюра',requesting:'Ожидает освобождения перехода',crossing:'Идёт по переходу','fixed-trajectory':'Заданная траектория'})[p.phase]||p.phase;item.rec.details.Ожидание=fmt(p.waitS||0)+' с';item.rec.details.Переходов=(p.crossings||[]).filter(c=>c.completedAtS!==null).length;
+      });
+      peopleMeshes.forEach((item,id)=>{item.group.visible=seen.has(id);item.label.el.hidden=!seen.has(id);});
+      stats.personCount=seen.size;
+    }
     function applyFrame(next) {
       if (disposed || !root) return;
       const robots = next && Array.isArray(next.robots) ? next.robots.filter((b) => Number.isFinite(b.x) && Number.isFinite(b.y)).slice(0, 500) : [];
       ensureRobots(robots.length);
       updateCarriers(next?.carriers);
+      updatePeople(next?.people);
       const seen = new Set();
       const robotRecords = [];
       frameRobots.clear();
@@ -1278,9 +1301,9 @@
       const rect = canvas.getBoundingClientRect();
       pointer.set((e.clientX - rect.left) / rect.width * 2 - 1, -(e.clientY - rect.top) / rect.height * 2 + 1);
       ray.setFromCamera(pointer, camera);
-      const candidates = pickables.filter(obj => { const rec = obj.userData.record; return rec && ['section','zone'].includes(rec.kind) && allowed(rec); });
+      const candidates = pickables.filter(obj => { const rec = obj.userData.record; return rec && ['person','section','zone'].includes(rec.kind) && allowed(rec); });
       const hits = ray.intersectObjects(candidates, false);
-      const hit = hits.find(h => h.object.userData.record.kind === 'section') || hits[0];
+      const hit = hits.find(h => h.object.userData.record.kind === 'person') || hits.find(h => h.object.userData.record.kind === 'section') || hits[0];
       const rec = hit?.object.userData.record || null;
       showHover(rec, e);
     }
@@ -1290,8 +1313,8 @@
       hoverInfo.hidden = !rec;
       if (!rec) return;
       hoverInfo.style.zIndex = rec.kind === 'incident' ? '5' : '1';
-      const status = { in_progress:'В работе',completed:'Завершена',pending:'Ожидает',queued:'В очереди' };
-      hoverInfo.textContent = [rec.name, ...Object.entries(rec.details).filter(([key]) => rec.kind === 'incident' ? ['Код','Серьёзность','Состояние','С момента обнаружения','Влияние','Действия','Сценарий'].includes(key) : ['Задание','Площадь','Убрано','Прогресс','Роботы','Состояние','Размер','Тип'].includes(key)).map(([key,value]) => `${key}: ${status[value] || value}`)].join('\n');
+      const status = { in_progress:'В работе',completed:'Завершена',pending:'Ожидает',queued:'В очереди','at-curb':'У бордюра',requesting:'Ожидает освобождения перехода',crossing:'Проходит переход' };
+      hoverInfo.textContent = [rec.name, ...Object.entries(rec.details).filter(([key]) => rec.kind === 'incident' ? ['Код','Серьёзность','Состояние','С момента обнаружения','Влияние','Действия','Сценарий'].includes(key) : rec.kind === 'person' ? ['Состояние','Ожидание','Переходов','Положение'].includes(key) : ['Задание','Площадь','Убрано','Прогресс','Роботы','Состояние','Размер','Тип'].includes(key)).map(([key,value]) => `${key}: ${status[value] || value}`)].join('\n');
       hoverInfo.style.left = Math.max(8, Math.min(rect.width - 275, e.clientX - rect.left + 15)) + 'px';
       hoverInfo.style.top = Math.max(55, Math.min(rect.height - 190, e.clientY - rect.top + 15)) + 'px';
     }

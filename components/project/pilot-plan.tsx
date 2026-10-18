@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { ImplementationGuidePanel } from "@/components/implementation/guide-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNum, formatRub } from "@/lib/format/rub";
@@ -17,7 +19,7 @@ type Props = {
 type Budget = ReturnType<typeof buildPilotBudget>;
 type WorkKey = keyof typeof PILOT_WORKS;
 
-export function PilotBudgetReadout({ budget }: { budget: Budget }) {
+export function PilotBudgetReadout({ budget, expandGuide = false }: { budget: Budget; expandGuide?: boolean }) {
   const country = budget.product.sources.find(source => source.key === "countryOfOrigin") ?? budget.product.sources.find(source => source.key === "country");
   return <div className="grid min-w-0 gap-4" data-pilot-budget={budget.totalRub === null ? "partial" : "complete"}>
     <p className="text-sm"><strong>{budget.plan.fleet} {pluralRu(budget.plan.fleet,["робот","робота","роботов"])} · {budget.plan.chargers} {pluralRu(budget.plan.chargers,["зарядка","зарядки","зарядок"])} · {budget.plan.durationDays} {budget.plan.dayBasis === "working" ? "рабочих" : "календарных"} дней</strong>. {budget.plan.dayBasis === "working" && <>Для подписки принято около {budget.calendarDays} календарных дней, без учёта праздников. </>}{budget.plan.acquisition === "raas" ? `Оплата RaaS: ${budget.subscriptionMonths} полных мес., дневной пропорции нет.` : "Оборудование приобретается в собственность; после пилота остаётся у заказчика."}</p>
@@ -30,6 +32,9 @@ export function PilotBudgetReadout({ budget }: { budget: Budget }) {
     <section className="grid gap-2 text-sm"><h4 className="font-semibold">Подготовка к запуску: {budget.readiness.filter(r => r.ready).length} из {budget.readiness.length}</h4><ul className="list-disc space-y-1 pl-5">{budget.readiness.map(r => <li key={r.key}>{r.ready ? "Готово" : "Нужно подготовить"}: {r.label}</li>)}</ul></section>
     <p className="text-sm"><strong>Остаточная стоимость сценария после {budget.residual.year} лет: {formatRub(budget.residual.valueRub)}.</strong> {budget.residual.valueRub === 0 ? "Остаточная стоимость исключена из денежного потока и NPV." : budget.residual.includedInNpv ? "Входит в последний денежный поток и NPV выбранного горизонта." : `Не входит в NPV за ${budget.residual.financialHorizonYears} лет: поступление находится за его горизонтом.`} {budget.residual.note}</p>
     {budget.plan.notes && <p className="whitespace-pre-line break-words text-sm">{budget.plan.notes}</p>}
+    {budget.product.implementation
+      ? <ImplementationGuidePanel snapshot={budget.product.implementation} expanded={expandGuide} />
+      : <p className="text-sm text-muted-foreground">В сохранённом снимке нет сведений по классу и контактов обслуживания. Актуальные материалы доступны в <Link href="/knowledge" className="text-primary underline">базе знаний</Link>; они не являются частью этого сохранённого расчёта.</p>}
     <details className="min-w-0 text-sm"><summary className="cursor-pointer py-2 font-semibold">Происхождение решения и условия обслуживания</summary><p className="mt-2">{budget.productName}. Производитель: {budget.product.manufacturer ?? "не указан в источнике"}. Страна происхождения по каталожному источнику: {country ? `${country.value}${country.confirmed ? "" : " (требует подтверждения)"}` : "не указана; уточнить у поставщика"}. Сервис: {budget.product.serviceRubYear === null ? "стоимость не опубликована; нужен договор обслуживания" : `${formatRub(budget.product.serviceRubYear)} в год по каталожному снимку, условия подтвердить`}.</p><p className="mt-2">Местный сервис, срок поставки, запчасти и логистика должны быть согласованы для объекта. Логистика вынесена в отдельную статью сметы.</p><ul className="mt-2 list-disc space-y-1 break-all pl-5 text-xs text-muted-foreground">{pilotProductSource(budget.product).map((source,i) => <li key={i}>{source.label}: {source.value}; {source.sourceUrl ?? source.sourceRef ?? source.origin}{source.date ? `; дата источника ${source.date}` : ""}{source.confirmed ? "" : "; требует подтверждения"}.</li>)}</ul></details>
   </div>;
 }
@@ -74,6 +79,6 @@ function PilotEditor({ model, scenarioKey, readOnly = false, onChange, initial, 
       <Button type="submit" className="min-h-11" disabled={Boolean(inputError)}>Применить план и пересчитать сценарий</Button>
       {(message || inputError) && <p role="status" className="text-sm">{inputError || message}</p>}
     </form></details>}
-    {budget && <PilotBudgetReadout budget={budget} />}
+    {budget && <PilotBudgetReadout budget={budget} expandGuide={readOnly} />}
   </CardContent></Card>;
 }

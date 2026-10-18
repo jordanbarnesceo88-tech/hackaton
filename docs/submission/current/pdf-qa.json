@@ -1,23 +1,23 @@
 {
   "documentation": {
-    "sha256": "aa5a1e7f566cb144d4925f9abb241c4018fc743ba4a647cb2d1ad5dc099d2e22",
-    "pages": 19,
+    "sha256": "51b2d1e649807980abc939c84e246b0063beff2d4e8c502ed52d2f36884ea959",
+    "pages": 20,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 26726
+    "textChars": 28208
   },
   "presentation": {
-    "sha256": "c1d8a7b750583677b0e2457f7fae7f2aa591941b546fc9e9e49d14bb81e3406e",
+    "sha256": "f6d74b08eae715f55132a2d45b3fe39a3b0779e8834f94163d77b014a23dad18",
     "pages": 15,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 7034
+    "textChars": 6765
   },
   "sample-report": {
-    "sha256": "ec7079605230f7ab125d2475ef502719e08bcf793953d877a96511a51f902cb2",
-    "pages": 31,
+    "sha256": "983c266ba904bc50bb316fbdae31bce390480acbf38b22ea0f6d7acb1ca53ebf",
+    "pages": 33,
     "blankPages": [],
     "outsideBounds": [],
-    "textChars": 99349
+    "textChars": 104571
   }
 }

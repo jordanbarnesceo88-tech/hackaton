@@ -69,6 +69,12 @@ describe("CHARACTERISTIC_KEYS (ТЗ §3.3.4)", () => {
         "softwareRubYear",
         "consumablesRubYear",
         "chargerPowerKw",
+        "manufacturerCountry",
+        "serviceRegion",
+        "warrantyTerms",
+        "maintenanceTerms",
+        "operatingEvidence",
+        "serviceProviders",
       ].sort(),
     );
   });

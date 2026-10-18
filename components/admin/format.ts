@@ -13,6 +13,7 @@ export const STATUS_LABELS: Readonly<Record<string, string>> = {
   operation: "Эксплуатация",
   piloting: "Пилотирование",
   rnd: "НИОКР",
+  unknown: "Статус эксплуатации не подтверждён",
 };
 
 /** Глубина описания продукта. */

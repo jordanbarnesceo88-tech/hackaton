@@ -52,7 +52,7 @@ export function DecisionSummary({ model, scenarioKey, stale = false, expectedInp
             <h4 className="text-sm font-semibold">{p.label} · {p.productName}</h4>
             <p className="text-sm">Парк: {p.n ?? "не определён"} · зарядок: {p.chargers}. Требуется {formatNum(p.requiredPerH, 1)} {p.unit}.</p>
             <p className="text-xs text-muted-foreground">Расчётный предел охвата по производительности: {p.analyticCoverage === null ? "не определён" : pct(p.analyticCoverage)}.{p.annualCoverageShare !== null && <> Годовое допущение сценария: {pct(p.annualCoverageShare)}.</>} Принято в экономике: {pct(p.financialCoverage)}{p.coverageOverridden ? " — меньшее из расчётного предела и годового допущения" : " — по расчётной производительности"}. Это отдельный расчёт, а не подтверждение 3D.</p>
-            <p className="text-xs text-muted-foreground">Эффективная выработка: {p.thrEff === null ? "не определена" : `${formatNum(p.thrEff,1)} ${p.unit}`}. Основание: {p.thrSource}. Загрузка U: {pct(d.analyticAssumptions.utilization)}; доступность A: {pct(d.analyticAssumptions.availability)}.</p>
+            <p className="text-xs text-muted-foreground">Эффективная выработка: {p.thrEff === null ? "не определена" : `${formatNum(p.thrEff,1)} ${p.unit}`}. Основание: {p.thrSource}. Загрузка U: {pct(p.effectiveUtilization)}; доступность A: {pct(p.effectiveAvailability)}.{p.shiftHourObservation && " Простои уже включены в выработку за час смены; загрузка и доступность повторно не уменьшают охват."}</p>
           </div>)}
         </section>}
         {d.status === 'baseline' ? null : spatial ? <section className="grid gap-2" aria-label="Пространственная проверка">

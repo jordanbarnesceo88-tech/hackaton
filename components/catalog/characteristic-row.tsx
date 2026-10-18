@@ -103,6 +103,12 @@ export function Alternatives({ c }: { c: Pick<CatalogCharacteristic, "alternativ
   );
 }
 
+export function characteristicLabel(key: string, label: string): string {
+  if (key === "verifiedAt") return "Дата общей проверки карточки";
+  if (key === "confirmation") return "Общее подтверждение карточки";
+  return label;
+}
+
 export function CharacteristicRow({ c }: { c: CatalogCharacteristic }) {
   const quote = quoteText(c.asInSource);
   const checked = checkedOnText(c.verifiedAt);
@@ -111,7 +117,7 @@ export function CharacteristicRow({ c }: { c: CatalogCharacteristic }) {
   return (
     <tr className="border-t align-top">
       <th scope="row" className="w-56 px-3 py-2 text-left font-normal">
-        {c.label}
+        {characteristicLabel(c.key, c.label)}
       </th>
       <td className="min-w-48 px-3 py-2">
         <span className={cn("break-words", empty ? "text-muted-foreground" : "font-medium")}>{empty ? NO_DATA : displayDataText(c.display)}</span>

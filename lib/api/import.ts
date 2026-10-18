@@ -20,6 +20,9 @@ import type {
   Sourced,
 } from "../tz/types";
 import { dataVersionOf, stableJson } from "../tz/version";
+import { OPERATING_EVIDENCE_MAX_CHARS, parseOperatingEvidence } from "../catalog/operating-evidence";
+import { parseServiceCharacteristic } from "../catalog/service-evidence";
+import { SERVICE_PROVIDERS_MAX_CHARS } from "../implementation/service-directory";
 
 /**
  * Импорт продуктов каталога через API (POST /api/v1/catalog/import, ТЗ §3.3.2 «загрузка
@@ -68,14 +71,14 @@ export const API_IMPORT_ORIGINS = ["organizer", "research", "estimate", "derived
  */
 export const SOURCE_TYPES_BY_ORIGIN: Readonly<Record<(typeof API_IMPORT_ORIGINS)[number], readonly SourceType[]>> = {
   organizer: ["organizer:dataset", "organizer:catalog", "organizer:examples"],
-  research: ["manufacturer", "manufacturer-doc", "dealer", "aggregator", "press"],
+  research: ["manufacturer", "manufacturer-doc", "field-measurement", "contract-reference", "dealer", "aggregator", "press"],
   derived: ["calc"],
   estimate: ["team-estimate"],
   choice: ["team-estimate"],
 };
 
 const LEVELS: ReadonlySet<string> = new Set<ProductLevel>(["identification", "enriched", "examples"]);
-const STATUSES: ReadonlySet<string> = new Set<ProductStatus>(["operation", "piloting", "rnd"]);
+const STATUSES: ReadonlySet<string> = new Set<ProductStatus>(["operation", "piloting", "rnd", "unknown"]);
 const SCOPES: ReadonlySet<string> = new Set<Scope>(["per-robot", "per-station", "per-channel", "per-fleet"]);
 const FLAGS: ReadonlySet<string> = new Set<ProductFlag>([
   "duplicate-merged",
@@ -248,7 +251,7 @@ function stringList(v: unknown, label: string, maxItems: number, maxLen: number,
 }
 
 /** Значение характеристики: число, диапазон {min?, max?, typical, qualifier?}, текст или список. */
-function checkCharValue(v: unknown, where: string, errors: string[]): CharValue | null {
+function checkCharValue(v: unknown, where: string, errors: string[], textLimit: number = LIMITS.text): CharValue | null {
   if (finite(v)) return v;
   if (typeof v === "number") {
     errors.push(`${where}: число должно быть конечным`);
@@ -257,7 +260,7 @@ function checkCharValue(v: unknown, where: string, errors: string[]): CharValue 
   if (typeof v === "string") {
     const s = v.trim();
     if (s === "") errors.push(`${where}: пустой текст — не передавайте характеристику без значения`);
-    else if (s.length > LIMITS.text) errors.push(`${where}: текст не длиннее ${LIMITS.text} символов`);
+    else if (s.length > textLimit) errors.push(`${where}: текст не длиннее ${textLimit} символов`);
     return s;
   }
   if (Array.isArray(v)) {
@@ -304,6 +307,7 @@ function checkSourced(
   where: string,
   nested: boolean,
   errors: string[],
+  textLimit: number = LIMITS.text,
 ): Sourced<CharValue> | null {
   if (!isPlainObject(raw)) {
     errors.push(`${where}: должно быть объектом {value, origin, sourceType, sourceUrl, date, confirmed, …}`);
@@ -314,7 +318,7 @@ function checkSourced(
   const extra = extraFields(raw, allowed);
   if (extra.length > 0) errors.push(`${where}: неизвестные поля ${extra.join(", ")}`);
 
-  const value = checkCharValue(raw.value, `${where}.value`, errors);
+  const value = checkCharValue(raw.value, `${where}.value`, errors, textLimit);
 
   const origin = raw.origin;
   const originOk = typeof origin === "string" && (API_IMPORT_ORIGINS as readonly string[]).includes(origin);
@@ -325,6 +329,7 @@ function checkSourced(
   }
   const o = origin as (typeof API_IMPORT_ORIGINS)[number];
   const sourceType = raw.sourceType;
+  if (nested && (sourceType === "field-measurement" || sourceType === "contract-reference")) errors.push(`${where}: замеры и договорные условия хранятся отдельно от альтернатив паспорта`);
   if (originOk && (typeof sourceType !== "string" || !SOURCE_TYPES_BY_ORIGIN[o].includes(sourceType as SourceType))) {
     errors.push(`${where}: при origin «${o}» sourceType — одно из ${SOURCE_TYPES_BY_ORIGIN[o].join(", ")}`);
   }
@@ -360,8 +365,12 @@ function checkSourced(
   if (originOk) {
     if (o === "organizer" && !sourceRef) errors.push(`${where}: у значения из базовых данных (origin: organizer) нужен sourceRef — где именно (файл, лист, строка)`);
     if (o === "research") {
-      if (!sourceUrl) errors.push(`${where}: у значения из открытого источника нужна ссылка sourceUrl`);
-      if (!asInSource) errors.push(`${where}: у значения из открытого источника нужна цитата asInSource — как в источнике`);
+      if (sourceType === "field-measurement" || sourceType === "contract-reference") {
+        if (!sourceRef) errors.push(`${where}: у полевого замера нужен sourceRef — акт или журнал наблюдений`);
+      } else {
+        if (!sourceUrl) errors.push(`${where}: у значения из открытого источника нужна ссылка sourceUrl`);
+        if (!asInSource) errors.push(`${where}: у значения из открытого источника нужна цитата asInSource — как в источнике`);
+      }
     }
     if ((o === "estimate" || o === "derived" || o === "choice") && !basis) {
       errors.push(`${where}: у оценки, вычисления или выбора нужно обоснование basis`);
@@ -483,7 +492,24 @@ function checkSeed(raw: unknown, where: string, errors: string[]): ProductSeed |
         errors.push(`${where}.characteristics: ключ «${key}» не входит в словарь характеристик`);
         continue;
       }
-      const checked = checkSourced(s, `${where}.characteristics.${key}`, false, errors);
+      const checked = checkSourced(s, `${where}.characteristics.${key}`, false, errors, key === "operatingEvidence" ? OPERATING_EVIDENCE_MAX_CHARS : key === "serviceProviders" ? SERVICE_PROVIDERS_MAX_CHARS : LIMITS.text);
+      if (checked?.sourceType === "field-measurement" && key !== "operatingEvidence") errors.push(`${where}: полевой замер хранится отдельно, в operatingEvidence`);
+      if (checked?.sourceType === "contract-reference" && key !== "serviceProviders") errors.push(`${where}: договорные сведения сервиса хранятся отдельно, в serviceProviders`);
+      if (checked && key === "operatingEvidence") {
+        try {
+          if (typeof checked.value !== "string") throw new Error("Данные замера должны быть JSON-текстом");
+          const evidence = parseOperatingEvidence(checked.value);
+          if (checked.confirmed && !evidence.confirmed) throw new Error("Нельзя подтвердить характеристику, если сам замер не подтверждён");
+          if (evidence.productSlug !== slug || !processes.includes(evidence.process) || !facilityTypes.includes(evidence.facility)) throw new Error("Решение, процесс или тип объекта замера не совпадает с карточкой");
+          checked.value = JSON.stringify(evidence);
+        } catch (error) { errors.push(`${where}.operatingEvidence: ${error instanceof Error ? error.message : "Некорректный замер"}`); }
+      }
+      if (checked && key === "serviceProviders") {
+        try {
+          if (typeof checked.value !== "string") throw new Error("Сведения сервиса должны быть JSON-текстом");
+          checked.value = JSON.stringify(parseServiceCharacteristic(checked.value, checked.confirmed));
+        } catch (error) { errors.push(`${where}.serviceProviders: ${error instanceof Error ? error.message : "Некорректные сведения сервиса"}`); }
+      }
       if (checked) characteristics[key] = checked;
     }
   }

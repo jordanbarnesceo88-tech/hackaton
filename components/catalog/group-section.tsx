@@ -8,6 +8,7 @@ import {
   CHARACTERISTIC_COLUMNS,
   CHARACTERISTIC_HEADERS,
   CharacteristicRow,
+  characteristicLabel,
   MissingCharacteristicRow,
 } from "./characteristic-row";
 
@@ -84,7 +85,9 @@ export function GroupSection({
         </span>
       </div>
       {children}
-      <div className="data-table-wrap relative">
+      <p id={`${id}-scroll-hint`} className="text-xs text-muted-foreground md:hidden">Прокрутите таблицу вправо → там источник, дата и подтверждение каждого значения.</p>
+      {group === "DATA_QUALITY" && <p className="text-xs text-muted-foreground">Общая проверка карточки и проверка отдельных характеристик учитываются отдельно. Источник и дата каждого значения указаны в его строке.</p>}
+      <div className="data-table-wrap relative" tabIndex={0} role="region" aria-label={`Таблица: ${CHAR_GROUP_LABELS[group]}`} aria-describedby={`${id}-scroll-hint`}>
         <table className="w-full border-collapse text-sm" aria-labelledby={id}>
           <thead className="border-b text-left text-xs text-muted-foreground">
             <tr>
@@ -104,7 +107,7 @@ export function GroupSection({
               <CharacteristicRow key={c.key} c={c} />
             ))}
             {stats.absentKeys.map((k) => (
-              <MissingCharacteristicRow key={k} label={CHARACTERISTIC_KEYS[k].label} />
+              <MissingCharacteristicRow key={k} label={characteristicLabel(k, CHARACTERISTIC_KEYS[k].label)} />
             ))}
             {rows.length === 0 && stats.absentKeys.length === 0 && (
               <tr className="border-t">

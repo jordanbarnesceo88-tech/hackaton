@@ -5,6 +5,7 @@ import type { ScenarioContext } from "./context";
 import { FORMULAS } from "./formulas";
 import { charOrigin } from "./internal";
 import { fx, q } from "./text";
+import { assessOperatingEvidence, type OperatingEvidenceDecision } from "../../catalog/operating-evidence";
 
 /**
  * Производительность и размер парка (ТЗ §3.5.2: «пиковая потребность в операциях /
@@ -29,6 +30,7 @@ export type ThroughputResult = {
   /** Почему паспортная норма не пошла в расчёт (для подстановки); null — пошла или её нет. */
   normSkipped: string | null;
   trace: TraceStep[];
+  evidence?: OperatingEvidenceDecision;
 };
 
 /** Сравнение единиц без учёта регистра, пробелов и синонимов «поддон/паллет», «час/ч». */
@@ -78,7 +80,7 @@ export function normThroughput(
  * код отказывает throughput_required).
  */
 export function throughputFor(
-  ctx: Pick<ScenarioContext, "products" | "processes" | "cycle"> & { norms?: NormValues },
+  ctx: Pick<ScenarioContext, "products" | "processes" | "cycle"> & { norms?: NormValues; facility?: string },
   item: ScenarioItem,
 ): ThroughputResult {
   const product = ctx.products[item.productSlug];
@@ -117,9 +119,26 @@ export function throughputFor(
     thrEff = norm.value;
     thrSource = "норма";
   }
+  const evidence = product.operatingEvidence ? assessOperatingEvidence(product.operatingEvidence, {
+    productSlug: product.slug, process: process.slug, facility: ctx.facility ?? "", mode: item.operatingMode,
+    unit: process.throughputUnit, confirmed: product.operatingEvidenceConfirmed === true, asOf: product.operatingEvidenceEvaluatedOn,
+  }) : undefined;
+  const beforeEvidence = thrEff;
+  if (evidence?.applied && evidence.observedPerH !== null) {
+    // A shift-hour measurement already includes waiting, charging and other observed downtime.
+    const comparable = thrEff === null ? null : thrEff * (evidence.basis === "shift-hour" ? (ctx.norms?.utilization ?? 1) * (ctx.norms?.availability ?? 1) : 1);
+    const capped = Math.min(comparable ?? evidence.observedPerH, evidence.observedPerH);
+    thrEff = capped > 0 ? capped : null;
+    thrSource = "замер";
+  }
 
   const unit = process.throughputUnit;
   const trace: TraceStep[] = [];
+  if (evidence?.applied && evidence.observedPerH !== null) trace.push({
+    key: "fieldThroughput", label: `Проверенный полевой замер — ${product.name}`, formula: "выработка = объём / объявленное время наблюдения; принятая = min(сопоставимый расчёт; замер)",
+    substituted: `${evidence.reason} Наблюдалось ${fx(evidence.observedPerH)} ${process.throughputUnit}; исходный расчёт ${beforeEvidence === null ? "не определён" : fx(beforeEvidence)}; принято ${thrEff === null ? "нет положительной выработки" : fx(thrEff)}. ${evidence.basis === "shift-hour" ? "Расчётная выработка приведена к часу смены; загрузка и доступность второй раз не применяются." : "Простои оцениваются отдельно через загрузку и доступность."}`,
+    value: evidence.observedPerH, unit: process.throughputUnit, origin: "derived",
+  });
   if (norm.value !== null) {
     trace.push({
       key: "thrNorm",
@@ -146,7 +165,8 @@ export function throughputFor(
   }
   if (thrEff !== null) {
     const parts: string[] = [];
-    if (thrSource === "задано вами") parts.push(`задано вами: ${fx(thrEff)}`);
+    if (thrSource === "замер") parts.push(`с учётом сопоставимого полевого замера: ${fx(thrEff)}; ${evidence!.reason}`);
+    else if (thrSource === "задано вами") parts.push(`задано вами: ${fx(thrEff)}`);
     else if (norm.value !== null && thrCycle !== null) {
       parts.push(`min(${fx(norm.value)}; ${fx(thrCycle)}) = ${fx(thrEff)}`);
     } else parts.push(`${fx(thrEff)} (${thrSource === "цикл" ? "по циклу" : "паспортная норма"})`);
@@ -170,6 +190,7 @@ export function throughputFor(
     routeEmptyM,
     normSkipped: norm.skipped,
     trace,
+    ...(evidence ? { evidence } : {}),
   };
 }
 

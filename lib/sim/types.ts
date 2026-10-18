@@ -131,6 +131,8 @@ export type SimInput = {
   layout: SimLayoutParams;
   /** Explicit obstacle-aware site; omitted for the unchanged standard warehouse model. */
   siteLayout?: SimLayout;
+  /** Explicit deterministic pedestrian model; absent means people are not simulated. */
+  pedestrians?: PedestrianInput;
   robots: RobotSimParams;
   /**
    * Поток заданий: сначала `warmupMin` минут на среднем потоке, затем `peakMin` минут на
@@ -143,6 +145,18 @@ export type SimInput = {
   thresholds: { servedShareMin: number; p95WaitMaxMin: number; oversizedIdleShare: number };
   /** Порог ухода на зарядку и возврата с неё, доли заряда (нормативы chargeStartSoc/chargeStopSoc). */
   charge: { startSoc: number; stopSoc: number };
+};
+
+export type PedestrianInput = {
+  version: "pedestrians-1";
+  /** Omitted: fixed-clock adversarial trajectory. Controlled: desired schedule, safe curb admission. */
+  policy?: "fixed-trajectory" | "controlled-crossing";
+  crossingWidthM?: number;
+  reactionTimeS: number;
+  decelerationMps2: number;
+  accelerationMps2: number;
+  clearanceM: number;
+  people: { id: string; radiusM: number; trajectory: { tS: number; x: number; y: number }[] }[];
 };
 
 /**

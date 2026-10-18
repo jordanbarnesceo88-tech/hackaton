@@ -754,8 +754,12 @@ function aboutSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
   r++;
 
   titleCell(ws, r++, "Как устроен файл");
-  const notes = [
-    "Числа — результат расчёта платформы на момент выгрузки. Итоги CAPEX и OPEX, эффект и поток каждого года, окупаемость, ROI, NPV и TCO записаны живыми формулами Excel от ячеек таблиц: при изменении ячейки итоги пересчитываются.",
+  const archived = results.modelVersion !== TZ_MODEL_VERSION || results.simModelVersion !== SIM_MODEL_VERSION;
+  const notes = archived ? [
+    "Числа — сохранённый результат архивной версии. Показатели выгружены значениями без живых формул Excel; изменение ячеек не пересчитывает архив. Текущая методика не подставляется вместо сохранённой.",
+    MANUAL_NOTE,
+  ] : [
+    "Числа — результат сохранённого расчёта платформы. Итоги CAPEX и OPEX, эффект и поток каждого года, окупаемость, ROI, NPV и TCO записаны живыми формулами Excel от ячеек таблиц: при изменении ячейки итоги пересчитываются.",
     "NPV записан как «поток года 0 + NPV(ставка; потоки лет 1…H)»: функция Excel NPV дисконтирует уже первое значение диапазона, поэтому вложения года 0 прибавляются отдельно.",
     "В русском Excel аргументы формул разделяются «;», а в файле хранятся через «,» — Excel покажет их сам.",
     MANUAL_NOTE,
@@ -763,16 +767,18 @@ function aboutSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
   for (const n of notes) putRow(ws, r++, ["", n]);
   r++;
 
-  titleCell(ws, r++, "Формулы модели");
+  titleCell(ws, r++, `Формулы модели ${results.methodologySnapshot?.modelVersion ?? results.modelVersion}`);
   headerRow(ws, r++, ["Показатель", "Формула", "Единицы", "Источник формулы"]);
-  for (const f of formulaRows()) {
+  const formulas = formulaRows(results);
+  if (formulas.length === 0) noteRow(ws, r++, "Снимок определений формул не сохранён. Текущие формулы не подставлены; см. сохранённые подстановки в статьях затрат.");
+  for (const f of formulas) {
     const row = putRow(ws, r++, [f.title, f.expression, f.units, f.source]);
     row.getCell(2).alignment = { vertical: "top", wrapText: true };
   }
   r++;
 
   titleCell(ws, r++, "Ограничения модели");
-  for (const l of modelLimitations()) {
+  for (const l of modelLimitations(results)) {
     const row = putRow(ws, r++, ["", l]);
     row.getCell(2).alignment = { vertical: "top", wrapText: true };
   }

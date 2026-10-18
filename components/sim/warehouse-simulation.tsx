@@ -12,6 +12,7 @@ import { SIM_FOOTER, exportSimPng } from "./export-png";
 import { parseSimInputKey, simInputKey } from "./input-key";
 import { canvasAriaLabel, statusText, storedCheck, withFinalVerdict, type RunStatus } from "./kpi-text";
 import { DEFAULT_SPEED } from "./playback";
+import { CadPlanConcept } from "./cad-plan-concept";
 import { isAbortError, runHeadless } from "./run-headless";
 import { SimIsoScene } from "./sim-iso-scene";
 import { SimControls } from "./sim-controls";
@@ -147,6 +148,7 @@ export function WarehouseSimulation({
         selection={scenario && variant && input ? { scenarioKey: scenario.key, scenarioName: scenario.name, variantId: "calculated", input,
           ...(variant.provenance ? { provenance: variant.provenance } : {}),
           ...(scenario.assumedUtilPct === undefined ? {} : { assumedUtilPct: scenario.assumedUtilPct }) } : null} />}
+      {spatial && <CadPlanConcept />}
       {input && <details className="min-w-0 border-t border-border pt-3" open={analyticalOpen}
         onToggle={event => setAnalyticalOpen(event.currentTarget.open)}>
         <summary className="tap-target cursor-pointer text-sm font-medium">Упрощённая аналитическая проверка</summary>

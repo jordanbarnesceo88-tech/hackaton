@@ -52,8 +52,8 @@ export function projectAuditDiff(
       const k = norm as keyof NonNullable<ScenarioSpec["normOverrides"]>;
       add(`norm:${norm}`, old.normOverrides?.[k], spec.normOverrides?.[k], key, isNormKey(norm) ? normDef(norm).unit : undefined);
     }
-    const scenarioFields = { pilotPlan: "pilot", terminalResidualRub: "residual", operationsStaffing: "staffing",
-      cashRealizationShare: "cashShare", siteLayout: "site", simSeed: "seed" } as const;
+    const scenarioFields = { pilotPlan: "pilot", terminalResidualRub: "residual", operationsStaffing: "staffing", logistics: "logistics",
+      cashRealizationShare: "cashShare", siteLayout: "site", pedestrians: "pedestrians", simSeed: "seed" } as const;
     for (const [property, field] of Object.entries(scenarioFields)) {
       const p = property as keyof typeof scenarioFields;
       add(`scenario:${field}`, old[p], spec[p], key, field === "residual" ? "₽" : undefined);
@@ -67,7 +67,7 @@ export function projectAuditDiff(
       const prior = oldItems.get(item.process), process = item.process;
       if (!prior) { add(`item:${process}:add`, null, item, key); continue; }
       if (itemsReordered) add(`item:${process}:order`, old.items.findIndex(i => i.process === process), itemIndex, key);
-      const fields = { productSlug: "product", quantityOverride: "quantity", chargersOverride: "chargers",
+      const fields = { productSlug: "product", operatingMode: "operatingMode", quantityOverride: "quantity", chargersOverride: "chargers",
         automationCoverageOverride: "coverage", priceRubOverride: "price", throughputPerHOverride: "throughput",
         serviceRubYearOverride: "service", raasRubMonthOverride: "raasRate", raasFromEstimate: "raasEstimate", costPackage: "package" } as const;
       for (const [property, field] of Object.entries(fields)) {
@@ -229,6 +229,7 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   raasRate: "Ставка RaaS в месяц за робота",
   manual: "Решение добавлено вручную",
   package: "Комплектация и границы платежей",
+  operatingMode: "Режим сопоставления полевого замера",
   product: "Выбранное решение",
   chargers: "Число зарядных станций",
   coverage: "Оценочная доля годовой нагрузки",
@@ -253,9 +254,10 @@ export function changeFieldLabel(
   if (field === "project:name") return "Название проекта";
   const scenarioLabels: Record<string, string> = { name: "Название сценария", kind: "Способ внедрения", order: "Порядок сценария",
     pilot: "План и смета пилота", residual: "Чистая остаточная стоимость", cashShare: "Доля денежной реализации эффекта",
-    site: "Исходная планировка сценария", seed: "Зерно имитации" };
+    site: "Исходная планировка сценария", pedestrians: "Модель пешеходов и параметры перехода", seed: "Зерно имитации" };
   if (field.startsWith("scenario:") && scenarioLabels[field.slice(9)]) return scenarioLabels[field.slice(9)]!;
   if (field === "scenario:staffing") return "Организация и дополнительные расходы эксплуатации";
+  if (field === "scenario:logistics") return "Доставка полного внедрения";
   if (field.startsWith("param:")) {
     const key = field.slice("param:".length);
     return `Параметр: ${paramLabels[key] ?? key}`;

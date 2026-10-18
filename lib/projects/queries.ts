@@ -1,15 +1,17 @@
 import { checkSpatialEvidence } from "./validate";
 import type { Prisma, PrismaClient, ScenarioKind as DbScenarioKind } from "@prisma/client";
 import { getParamDefinitions, type Db } from "../catalog/queries";
+import { productsAtEvidenceDate } from "../catalog/evidence-date";
 import { paramSpecsFor } from "../data/organizer/params";
 import { processesForFacility } from "../tz/processes";
 import type { ParamValues, PendingChange, ProjectResults, ScenarioKind, ScenarioSpec } from "../tz/types";
 import { changeFieldLabel, projectAuditDiff, serverAutoFrom, toChangeLogRows } from "./changes";
 import { resultsFromInputsAsync, type ComputedProject, type LiveInputs } from "./recalc";
 import { checkExecution } from "../sim/cooperative";
-import { checkScenarioSiteLayout, validProjectRevision } from "./validate";
+import { checkScenarioPedestrians, checkScenarioSiteLayout, validProjectRevision } from "./validate";
 import { parsePilotPlanInput } from "../tz/pilot-budget";
 import { parseOperationsStaffing } from "../tz/econ/labour";
+import { parseDeploymentLogistics } from "../tz/deployment-logistics";
 
 /**
  * Чтение и запись проектов (ТЗ §3.1.3 — проекты пользователя, §4.4.2 — изоляция данных).
@@ -99,6 +101,7 @@ export function scenarioFromRow(row: {
   };
   if (isPlainObject(spec.normOverrides)) out.normOverrides = spec.normOverrides as ScenarioSpec["normOverrides"];
   if (spec.operationsStaffing !== undefined) out.operationsStaffing = parseOperationsStaffing(spec.operationsStaffing);
+  if (spec.logistics !== undefined) out.logistics = parseDeploymentLogistics(spec.logistics);
   if (spec.cashRealizationShare !== undefined) {
     const share = spec.cashRealizationShare;
     if (typeof share !== "number" || !Number.isFinite(share) || share < 0 || share > 1) throw new Error("В сохранённом сценарии некорректна доля денежного эффекта");
@@ -106,6 +109,7 @@ export function scenarioFromRow(row: {
   }
   if (spec.spatialEvidence !== undefined) out.spatialEvidence = checkSpatialEvidence(spec.spatialEvidence);
   if (spec.siteLayout !== undefined) out.siteLayout = checkScenarioSiteLayout(spec.siteLayout);
+  if (spec.pedestrians !== undefined) { if(out.kind==="asis")throw new Error("В сценарии «Как есть» недопустима модель пешеходов");out.pedestrians=checkScenarioPedestrians(spec.pedestrians,out.siteLayout); }
   if (spec.simSeed !== undefined) {
     if (!Number.isSafeInteger(spec.simSeed)) throw new Error("В сохранённом сценарии некорректно зерно имитации");
     out.simSeed = spec.simSeed as number;
@@ -449,7 +453,7 @@ export async function storeProjectCalculation(
     params: input.params,
     scenarios: input.scenarios,
     snapshot: input.snapshot
-      ? { productSnapshots: input.snapshot.productSnapshots, normsUsed: input.snapshot.normsUsed }
+      ? { productSnapshots: productsAtEvidenceDate(input.snapshot.productSnapshots, new Date().toISOString().slice(0, 10)), normsUsed: input.snapshot.normsUsed }
       : null,
   });
   checkExecution({ signal: input.signal });

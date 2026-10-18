@@ -212,7 +212,7 @@ export function equipmentRows(results: ReportResults): EquipmentReportRow[] {
         productName: it.manuallyAdded ? `${it.productName} ${MANUAL_MARK}` : it.productName,
         unit: processDef(it.process)?.throughputUnit ?? "",
         item: it,
-        note: [refusal, it.operatingStaffScope === "site-allocation" ? "Эксплуатационный персонал рассчитан один раз на весь парк; эта строка содержит распределённую долю затрат, не отдельный пост" : ""].filter(Boolean).join("; "),
+        note: [refusal, it.operatingStaffScope === "site-allocation" ? "Эксплуатационный персонал рассчитан один раз на весь парк; эта строка содержит распределённую долю затрат, не отдельный пост" : "", it.thrEvidence?.reason ?? ""].filter(Boolean).join("; "),
       });
     }
   }
@@ -441,7 +441,8 @@ export function riskRows(results: ReportResults): RiskReportRow[] {
  */
 export type FormulaReportRow = { key: string; title: string; expression: string; units: string; source: string };
 
-export function formulaRows(): FormulaReportRow[] {
+export function formulaRows(results?: ReportResults): FormulaReportRow[] {
+  if (results) return results.methodologySnapshot ? structuredClone(results.methodologySnapshot.formulas) : [];
   return (Object.keys(FORMULAS) as FormulaKey[]).map((key) => {
     const f = FORMULAS[key];
     return { key, title: f.title, expression: f.expression, units: f.units, source: formulaSourceLabel(f.source) };
@@ -449,6 +450,9 @@ export function formulaRows(): FormulaReportRow[] {
 }
 
 /** Ограничения модели (ТЗ §3.5.8, §5.7). */
-export function modelLimitations(): readonly string[] {
+export function modelLimitations(results?: ReportResults): readonly string[] {
+  if (results) return results.methodologySnapshot ? [...results.methodologySnapshot.limitations] : [MISSING_METHODOLOGY_SNAPSHOT];
   return MODEL_LIMITATIONS;
 }
+
+export const MISSING_METHODOLOGY_SNAPSHOT = "В этом сохранённом расчёте нет снимка формул и ограничений его версии. Текущая методика не подставлена вместо архивной. Сохранённые подстановки и источники доступны в статьях затрат и трассировке сценариев; для расчёта по новой методике явно пересчитайте проект или его копию.";

@@ -50,7 +50,7 @@ export function MatchedComparison({ comparison, onAdopt, readOnly = false }: Mat
       {comparison.reason && <p className="callout text-sm" data-tone="warning">{comparison.reason}</p>}
       {comparison.rows.length > 0 && <>
         <p className="text-sm">NPV: горизонт {a.horizonYears ?? "не определён"} лет, ставка {formatPct(a.discountRate * 100, 2)}. Общие нормативы и трудовые допущения взяты из исходного сценария.</p>
-        <p className="text-sm">У исходной модели сохраняется заданный парк; у других парк рассчитан по их характеристикам. Цены, сервисные корректировки и пакет исходного продукта другим моделям не передаются. Смета пилота задаётся после выбора.</p>
+        <p className="text-sm">У исходной модели сохраняется заданный парк; у других парк рассчитан по их характеристикам. Цены, сервисные корректировки и пакет исходного продукта другим моделям не передаются. Условия доставки сохраняются только для исходного продукта и способа приобретения; остальные варианты требуют своей оценки. Смета пилота задаётся после выбора.</p>
         <div className="max-w-full overflow-x-auto"><table className="block w-full text-left text-sm md:table">
           <caption className="sr-only">Модели, состав, предварительные финансовые показатели и независимый статус физической проверки</caption>
           <thead className="hidden md:table-header-group"><tr className="border-b border-border"><th className="p-2">Модель / условия</th><th className="p-2">N / C</th><th className="p-2">CAPEX</th><th className="p-2">OPEX/год</th><th className="p-2">NPV</th><th className="p-2">Окупаемость</th><th className="p-2">Проверка потока</th><th className="p-2">Выбор</th></tr></thead>

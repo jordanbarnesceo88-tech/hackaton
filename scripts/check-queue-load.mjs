@@ -47,7 +47,7 @@ async function main(){
  let monitoring=true, monitor;
  const ids=Array.from({length:50},()=>crypto.randomUUID());
  try{
-  const health=await(await fetch(base+'/api/health')).json();assert.equal(health.db,true);assert.equal(health.modelVersion,'tz-1.0.6');
+  const health=await(await fetch(base+'/api/health')).json();assert.equal(health.db,true);assert.equal(health.modelVersion,reference.results.modelVersion,'Runtime must match the submitted reference model');
   const current=await db.query('SELECT count(*)::int AS n FROM "CalculationJob" WHERE status IN (\'QUEUED\',\'RUNNING\')');assert.equal(current.rows[0].n,0,'Load contour must start empty');
   const hash=await bcrypt.hash(password,10);
   for(let i=0;i<ids.length;i++)await db.query('INSERT INTO "User" (id,email,"passwordHash",name,"createdAt",role) VALUES ($1,$2,$3,$4,now(),\'USER\')',[ids[i],`${run}-${i}@example.invalid`,hash,run]);

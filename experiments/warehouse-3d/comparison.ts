@@ -67,7 +67,7 @@ function prepareContext(reference: DemoModel, maxFleet: number, faultMode: Compa
   const raw = structuredClone(reference.projectOrigin?.sourceInput ?? reference.financialSourceInput ?? reference.input);
   if (reference.projectOrigin || reference.financialSourceInput) {
     const source = { ...raw, robots: { ...raw.robots, count: reference.input.robots.count } };
-    const fields = ["seed", "layout", "robots", "demand", "loadMassKg", "thresholds", "charge"] as const;
+    const fields = ["seed", "layout", "robots", "demand", "loadMassKg", "thresholds", "charge", "pedestrians"] as const;
     const key = (value: typeof raw) => JSON.stringify(fields.map(field => value[field]));
     if (key(source) !== key(reference.input)) throw new Error("Условия сцены отличаются от исходного сценария; сначала повторите расчёт на согласованных исходных данных");
   }

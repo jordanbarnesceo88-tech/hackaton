@@ -335,7 +335,7 @@ function ProcessComparison({
                 Характеристика
               </th>
               {shown.map((r) => (
-                <th key={r.productSlug} scope="col" className="px-3 py-2 align-bottom font-medium">
+                <th key={r.productSlug} scope="col" className="min-w-32 px-3 py-2 align-bottom font-medium">
                   {r.manuallyAdded ? (
                     <span className="text-caution" title="Добавлено вручную: решение не прошло проверку подбора">
                       ⚠ {r.productName}
@@ -381,7 +381,7 @@ function ProcessComparison({
                             <td
                               key={r.productSlug}
                               className={cn(
-                                "px-3 py-1.5 whitespace-nowrap tabular-nums",
+                                "min-w-32 px-3 py-1.5 whitespace-nowrap tabular-nums",
                                 text === NO_DATA && "text-muted-foreground",
                                 best === i && "font-semibold",
                               )}

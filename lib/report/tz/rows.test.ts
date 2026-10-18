@@ -96,7 +96,7 @@ describe("таблица сценариев", () => {
     expect(byKey("npv").values[col("p1")]).toBe(p.npvRub);
     expect(sp(byKey("payback").cells[col("p1")])).toBe("3,6 года");
     expect(byKey("band").cells[col("p1")]).toBe("средняя окупаемость (3–5 лет)");
-    expect(sp(byKey("composition").cells[col("p1")])).toBe("10 роботов · 1 зарядка · 1 пост диспетчера");
+    expect(sp(byKey("composition").cells[col("p1")])).toBe("10 роботов · 1 зарядка · 1 пост диспетчера; Доставка полного внедрения не оценена и не включена в CAPEX. Резерв непредвиденных расходов не подтверждает её стоимость; запросите условия поставки.");
   });
 
   it("«Как есть»: прочерки вместо эффекта, окупаемости и NPV", () => {

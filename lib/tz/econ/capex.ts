@@ -1,5 +1,6 @@
 import { normDef, type NormValues } from "../norms";
-import type { CostPackage, LineItem, Origin } from "../types";
+import type { CostPackage, DeploymentLogistics, LineItem, Origin } from "../types";
+import { parseDeploymentLogistics } from "../deployment-logistics";
 import { costPackageForItem } from "./cost-package";
 import { FACILITY_PARAM_KEYS, isRonavi, isWaybot, optNum, paramLabel, refuse, type ScenarioContext } from "./context";
 import { CAPEX_LINE_KEYS, FORMULAS, capexFormulaKey, type CapexLineKey } from "./formulas";
@@ -24,6 +25,7 @@ export const CAPEX_LABELS: Readonly<Record<CapexLineKey, string>> = {
   integration: "Интеграция с WMS/ERP",
   commissioning: "Пусконаладка",
   training: "Обучение персонала",
+  logistics: "Доставка полного внедрения",
   reserve: "Резерв (10 %)",
 };
 
@@ -108,6 +110,14 @@ function reserveLine(norms: NormValues, subtotal: number): LineItem {
   const l = line("reserve", subtotal * pct, `${share(pct, 1)} × ${rub(subtotal)}`, normDef("capexReservePct").origin);
   l.label = `Резерв (${share(pct, 1)})`;
   return l;
+}
+
+function logisticsLines(value: DeploymentLogistics | undefined): LineItem[] {
+  if (!value) return [];
+  const logistics = parseDeploymentLogistics(value);
+  return [line("logistics", logistics.mode === "separate" ? logistics.costRub : 0,
+    logistics.mode === "separate" ? `${rub(logistics.costRub)} разово на весь сценарий` : "отдельный платёж 0 ₽ — доставка включена в уже учтённую цену",
+    "user", { overridden: true, originNote: `Основание: ${logistics.source}; смета пилота отдельна` })];
 }
 
 /** Площадь активной зоны для статьи инфраструктуры: activeAreaM2, иначе общая площадь. */
@@ -199,9 +209,10 @@ export function purchaseCapexLines(
   ctx: Pick<ScenarioContext, "params" | "paramLabels">,
   items: readonly ItemCalc[],
   norms: NormValues,
+  logistics?: DeploymentLogistics,
 ): LineItem[] {
   const merged = mergeLines(items.map(purchaseItemLines));
-  const lines = ordered([...merged, infrastructureLine(ctx, items, norms)]);
+  const lines = ordered([...merged, infrastructureLine(ctx, items, norms), ...logisticsLines(logistics)]);
   return [...lines, reserveLine(norms, sumLines(lines))];
 }
 
@@ -209,7 +220,7 @@ export function purchaseCapexLines(
  * CAPEX услуги (RaaS): интеграция + обучение + резерв; оборудование, станции, инфраструктура,
  * ПО и пусконаладка приняты входящими в подписку (допущение — проверить в договоре).
  */
-export function raasCapexLines(items: readonly ItemCalc[], norms: NormValues): LineItem[] {
+export function raasCapexLines(items: readonly ItemCalc[], norms: NormValues, logistics?: DeploymentLogistics): LineItem[] {
   for (const c of items) costPackageForItem(c.item, { kind: "raas", chargers: c.chargers });
   const merged = mergeLines(
     items.map((c) => [
@@ -221,6 +232,6 @@ export function raasCapexLines(items: readonly ItemCalc[], norms: NormValues): L
       trainingLine(c),
     ]),
   );
-  const lines = ordered([...merged, included("infrastructure")]);
+  const lines = ordered([...merged, included("infrastructure"), ...logisticsLines(logistics)]);
   return [...lines, reserveLine(norms, sumLines(lines))];
 }

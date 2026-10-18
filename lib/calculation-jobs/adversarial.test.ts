@@ -14,10 +14,11 @@ import {
   reapExpiredJobs,
 } from "./store";
 import { engineRelease } from "./types";
-import { computeFrozenCalculation, enqueueCalculation, publishFrozenCalculation } from "./service";
+import { computeFrozenCalculation, enqueueCalculation, publishFrozenCalculation, type FrozenCalculationInput } from "./service";
 
-/** Independent real-PostgreSQL failure cases. The computation is replaced by a tiny value;
- * transaction locking, fencing, CAS and publication use the real store and real database.
+/** Independent real-PostgreSQL failure cases. Store-only cases use tiny computed values;
+ * the evidence-date case also executes the actual frozen calculation.
+ * Transaction locking, fencing, CAS and publication use the real store and database.
  * Native worker kill/restart and engine parity require separate process-level acceptance. */
 const prefix = `job-adversary-${randomUUID()}-`;
 let owner = "";
@@ -72,6 +73,55 @@ function duringPreparation(interleave: (tx: Prisma.TransactionClient, prepare: (
 }
 
 describe("independent durable-calculation failure boundaries", () => {
+  it("SAVE freezes the new evidence evaluation date while retaining the archived observation and service contract", async () => {
+    const create = await enqueueCalculation(prisma, owner, { operation: "CREATE", name: `${prefix}evidence-date`, facility: "warehouse" }, randomUUID());
+    const claim = await claimJob(prisma, { workerId: "evidence-date-create" });
+    if (!claim || claim.job.id !== create.id) throw new Error("Expected isolated CREATE claim");
+    const computed = await computeFrozenCalculation(claim.run.input);
+    await completeJob(prisma, claim, computed, publishFrozenCalculation);
+    const published = await getOwnedJob(prisma, owner, create.id);
+    if (!published?.projectId) throw new Error("Expected published project");
+    const archived = structuredClone(computed.results), product = archived.productSnapshots["ronavi-h1500"];
+    if (!product) throw new Error("Expected real Ronavi snapshot");
+    product.operatingEvidence = { schemaVersion: "operating-evidence-1", productSlug: product.slug,
+      process: "pallet-transport", facility: "warehouse", mode: "transport", unit: "паллет/ч", site: "Синтетическая фикстура",
+      measuredAt: "2020-01-01", verifiedAt: "2020-01-02", validUntil: "2020-12-31", sourceRef: "Синтетический акт теста",
+      measuredBy: "Тест", samples: 3, output: 100, operatingMinutes: 60, elapsedMinutes: 120, basis: "operating-hour", confirmed: true };
+    product.operatingEvidenceConfirmed = true; product.operatingEvidenceEvaluatedOn = "2020-01-03";
+    if (!product.implementation?.providers[0]) throw new Error("Expected source-backed Ronavi contact");
+    Object.assign(product.implementation.providers[0], {
+      name: "Сохранённый контакт — синтетическая фикстура",
+      verification: "contract-reference", sourceRef: "Синтетический договор теста №1",
+      responseSla: "4 рабочих часа по тестовому договору", onsiteSla: "2 рабочих дня по тестовому договору",
+    });
+    for (const scenario of archived.scenarios) {
+      for (const item of scenario.items) if (item.productSlug === product.slug) item.operatingMode = "transport";
+    }
+    await prisma.project.update({ where: { id: published.projectId }, data: { results: JSON.parse(JSON.stringify(archived)) } });
+    const persistedArchive = (await prisma.project.findUniqueOrThrow({ where: { id: published.projectId } })).results;
+    const key = randomUUID(), intent = { operation: "SAVE", projectId: published.projectId, expectedRevision: 0,
+      params: archived.paramsUsed, scenarios: archived.scenarios, changes: [] };
+    const accepted = await enqueueCalculation(prisma, owner, intent, key);
+    const storedRun = await prisma.calculationRun.findUniqueOrThrow({ where: { id: accepted.runId } });
+    const frozen = storedRun.input as unknown as FrozenCalculationInput;
+    const nextProduct = frozen.input.snapshot?.productSnapshots[product.slug];
+    expect(nextProduct?.operatingEvidenceEvaluatedOn).toBe(new Date().toISOString().slice(0, 10));
+    expect(nextProduct?.operatingEvidence).toEqual(product.operatingEvidence);
+    expect(nextProduct?.implementation).toEqual(product.implementation);
+    expect(frozen.live.products.find(p => p.slug === product.slug)?.implementation?.providers[0]?.name).not.toBe(product.implementation.providers[0].name);
+    expect((await enqueueCalculation(prisma, owner, intent, key)).id).toBe(accepted.id);
+    expect((await prisma.calculationRun.findUniqueOrThrow({ where: { id: accepted.runId } })).inputHash).toBe(storedRun.inputHash);
+    const recalculated = await computeFrozenCalculation(storedRun.input);
+    expect(recalculated.results.productSnapshots[product.slug]?.implementation).toEqual(product.implementation);
+    const observedScenarios = archived.scenarios.filter(scenario => scenario.items.some(item => item.productSlug === product.slug));
+    expect(observedScenarios.length).toBeGreaterThan(0);
+    for (const scenario of observedScenarios) {
+      const result = recalculated.results.results.find(result => result.key === scenario.key);
+      expect(result?.risks.some(risk => risk.code === "FIELD_OBSERVATION_NOT_APPLIED" && risk.text.includes("истёк 2020-12-31"))).toBe(true);
+    }
+    expect((await prisma.project.findUniqueOrThrow({ where: { id: published.projectId } })).results).toEqual(persistedArchive);
+  }, 90_000);
+
   it("two concurrent claims never acquire the same job twice", async () => {
     const run = await fixture();
     const claims = await Promise.all([claimJob(prisma, { workerId: "adversary-a" }), claimJob(prisma, { workerId: "adversary-b" })]);

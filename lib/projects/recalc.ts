@@ -84,10 +84,10 @@ const defaultNow = (): number => performance.now();
  * ParamDefinition пуста (данные не синхронизированы), описания берутся из кода — из тех же
  * данных организатора, которыми её засевает синхронизация.
  */
-export async function loadLiveInputs(db: Db, facility: string): Promise<LiveInputs> {
+export async function loadLiveInputs(db: Db, facility: string, evidenceEvaluatedOn = new Date().toISOString().slice(0, 10)): Promise<LiveInputs> {
   const [defs, products, norms] = await Promise.all([
     getParamDefinitions(db, facility),
-    getCalcProducts(db, facility),
+    getCalcProducts(db, facility, evidenceEvaluatedOn),
     getNorms(db),
   ]);
   if (defs.length > 0) return { paramDefs: defs, products, norms, paramDefsFrom: "db" };

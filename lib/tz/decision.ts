@@ -52,12 +52,16 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   const cashRealizationShare = spec?.cashRealizationShare ?? 1;
   const processes = (ok?.items ?? []).map(item => {
     const definition = processDef(item.process);
+    const shiftHourObservation = item.thrEvidence?.applied === true && item.thrEvidence.basis === "shift-hour";
+    const effectiveUtilization = shiftHourObservation ? 1 : norms.utilization;
+    const effectiveAvailability = shiftHourObservation ? 1 : norms.availability;
     const analyticCoverage = item.n !== null && item.thrEff !== null
-      ? coverage(item.n, item.thrEff, norms.utilization, norms.availability, item.peakPerHour) : null;
+      ? coverage(item.n, item.thrEff, effectiveUtilization, effectiveAvailability, item.peakPerHour) : null;
     return {
       process: item.process, label: definition?.name ?? item.process, productName: item.productName,
       n: item.n, chargers: item.chargers, requiredPerH: item.peakPerHour,
       unit: definition?.throughputUnit ?? "ед./ч", analyticCoverage,
+      shiftHourObservation, effectiveUtilization, effectiveAvailability,
       financialCoverage: item.coverage,
       annualCoverageShare: spec?.items.find(i => i.process === item.process && i.productSlug === item.productSlug)?.automationCoverageOverride ?? null,
       coverageOverridden: spec?.items.find(i => i.process === item.process && i.productSlug === item.productSlug)?.automationCoverageOverride !== undefined,

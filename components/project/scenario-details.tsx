@@ -8,6 +8,7 @@ import { fx, share } from "@/lib/tz/econ/text";
 import { DEFAULT_NORMS, type NormValues } from "@/lib/tz/norms";
 import { processDef } from "@/lib/tz/processes";
 import type { ItemResult, ProductForCalc, ScenarioItem, ScenarioKind, ScenarioResult, ScenarioSpec } from "@/lib/tz/types";
+import { OperatingEvidencePanel } from "./operating-evidence";
 import { CashflowTable } from "./cashflow-table";
 import { LineItems } from "./line-items";
 import { OverrideInput } from "./override-input";
@@ -137,6 +138,7 @@ function ItemCard({
   editable,
   onOverride,
   onCostPackage,
+  onOperatingMode,
 }: {
   view: ItemView;
   kind: ScenarioKind;
@@ -145,6 +147,7 @@ function ItemCard({
   editable: boolean;
   onOverride?: (field: string, value: number | null, reason?: string) => void;
   onCostPackage?: (process: string, value: ScenarioItem["costPackage"]) => void;
+  onOperatingMode?: (process: string, value: string | undefined) => void;
 }) {
   const { result: r, spec: it, product } = view;
   const p = processDef(view.process);
@@ -244,6 +247,7 @@ function ItemCard({
           предложение.
         </p>
       )}
+      <OperatingEvidencePanel product={product} result={r} mode={it?.operatingMode} onMode={editable && onOperatingMode ? value => onOperatingMode(view.process, value) : undefined} />
       {shown.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2">
           {shown.map((f) => (
@@ -305,6 +309,7 @@ export function ScenarioDetails({
   print = false,
   onOverride,
   onCostPackage,
+  onOperatingMode,
 }: {
   result: ScenarioResult;
   /** Описание сценария — источник текущих ручных корректировок (цена, сервис, ставка). */
@@ -322,6 +327,7 @@ export function ScenarioDetails({
   print?: boolean;
   onOverride?: (field: string, value: number | null, reason?: string) => void;
   onCostPackage?: (process: string, value: ScenarioItem["costPackage"]) => void;
+  onOperatingMode?: (process: string, value: string | undefined) => void;
 }) {
   const editable = !print && !readOnly && onOverride !== undefined;
   const views = result.kind === "asis" ? [] : itemViews(result, spec, products);
@@ -358,6 +364,7 @@ export function ScenarioDetails({
               editable={editable}
               onOverride={onOverride}
               onCostPackage={onCostPackage}
+              onOperatingMode={onOperatingMode}
             />
           ))}
         </div>

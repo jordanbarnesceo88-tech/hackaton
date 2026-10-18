@@ -17,6 +17,7 @@ import {
   syncProducts,
 } from "./sync";
 import type { SyncReport } from "./sync";
+import { VENDOR_CLEANING_PRODUCTS } from "../data/vendor-cleaning";
 
 /**
  * Синхронизация данных организатора (T2.1) на настоящем Postgres (набор db).
@@ -481,6 +482,15 @@ describe("сев v2: демо-аккаунты", () => {
     // в архив, а проверяются здесь только аккаунты.
     await cleanup();
     await seedV2(db);
+    const cleaningSlugs = VENDOR_CLEANING_PRODUCTS.map(p => p.slug);
+    const cleaningBefore = await db.catalogProduct.findMany({ where: { slug: { in: cleaningSlugs } }, include: { characteristics: { orderBy: { key: "asc" } } }, orderBy: { slug: "asc" } });
+    expect(cleaningBefore).toHaveLength(3);
+    for (const product of cleaningBefore) {
+      expect(product.origin).toBe("ADMIN");
+      expect(product.priceRub).toBeNull();
+      expect(product.raasRubMonth).toBeNull();
+      expect(product.characteristics.some(c => c.key === "manufacturer" && c.sourceType === "manufacturer" && c.sourceUrl && c.confirmed)).toBe(true);
+    }
     const users = await db.user.findMany({
       where: { email: { in: DEMO_ACCOUNTS.map((a) => a.email) } },
       select: { email: true, role: true, passwordHash: true },
@@ -491,6 +501,7 @@ describe("сев v2: демо-аккаунты", () => {
       ["demo@demo.local", "USER"],
     ]);
     await seedV2(db);
+    expect(await db.catalogProduct.findMany({ where: { slug: { in: cleaningSlugs } }, include: { characteristics: { orderBy: { key: "asc" } } }, orderBy: { slug: "asc" } })).toEqual(cleaningBefore);
     const again = await db.user.findMany({
       where: { email: { in: DEMO_ACCOUNTS.map((a) => a.email) } },
       select: { email: true, passwordHash: true },

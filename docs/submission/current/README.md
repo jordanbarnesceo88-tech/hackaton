@@ -1,6 +1,6 @@
 # Текущий сдаточный комплект
 
-18 октября 2026 г.: tz-1.0.6 / sim-1.2.0 / warehouse-dense-underlift-1.8.0.
+18 октября 2026 г.: tz-1.0.7 / sim-1.2.0 / warehouse-dense-underlift-1.9.0.
 
 - [presentation.pdf](./presentation.pdf) — 15 слайдов продукта, алгоритма, источников, архитектуры и плана развития.
 - [documentation.pdf](./documentation.pdf) — руководство по функционалу, моделям, данным, архитектуре и запуску.

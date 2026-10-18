@@ -3,19 +3,19 @@
   "excelRecalculated": false,
   "scope": "ExcelJS read-only cached values; independently recomputed NPV/TCO/effect/payback/ROI from exported cashflow inputs, no full spreadsheet recalculation, no simulation or database access",
   "project": {
-    "id": "8614080f-e6aa-43a4-a0c6-6593df74f7c7",
+    "id": "d53f3d4c-21b1-4a2d-93d4-d39063b85f87",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-    "revision": 3
+    "revision": 0
   },
   "operation": {
-    "id": "cmvdztn2b000a01pd7lfvhy61",
-    "kind": "SAVE",
+    "id": "cmve3kt6j000p01s06v1fgyu1",
+    "kind": "CREATE",
     "status": "SUCCEEDED",
     "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:d0eb6ee52c1cd6aa3ae02477dc1310781a5ac9711945dc87478674a9c47fc116/alfa-durable-calculation-1"
+    "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1"
   },
-  "modelVersion": "tz-1.0.6",
-  "spatialVersion": "warehouse-dense-underlift-1.8.0",
+  "modelVersion": "tz-1.0.7",
+  "spatialVersion": "warehouse-dense-underlift-1.9.0",
   "finance": [
     {
       "key": "asis",
@@ -73,13 +73,13 @@
   },
   "sheets": 13,
   "sha256": {
-    "calculation-source.json": "890f04f563a8ebe27bbeb924735872481fb49735d8b49edec1c0589362a74e7f",
-    "sample-report.xlsx": "d92357dd16bbc117ca89982c36ffe56e5c7af9cef8e1179d4a5e033b1047bc84",
-    "sample-report.csv": "d3aef4f503040456e4e3a860b1fee37a44d67fe1ca52255ed3e8d43c327c1720",
-    "sample-report.pdf": "ec7079605230f7ab125d2475ef502719e08bcf793953d877a96511a51f902cb2",
-    "steady-flow-receipt.json": "7ef8b6a22e02cfc2cb7b2ef4ab71debb3e8b041055a20850c2ffad93f8637f40",
-    "peak-overload-receipt.json": "7463a511059a5af17dacad720cfcc8e6fe3873bfc540fb59bf121cb3c9745b00",
-    "retained-staff-receipt.json": "8cfee9b01fa6c0df02e840bd334337f378669a3d39e25fd71d10107c1569107e"
+    "calculation-source.json": "0293bc104d43504acf91fe5cde6815bc09d35bcf33a56edf6fab3964d42d4785",
+    "sample-report.xlsx": "a151555cebcd223d92d49d68f4ad439327fcc0063658ee1ddfd4e59342c09db7",
+    "sample-report.csv": "cbfaf9ebb8494e82b30e40da10e28b1d9d54ee6a01f16fe07f2d2837275000ab",
+    "sample-report.pdf": "983c266ba904bc50bb316fbdae31bce390480acbf38b22ea0f6d7acb1ca53ebf",
+    "steady-flow-receipt.json": "d4e7690beb541822562b469aeab7255669dee7f137594d5c70c89886a086765e",
+    "peak-overload-receipt.json": "fdc98c9dfdd4dc9523fc49aefc174009138954420b635aa75a646039e5f02557",
+    "retained-staff-receipt.json": "d001e9ccc6c6af062af71d1c98d5f1638fc9260a70da0a49f7e227167853a4b9"
   },
   "findings": []
 }

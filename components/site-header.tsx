@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Bot, Code2, FolderKanban, LogIn, Package, Shield, UserPlus } from "lucide-react";
+import { BookOpen, Bot, Code2, FolderKanban, LifeBuoy, LogIn, Package, Shield, UserPlus } from "lucide-react";
 import { auth } from "@/auth";
 import { logoutAction } from "@/lib/auth/actions";
 import { isAdminSession } from "@/lib/auth/guards";
@@ -87,6 +87,10 @@ export async function SiteHeader() {
         <Link href="/methodology/tz" className={TAB_CLASS}>
           <BookOpen size={16} aria-hidden={true} />
           Методика
+        </Link>
+        <Link href="/knowledge" className={TAB_CLASS}>
+          <LifeBuoy size={16} aria-hidden={true} />
+          Внедрение
         </Link>
         <Link href="/api-docs" className={TAB_CLASS}>
           <Code2 size={16} aria-hidden={true} />

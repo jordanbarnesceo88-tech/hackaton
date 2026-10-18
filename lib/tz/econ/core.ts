@@ -22,6 +22,7 @@ import {
 } from "./context";
 import { processDemand, type DemandResult } from "./demand";
 import { costPackageForItem } from "./cost-package";
+import { parseDeploymentLogistics } from "../deployment-logistics";
 import { cashflows, dpbOf, npvOf, payback, roiNet, roiTz, tcoAsis, tcoOf, type PeriodicCost } from "./finance";
 import { chargersNeeded, coverage, sizeFleet, throughputFor, type ChargersResult, type ThroughputResult } from "./fleet";
 import { FORMULAS } from "./formulas";
@@ -212,17 +213,20 @@ function physicalOf(ctx: ScenarioContext, item: ScenarioItem, norms: NormValues,
   // Наличие проверено до вызова; повтор — для сужения типов.
   if (!process || !product) refuse("invalid_inputs", "Сценарий ссылается на неизвестный процесс или продукт");
   const demand = processDemand(ctx, process, hours);
-  const thr = throughputFor(ctx, item);
+  const thr = throughputFor({ ...ctx, norms }, item);
   if (thr.thrEff === null) {
     refuse(
       "throughput_required",
-      `Нет производительности для ${q(product.name)}: укажите её вручную в поле «Производительность, ${process.throughputUnit}» или выберите другое решение`,
+      thr.evidence?.applied && thr.evidence.observedPerH === 0
+        ? `Подтверждённый полевой замер ${q(product.name)} показал нулевую выработку. Паспортная производительность её не заменяет; выясните причину и повторите измерение в согласованном режиме.`
+        : `Нет производительности для ${q(product.name)}: укажите её вручную в поле «Производительность, ${process.throughputUnit}» или выберите другое решение`,
       [`item:${process.slug}:throughput`],
     );
   }
   const thrEff = thr.thrEff;
-  const U = norms.utilization;
-  const A = norms.availability;
+  const shiftObserved = thr.evidence?.applied && thr.evidence.basis === "shift-hour";
+  const U = shiftObserved ? 1 : norms.utilization;
+  const A = shiftObserved ? 1 : norms.availability;
   if (!(U > 0 && A > 0 && norms.reservePct >= 0)) {
     refuse("invalid_inputs", "Коэффициенты загрузки и доступности должны быть больше нуля: проверьте нормативы");
   }
@@ -314,6 +318,7 @@ function withLabour(
     thrCycle: ph.thr.thrCycle,
     thrEff: ph.thr.thrEff,
     thrSource: ph.thr.thrSource,
+    ...(ph.thr.evidence ? { thrEvidence: ph.thr.evidence } : {}),
     routeLoadedM: ph.thr.routeLoadedM,
     routeEmptyM: ph.thr.routeEmptyM,
     nExact: ph.nExact,
@@ -416,6 +421,7 @@ function asisResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scena
   const trace: TraceStep[] = [...base.trace];
   try {
     if (spec.operationsStaffing !== undefined) refuse("invalid_inputs", "Дополнительный эксплуатационный персонал задаётся только в сценарии роботизации", ["scenario:operationsStaffing"]);
+    if (spec.logistics !== undefined) refuse("invalid_inputs", "Доставка внедрения задаётся только в сценарии роботизации", ["scenario:logistics"]);
     if (spec.terminalResidualRub !== undefined && spec.terminalResidualRub !== 0) refuse("invalid_inputs", "Остаточная стоимость задаётся в сценарии роботизации для собственных активов", ["scenario:terminalResidualRub"]);
     // H «Как есть» не нужен (нет CAPEX и NPV), но проверяется: без горизонта нет и T.
     const { T } = horizonOf(ctx, norms);
@@ -496,6 +502,10 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     if (spec.kind !== "purchase" && spec.kind !== "raas") {
       refuse("invalid_inputs", `Неизвестный вид сценария ${q(String(spec.kind))}`);
     }
+    if (spec.logistics !== undefined) {
+      try { parseDeploymentLogistics(spec.logistics); }
+      catch (error) { refuse("invalid_inputs", error instanceof Error ? error.message : "Неверные условия доставки", ["scenario:logistics"]); }
+    }
     const specItems = spec.items ?? [];
     if (specItems.length === 0) {
       refuse("invalid_inputs", `В сценарии ${q(spec.name)} не выбрано ни одного решения: добавьте решение`, [
@@ -567,7 +577,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     const { H, T } = horizonOf(ctx, norms);
     const uncovered = base.list.filter((b) => !covered.has(b.process.slug));
     const purchase = spec.kind === "purchase";
-    const capexLines = purchase ? purchaseCapexLines(ctx, calcs, norms) : raasCapexLines(calcs, norms);
+    const capexLines = purchase ? purchaseCapexLines(ctx, calcs, norms, spec.logistics) : raasCapexLines(calcs, norms, spec.logistics);
     const opexLines = purchase ? purchaseOpexLines(calcs, uncovered, siteStaff) : raasOpexLines(calcs, uncovered, siteStaff);
     if (siteStaff?.includedInService && !opexLines.some(line => line.key === (purchase ? "service" : "subscription") && line.valueRub > 0)) {
       refuse("invalid_inputs", "Включение эксплуатационного персонала требует положительной стоимости сервиса или подписки в этом сценарии", ["scenario:operationsStaffing"]);

@@ -12,6 +12,7 @@ import { toStored } from "../sim/metrics";
 import { SIM_MODEL_VERSION } from "../sim/types";
 import { resolveNorms } from "./norms";
 import { buildDecision } from "./decision";
+import type { OperatingEvidence } from "../catalog/operating-evidence";
 import type { ScenarioOk, SpatialEvidence } from "./types";
 
 function model(patch: Partial<Parameters<typeof buildProjectModel>[0]> = {}) {
@@ -34,6 +35,47 @@ function profitable(m: ProjectModel) {
 }
 
 describe("one selected technical-economic decision", () => {
+  it.each(["shift-hour", "operating-hour", "expired", "unconfirmed"] as const)("shows coverage from the real financial calculation without repeated downtime: %s", basis => {
+    const observation: OperatingEvidence = {
+      schemaVersion: "operating-evidence-1", productSlug: FIXTURE_H1500.slug, process: "pallet-transport", facility: "warehouse",
+      mode: "transport", unit: "паллет/ч", site: "Синтетический участок теста", measuredAt: "2026-10-01", verifiedAt: "2026-10-02", validUntil: "2026-11-01",
+      sourceRef: "Синтетический журнал теста", measuredBy: "Тест", samples: 3, output: 20, operatingMinutes: 60, elapsedMinutes: 120,
+      basis: basis === "operating-hour" ? "operating-hour" : "shift-hour", confirmed: true,
+    };
+    const product = { ...FIXTURE_H1500, operatingEvidence: observation, operatingEvidenceConfirmed: basis !== "unconfirmed",
+      operatingEvidenceEvaluatedOn: basis === "expired" ? "2026-12-01" : "2026-10-18" };
+    const specs = fixtureSpecs(), purchase = specs.find(s => s.key === "p1")!;
+    purchase.normOverrides = { utilization: .7, availability: .9 };
+    Object.assign(purchase.items[0]!, { operatingMode: "transport", quantityOverride: 1, automationCoverageOverride: .02 });
+    const m = model({ products: [product], scenarios: specs });
+    const result = m.results.find(r => r.key === "p1")!;
+    if (result.status !== "ok") throw new Error(result.refusal.message);
+    const item = result.items[0]!, d = buildDecision(m, "p1"), process = d.processes[0]!;
+    const shiftApplied = basis === "shift-hour", U = shiftApplied ? 1 : .7, A = shiftApplied ? 1 : .9;
+    expect(item.thrEvidence?.applied).toBe(basis === "shift-hour" || basis === "operating-hour");
+    expect(process).toMatchObject({ shiftHourObservation: shiftApplied, effectiveUtilization: U, effectiveAvailability: A });
+    expect(process.analyticCoverage).toBeCloseTo(item.n! * item.thrEff! * U * A / item.peakPerHour, 12);
+    expect(process.analyticCoverage).toBeLessThan(1);
+    expect(process.analyticCoverage).toBeGreaterThan(.02);
+    expect(process.financialCoverage).toBe(.02);
+    expect(process.annualCoverageShare).toBe(.02);
+    const html = renderToStaticMarkup(createElement(DecisionSummary, { model: m, scenarioKey: "p1" }));
+    expect(html.includes("Простои уже включены в выработку за час смены")).toBe(shiftApplied);
+  });
+
+  it("does not show productive coverage or applied shift factors for a refused zero-output observation", () => {
+    const observation: OperatingEvidence = {
+      schemaVersion: "operating-evidence-1", productSlug: FIXTURE_H1500.slug, process: "pallet-transport", facility: "warehouse",
+      mode: "transport", unit: "паллет/ч", site: "Синтетический участок теста", measuredAt: "2026-10-01", verifiedAt: "2026-10-02",
+      sourceRef: "Синтетический журнал теста", measuredBy: "Тест", samples: 3, output: 0, operatingMinutes: 60, elapsedMinutes: 120, basis: "shift-hour", confirmed: true,
+    };
+    const specs = fixtureSpecs(); specs.find(s => s.key === "p1")!.items[0]!.operatingMode = "transport";
+    const m = model({ products: [{ ...FIXTURE_H1500, operatingEvidence: observation, operatingEvidenceConfirmed: true, operatingEvidenceEvaluatedOn: "2026-10-18" }], scenarios: specs });
+    expect(buildDecision(m, "p1")).toMatchObject({ status: "refused", processes: [], finance: null });
+    const html = renderToStaticMarkup(createElement(DecisionSummary, { model: m, scenarioKey: "p1" }));
+    expect(html).not.toContain("Простои уже включены в выработку за час смены");
+  });
+
   it("uses a current single-leg 2D receipt without requesting an unrelated underlift 3D proof", () => {
     const m = model({ products: [FIXTURE_CARRIER_P], scenarios: fixtureSpecs(FIXTURE_CARRIER_P) });
     profitable(m);

@@ -47,10 +47,11 @@ export function requiredFilled(product: Pick<Detail, "characteristics">): { fill
  * производительность, полнота, расхождения источников. Расхождения берутся из готового признака
  * `hasConflict` характеристики: альтернативы в карточке уже разобраны для показа.
  */
-export function cardVerificationReasons(product: Pick<Detail, "characteristics" | "flags">): string[] {
+export function cardVerificationReasons(product: Pick<Detail, "characteristics" | "flags"> & Partial<Pick<Detail, "status">>): string[] {
   const all = allCharacteristics(product);
   const rows: CharRow[] = all.map((c) => ({ ...c, alternatives: [] }));
   const reasons = verificationReasons(rows, { flags: product.flags });
+  if (product.status === "unknown" && !reasons.includes("статус эксплуатации не подтверждён")) reasons.unshift("статус эксплуатации не подтверждён");
   const conflicts = all
     .filter((c) => c.hasConflict)
     .sort((a, b) => compareCharKeys(a.key, b.key))

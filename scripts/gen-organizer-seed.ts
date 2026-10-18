@@ -347,6 +347,8 @@ const SOURCE_RANK: Readonly<Record<SourceType, number>> = {
   "organizer:catalog": 2,
   "organizer:dataset": 2,
   "manufacturer-doc": 3,
+  "field-measurement": 3,
+  "contract-reference": 3,
   manufacturer: 4,
   dealer: 5,
   aggregator: 6,
@@ -574,6 +576,7 @@ const STATUS_LABEL: Readonly<Record<ProductStatus, string>> = {
   operation: "в эксплуатации",
   piloting: "пилотирование",
   rnd: "НИОКР",
+  unknown: "Статус эксплуатации не подтверждён",
 };
 const FLAG_ORDER: readonly ProductFlag[] = [
   "duplicate-merged",

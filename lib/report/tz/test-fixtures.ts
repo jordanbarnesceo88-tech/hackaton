@@ -6,6 +6,7 @@ import { processDef } from "../../tz/processes";
 import { selectProducts } from "../../tz/selection";
 import type { ComparisonRow, ParamSpec, ProjectResults, ScenarioResult, ScenarioSpec } from "../../tz/types";
 import { TZ_MODEL_VERSION, dataVersionOf } from "../../tz/version";
+import { captureMethodologySnapshot } from "../../tz/methodology";
 import type { ReportChange } from "./rows";
 
 /**
@@ -122,6 +123,7 @@ export function fixtureResults(): ProjectResults {
   const productSnapshots = { [FIXTURE_H1500.slug]: FIXTURE_H1500, [FIXTURE_CARRIER_P.slug]: FIXTURE_CARRIER_P };
   return {
     modelVersion: TZ_MODEL_VERSION,
+    methodologySnapshot: captureMethodologySnapshot(),
     simModelVersion: SIM_MODEL_VERSION,
     dataVersion: dataVersionOf({ productSnapshots, normsUsed: ctx.norms }),
     calculatedAt: "2026-09-25T10:05:00.000Z",

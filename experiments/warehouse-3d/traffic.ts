@@ -9,6 +9,7 @@ import type { SimEngineState, SimTask } from "../../lib/sim/state";
 import type { SimInput, SimLayout } from "../../lib/sim/types";
 import { accrueIncidentTime, createIncidentRuntime, defaultDemoIncidents, incidentHalts, updateIncidents, type IncidentConfig, type IncidentRuntime } from "./incidents";
 import { recordZeroSocOperation, type AssessmentFacts, type AssessmentEvidence } from "./assessment";
+import { createPedestrians, beginPedestrians, pedestrianMotionLimit, auditPedestrians, pedestrianFrame, type PedestrianRuntime } from "./pedestrians";
 import { POD_RADIUS_M, dockOf, validateUnderliftConfig, initUnderlift, underliftCanAssign, assignUnderlift, prepareUnderliftRoute, syncUnderlift, underliftHandling, type CarrierInput, type UnderliftState } from "./carriers";
 
 export type TrafficPoint = { x: number; y: number };
@@ -24,7 +25,7 @@ export type WarehouseDispatchPolicy = { version: "warehouse-dispatch-1"; pending
 const DISPATCH_POLICY: WarehouseDispatchPolicy = { version: "warehouse-dispatch-1", pendingLookahead: 16, replanBudgetPerTick: 1, replanMinIntervalS: 5, selection: "oldest-feasible-nearest", interruptHome: true, stationaryChargingConsumesRoute: false, homeConsumesTaskRoute: false };
 export type DemoTrafficInput = CarrierInput & { demoIncidents?: IncidentConfig; demoTraffic: { version: "traffic-1.3.0" | "traffic-2.0.0"; radiusM: number; clearanceM: number; maxActiveRoutes: number; initialPositions: TrafficPoint[]; parkingBays: TrafficPoint[]; dispatchPolicy?: WarehouseDispatchPolicy } };
 type RouteCommitment = { robotId: number; partnerId: number; leg: string; partnerLeg: string; travelledM: number };
-export type WarehouseTrafficState = UnderliftState & { demoTraffic: TrafficController; demoIncidents?: IncidentRuntime; assessmentFacts?: AssessmentFacts; routeCommitments: RouteCommitment[];dockAccess:DockAccess };
+export type WarehouseTrafficState = UnderliftState & { demoTraffic: TrafficController; demoPedestrians?: PedestrianRuntime; demoIncidents?: IncidentRuntime; assessmentFacts?: AssessmentFacts; routeCommitments: RouteCommitment[];dockAccess:DockAccess };
 type Body = TrafficPoint & { id: number };
 const EPS = 1e-8;
 type Box = { x0: number; x1: number; y0: number; y1: number };
@@ -189,6 +190,7 @@ export function prepareWarehouseTraffic(input: SimInput): DemoTrafficInput {
 export function isTrafficInput(input: SimInput): input is DemoTrafficInput { return "demoTraffic" in input; }
 export function isWarehouseTrafficState(state: SimEngineState): state is WarehouseTrafficState { return "demoTraffic" in state; }
 export function createWarehouseTrafficState(input: DemoTrafficInput): WarehouseTrafficState {
+  if(input.pedestrians&&(input.robots.count>60||input.robots.speedMps>3))throw new Error("Модель пешеходов поддерживает до 60 роботов со скоростью до 3 м/с; вход не сокращён");
   if(input.demoUnderlift&&(input.demoTraffic.radiusM<POD_RADIUS_M||input.demoTraffic.clearanceM<0.15||!Number.isFinite(input.demoTraffic.radiusM)||!Number.isFinite(input.demoTraffic.clearanceM)))throw new Error("Недостаточный защитный габарит подстеллажного механизма");
   const state = createSim(structuredClone(input)) as WarehouseTrafficState;
   if (state.precheck !== "ok") throw new Error(`Недопустимый вход: ${state.precheck}`);
@@ -196,6 +198,7 @@ export function createWarehouseTrafficState(input: DemoTrafficInput): WarehouseT
   state.demoTraffic = createTrafficController(state.robots, input.demoTraffic.radiusM, input.demoTraffic.clearanceM);
   state.routeCommitments = [];state.dockAccess=createDockAccess(input.demoTraffic.radiusM*2+input.demoTraffic.clearanceM);
   state.demoIncidents = createIncidentRuntime(input.demoIncidents, state.robots.length);
+  state.demoPedestrians = createPedestrians(input.pedestrians, state.layout);
   state.assessmentFacts = { zeroSocOperationRobotSeconds: 0 };
   if (input.demoUnderlift) initUnderlift(state, input.demoUnderlift);
   for (const r of state.robots) Object.assign(r, { safety: state.demoTraffic.bodies[r.id] });
@@ -461,6 +464,9 @@ const warehouseGate: SimMovementGate = (plain, robot, nextDistance) => {
     safety.blocked = true; safety.status = "waiting"; safety.reason = "Уступает проезд: ожидание в парковочном кармане";
     safety.waitS++; safety.totalWaitS++; safety.blockedAtS = control.tS; return false;
   }
+  nextDistance = pedestrianMotionLimit(state.demoPedestrians, robot, nextDistance, control.radiusM);
+  const personMotion = state.demoPedestrians?.robots[robot.id];
+  if (personMotion?.reason) { safety.reason = personMotion.reason; if(nextDistance<=robot.distM+EPS){safety.blocked=true;safety.status="waiting";safety.waitS++;safety.totalWaitS++;return false;} }
   let cappedDistance = safety.yieldDistanceM === null ? nextDistance : Math.min(nextDistance, safety.yieldDistanceM);
   if(robot.underlift?.stage==="retreat")cappedDistance=Math.min(cappedDistance,robot.underlift.retreatUntilM!);
   if(robot.underlift?.stage==="extract"&&robot.distM<(robot.underlift.extractionUntilM??0)-EPS)cappedDistance=Math.min(cappedDistance,robot.underlift.extractionUntilM!);
@@ -520,7 +526,7 @@ function reserveWarehouseMotion(state: WarehouseTrafficState, robotId: number, p
   return reserveTrafficMotion(state.demoTraffic, robotId, path);
 }
 const warehouseHandlingGate: SimHandlingGate = (plain, robot, dt) => underliftHandling(plain as WarehouseTrafficState, robot, dt,
-  (body, next) => reserveWarehouseMotion(plain as WarehouseTrafficState, body.id, pathSlice(body.path, body.distM, next)));
+  (body, next) => {const state=plain as WarehouseTrafficState;const allowed=pedestrianMotionLimit(state.demoPedestrians,body,next,state.demoTraffic.radiusM);return reserveWarehouseMotion(state,body.id,pathSlice(body.path,body.distM,allowed))?allowed:false;});
 
 function occupiesRoute(state: WarehouseTrafficState, robot: SimEngineState["robots"][number]): boolean {
   const input = state.input as DemoTrafficInput;
@@ -580,6 +586,7 @@ const warehousePolicyGate: SimDispatchGate = Object.assign(
 );
 
 export function stepWarehouseTraffic(state: WarehouseTrafficState) {
+  beginPedestrians(state.demoPedestrians,state.robots,state.demoTraffic.radiusM,state.demoUnderlift?.pods);
   updateIncidents(state);
   for(const robot of state.robots)releaseDockAfterClear(state.dockAccess,robot.id,robot);
   releaseRouteCommitments(state);
@@ -604,7 +611,7 @@ export function stepWarehouseTraffic(state: WarehouseTrafficState) {
     const home = (state.input as DemoTrafficInput).demoTraffic.initialPositions[robot.id]!;
     if (Math.hypot(home.x - robot.x, home.y - robot.y) < EPS) { safety.parking = false;continue; }
     if (!safety.parking) { robot.path = route(state.layout, robot, home); robot.pathLenM = routeLengthM(robot.path); robot.distM = 0; safety.parking = true; }
-    const next = Math.min(robot.pathLenM, robot.distM + state.input.robots.speedMps);
+    const next = pedestrianMotionLimit(state.demoPedestrians,robot,Math.min(robot.pathLenM, robot.distM + state.input.robots.speedMps),state.demoTraffic.radiusM);
     if (reserveWarehouseMotion(state, robot.id, pathSlice(robot.path, robot.distM, next))) {
       robot.distM = next; const p = positionAlong(robot.path, next); robot.x = p.x; robot.y = p.y;
       if (state.tS > state.warmupS) { state.acc.idleS -= 1; state.acc.emptyS += 1; }
@@ -623,6 +630,11 @@ export function stepWarehouseTraffic(state: WarehouseTrafficState) {
   for(const robot of state.robots)releaseDockAfterClear(state.dockAccess,robot.id,robot);
   for (const c of state.routeCommitments) c.travelledM += routeLengthM(state.demoTraffic.reservations.find((r) => r.id === c.robotId)!.path);
   auditTraffic(state.demoTraffic, state.robots);
+  const peopleBefore=state.demoPedestrians?.collisionCount??0;
+  auditPedestrians(state.demoPedestrians,state.demoTraffic.reservations,state.tS,state.demoTraffic.radiusM,state.demoUnderlift?.pods);
+  if(state.demoPedestrians){const people=state.demoPedestrians;state.demoTraffic.collisionCount+=people.collisionCount-peopleBefore;
+    if(people.minimumClearanceM!==null)state.demoTraffic.minimumClearanceM=Math.min(state.demoTraffic.minimumClearanceM??Infinity,people.minimumClearanceM);
+    if(people.firstViolation)state.demoTraffic.firstViolation??={...people.firstViolation,robotId:people.firstViolation.robotId>=0?people.firstViolation.robotId:undefined,otherRobotId:-2000000};}
   for (const robot of state.robots) {
     const closest=nearestStockGap(state,robot);if(!closest)continue;
     const gap=closest.gapM,body=state.demoTraffic.bodies[robot.id]!;
@@ -640,9 +652,10 @@ export function stepWarehouseTraffic(state: WarehouseTrafficState) {
 }
 
 export function attachWarehouseSafety<T extends { robots: { id: number }[] }>(frame: T, state: WarehouseTrafficState) {
-  return { ...frame, robots: frame.robots.map((r) => {
+  return { ...frame, ...(state.demoPedestrians?{people:pedestrianFrame(state.demoPedestrians,state.tS),pedestrianModel:{...state.demoPedestrians.config,collisionCount:state.demoPedestrians.collisionCount,brakingViolations:state.demoPedestrians.brakingViolations,minimumClearanceM:state.demoPedestrians.minimumClearanceM}}:{}), robots: frame.robots.map((r) => {
     const safety = state.demoTraffic.bodies[r.id]!, robot = state.robots.find((body) => body.id === r.id)!;
     const parkingPath = safety.parking ? pathSlice(robot.path, robot.distM, robot.pathLenM) : null;
-    return { ...r, ...(parkingPath ? { phase: "parking", path: parkingPath, remainingPath: parkingPath, target: parkingPath[parkingPath.length - 1] } : {}), safety: { ...safety } };
+    const person=state.demoPedestrians?.robots[r.id];
+    return { ...r, ...(person?{pedestrianMotion:{...person}}:{}), ...(parkingPath ? { phase: "parking", path: parkingPath, remainingPath: parkingPath, target: parkingPath[parkingPath.length - 1] } : {}), safety: { ...safety, ...(person?.reason?{reason:person.reason}:{}) } };
   }), safety: { ...trafficSummary(state.demoTraffic), maxActiveRoutes: (state.input as DemoTrafficInput).demoTraffic.maxActiveRoutes, activeRoutes: state.robots.filter((r) => occupiesRoute(state, r)).length, returningHomeRoutes: state.robots.filter(r => r.phase === "idle" && state.demoTraffic.bodies[r.id]!.parking).length, parkedRobots: state.robots.filter((r) => r.phase === "idle" && !state.demoTraffic.bodies[r.id]!.parking).length } };
 }

@@ -970,15 +970,16 @@ function ConclusionSection({ results }: { results: ProjectResults }) {
 
 // ——————————————————————————— Формулы ———————————————————————————
 
-function FormulasSection() {
-  const rows = formulaRows();
+function FormulasSection({ results }: { results: ProjectResults }) {
+  const rows = formulaRows(results);
   return (
     <Section id="formulas" title={SECTION_TITLES.formulas}>
       <Note>
-        Формулы модели {TZ_MODEL_VERSION}. Источник: «типовая расчётная зависимость» — общепринятая зависимость для
+        Формулы модели {results.methodologySnapshot?.modelVersion ?? results.modelVersion}. Источник: «типовая расчётная зависимость» — общепринятая зависимость для
         расчёта парка, затрат и окупаемости; «базовые данные» — из описания демо-набора данных; «наш выбор» —
         принято в модели и обосновано в методике.
       </Note>
+      {rows.length === 0 && <p className="text-sm text-muted-foreground">Снимок определений формул не сохранён. Текущие формулы здесь не подставляются; см. сохранённые подстановки и источники в статьях расчёта.</p>}
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
           <thead className="border-b">
@@ -1079,7 +1080,7 @@ function LimitationsSection({ results }: { results: ProjectResults }) {
   return (
     <Section id="limitations" title={SECTION_TITLES.limitations}>
       <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
-        {modelLimitations().map((l, i) => (
+        {modelLimitations(results).map((l, i) => (
           <li key={i}>{l}</li>
         ))}
       </ul>
@@ -1269,7 +1270,7 @@ export function ProjectReport({ project, results, defs, changes, scenarioKey, li
       <LinesSection results={results} />
       <CashflowSection results={results} />
       <NormsSection results={results} />
-      <FormulasSection />
+      <FormulasSection results={results} />
       <SourcesSection results={results} />
       <ChangesSection results={results} defs={defs} changes={changes} />
       <p className="mt-8 border-t pt-2 text-xs text-muted-foreground">

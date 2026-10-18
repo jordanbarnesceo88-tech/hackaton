@@ -174,6 +174,7 @@ function lowCompleteness(pct: number): boolean {
  */
 export function verificationNote(product: ProductForCalc): string | null {
   const notes: string[] = [];
+  if (product.status === "unknown") notes.push("статус эксплуатации не подтверждён");
   for (const flag of product.flags) {
     if (HARD_FLAGS.has(flag)) continue;
     if (flag === "no-price" && positiveOrNull(product.priceRub) === null) continue;

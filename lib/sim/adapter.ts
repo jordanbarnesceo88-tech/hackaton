@@ -1,3 +1,4 @@
+import { validatePedestrians } from "../../experiments/warehouse-3d/pedestrians";
 import { sourceRefLabel } from "../tz/characteristics";
 import { normDef, type NormKey, type NormValues } from "../tz/norms";
 import type { HandlingClass, Origin, ParamSpec, ParamValues, ProductForCalc } from "../tz/types";
@@ -56,6 +57,7 @@ export type ToSimInputArgs = {
   /** Ручная выработка требует отдельной калибровки физических времён модели. */
   throughputPerHOverride?: number | null;
   siteLayout?: SimLayout;
+  pedestrians?: SimInput["pedestrians"];
   transportWorkflow?: SimInput["transportWorkflow"];
 };
 
@@ -331,7 +333,15 @@ export function toSimInput(args: ToSimInputArgs): ToSimInputResult {
     input.siteLayout = structuredClone(args.siteLayout);
   }
 
+  if (args.pedestrians) {
+    try {
+      if (!input.siteLayout || input.transportWorkflow !== "closed-pod-1" || input.robots.count > 60 || input.robots.speedMps > 3) throw new Error("Пешеходам нужен явный складской план, подстеллажный процесс, до 60 роботов и до 3 м/с");
+      validatePedestrians(args.pedestrians, input.siteLayout);
+      input.pedestrians = structuredClone(args.pedestrians);
+    } catch (error) { return { ok: false, missing: ["pedestrians"], reason: "out_of_range", message: error instanceof Error ? error.message : "Неверная модель пешеходов" }; }
+  }
   const provenance: SimProvenance[] = [];
+  if (args.pedestrians) provenance.push({field:"scenario:pedestrians",label:"Учебный пешеходный переход",value:args.pedestrians.policy??"fixed-trajectory",unit:null,origin:"estimate",note:"Заданная траектория, оценочные параметры торможения и запас на реакцию; не измерение и не сертификация безопасности"});
   provenance.push({ field: "calc:demandMix", label: "Приёмка / отгрузка / внутренние клиентские перемещения", value: `${mix.inbound * 100} / ${mix.outbound * 100} / ${mix.internal * 100}`, unit: "%", origin: hasFlowVolumes ? "derived" : "choice",
     note: hasFlowVolumes ? "Доли рассчитаны из трёх суточных объёмов. Клиентские внутренние перемещения идут между местами хранения; служебные подачи и возвраты носителя не увеличивают клиентский поток." : "Исторический вход без отдельных объёмов: сохранено прежнее допущение 50/50 приёмки и отгрузки, без внутренних клиентских перемещений." });
   if(mix.internal>0)provenance.push({field:"norm:simStorageVacancyShare",label:"Начальная доля свободных мест",value:norms.simStorageVacancyShare,unit:"доля",origin:"estimate",note:normDef("simStorageVacancyShare").basis});

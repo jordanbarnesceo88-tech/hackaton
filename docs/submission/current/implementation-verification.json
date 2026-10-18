@@ -1,0 +1,376 @@
+{
+  "versions": {
+    "economics": "tz-1.0.7",
+    "analytical": "sim-1.2.0",
+    "spatial": "warehouse-dense-underlift-1.9.0"
+  },
+  "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1",
+  "runtime": {
+    "url": "http://localhost:3085/demo/warehouse",
+    "status": 200,
+    "bytes": 3905151,
+    "servedSha256": "342ce2356260851cdb37e70062b0ac8e1adf4f6abd538508d2de58e19fe0785b",
+    "localSha256": "342ce2356260851cdb37e70062b0ac8e1adf4f6abd538508d2de58e19fe0785b",
+    "health": {
+      "ok": true,
+      "db": true,
+      "modelVersion": "tz-1.0.7",
+      "simModelVersion": "sim-1.2.0"
+    },
+    "appRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00",
+    "workerRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00",
+    "matched": true
+  },
+  "standalone": [
+    {
+      "id": "steady-flow",
+      "status": "PASS",
+      "carrierCount": 896,
+      "cycle": {
+        "carrierId": "pod-home-46",
+        "robotId": 0,
+        "parentTaskId": 8,
+        "returnTaskId": -9,
+        "returnedAt": 1142
+      },
+      "checks": [
+        "Actual full->empty carrier cycle",
+        "Carrier identities conserved",
+        "5 shelf trays in actual scene batches at all stages",
+        "No cartons for empty carrier",
+        "Grounded unassigned empty carrier remains rendered",
+        "Canonical rewind exact"
+      ]
+    },
+    {
+      "id": "complex",
+      "status": "PASS",
+      "carrierCount": 768,
+      "cycle": {
+        "carrierId": "pod-home-25",
+        "robotId": 0,
+        "parentTaskId": 8,
+        "returnTaskId": -14,
+        "returnedAt": 1173
+      },
+      "checks": [
+        "Actual full->empty carrier cycle",
+        "Carrier identities conserved",
+        "5 shelf trays in actual scene batches at all stages",
+        "No cartons for empty carrier",
+        "Grounded unassigned empty carrier remains rendered",
+        "Canonical rewind exact"
+      ]
+    },
+    {
+      "id": "baseline",
+      "status": "PASS",
+      "carrierCount": 1932,
+      "cycle": {
+        "carrierId": "pod-home-75",
+        "robotId": 0,
+        "parentTaskId": 28,
+        "returnTaskId": -36,
+        "returnedAt": 1729
+      },
+      "checks": [
+        "Actual full->empty carrier cycle",
+        "Carrier identities conserved",
+        "5 shelf trays in actual scene batches at all stages",
+        "No cartons for empty carrier",
+        "Grounded unassigned empty carrier remains rendered",
+        "Canonical rewind exact"
+      ]
+    },
+    {
+      "id": "capacity-reserve",
+      "status": "PASS",
+      "carrierCount": 1932,
+      "cycle": {
+        "carrierId": "pod-home-1913",
+        "robotId": 0,
+        "parentTaskId": 18,
+        "returnTaskId": -18,
+        "returnedAt": 999
+      },
+      "checks": [
+        "Actual full->empty carrier cycle",
+        "Carrier identities conserved",
+        "5 shelf trays in actual scene batches at all stages",
+        "No cartons for empty carrier",
+        "Grounded unassigned empty carrier remains rendered",
+        "Canonical rewind exact"
+      ]
+    },
+    {
+      "id": "insufficient",
+      "status": "PASS",
+      "carrierCount": 1932,
+      "cycle": {
+        "carrierId": "pod-home-1896",
+        "robotId": 0,
+        "parentTaskId": 0,
+        "returnTaskId": -2,
+        "returnedAt": 246
+      },
+      "checks": [
+        "Actual full->empty carrier cycle",
+        "Carrier identities conserved",
+        "5 shelf trays in actual scene batches at all stages",
+        "No cartons for empty carrier",
+        "Grounded unassigned empty carrier remains rendered",
+        "Canonical rewind exact"
+      ]
+    },
+    {
+      "id": "increased-flow",
+      "status": "PASS",
+      "carrierCount": 1932,
+      "cycle": {
+        "carrierId": "pod-home-1855",
+        "robotId": 0,
+        "parentTaskId": 14,
+        "returnTaskId": -22,
+        "returnedAt": 1389
+      },
+      "checks": [
+        "Actual full->empty carrier cycle",
+        "Carrier identities conserved",
+        "5 shelf trays in actual scene batches at all stages",
+        "No cartons for empty carrier",
+        "Grounded unassigned empty carrier remains rendered",
+        "Canonical rewind exact"
+      ]
+    }
+  ],
+  "projectPopup": [
+    {
+      "id": "project-popup",
+      "status": "PASS",
+      "carrierCount": 896,
+      "cycle": {
+        "carrierId": "pod-home-46",
+        "robotId": 0,
+        "parentTaskId": 8,
+        "returnTaskId": -9,
+        "returnedAt": 1142
+      },
+      "checks": [
+        "Actual full->empty carrier cycle",
+        "Carrier identities conserved",
+        "5 shelf trays in actual scene batches at all stages",
+        "No cartons for empty carrier",
+        "Grounded unassigned empty carrier remains rendered",
+        "Canonical rewind exact"
+      ]
+    }
+  ],
+  "person": {
+    "status": "PASS",
+    "views": 3,
+    "errors": []
+  },
+  "scope": "Сводка фактических функциональных проверок. Источники, неизвестные цены/условия и ограничения модели сохраняются. Не заменяет физические измерения объекта.",
+  "siteQuality": {
+    "status": "PASS",
+    "testsPassed": 3,
+    "views": 33,
+    "routes": [
+      "/",
+      "/catalog",
+      "/methodology",
+      "/demo"
+    ],
+    "wizardSteps": 8,
+    "viewports": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "theme": "light",
+        "views": 11,
+        "realCalculationPosts": 1,
+        "errors": 0,
+        "warnings": 0,
+        "editedInputRetained": true,
+        "visibleTableValuesChecked": 102,
+        "minTextLeftInsetPx": 12,
+        "minTextRightInsetPx": 24.578125,
+        "factsSha256": "6bfbf8660e9b8879af2d2dc56638496840d80c535f1a0eb0fb7451c9da5fc056",
+        "screenshots": [
+          {
+            "name": "home.png",
+            "sha256": "7e6d29c28f9d9f8b33a103b5c624ca5b06fff17211ec318d4360dd70c2c0a6f8"
+          },
+          {
+            "name": "catalog.png",
+            "sha256": "366b4ccc81b9943c668381a32c476e758a398049dd872d0b365c393fbb039ee4"
+          },
+          {
+            "name": "methodology.png",
+            "sha256": "02addfb5f0354085ac0a8cf664395c86ea4c72110100d6d11eb9216bb5cf1e89"
+          },
+          {
+            "name": "demo-step-1.png",
+            "sha256": "0fba0e4004325f19e3037e279a96bbf0e991522beb23668815bfdc74cf5b0735"
+          },
+          {
+            "name": "demo-step-2.png",
+            "sha256": "bdf99d022c982b1fe601a4e7f5ad6cd00824e8bbdf25dc7411c9ec66ea9224ad"
+          },
+          {
+            "name": "demo-step-3.png",
+            "sha256": "6f9bde14663e0fee54397e56cd2024a0ee9af2643de036eed0f8ee0dad006cb8"
+          },
+          {
+            "name": "demo-step-4.png",
+            "sha256": "949627a2e20bd6ccdf89aa547322686a490251fc9b52e5fc9e5e8eba60afd3cd"
+          },
+          {
+            "name": "demo-step-5.png",
+            "sha256": "8d03eab96cc7d27e1a3289b234318da8d8de58c5e36fd9889f3d1a1ae3afa228"
+          },
+          {
+            "name": "demo-step-6.png",
+            "sha256": "175f25fe7a005e4a2edd7d7e1e2c5336550a22c417739e62fc11328847f43cb8"
+          },
+          {
+            "name": "demo-step-7.png",
+            "sha256": "bd21bb28680bfb38b432f9bf15ddb8ec146ba072de54a19c8360fb856b820f72"
+          },
+          {
+            "name": "demo-step-8.png",
+            "sha256": "a8249f84a187adec1850d26cebde26515a0c1110da0224c7bf728b1d8a95e789"
+          }
+        ]
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "theme": "dark",
+        "views": 11,
+        "realCalculationPosts": 1,
+        "errors": 0,
+        "warnings": 0,
+        "editedInputRetained": true,
+        "visibleTableValuesChecked": 48,
+        "minTextLeftInsetPx": 12,
+        "minTextRightInsetPx": 38.4375,
+        "factsSha256": "730ba01cc65275550053b3eb2c19ec29873f795cffcee665f082b29f78c6c922",
+        "screenshots": [
+          {
+            "name": "home.png",
+            "sha256": "3d2eb789203934e7979af8d6cc480ca9819cc4427a8fa6966e6df5d235d5e96a"
+          },
+          {
+            "name": "catalog.png",
+            "sha256": "4964aa636faada9c7e54b1810043ac1c3349f460eef6239c89bb0262ac981c9e"
+          },
+          {
+            "name": "methodology.png",
+            "sha256": "eaeaf8764401c6a51bbab1b578db32e7cc575aafde0f87b4d970b6bbd19cc606"
+          },
+          {
+            "name": "demo-step-1.png",
+            "sha256": "dbb0acef5efc13fda3d75f6e15a9042f649d015ae294fb7691ffe57ae031a58d"
+          },
+          {
+            "name": "demo-step-2.png",
+            "sha256": "f64929aca672445f0a0957836520b0e7d2a1d1b8f2d540a1df5802cf486446bf"
+          },
+          {
+            "name": "demo-step-3.png",
+            "sha256": "ce0cc1c98d4e0ad861210332aac5a4dcaf64f2228671b49ed789960be4ed72a7"
+          },
+          {
+            "name": "demo-step-4.png",
+            "sha256": "af0c908be2f718e479d72f6e5b908757904a3560824d0bbfcc4185787e1915fe"
+          },
+          {
+            "name": "demo-step-5.png",
+            "sha256": "e22e061c27bcdfc822410c73ee0cbc8ebcc8cec559d40c8a0e295f0a9a997e2b"
+          },
+          {
+            "name": "demo-step-6.png",
+            "sha256": "8b52378455b96ffd7c8c8470fa819f8928ea76e60c3cb53a971a0a1f2619818f"
+          },
+          {
+            "name": "demo-step-7.png",
+            "sha256": "a62e41625c76dbbbc034d623ca95829fe5781e72206caa4722d5a2d22e6b864f"
+          },
+          {
+            "name": "demo-step-8.png",
+            "sha256": "a9bb73b1d2c40e43b937526f3b092eb3b03a3f5fb05ceb06c72f37ac9ebe121a"
+          }
+        ]
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "theme": "light",
+        "views": 11,
+        "realCalculationPosts": 1,
+        "errors": 0,
+        "warnings": 0,
+        "editedInputRetained": true,
+        "visibleTableValuesChecked": 16,
+        "minTextLeftInsetPx": 12,
+        "minTextRightInsetPx": 40.4375,
+        "factsSha256": "c266e890da06b30956cafdb74da27a140b85b5ec9c1b7c59dfc59140f6d49972",
+        "screenshots": [
+          {
+            "name": "home.png",
+            "sha256": "051813be661a3c4033a5b2230b288af64883bd2b7ecefd3e8843ada02047a635"
+          },
+          {
+            "name": "catalog.png",
+            "sha256": "74916fe206d150bc5f6fb114a1bd00fda4ccb366f8a949055de43ceaea1592af"
+          },
+          {
+            "name": "methodology.png",
+            "sha256": "2c91e593c2403b33306cf969cdaee26e999d7b38ec230725b9118d1d2ba1bd7a"
+          },
+          {
+            "name": "demo-step-1.png",
+            "sha256": "38e09c7736aef9b0837f5600373d909914678eb87e7e7b462b596ea8695b9f56"
+          },
+          {
+            "name": "demo-step-2.png",
+            "sha256": "ab4631517b90fcf04f11ac6d31b580db7419033ba939d89fd489866a5a22a199"
+          },
+          {
+            "name": "demo-step-3.png",
+            "sha256": "1c94fc3bb4af59c7f9a0efb93127419a0fabefb75e75b95a6d7e65af7cfb20ef"
+          },
+          {
+            "name": "demo-step-4.png",
+            "sha256": "cf64fb831ef72fd7f215cd3986a740d0c7103e43c7efbd2ceab368a385aa85cb"
+          },
+          {
+            "name": "demo-step-5.png",
+            "sha256": "e41428d1c8e12db1ca567db1f50a2bf1522e25dd38503c46142440a94d48bd11"
+          },
+          {
+            "name": "demo-step-6.png",
+            "sha256": "94be045cb9e394c7c370567c7042d36b2e4fab8c05db74531485ebbdd244ce37"
+          },
+          {
+            "name": "demo-step-7.png",
+            "sha256": "462d977f9ed533dc3939a9619ebae52b3de2ef6455efdc7a25cc09affc4f8ea9"
+          },
+          {
+            "name": "demo-step-8.png",
+            "sha256": "21e63d4c51c2fbb8f3a77b67f6b1fe6fc816a191f5cf7cc6f4bc5b28ab1bf98b"
+          }
+        ]
+      }
+    ],
+    "logSha256": "efe715c999fcfe57a328f6fb5724e10a87f0cea5b778960c11654336d0a6c6c6",
+    "scope": "Публичный UI-аудит №46 на итоговом localhost:3085: ошибки JavaScript/console, глобальный горизонтальный выход, видимость ключевого содержимого, границы текста таблицы и сохранение изменённого ввода. Лично просмотрены 33 экрана и повторно три таблицы после увеличения минимальной ширины колонок. Это не полный accessibility-аудит, не проверка мощности модели и не нагрузочный тест.",
+    "visual": {
+      "status": "PASS",
+      "authorAll33AcceptedScreensPersonallyViewed": true,
+      "independentAll33AcceptedScreensPersonallyViewed": true,
+      "visualReceiptSha256": "5fdd088ece1c62db6cc7ca58218b0b6c210d4ad386cb6a2b7e6ac41191dff3c3"
+    }
+  }
+}

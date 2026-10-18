@@ -37,7 +37,7 @@ export const MAX_COMPARE = 4;
 /** Предел длины текстового параметра из URL: длиннее — обрезается, а не уходит в запрос целиком. */
 const MAX_PARAM_LENGTH = 100;
 
-const STATUSES: readonly ProductStatus[] = ["operation", "piloting", "rnd"];
+const STATUSES: readonly ProductStatus[] = ["operation", "piloting", "rnd", "unknown"];
 const LEVELS: readonly ProductLevel[] = ["identification", "enriched", "examples"];
 const SORTS: readonly CatalogSort[] = ["name", "price", "throughput", "completeness"];
 

@@ -1,3 +1,5 @@
+import { validatePedestrians } from "../../experiments/warehouse-3d/pedestrians";
+import type { PedestrianInput } from "../sim/types";
 import { fx } from "../tz/econ/text";
 import { parseSpatialProjectSnapshot } from "../sim/spatial-bridge";
 import { validateSiteLayout, validateProjectSiteLayout, SITE_LAYOUT_LIMITS } from "../sim/site-layout";
@@ -11,6 +13,8 @@ import { stableJson } from "../tz/version";
 import { parsePilotPlanInput } from "../tz/pilot-budget";
 import { parseOperationsStaffing } from "../tz/econ/labour";
 import { parseCostPackage } from "../tz/econ/cost-package";
+import { parseDeploymentLogistics } from "../tz/deployment-logistics";
+import { OPERATING_MODE_RE } from "../catalog/operating-evidence";
 
 /**
  * Проверка того, что присылает рабочая область проекта (серверные действия и API): сценарии,
@@ -46,10 +50,11 @@ export function validProjectRevision(value: unknown): value is number {
 export type Checked<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 const SCENARIO_KINDS: ReadonlySet<string> = new Set<ScenarioKind>(["asis", "purchase", "raas"]);
-const SPEC_FIELDS: ReadonlySet<string> = new Set(["key", "name", "kind", "items", "normOverrides", "cashRealizationShare", "operationsStaffing", "spatialEvidence", "siteLayout", "simSeed", "pilotPlan", "terminalResidualRub"]);
+const SPEC_FIELDS: ReadonlySet<string> = new Set(["key", "name", "kind", "items", "normOverrides", "cashRealizationShare", "operationsStaffing", "spatialEvidence", "siteLayout", "pedestrians", "simSeed", "pilotPlan", "terminalResidualRub", "logistics"]);
 const ITEM_FIELDS: ReadonlySet<string> = new Set([
   "process",
   "productSlug",
+  "operatingMode",
   "quantityOverride",
   "chargersOverride",
   "automationCoverageOverride",
@@ -112,6 +117,7 @@ const POINT = { x: null, y: null };
 const RECT = { ...POINT, w: null, h: null, id: null, kind: null, heightM: null };
 const INPUT_SHAPE: InputShape = {
   seed: null, loadMassKg: null, transportWorkflow: null,
+  pedestrians: { version:null, policy:null, crossingWidthM:null, reactionTimeS:null,decelerationMps2:null,accelerationMps2:null,clearanceM:null,people:[{id:null,radiusM:null,trajectory:[{tS:null,x:null,y:null}]}] },
   layout: { activeAreaM2: null, mainAisleWidthM: null, rackAisleWidthM: null, receivingDocksCount: null, shippingDocksCount: null, chargers: null },
   robots: { count: null, speedMps: null, loadedSpeedFactor: null, handlingSec: null, autonomyH: null, chargeMin: null, payloadKg: null },
   demand: { avgPerH: null, peakPerH: null, warmupMin: null, peakMin: null, mix: { inbound: null, outbound: null, internal: null }, storageVacancyShare: null },
@@ -209,6 +215,10 @@ function checkItem(
     errors.push(`${where}: продукт «${String(productSlug)}» не найден в каталоге — выберите другой`);
   }
   const item: ScenarioItem = { process: String(process), productSlug: String(productSlug) };
+  if (raw.operatingMode !== undefined) {
+    if (typeof raw.operatingMode !== "string" || !OPERATING_MODE_RE.test(raw.operatingMode)) errors.push(`${where}: неверный режим работы`);
+    else item.operatingMode = raw.operatingMode;
+  }
   if (raw.costPackage !== undefined) {
     try {
       item.costPackage = parseCostPackage(raw.costPackage);
@@ -378,6 +388,12 @@ export function validateScenarioSpecs(
     }
 
     let cashRealizationShare: number | undefined;
+    let logistics: ScenarioSpec["logistics"];
+    if (raw.logistics !== undefined) {
+      try { logistics = parseDeploymentLogistics(raw.logistics); }
+      catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверные условия доставки"}`); }
+      if (kind === "asis") errors.push(`${where}: доставка внедрения не относится к сценарию «Как есть»`);
+    }
     let operationsStaffing: ScenarioSpec["operationsStaffing"];
     if (raw.operationsStaffing !== undefined) {
       try { operationsStaffing = parseOperationsStaffing(raw.operationsStaffing); }
@@ -411,17 +427,25 @@ export function validateScenarioSpecs(
       catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверная явная планировка"}`); }
       if (facility !== "warehouse" || kind === "asis") errors.push(`${where}: явная планировка допустима только в сценарии роботизации склада`);
     }
+    let pedestrians: PedestrianInput | undefined;
+    if (raw.pedestrians !== undefined) {
+      try { pedestrians=checkScenarioPedestrians(raw.pedestrians,siteLayout); }
+      catch(error){errors.push(`${where}: ${error instanceof Error?error.message:"Неверная модель пешеходов"}`);}
+      if(facility!=="warehouse"||kind==="asis")errors.push(`${where}: пешеходы допустимы только в сценарии роботизации склада`);
+    }
     const simSeed = raw.simSeed;
     if (simSeed !== undefined && !Number.isSafeInteger(simSeed)) errors.push(`${where}: зерно имитации должно быть безопасным целым числом`);
     if (errors.length === before) {
       const spec: ScenarioSpec = { key: key as string, name, kind: kind as ScenarioKind, items };
       if (normOverrides) spec.normOverrides = normOverrides;
       if (cashRealizationShare !== undefined) spec.cashRealizationShare = cashRealizationShare;
+      if (logistics) spec.logistics = logistics;
       if (operationsStaffing) spec.operationsStaffing = operationsStaffing;
       if (pilotPlan) spec.pilotPlan = pilotPlan;
       if (terminalResidualRub !== undefined) spec.terminalResidualRub = terminalResidualRub;
       if (spatialEvidence) spec.spatialEvidence = spatialEvidence;
       if (siteLayout) spec.siteLayout = siteLayout;
+      if (pedestrians) spec.pedestrians=pedestrians;
       if (typeof simSeed === "number") spec.simSeed = simSeed;
       out.push(spec);
     }
@@ -431,11 +455,16 @@ export function validateScenarioSpecs(
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value: out };
 }
 
+export function checkScenarioPedestrians(raw:unknown,site?:SimLayout):PedestrianInput {
+  if(!site)throw new Error("Пешеходам нужна явная планировка");
+  validatePedestrians(raw,site);return structuredClone(raw);
+}
+
 /** Поля журнала позиции сценария (формат PendingChange.field). */
-const ITEM_CHANGE_FIELDS = "quantity|price|throughput|service|raasRate|manual|package";
+const ITEM_CHANGE_FIELDS = "quantity|price|throughput|service|raasRate|manual|package|operatingMode";
 /** Допустимые значения PendingChange.field (ТЗ §3.5.4 — журнал корректировок). */
 const CHANGE_FIELD_RE = new RegExp(
-  `^(param:[A-Za-z][A-Za-z0-9_]{0,63}|item:[a-z0-9-]{1,60}:(${ITEM_CHANGE_FIELDS})|norm:[A-Za-z][A-Za-z0-9]{0,63}|scenario:add|scenario:remove|scenario:pilot|scenario:residual|scenario:staffing)$`,
+  `^(param:[A-Za-z][A-Za-z0-9_]{0,63}|item:[a-z0-9-]{1,60}:(${ITEM_CHANGE_FIELDS})|norm:[A-Za-z][A-Za-z0-9]{0,63}|scenario:add|scenario:remove|scenario:pilot|scenario:residual|scenario:staffing|scenario:logistics|scenario:pedestrians)$`,
 );
 const CHANGE_FIELDS: ReadonlySet<string> = new Set(["scenarioKey", "field", "auto", "old", "new", "unit", "reason"]);
 /** Наибольший размер старого или нового значения в журнале, символов JSON. */

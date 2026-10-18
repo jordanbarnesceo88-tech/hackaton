@@ -39,6 +39,7 @@ const SCENARIO_FIELD_LABELS: Readonly<Record<string, string>> = {
   items: "Решение для сценария",
   operationsStaffing: "Организация и дополнительные расходы эксплуатации",
   costPackage: "Комплектация покупки и границы платежей",
+  logistics: "Доставка полного внедрения",
 };
 
 /**

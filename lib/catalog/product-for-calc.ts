@@ -15,6 +15,10 @@ import type {
   Sourced,
 } from "../tz/types";
 import { formatNum } from "../format/rub";
+import { buildImplementationSnapshot } from "../implementation/snapshot";
+import { operatingEvidenceText, parseOperatingEvidence, type OperatingEvidence } from "./operating-evidence";
+import { serviceProvidersText } from "../implementation/service-directory";
+import { parseServiceCharacteristic, serviceOverridesOf } from "./service-evidence";
 
 /**
  * Сборка плоского снимка продукта для расчёта (`ProductForCalc`) из характеристик каталога.
@@ -128,7 +132,7 @@ const ORIGINS: ReadonlySet<string> = new Set<Origin>([
 ]);
 const SCOPES: ReadonlySet<string> = new Set<Scope>(["per-robot", "per-station", "per-channel", "per-fleet"]);
 const QUALIFIERS: ReadonlySet<string> = new Set<Qualifier>(["до", "от", "≈"]);
-const STATUSES: ReadonlySet<string> = new Set<ProductStatus>(["operation", "piloting", "rnd"]);
+const STATUSES: ReadonlySet<string> = new Set<ProductStatus>(["operation", "piloting", "rnd", "unknown"]);
 const LEVELS: ReadonlySet<string> = new Set<ProductLevel>(["identification", "enriched", "examples"]);
 const HANDLING: ReadonlySet<string> = new Set<HandlingClass>(["jacking", "fork", "tug", "station", "cleaner", "other"]);
 const FLAGS: ReadonlySet<string> = new Set<ProductFlag>([
@@ -165,12 +169,11 @@ export function asQualifier(value: string | null | undefined): Qualifier | null 
 }
 
 /**
- * Статус продукта из строки БД. Неизвестный статус считается пилотом: зрелость не доказана,
- * поэтому продукт получает пометку «пилотная эксплуатация» и пониженный балл зрелости, но и не
- * исключается с ложной причиной «НИОКР». Синхронизация пишет только известные статусы.
+ * Неизвестный статус остаётся неизвестным: отсутствие сведений не доказывает ни пилот,
+ * ни НИОКР, ни серийную эксплуатацию. Известные статусы сохраняются без подмены.
  */
 export function asStatus(value: string | null | undefined): ProductStatus {
-  return value && STATUSES.has(value) ? (value as ProductStatus) : "piloting";
+  return value && STATUSES.has(value) ? (value as ProductStatus) : "unknown";
 }
 
 /** Глубина описания из строки БД; неизвестная — identification (в расчёт не идёт). */
@@ -328,8 +331,13 @@ function formatCharNumber(n: number): string {
  * Разделитель разрядов — неразрывный пробел ICU, как во всех форматтерах lib/format/rub.
  */
 export function formatCharValue(
-  c: Pick<CharRow, "valueNum" | "valueMin" | "valueMax" | "qualifier" | "valueText" | "valueList" | "unit" | "scope">,
+  c: Pick<CharRow, "valueNum" | "valueMin" | "valueMax" | "qualifier" | "valueText" | "valueList" | "unit" | "scope"> & { key?: string; confirmed?: boolean },
 ): string {
+  if (c.key === "operatingEvidence") return operatingEvidenceText(c.valueText);
+  if (c.key === "serviceProviders") {
+    try { return serviceProvidersText(parseServiceCharacteristic(c.valueText, c.confirmed === true)); }
+    catch { return "Сведения сервиса некорректны или не подтверждены; запросите актуальные контакты и условия."; }
+  }
   const unit = c.unit && c.unit.trim() !== "" ? ` ${c.unit.trim()}` : "";
   const value = finiteOrNull(c.valueNum);
   const min = finiteOrNull(c.valueMin);
@@ -357,7 +365,7 @@ export function formatCharValue(
  * Снимок продукта для расчёта из характеристик каталога. Возвращает новые массивы, а не
  * ссылки на входные: снимок сохраняется в проекте и не должен меняться вместе с каталогом.
  */
-export function fromCharacteristics(meta: ProductMeta, chars: readonly CharRow[]): ProductForCalc {
+export function fromCharacteristics(meta: ProductMeta, chars: readonly CharRow[], evidenceEvaluatedOn?: string): ProductForCalc {
   const byKey = indexByKey(chars);
   const num = (key: CharKey): number | null => finiteOrNull(byKey.get(key)?.valueNum);
 
@@ -367,6 +375,11 @@ export function fromCharacteristics(meta: ProductMeta, chars: readonly CharRow[]
   const throughputPerH = usableThroughput(throughput);
   const raas = byKey.get("raasRubMonth");
   const raasRubMonth = num("raasRubMonth");
+  const evidenceRow = byKey.get("operatingEvidence");
+  let operatingEvidence: OperatingEvidence | undefined;
+  if (evidenceRow?.valueText) {
+    try { operatingEvidence = parseOperatingEvidence(evidenceRow.valueText); } catch { /* An invalid historical observation cannot change a calculation. */ }
+  }
 
   return {
     slug: meta.slug,
@@ -416,6 +429,9 @@ export function fromCharacteristics(meta: ProductMeta, chars: readonly CharRow[]
     hasCases: isCharPresent(byKey.get("cases")),
     completenessPct: meta.completenessPct,
     confirmedSharePct: meta.confirmedSharePct,
+    implementation: buildImplementationSnapshot(meta.solutionTypeSlug, meta.manufacturer, serviceOverridesOf(chars)),
+    ...(operatingEvidence ? { operatingEvidence, operatingEvidenceConfirmed: evidenceRow!.confirmed,
+      ...(evidenceEvaluatedOn ? { operatingEvidenceEvaluatedOn: evidenceEvaluatedOn } : {}) } : {}),
     sources: [...chars]
       .sort((a, b) => compareCharKeys(a.key, b.key))
       .map((c) => ({

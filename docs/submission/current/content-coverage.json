@@ -1,13 +1,13 @@
 {
   "scope": "Structural content mapping, not a claim of complete requirement acceptance; pages and independent review checked after rendering",
   "versions": {
-    "economics": "tz-1.0.6",
+    "economics": "tz-1.0.7",
     "analytical": "sim-1.2.0",
-    "spatial": "warehouse-dense-underlift-1.8.0"
+    "spatial": "warehouse-dense-underlift-1.9.0"
   },
   "structure": {
     "presentationSlides": 15,
-    "documentationChapters": 18,
+    "documentationChapters": 19,
     "presentationContents": [
       {
         "index": 1,
@@ -142,6 +142,10 @@
       {
         "index": 18,
         "title": "План развития и критерии перехода"
+      },
+      {
+        "index": 19,
+        "title": "Полевые данные и подготовка внедрения"
       }
     ]
   },

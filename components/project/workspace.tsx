@@ -10,6 +10,7 @@ import { buildSpatialFinancialScenario, parseSpatialScenarioProposal, type Spati
 import { DecisionSummary } from "./decision-summary";
 import { PilotPlan } from "./pilot-plan";
 import { OperationsStaffing } from "./operations-staffing";
+import { DeploymentLogistics } from "./deployment-logistics";
 import { MatchedComparison } from "./matched-comparison";
 import { buildMatchedComparison, type MatchedComparison as MatchedComparisonData } from "@/lib/tz/matched-comparison";
 import { staffingBreakEvenBudget } from "@/lib/tz/econ/staffing-budget";
@@ -975,6 +976,31 @@ export function Workspace({
     }]);
   }
 
+  function onLogistics(value: ScenarioSpec["logistics"]) {
+    if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    const next = { ...focusSpec };
+    if (value) next.logistics = value;
+    else delete next.logistics;
+    commitScenarios(scenarios.map(s => s.key === next.key ? next : s), [{
+      scenarioKey: next.key, field: "scenario:logistics", auto: null,
+      old: focusSpec.logistics ?? null, new: value ?? null,
+      reason: value?.source.slice(0, 500) ?? "Доставка полного внедрения не оценена; отдельная сумма исключена из CAPEX",
+    }]);
+  }
+
+  function onOperatingMode(process: string, value: string | undefined) {
+    if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    const previous = focusSpec.items.find(item => item.process === process);
+    if (!previous) return;
+    const nextItem = { ...previous };
+    if (value) nextItem.operatingMode = value;
+    else delete nextItem.operatingMode;
+    commitScenarios(scenarios.map(s => s.key === focusSpec.key ? { ...s, items: s.items.map(item => item === previous ? nextItem : item) } : s), [{
+      scenarioKey: focusSpec.key, field: `item:${process}:operatingMode`, auto: null,
+      old: previous.operatingMode ?? null, new: value ?? null, reason: value ? "Режим выбран для проверки сопоставимости полевого замера" : "Применение замера без выбранного режима отключено",
+    }]);
+  }
+
   function onCostPackage(process: string, value: ScenarioItem["costPackage"]) {
     if (!editable || stale || !focusSpec || focusSpec.kind !== "purchase") return;
     const previous = focusSpec.items.find(item => item.process === process);
@@ -1470,6 +1496,12 @@ export function Workspace({
                 readOnly={!editable || stale}
                 onChange={editable && !stale ? onOperationsStaffing : undefined}
               />}
+              {focusSpec && focusResult.kind !== "asis" && (!archive || focusSpec.logistics || focusResult.risks.some(risk => risk.code === "LOGISTICS_NOT_ASSESSED")) && <DeploymentLogistics
+                key={`${focusSpec.key}-${stableJson(focusSpec.logistics ?? null)}`}
+                value={focusSpec.logistics}
+                readOnly={!editable || stale}
+                onChange={editable && !stale ? onLogistics : undefined}
+              />}
               <ScenarioDetails
                 result={focusResult}
                 spec={focusSpec}
@@ -1479,6 +1511,7 @@ export function Workspace({
                 paramLabels={paramLabels}
                 readOnly={!editable}
                 onCostPackage={editable && !stale ? onCostPackage : undefined}
+                onOperatingMode={editable && !stale ? onOperatingMode : undefined}
                 onOverride={
                   editable && focusResult.kind !== "asis"
                     ? (field, value, reason) => onItemOverride(focusResult.key, field, value, reason)

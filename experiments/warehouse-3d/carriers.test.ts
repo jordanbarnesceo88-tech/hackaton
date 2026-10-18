@@ -135,6 +135,29 @@ describe("physical under-shelf closed carrier pool",()=>{
     expect(pos).toBeDefined();
   });
 
+  it("finishes a positive sub-nanometre exit remainder while preserving a zero-distance pedestrian stop",()=>{
+    const {state}=fixture();
+    while(state.tS<state.endS&&state.robots[0]!.underlift?.stage!=="exit")stepPlayback(state);
+    const r=state.robots[0]!;
+    expect(r.underlift?.routeStage).toBe("exit");
+    r.distM=r.pathLenM-5e-10;r.timerS=1;
+    const from=r.path[0]!,to=r.path.at(-1)!,alpha=r.distM/r.pathLenM;
+    r.x=from.x+(to.x-from.x)*alpha;r.y=from.y+(to.y-from.y)*alpha;
+    const stopped={x:r.x,y:r.y,distM:r.distM,timerS:r.timerS};
+    expect(r.pathLenM-r.distM).toBeGreaterThan(0);
+    expect(r.pathLenM-r.distM).toBeLessThan(1e-9);
+    expect(underliftHandling(state,r,1,()=>r.distM)).toBe(false);
+    expect({x:r.x,y:r.y,distM:r.distM,timerS:r.timerS}).toEqual(stopped);
+    expect(r.task!.doneS).toBeNull();
+    const booleanState=structuredClone(state),booleanRobot=booleanState.robots[0]!;
+    expect(underliftHandling(booleanState,booleanRobot,1,()=>true)).toBe(true);
+    expect(booleanRobot.distM).toBe(booleanRobot.pathLenM);
+    expect({x:booleanRobot.x,y:booleanRobot.y}).toEqual(to);
+    expect(underliftHandling(state,r,1,(_robot,next)=>next)).toBe(true);
+    expect(r.distM).toBe(r.pathLenM);
+    expect({x:r.x,y:r.y}).toEqual(to);
+  });
+
   it("returns an empty shelf after shipping and refills it only during receiving service", () => {
     const { state } = fixture();
     const pod = state.demoUnderlift!.pods[0]!;

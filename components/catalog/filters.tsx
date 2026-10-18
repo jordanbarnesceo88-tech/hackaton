@@ -18,7 +18,7 @@ const FIELD_CLASS = "field field--lg";
 
 const LABEL_CLASS = "text-xs font-medium text-muted-foreground";
 
-const STATUS_ORDER = ["operation", "piloting", "rnd"] as const;
+const STATUS_ORDER = ["operation", "piloting", "rnd", "unknown"] as const;
 
 const LEVEL_FILTER: readonly { value: CatalogQuery["level"]; label: string }[] = [
   { value: "", label: "любая" },

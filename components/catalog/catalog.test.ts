@@ -228,7 +228,7 @@ describe("адрес каталога", () => {
     const q = parseCatalogQuery({
       q: "  Ronavi ",
       facility: ["warehouse", "airport"],
-      status: "unknown",
+      status: "invalid-status",
       level: "enriched",
       sort: "bogus",
       page: "-3",

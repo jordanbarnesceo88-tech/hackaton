@@ -24,6 +24,7 @@ import { positionAlong } from "../../lib/sim/routing";
 import { attachIncidentFrame, incidentSummary } from "./incidents";
 import { assessCleaning, assessWarehouse, type DemoAssessment } from "./assessment";
 import { carrierSpec, type CarrierInput } from "./carriers";
+import { pedestrianFrame } from "./pedestrians";
 export { carrierSpec, carrierPose } from "./carriers";
 export { compareWarehouseFleet, applyFleetComparison } from "./comparison";
 export { calculateProjectPreview } from "./project-input";
@@ -142,7 +143,11 @@ export function calculateCase(id: string, overrides: DemoOverrides = {}): DemoMo
     const site = complexSite(Number(params.activeAreaM2), chargersNeeded(fleet!, product, resolveNorms()).count, true);
     params.receivingDocksCount = site.receiving.length;
     params.shippingDocksCount = site.shipping.length;
+    const scale=Math.sqrt(Number(params.activeAreaM2)/10000);
+    const trajectory=[{tS:0,x:124*scale,y:10*scale}];
+    for(let t=600;t<8000;t+=300)trajectory.push({tS:t,x:124*scale,y:10*scale},{tS:t+20,x:124*scale,y:30*scale},{tS:t+80,x:124*scale,y:30*scale},{tS:t+100,x:124*scale,y:10*scale});
     for (const spec of scenarios) if (spec.kind !== "asis") {
+      spec.pedestrians={version:"pedestrians-1",policy:"controlled-crossing",crossingWidthM:2,reactionTimeS:.5,decelerationMps2:.8,accelerationMps2:.8,clearanceM:.25,people:[{id:"person-crosswalk-1",radiusM:.3,trajectory:structuredClone(trajectory)}]};
       spec.siteLayout = structuredClone(site);
       spec.items[0]!.chargersOverride = site.chargers.length;
     }
@@ -179,6 +184,7 @@ export function calculateCase(id: string, overrides: DemoOverrides = {}): DemoMo
     financeUnavailableReason: "Прогон учитывает защитные остановки и объезды. Для экономики этого состава задайте годовой охват нагрузки и денежную реализацию труда кнопкой ниже. Короткий прогон сам по себе не определяет годовую экономию. Зарядные станции взяты из опорного расчёта.",
     sources,
     assumptions: [
+      ...(id==="complex"?["Учебный управляемый переход в экспедиции: человек ждёт у бордюра, пока переход свободен, и идёт без остановок до другого бордюра. Расписание задаёт желаемое, а не гарантированное начало. Радиус 0,30 м, запас на реакцию 0,5 с, торможение/разгон 0,8 м/с² и зазор 0,25 м — оценочные допущения. Интеграция 1 с с дополнительным запасом одного шага; это не сертификация безопасности."]:[]),
       carrierSpec(input).sourceNote,
       ...(example ? [example.assumption, "Учебные отказы в регулярном потоке отключены, как в исходном расчёте. Для разбора отказов выберите другой складской сценарий."] : ["Демонстрация на снимке каталога и базовых параметрах организатора, а не измерения реального объекта. Вердикт модели не доказывает окупаемость или успешность пилота."]),
       ...(id === "capacity-reserve" ? ["Парк 14 — фиксированный вариант сравнения на базовой нагрузке, а не резерв относительно текущего расчётного парка. Результат пересчитывается движком и не гарантирует выполнение нагрузки."] : []),
@@ -257,6 +263,7 @@ function previewSafeWarehouse(state: SimEngineState, alpha: number) {
     cache = { tS: state.tS, next }; safePreviews.set(state, cache);
   }
   frame.tS = state.tS + alpha;
+  if(isWarehouseTrafficState(cache.next)&&cache.next.demoPedestrians)Object.assign(frame,{people:pedestrianFrame(cache.next.demoPedestrians,frame.tS)});
   frame.robots.forEach((r, i) => {
     const current = state.robots[i]!, future = cache.next.robots[i]!;
     if (r.incident?.active && r.incident.haltsRobot) { r.vMps = 0; return; }

@@ -15,6 +15,7 @@ export const STATUS_LABELS: Readonly<Record<ProductStatus, string>> = {
   operation: "в эксплуатации",
   piloting: "пилот",
   rnd: "НИОКР",
+  unknown: "статус эксплуатации не подтверждён",
 };
 
 /** Тон бейджа статуса (data-tone на .badge, app/globals.css): серийная эксплуатация — спокойный,
@@ -23,6 +24,7 @@ export const STATUS_TONE: Readonly<Record<ProductStatus, "ok" | "warn" | undefin
   operation: "ok",
   piloting: "warn",
   rnd: undefined,
+  unknown: "warn",
 };
 
 /** Глубина описания продукта — насколько карточка заполнена характеристиками с источниками. */

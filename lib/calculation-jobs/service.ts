@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import type { CalculationRun, Prisma, PrismaClient } from "@prisma/client";
 import { checkCalcInput, facilityOf } from "../api/calc";
+import { productsAtEvidenceDate } from "../catalog/evidence-date";
 import { isPlainObject, unknownFields } from "../api/http";
 import { applyDefaults } from "../tz/params/schema";
 import { hasErrors, validateParamValues } from "../tz/params/validate";
@@ -76,10 +77,11 @@ function paramsSourceOf(raw: unknown): ParamsSource {
 }
 
 async function prepareFrozenInput(tx: Prisma.TransactionClient, ownerId: string, request: CalculationRequest): Promise<FrozenCalculationInput> {
+  const evidenceEvaluatedOn = new Date().toISOString().slice(0, 10);
   if (request.operation === "CREATE" || request.operation === "CALCULATE") {
     const facility = facilityOf(request.facility);
     if (!facility) throw new CalculationRequestError(422, "facility — warehouse, airport или medical");
-    const live = await loadLiveInputs(tx, facility);
+    const live = await loadLiveInputs(tx, facility, evidenceEvaluatedOn);
     const checked = checkCalcInput(live, facility, request.params, request.scenarios);
     if (!checked.ok) throw new CalculationRequestError(422, checked.error, checked.details);
     const frozen: FrozenCalculationInput = { schemaVersion: 1, operation: request.operation, live,
@@ -105,7 +107,7 @@ async function prepareFrozenInput(tx: Prisma.TransactionClient, ownerId: string,
   if (!project) throw new CalculationRequestError(404, "Проект не найден");
   if (project.isDemo) throw new CalculationRequestError(422, "Демонстрационный проект доступен только для чтения — создайте копию");
   if (project.revision !== request.expectedRevision) throw new CalculationRequestError(409, new ProjectRevisionConflict().message);
-  const live = await loadLiveInputs(tx, project.facility);
+  const live = await loadLiveInputs(tx, project.facility, evidenceEvaluatedOn);
   const params = request.operation === "SAVE" ? request.params : project.params;
   if (!isPlainObject(params)) throw new CalculationRequestError(422, "Параметры объекта не переданы");
   const checked = validateParamValues(live.paramDefs, params, { origin: "manual" });
@@ -132,7 +134,7 @@ async function prepareFrozenInput(tx: Prisma.TransactionClient, ownerId: string,
   return { schemaVersion: 1, operation: request.operation, live,
     input: { facility: project.facility, params: applyDefaults(live.paramDefs, checked.values), scenarios,
       snapshot: request.operation === "SAVE" && project.results
-        ? { productSnapshots: project.results.productSnapshots, normsUsed: project.results.normsUsed } : null },
+        ? { productSnapshots: productsAtEvidenceDate(project.results.productSnapshots, evidenceEvaluatedOn), normsUsed: project.results.normsUsed } : null },
     publication: { projectId: project.id, expectedRevision: request.expectedRevision, changes, ...(name ? { name } : {}) } };
 }
 

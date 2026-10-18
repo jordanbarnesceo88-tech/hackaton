@@ -6,6 +6,7 @@ import { spatialEvidenceMatchesInput } from "../../sim/spatial-evidence";
 import { expectedSpatialInputFromStored } from "../../tz/model";
 import { buildPilotBudget } from "../../tz/pilot-budget";
 import { operationsStaffingText } from "../../tz/operations-staffing-text";
+import { deploymentLogisticsText } from "../../tz/deployment-logistics";
 import { displayDataText, originLabel, sourceRefLabel } from "../../tz/characteristics";
 import {
   DEFAULT_PARAM_LABELS,
@@ -317,6 +318,7 @@ function tableCell(key: ScenarioRowKey, r: ScenarioResult, results: ReportResult
       }
       if (spec?.cashRealizationShare !== undefined) assumptions.push(`денежная реализация высвобождаемого ФОТ: ${formatPct(spec.cashRealizationShare * 100)} (оценка; FTE отдельно)`);
       if (spec?.operationsStaffing) assumptions.push(operationsStaffingText(spec.operationsStaffing));
+      if (spec?.logistics || r.risks.some(risk => risk.code === "LOGISTICS_NOT_ASSESSED")) assumptions.push(deploymentLogisticsText(spec?.logistics));
       return [null, [compositionText(r), ...assumptions].join("; ")];
     }
     case "sim": {
@@ -726,6 +728,7 @@ export function changeFieldLabel(field: string, paramLabels?: Readonly<Record<st
   if (field === "scenario:add") return "Сценарий добавлен";
   if (field === "scenario:remove") return "Сценарий удалён";
   if (field === "scenario:staffing") return "Организация и дополнительные расходы эксплуатации";
+  if (field === "scenario:logistics") return "Доставка полного внедрения";
   return field;
 }
 

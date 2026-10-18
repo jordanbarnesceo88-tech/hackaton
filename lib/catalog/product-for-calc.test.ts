@@ -286,7 +286,11 @@ describe("сужение строк из БД", () => {
     expect(asQualifier("от")).toBe("от");
     expect(asQualifier("около")).toBeNull();
     expect(asStatus("rnd")).toBe("rnd");
-    expect(asStatus("unknown")).toBe("piloting");
+    expect(asStatus("unknown")).toBe("unknown");
+    expect(asStatus("invalid-status")).toBe("unknown");
+    expect(asStatus(undefined)).toBe("unknown");
+    expect(asStatus("operation")).toBe("operation");
+    expect(asStatus("piloting")).toBe("piloting");
     expect(asLevel("examples")).toBe("examples");
     expect(asLevel("full")).toBe("identification");
     expect(asHandlingClass("fork")).toBe("fork");

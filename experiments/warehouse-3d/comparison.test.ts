@@ -81,13 +81,19 @@ describe("matched warehouse fleet enumeration", () => {
     const partial = await compareWarehouseFleet(low, { maxFleet: 3, signal: controller.signal, onProgress: (p) => { if (p.run?.fleet === 2) controller.abort(); } });
     expect(partial.status).toBe("PARTIAL"); expect(partial.stopReason).toBe("cancelled");
     expect(partial.bestTestedPassingFleet).toBe(2); expect(partial.minimumFleet).toBeNull(); expect(partial.minimumScope).toBe("not-established");
-  });
+  // Five full 1-hour replays of the complex plan include the pedestrian audit.
+  // Correctness assertions remain exact; runtime performance is measured separately.
+  }, 30_000);
 
   it("rejects an edited scene seed or physical wall that no longer matches its source plan", async () => {
     const seed = structuredClone(reference); seed.input.seed++;
     await expect(compareWarehouseFleet(seed, { maxFleet: 1 })).rejects.toThrow(/Условия сцены/);
     const wall = structuredClone(reference); wall.input.siteLayout!.walls!.push({ x: 1, y: 1, w: 1, h: 1 });
     await expect(compareWarehouseFleet(wall, { maxFleet: 1 })).rejects.toThrow(/Геометрия сцены/);
+    const gap=structuredClone(reference);gap.input.pedestrians!.clearanceM+=.1;
+    await expect(compareWarehouseFleet(gap,{maxFleet:1})).rejects.toThrow(/Условия сцены/);
+    const trajectory=structuredClone(reference);trajectory.input.pedestrians!.people[0]!.trajectory[1]!.tS++;
+    await expect(compareWarehouseFleet(trajectory,{maxFleet:1})).rejects.toThrow(/Условия сцены/);
   });
 
   it("does not label an interrupted candidate as a tested pass", async () => {

@@ -137,6 +137,7 @@ export function verificationReasons(chars: readonly CharRow[], opts: PromoteOpti
     if (!reasons.includes(reason)) reasons.push(reason);
   };
   for (const flag of asFlags(opts.flags)) add(FLAG_NOTES[flag]);
+  if (chars.some(c => c.key === "availabilityStatus" && c.valueText === "Статус эксплуатации не подтверждён")) add("статус эксплуатации не подтверждён");
 
   const price = chars.find((c) => c.key === "priceRub");
   const priceRub = finiteOrNull(price?.valueNum);

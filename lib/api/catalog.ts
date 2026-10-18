@@ -21,7 +21,7 @@ export const CATALOG_QUERY_PARAMS = [
   "raas",
 ] as const;
 
-const STATUSES = ["operation", "piloting", "rnd"] as const;
+const STATUSES = ["operation", "piloting", "rnd", "unknown"] as const;
 const LEVELS = ["identification", "enriched", "examples"] as const;
 const SORTS: readonly CatalogSort[] = ["name", "price", "throughput", "completeness"];
 const Q_MAX = 100;
