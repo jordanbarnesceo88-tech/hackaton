@@ -7,39 +7,52 @@ import { useReducedMotion } from "@/components/sim/use-reduced-motion";
 import { cn } from "@/lib/utils";
 
 /**
- * 3D-модель робота-уборщика на первой странице: медленно вращается, мышью или пальцем её можно
- * повернуть. Модель собрана из цилиндров (корпус, бампер, лидар, кнопка) и рисуется на canvas
- * плоскими гранями с освещением по Ламберту.
+ * 3D-модели роботов-уборщиков на первой странице, в одном масштабе: большой коммерческий —
+ * для складов и ТЦ (по образцу робота alfa: сиреневый корпус, голова-экран с «глазами», белое
+ * основание, боковые щётки и скребок) и компактный — для офисов. Медленно вращаются, мышью или
+ * пальцем их можно повернуть. Рисуются на canvas плоскими гранями с освещением по Ламберту.
  *
  * Без three.js сознательно: зависимость меняет package-lock.json, а он входит в отпечаток
  * расчётного движка (.gitattributes, «Exact build-worker source graph») — ради картинки на главной
- * менять версию движка нельзя. Порядок отрисовки задан слоями снизу вверх: у тела вращения на
- * вертикальной оси, видимого сверху, этого достаточно, а задние грани отсекаются.
+ * менять версию движка нельзя.
  *
- * Цвета — из палитры схемы склада (IsoStyles, переменные --iso-*), поэтому тема сайта
- * подхватывается сама. Вне экрана цикл стоит; при «уменьшить движение» модель неподвижна;
- * кнопка «Пауза» — для остальных (движение дольше 5 секунд, WCAG 2.2.2).
+ * Детали — выпуклые тела, у каждого видны только грани, смотрящие на зрителя. Порядок тел задан
+ * слоями снизу вверх (камера всегда сверху), а внутри слоя — по глубине: так голова и аварийная
+ * кнопка меняются местами, когда робот разворачивается. Надписи и окна на гранях рисуются в
+ * аффинной проекции грани (перспектива слабая, на мелких деталях разницы не видно).
+ *
+ * Цвета компактного робота и тень — из палитры схемы склада (IsoStyles, --iso-*), поэтому тема
+ * сайта подхватывается сама; у большого — цвета изделия. Вне экрана цикл стоит; при «уменьшить
+ * движение» модели неподвижны; кнопка «Пауза» — для остальных (движение дольше 5 секунд, WCAG 2.2.2).
  */
 
 type V3 = [number, number, number];
 type RGB = [number, number, number];
 type Palette = { body: RGB; dark: RGB; accent: RGB; glass: RGB; shadow: string };
 
-/** Наклон камеры, рад: смотрим спереди и сверху. */
-const ELEVATION = 0.5;
+/** Наклон камеры, рад: смотрим спереди и чуть сверху, как на снимке изделия. */
+const ELEVATION = 0.38;
 /** Скорость вращения, рад/с, и щёток. */
-const SPIN = 0.45;
+const SPIN = 0.4;
 const BRUSH_SPIN = 9;
-/** Фокус лёгкой перспективы в радиусах робота. */
-const FOCAL = 9;
+/** Фокус лёгкой перспективы, м. */
+const FOCAL_M = 3;
 const SEGMENTS = 128;
 /** Свет: сверху-слева-спереди относительно зрителя. */
 const LIGHT: V3 = norm([0.55, 0.55, 0.85]);
+/** Радиус компактного робота, м: его модель построена в радиусах. */
+const COMPACT_R = 0.17;
+/** Где стоят роботы, доля ширины холста. Подписи под ними — в тех же долях. */
+const BIG_AT = 0.4;
+const COMPACT_AT = 0.69;
 
 function norm([x, y, z]: V3): V3 {
   const l = Math.hypot(x, y, z) || 1;
   return [x / l, y / l, z / l];
 }
+
+const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const mul = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k];
 
 function parseColor(raw: string, fallback: RGB): RGB {
   const v = raw.trim();
@@ -76,6 +89,7 @@ function shade([r, g, b]: RGB, k: number): string {
   return `rgb(${c(r)},${c(g)},${c(b)})`;
 }
 
+/** Камера и место одного робота на холсте. scale — пикселей на единицу модели, focal — в тех же единицах. */
 type Frame = {
   ctx: CanvasRenderingContext2D;
   cos: number;
@@ -83,6 +97,7 @@ type Frame = {
   cx: number;
   cy: number;
   scale: number;
+  focal: number;
 };
 
 /** Поворот модели вокруг вертикали. */
@@ -90,12 +105,17 @@ function yaw(f: Frame, [x, y, z]: V3): V3 {
   return [x * f.cos - y * f.sin, x * f.sin + y * f.cos, z];
 }
 
-/** Точка модели на экране: камера на +x, наклон ELEVATION, лёгкая перспектива. */
+/** Насколько точка ближе к зрителю: камера на +x, наклон ELEVATION. */
+function depthOf(f: Frame, p: V3): number {
+  const [x, , z] = yaw(f, p);
+  return x * Math.cos(ELEVATION) + z * Math.sin(ELEVATION);
+}
+
+/** Точка модели на экране с лёгкой перспективой. */
 function screen(f: Frame, p: V3): [number, number] {
   const [x, y, z] = yaw(f, p);
   const se = Math.sin(ELEVATION), ce = Math.cos(ELEVATION);
-  const depth = x * ce + z * se;
-  const k = (f.scale * FOCAL) / (FOCAL - depth);
+  const k = (f.scale * f.focal) / (f.focal - (x * ce + z * se));
   return [f.cx + y * k, f.cy + (x * se - z * ce) * k];
 }
 
@@ -121,6 +141,20 @@ function polygon(f: Frame, points: V3[], fill: string) {
   // Тонкая обводка того же цвета закрывает щели сглаживания между соседними гранями.
   ctx.strokeStyle = fill;
   ctx.lineWidth = 0.6;
+  ctx.stroke();
+}
+
+function stroke(f: Frame, points: V3[], color: string, width: number) {
+  const { ctx } = f;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const [x, y] = screen(f, p);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = "round";
   ctx.stroke();
 }
 
@@ -151,32 +185,248 @@ function cylinder(
   if (o.cap) polygon(f, ring(cx, cy, o.r, o.z1), shade(o.cap, light(f, [0, 0, 1]).k));
 }
 
-function stroke(f: Frame, points: V3[], color: string, width: number) {
-  const { ctx } = f;
-  ctx.beginPath();
-  points.forEach((p, i) => {
-    const [x, y] = screen(f, p);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineCap = "round";
-  ctx.stroke();
+/** Грань выпуклого тела: точки, внешняя нормаль, цвет. */
+type Face = { pts: V3[]; n: V3; color: RGB };
+
+function faces(f: Frame, list: readonly Face[]) {
+  for (const face of list) {
+    const { visible, k } = light(f, face.n);
+    if (visible) polygon(f, face.pts, shade(face.color, k));
+  }
 }
 
-/** Робот целиком, снизу вверх. x — вперёд, y — влево, z — вверх; радиус корпуса — 1. */
-function drawRobot(f: Frame, pal: Palette, brushAngle: number) {
+type Outline = [number, number][];
+
+function arc(cx: number, cy: number, r: number, a0: number, a1: number, seg = 6): Outline {
+  const out: Outline = [];
+  for (let i = 0; i <= seg; i++) {
+    const a = a0 + ((a1 - a0) * i) / seg;
+    out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return out;
+}
+
+/** Контур в плане со скруглёнными углами, против часовой: x — от кормы к носу, y — от правого борта к левому. */
+function roundedRect(x0: number, x1: number, y0: number, y1: number, r: number): Outline {
+  return [
+    ...arc(x1 - r, y0 + r, r, -Math.PI / 2, 0),
+    ...arc(x1 - r, y1 - r, r, 0, Math.PI / 2),
+    ...arc(x0 + r, y1 - r, r, Math.PI / 2, Math.PI),
+    ...arc(x0 + r, y0 + r, r, Math.PI, (3 * Math.PI) / 2),
+  ];
+}
+
+/** Носовая и кормовая части такого контура, разрезанного поперёк на x = split; последнее ребро — разрез. */
+function bowPart(split: number, x1: number, y0: number, y1: number, r: number): Outline {
+  return [[split, y0], ...arc(x1 - r, y0 + r, r, -Math.PI / 2, 0), ...arc(x1 - r, y1 - r, r, 0, Math.PI / 2), [split, y1]];
+}
+function sternPart(x0: number, split: number, y0: number, y1: number, r: number): Outline {
+  return [[split, y1], ...arc(x0 + r, y1 - r, r, Math.PI / 2, Math.PI), ...arc(x0 + r, y0 + r, r, Math.PI, (3 * Math.PI) / 2), [split, y0]];
+}
+
+/** Призма по контуру в плане. cut — последнее ребро внутри сборки (разрез), его грань не рисуется. */
+function prism(outline: Outline, z0: number, z1: number, side: RGB, top: RGB | null, cut = false): Face[] {
+  const out: Face[] = [];
+  const n = outline.length;
+  for (let i = 0; i < (cut ? n - 1 : n); i++) {
+    const [x0, y0] = outline[i]!, [x1, y1] = outline[(i + 1) % n]!;
+    out.push({ pts: [[x0, y0, z0], [x1, y1, z0], [x1, y1, z1], [x0, y0, z1]], n: norm([y1 - y0, -(x1 - x0), 0]), color: side });
+  }
+  if (top) out.push({ pts: outline.map(([x, y]) => [x, y, z1] as V3), n: [0, 0, 1], color: top });
+  return out;
+}
+
+/** Тело, вытянутое вдоль y по профилю в плоскости x–z (против часовой). color(i) — цвет грани ребра i. */
+function extrudeY(profile: Outline, y0: number, y1: number, color: (i: number) => RGB, sides: RGB): Face[] {
+  const out: Face[] = [];
+  const n = profile.length;
+  for (let i = 0; i < n; i++) {
+    const [x0, z0] = profile[i]!, [x1, z1] = profile[(i + 1) % n]!;
+    out.push({ pts: [[x0, y0, z0], [x1, y0, z1], [x1, y1, z1], [x0, y1, z0]], n: norm([z1 - z0, 0, -(x1 - x0)]), color: color(i) });
+  }
+  out.push({ pts: profile.map(([x, z]) => [x, y1, z] as V3), n: [0, 1, 0], color: sides });
+  out.push({ pts: profile.map(([x, z]) => [x, y0, z] as V3), n: [0, -1, 0], color: sides });
+  return out;
+}
+
+/** Плоскость грани для рисунка на ней: начало, «вправо» и «вверх» для смотрящего на грань, нормаль. */
+type Plane = { o: V3; u: V3; v: V3; n: V3 };
+
+/**
+ * Рисунок на грани, если она смотрит на зрителя. Единица — миллиметр, x — вправо по грани, y — вниз;
+ * k — освещённость грани, чтобы рисунок темнел вместе с ней.
+ */
+function decal(f: Frame, pl: Plane, paint: (ctx: CanvasRenderingContext2D, k: number) => void) {
+  const { visible, k } = light(f, pl.n);
+  if (!visible) return;
+  const step = 0.05;
+  const s0 = screen(f, pl.o), su = screen(f, add(pl.o, mul(pl.u, step))), sv = screen(f, add(pl.o, mul(pl.v, step)));
+  const mm = 0.001 / step;
+  const { ctx } = f;
+  ctx.save();
+  ctx.transform((su[0] - s0[0]) * mm, (su[1] - s0[1]) * mm, -(sv[0] - s0[0]) * mm, -(sv[1] - s0[1]) * mm, s0[0], s0[1]);
+  paint(ctx, k);
+  ctx.restore();
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+// ── Большой робот (м). Нос — +x, левый борт — +y. ──────────────────────────────────────────────
+
+const LAVENDER: RGB = [162, 150, 222];
+const VIOLET: RGB = [75, 58, 158];
+const SLOT: RGB = [47, 39, 82];
+const LID: RGB = [57, 57, 65];
+const HEAD: RGB = [42, 42, 48];
+const BEZEL: RGB = [214, 214, 219];
+const SCREEN: RGB = [20, 20, 24];
+const BASE: RGB = [237, 237, 240];
+const TRIM: RGB = [70, 70, 77];
+const BRISTLE: RGB = [35, 35, 40];
+const SQUEEGEE: RGB = [96, 96, 104];
+const ESTOP: RGB = [216, 52, 58];
+
+const BODY_X0 = -0.3, BODY_X1 = 0.27, BODY_Y = 0.27, BODY_R = 0.08, BODY_SPLIT = 0.03;
+const BODY_Z0 = 0.22, BODY_Z1 = 0.74, LID_Z1 = 0.765;
+
+const BIG = {
+  squeegee: prism(roundedRect(-0.39, -0.362, -0.3, 0.3, 0.012), 0.012, 0.042, SQUEEGEE, SQUEEGEE),
+  trim: prism(roundedRect(-0.345, 0.345, -0.305, 0.305, 0.135), 0.02, 0.075, TRIM, null),
+  base: prism(roundedRect(-0.35, 0.35, -0.31, 0.31, 0.14), 0.075, BODY_Z0, BASE, BASE),
+  bow: prism(bowPart(BODY_SPLIT, BODY_X1, -BODY_Y, BODY_Y, BODY_R), BODY_Z0, BODY_Z1, LAVENDER, LAVENDER, true),
+  stern: prism(sternPart(BODY_X0, BODY_SPLIT, -BODY_Y, BODY_Y, BODY_R), BODY_Z0, BODY_Z1, VIOLET, VIOLET, true),
+  lid: prism(roundedRect(BODY_X0 - 0.004, BODY_X1 + 0.004, -BODY_Y - 0.004, BODY_Y + 0.004, BODY_R + 0.004), BODY_Z1, LID_Z1, LID, LID),
+  // Голова-экран: профиль сбоку — низ на крышке, лицо наклонено вперёд и чуть нависает над носом.
+  head: extrudeY([[0.06, LID_Z1], [0.3, LID_Z1], [0.24, 0.92], [0.06, 0.92]], -0.19, 0.19, (i) => (i === 1 ? BEZEL : HEAD), HEAD),
+};
+
+const FACE_N = norm([0.155, 0, 0.06]);
+const PLANES = {
+  screen: { o: add([0.27, 0, 0.8425], mul(FACE_N, 0.0015)), u: [0, 1, 0], v: norm([-0.06, 0, 0.155]), n: FACE_N },
+  bow: { o: [BODY_X1 + 0.0015, 0, 0.48], u: [0, 1, 0], v: [0, 0, 1], n: [1, 0, 0] },
+  base: { o: [0.3515, 0, 0.148], u: [0, 1, 0], v: [0, 0, 1], n: [1, 0, 0] },
+  left: { o: [-0.095, BODY_Y + 0.0015, 0.52], u: [-1, 0, 0], v: [0, 0, 1], n: [0, 1, 0] },
+  right: { o: [-0.095, -BODY_Y - 0.0015, 0.52], u: [1, 0, 0], v: [0, 0, 1], n: [0, -1, 0] },
+} satisfies Record<string, Plane>;
+
+/** Логотип на борту: значок-«лицо» и надпись. */
+function paintLogo(ctx: CanvasRenderingContext2D, k: number, font: string) {
+  const ink = shade([250, 250, 252], Math.min(1, k + 0.15));
+  ctx.strokeStyle = ink;
+  ctx.fillStyle = ink;
+  ctx.lineWidth = 6;
+  roundRect(ctx, -80, -18, 40, 34, 9);
+  ctx.stroke();
+  ctx.fillRect(-70, -6, 6, 9);
+  ctx.fillRect(-56, -6, 6, 9);
+  ctx.font = `600 50px ${font}`;
+  ctx.textBaseline = "middle";
+  ctx.fillText("alfa", -30, 0);
+}
+
+function bristles(f: Frame, bx: number, by: number, angle: number, r: number, width: number) {
+  const color = "rgba(30,30,35,0.8)";
+  for (let i = 0; i < 22; i++) {
+    const a = angle + (i * Math.PI * 2) / 22;
+    stroke(f, [[bx + 0.02 * Math.cos(a), by + 0.02 * Math.sin(a), 0.014], [bx + r * Math.cos(a), by + r * Math.sin(a), 0.004]], color, width);
+  }
+  cylinder(f, { cx: bx, cy: by, r: 0.03, z0: 0.01, z1: 0.035, color: BRISTLE, cap: BRISTLE });
+}
+
+function drawBigRobot(f: Frame, pal: Palette, brushAngle: number, font: string) {
+  const { ctx } = f;
+  ctx.save();
+  ctx.filter = `blur(${Math.max(3, f.scale * 0.035)}px)`;
+  polygon(f, roundedRect(-0.43, 0.43, -0.38, 0.38, 0.2).map(([x, y]) => [x, y, 0] as V3), pal.shadow);
+  ctx.restore();
+
+  const bristle = Math.max(0.8, f.scale * 0.0035);
+  const parts: { layer: number; at: V3; draw: () => void }[] = [
+    { layer: 0, at: [0.29, 0.24, 0], draw: () => bristles(f, 0.29, 0.24, brushAngle, 0.17, bristle) },
+    { layer: 0, at: [0.29, -0.24, 0], draw: () => bristles(f, 0.29, -0.24, -brushAngle, 0.17, bristle) },
+    { layer: 0, at: [-0.38, 0, 0], draw: () => faces(f, BIG.squeegee) },
+    { layer: 1, at: [0, 0, 0.05], draw: () => faces(f, BIG.trim) },
+    {
+      layer: 2,
+      at: [0, 0, 0.15],
+      draw: () => {
+        faces(f, BIG.base);
+        decal(f, PLANES.base, (c, k) => {
+          c.fillStyle = shade(TRIM, k);
+          roundRect(c, -80, -12, 160, 24, 12);
+          c.fill();
+        });
+      },
+    },
+    {
+      layer: 3,
+      at: [0, 0, 0.48],
+      draw: () => {
+        faces(f, BIG.bow);
+        faces(f, BIG.stern);
+        decal(f, PLANES.bow, (c, k) => {
+          c.fillStyle = shade(SLOT, k);
+          roundRect(c, -95, -75, 30, 150, 15);
+          c.fill();
+          for (const x of [-150, -128, 128, 150]) {
+            c.beginPath();
+            c.arc(x, 150, 7, 0, Math.PI * 2);
+            c.fill();
+          }
+        });
+        decal(f, PLANES.left, (c, k) => paintLogo(c, k, font));
+        decal(f, PLANES.right, (c, k) => paintLogo(c, k, font));
+      },
+    },
+    { layer: 4, at: [0, 0, 0.75], draw: () => faces(f, BIG.lid) },
+    {
+      layer: 5,
+      at: [0.18, 0, 0.84],
+      draw: () => {
+        faces(f, BIG.head);
+        decal(f, PLANES.screen, (c) => {
+          c.fillStyle = shade(SCREEN, 1);
+          roundRect(c, -150, -64, 300, 128, 24);
+          c.fill();
+          // «Глаза» светятся сами — освещение грани их не гасит.
+          c.strokeStyle = "rgb(244,244,247)";
+          c.lineWidth = 9;
+          for (const x of [-74, 30]) {
+            roundRect(c, x, -30, 44, 60, 16);
+            c.stroke();
+          }
+        });
+      },
+    },
+    {
+      layer: 5,
+      at: [-0.17, 0, 0.78],
+      draw: () => {
+        cylinder(f, { cx: -0.17, r: 0.034, z0: LID_Z1, z1: LID_Z1 + 0.008, color: HEAD, cap: HEAD });
+        cylinder(f, { cx: -0.17, r: 0.024, z0: LID_Z1 + 0.008, z1: LID_Z1 + 0.034, color: ESTOP, cap: lighten(ESTOP, 1.1) });
+      },
+    },
+  ];
+  parts
+    .sort((a, b) => a.layer - b.layer || depthOf(f, a.at) - depthOf(f, b.at))
+    .forEach((p) => p.draw());
+}
+
+// ── Компактный робот (в радиусах корпуса). ─────────────────────────────────────────────────────
+
+/** Робот-пылесос: круглый корпус, бампер, лидар сверху, щётки. Слои — снизу вверх. */
+function drawCompactRobot(f: Frame, pal: Palette, brushAngle: number) {
   const { ctx } = f;
   const unit = f.scale / 100;
 
-  // Тень на полу.
   ctx.save();
   ctx.filter = `blur(${Math.max(2, 10 * unit)}px)`;
   polygon(f, ring(0, 0, 1.12, 0, 0, Math.PI * 2, 48), pal.shadow);
   ctx.restore();
 
-  // Боковые щётки спереди: три пучка, вращаются навстречу друг другу.
   for (const side of [1, -1]) {
     const bx = 0.62, by = 0.6 * side;
     for (let i = 0; i < 3; i++) {
@@ -186,17 +436,14 @@ function drawRobot(f: Frame, pal: Palette, brushAngle: number) {
     cylinder(f, { cx: bx, cy: by, r: 0.07, z0: 0.02, z1: 0.07, color: pal.dark, cap: pal.dark });
   }
 
-  // Юбка-основание, корпус, бампер спереди.
   cylinder(f, { r: 0.95, z0: 0.02, z1: 0.11, color: pal.dark });
   cylinder(f, { r: 1, z0: 0.11, z1: 0.42, color: pal.body, cap: pal.body });
   cylinder(f, { r: 1.022, z0: 0.14, z1: 0.27, color: pal.dark, from: -1.25, to: 1.25 });
 
-  // Крышка: паз панели, полоса-индикатор спереди, кнопка.
   stroke(f, ring(0, 0, 0.8, 0.421), shade(pal.dark, 1.6), Math.max(1, 1.4 * unit));
   stroke(f, ring(0, 0, 0.88, 0.421, -0.55, 0.55, 24), shade(pal.accent, 1), Math.max(1.5, 4 * unit));
   cylinder(f, { cx: 0.42, r: 0.09, z0: 0.42, z1: 0.44, color: pal.dark, cap: pal.accent });
 
-  // Лидар сзади: башня, окно, крышка.
   cylinder(f, { cx: -0.32, r: 0.26, z0: 0.42, z1: 0.5, color: pal.dark });
   cylinder(f, { cx: -0.32, r: 0.262, z0: 0.5, z1: 0.54, color: pal.glass });
   cylinder(f, { cx: -0.32, r: 0.26, z0: 0.54, z1: 0.6, color: pal.dark, cap: lighten(pal.dark, 1.3) });
@@ -207,13 +454,14 @@ export function CleaningRobot3D({ className }: { className?: string }) {
   const [paused, setPaused] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const state = useRef({ angle: -0.7, brush: 0, drag: null as null | { x: number; angle: number } });
+  const state = useRef({ angle: -0.6, brush: 0, drag: null as null | { x: number; angle: number } });
 
   useEffect(() => {
     const wrap = wrapRef.current, canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!wrap || !canvas || !ctx) return;
     let palette = readPalette(wrap);
+    const font = getComputedStyle(wrap).fontFamily || "sans-serif";
     let width = 0, height = 0, dpr = 1;
 
     function resize() {
@@ -229,10 +477,16 @@ export function CleaningRobot3D({ className }: { className?: string }) {
       const st = state.current;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx!.clearRect(0, 0, width, height);
-      // Робот ≈ 2,3 радиуса в ширину и ≈ 1,6 в высоту на экране — вписываем с полями.
-      const scale = Math.min(width / 2.9, height / 1.9);
-      drawRobot(
-        { ctx: ctx!, cos: Math.cos(st.angle), sin: Math.sin(st.angle), cx: width / 2, cy: height * 0.5 + scale * 0.1, scale },
+      // Большой робот на экране ≈ 0,92 м по высоте с поправкой на наклон и ≈ 1 м в ширину с щётками.
+      const se = Math.sin(ELEVATION), ce = Math.cos(ELEVATION);
+      const tall = 0.92 * ce + 0.9 * se;
+      // Снизу оставляем строку под подписи.
+      const perM = Math.min((height * 0.76) / tall, (width * 0.42) / 1.0);
+      const floorY = height / 2 + (perM * (0.92 * ce - 0.1 * se)) / 2 - 10;
+      const common = { ctx: ctx!, cos: Math.cos(st.angle), sin: Math.sin(st.angle), cy: floorY };
+      drawBigRobot({ ...common, cx: width * BIG_AT, scale: perM, focal: FOCAL_M }, palette, st.brush, font);
+      drawCompactRobot(
+        { ...common, cx: width * COMPACT_AT, scale: perM * COMPACT_R, focal: FOCAL_M / COMPACT_R },
         palette,
         st.brush,
       );
@@ -323,10 +577,25 @@ export function CleaningRobot3D({ className }: { className?: string }) {
         ref={canvasRef}
         className="block h-full w-full cursor-grab touch-pan-y active:cursor-grabbing"
         role="img"
-        aria-label="3D-модель робота-уборщика: круглый корпус, бампер спереди, лидар сверху, боковые щётки"
+        aria-label="3D-модели роботов-уборщиков в одном масштабе: большой — для складов и торговых центров, компактный — для офисов"
       />
-      <p className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground" aria-hidden="true">
+      <p className="pointer-events-none absolute top-3 left-3 text-xs text-muted-foreground" aria-hidden="true">
         Потяните, чтобы повернуть
+      </p>
+      {/* Подписи стоят под роботами: доли ширины те же, что у BIG_AT и COMPACT_AT. */}
+      <p
+        className="pointer-events-none absolute bottom-2 -translate-x-1/2 text-center text-xs font-medium whitespace-nowrap"
+        style={{ left: `${BIG_AT * 100}%` }}
+        aria-hidden="true"
+      >
+        <span className="hidden sm:inline">Большой · </span>для складов и ТЦ
+      </p>
+      <p
+        className="pointer-events-none absolute bottom-2 -translate-x-1/2 text-center text-xs font-medium whitespace-nowrap"
+        style={{ left: `${COMPACT_AT * 100}%` }}
+        aria-hidden="true"
+      >
+        <span className="hidden sm:inline">Компактный · </span>для офисов
       </p>
       {!reduced && (
         <Button type="button" variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => setPaused((v) => !v)}>
