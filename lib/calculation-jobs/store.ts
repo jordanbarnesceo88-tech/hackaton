@@ -1,15 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import {
-  engineRelease, IdempotencyConflict, JobQueueFull, JobHistoryFull, JobStillActive, JobHistoryRemoved, JOB_LEASE_MS, JOB_MAX_ACTIVE,
+  engineRelease, IdempotencyConflict, JobQueueFull, JobHistoryFull, JobStillActive, JobHistoryRemoved, JOB_LEASE_MS,
   JOB_MAX_ATTEMPTS, type ClaimedJob, type JobReceipt, type JobReceiptRow,
   type PublishCalculation, type PublicationState, type JobStatus,
 } from "./types";
+import { CLAIM_LOCK, ENQUEUE_LOCK, readQueuePolicy } from "./policy";
 
 type Db = PrismaClient;
 type Tx = Prisma.TransactionClient;
-const ENQUEUE_LOCK = 1_746_021_301;
-const CLAIM_LOCK = 1_746_021_302;
 const json = (value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(value));
 class LeaseLost extends Error {}
 const RECEIPT_RUN_SELECT = {
@@ -70,12 +69,13 @@ export async function assertQueueCapacity(tx: Tx, ownerId: string): Promise<void
   if (ownedHistory >= 200 || totalHistory >= 2000) throw new JobHistoryFull();
 }
 
-/** Caller freezes a coherent server snapshot before entering this admission transaction. */
-export async function enqueueWithinTransaction(tx: Tx, input: EnqueuePrepared): Promise<JobReceipt> {
+/** One locked admission pass; publication checks run under the same fence before any write. */
+export async function enqueueWithinTransaction(tx: Tx, input: EnqueuePrepared, validateBeforeInsert?: () => Promise<void>): Promise<JobReceipt> {
   await lockEnqueueAdmission(tx);
   const existing = await findIdempotent(tx, input.ownerId, input.idempotencyKey, input.requestHash);
   if (existing) return existing;
   await assertQueueCapacity(tx, input.ownerId);
+  await validateBeforeInsert?.();
   const run = await tx.calculationRun.create({ data: {
     ownerId: input.ownerId, operation: input.operation, projectId: input.projectId,
     reservedProjectId: input.reservedProjectId, baseRevision: input.baseRevision,
@@ -108,14 +108,15 @@ export async function getOwnedJobResult(db: Db, ownerId: string, id: string) {
   return { job: toJobReceipt(row), run: row.run };
 }
 
-export async function claimJob(db: Db, options: { workerId?: string; leaseMs?: number; maxActive?: number } = {}): Promise<ClaimedJob | null> {
+export async function claimJob(db: Db, options: { workerId?: string; leaseMs?: number } = {}): Promise<ClaimedJob | null> {
   const token = randomUUID();
   const leaseMs = options.leaseMs ?? JOB_LEASE_MS;
   return db.$transaction(async tx => {
     // A DB-level limit covers all worker processes; it limits valid leases, not zombie CPU.
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(${CLAIM_LOCK})::text AS locked`;
+    const policy = await readQueuePolicy(tx);
     const active = await tx.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) AS count FROM "CalculationJob" WHERE status = 'RUNNING' AND "leaseUntil" > clock_timestamp()`;
-    if (Number(active[0]?.count ?? 0) >= (options.maxActive ?? JOB_MAX_ACTIVE)) return null;
+    if (Number(active[0]?.count ?? 0) >= policy.maxActive) return null;
     const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "CalculationJob" WHERE status = 'QUEUED' AND "nextAttemptAt" <= clock_timestamp() AND "cancelRequestedAt" IS NULL ORDER BY "createdAt", id FOR UPDATE SKIP LOCKED LIMIT 1`;
     if (!rows[0]) return null;
     const current = await tx.calculationJob.findUniqueOrThrow({ where: { id: rows[0].id }, include: { run: true } });

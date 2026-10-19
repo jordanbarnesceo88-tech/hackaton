@@ -1,11 +1,12 @@
 # syntax=docker/dockerfile:1
-# Пять стадий. Запуск одной командой (ТЗ §4.2.3): `docker compose up --build`,
+# Шесть стадий. Запуск одной командой (ТЗ §4.2.3): `docker compose up --build`,
 # см. docker-compose.yml. Без --target собирается последняя стадия (runner), так что
 # `docker build -t rrp .` по-прежнему даёт образ приложения.
 #   deps    — зависимости (npm ci) и сгенерированный клиент Prisma;
+#   runtime-deps — зависимости без dev-инструментов, с готовым клиентом Prisma;
 #   migrate — разовый прогон миграций и сева; в compose это сервис migrate;
 #   build   — next build в standalone-вывод;
-#   worker  — отдельный исполнитель расчётов, пока с полным набором зависимостей deps;
+#   worker  — отдельный исполнитель расчётов с зависимостями runtime-deps;
 #   runner  — минимальный образ приложения, без Prisma CLI, tsx и исходников.
 FROM node:20-alpine AS deps
 WORKDIR /app
@@ -16,8 +17,12 @@ COPY package.json package-lock.json prisma.config.ts ./
 COPY prisma ./prisma
 RUN npm ci
 
-# Миграции и сев. Стадия наследует deps целиком: в ней есть Prisma CLI, tsx и dotenv из
-# devDependencies, а клиент Prisma уже сгенерирован postinstall-хуком по той же схеме.
+# Keep the generated Prisma client; pruning must not rerun postinstall hooks.
+FROM deps AS runtime-deps
+RUN npm prune --omit=dev --ignore-scripts --no-audit --no-fund
+
+# Миграции и сев. Стадия наследует deps целиком: в ней есть Prisma CLI и tsx из
+# devDependencies, dotenv из dependencies и готовый клиент Prisma по той же схеме.
 # `next build` здесь не нужен, поэтому стадия собирается быстро и не зависит от build.
 # DATABASE_URL и пароли демо-аккаунтов приходят из окружения (docker-compose.yml).
 # Сев идемпотентен, поэтому повторный `docker compose up` безопасен.
@@ -41,7 +46,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup -S app && adduser -S app -G app
 # The standalone Next dependency trace does not include this separate process.
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=runtime-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist-worker ./dist-worker
 USER app
 CMD ["node", "dist-worker/calculation-worker.cjs"]

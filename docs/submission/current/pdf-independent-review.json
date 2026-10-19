@@ -1,170 +1,211 @@
 {
-  "status": "PASS_IN_REVIEWED_SCOPE_WITH_MINOR_FINDING",
-  "reviewer": "/root/db_gate_profiler",
-  "reviewedAt": "2026-10-18T21:42:15.716Z",
-  "scope": "Independent all-pages visual review of final PDF render, not whole-product acceptance, financial recalculation, OEM certification, or load acceptance.",
+  "schema": "stage5-pdf-review-1",
+  "status": "PASS_IN_REVIEWED_SCOPE",
+  "reviewer": "/root/release_consistency_reviewer",
+  "reviewedAt": "2026-10-19T08:50:22.036Z",
+  "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+  "allPagesPersonallyViewed": true,
   "pdfSha256": {
-    "documentation": "a54ea44353cb81d8c0adc03384d86b11c73d4eff9cfe9cf9b248bb40099deb80",
-    "presentation": "ff433ca81b7c99f85abf900b6ccd2b14ff9702f72263c64aa343df1e9c45ccdd",
-    "sample-report": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6"
+    "documentation": "e560ac1fb840dc6dc70dbfd5dc52abc846d793c99e85990f27476af9cc5a753d",
+    "presentation": "f10ed3be7d0fb6a943ab6be83f07f8c87851917b485218e84565ea7eebaef42e",
+    "sample-report": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
   },
   "pageCounts": {
     "documentation": 21,
     "presentation": 15,
-    "sample-report": 40
+    "sample-report": 39
   },
-  "totalPages": 76,
-  "independentAllPagesPersonallyViewed": true,
-  "method": "Personally inspected all 15 contact sheets covering every page. Reinspected all changed documentation/presentation contacts after regeneration. Dense/uncertain pages inspected as originals. The unchanged report PDF and all 40 page PNG hashes match the previously personally inspected report.",
+  "totalPagesPersonallyViewed": 75,
   "contactSheetsPersonallyViewed": [
     {
-      "name": "documentation-contact-1.png",
-      "sha256": "95db7e265fb3da9a9ee63458fe0ed959551ebd51d8abe1b09fc63717b23b5c00"
+      "path": "documentation-contact-1.png",
+      "sha256": "95db7e265fb3da9a9ee63458fe0ed959551ebd51d8abe1b09fc63717b23b5c00",
+      "viewedVia": "Same exact bytes personally viewed in C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\documentation-contact-1.png"
     },
     {
-      "name": "documentation-contact-2.png",
-      "sha256": "99cfcc7834f6ac8916fdc67ede28fb0f73a0967fb83c05285fddc5d100db7559"
+      "path": "documentation-contact-2.png",
+      "sha256": "99cfcc7834f6ac8916fdc67ede28fb0f73a0967fb83c05285fddc5d100db7559",
+      "viewedVia": "Same exact bytes personally viewed in C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\documentation-contact-2.png"
     },
     {
-      "name": "documentation-contact-3.png",
-      "sha256": "054e04bf06299fdf792ebf64d1b511f9d531070bdec5b558aec3cd177caa7d9c"
+      "path": "documentation-contact-3.png",
+      "sha256": "028e4516523e824f7f5ceafedacb257158c00d15cb6fbc9d3b062a7e1ae779f7",
+      "viewedVia": "Same exact bytes personally viewed in C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\documentation-contact-3.png"
     },
     {
-      "name": "documentation-contact-4.png",
-      "sha256": "ff429adbb5f905276bf439ff3786bbff616149d12472d70e0b01938c0dcb9ec9"
+      "path": "documentation-contact-4.png",
+      "sha256": "ff429adbb5f905276bf439ff3786bbff616149d12472d70e0b01938c0dcb9ec9",
+      "viewedVia": "Same exact bytes personally viewed in C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\documentation-contact-4.png"
     },
     {
-      "name": "presentation-contact-1.png",
-      "sha256": "13b5e0e9e57c59a50ebed11cf62bee81a18f1443ee527d20114971d469ca8aab"
+      "path": "presentation-contact-1.png",
+      "sha256": "13b5e0e9e57c59a50ebed11cf62bee81a18f1443ee527d20114971d469ca8aab",
+      "viewedVia": "Same exact bytes personally viewed in C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\presentation-contact-1.png"
     },
     {
-      "name": "presentation-contact-2.png",
-      "sha256": "b06ffec390ed10471a3e0934bec2e3a94d4f06ee1eaeee7dd158abf7836d52dd"
+      "path": "presentation-contact-2.png",
+      "sha256": "b06ffec390ed10471a3e0934bec2e3a94d4f06ee1eaeee7dd158abf7836d52dd",
+      "viewedVia": "Same exact bytes personally viewed in C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\presentation-contact-2.png"
     },
     {
-      "name": "presentation-contact-3.png",
-      "sha256": "ae33b1b49d05d8ff6b1591a02d98cfa92f2558121d64b33825155e779bfec78a"
+      "path": "presentation-contact-3.png",
+      "sha256": "ae33b1b49d05d8ff6b1591a02d98cfa92f2558121d64b33825155e779bfec78a",
+      "viewedVia": "Same exact bytes personally viewed in C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\presentation-contact-3.png"
     },
     {
-      "name": "presentation-contact-4.png",
-      "sha256": "5cf2d1bf89f74744f516a4cbece88b8ac85717c88a9bf443edbbab46ca960853"
+      "path": "presentation-contact-4.png",
+      "sha256": "ee9b6dc6823f8d69e1a6732a480851015bd7f97bb67653e2488097c8ab705e73",
+      "viewedVia": "Personally viewed revised final contact"
     },
     {
-      "name": "sample-report-contact-1.png",
-      "sha256": "19a0393af0be6d2b0dec84b7b694ec98b1020d7b13060a61ab4545809d0b6197"
+      "path": "sample-report-contact-1.png",
+      "sha256": "f05186b1e0be673c01096cbd6ee8870b61a7013c2c72ef9137ac415072c7c28b",
+      "viewedVia": "Reused personally viewed exact report contact C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-contact-1.png"
     },
     {
-      "name": "sample-report-contact-2.png",
-      "sha256": "c1f6358ab42872ecf53aa596fd169cd9369c817ebbfa9224df904a23641c540a"
+      "path": "sample-report-contact-2.png",
+      "sha256": "6fece54f5ce440ccaa0fe4e125578541bfa7d8f275f6077035cb67e353e1ca49",
+      "viewedVia": "Reused personally viewed exact report contact C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-contact-2.png"
     },
     {
-      "name": "sample-report-contact-3.png",
-      "sha256": "b1f4e953e84207350bfa397d671e0dc6c2775d6799c2a71a3fe30c917772191b"
+      "path": "sample-report-contact-3.png",
+      "sha256": "a7acebce61d41f419783a01402c9c2ca95c4a4e7232560c7f9072afa98c18897",
+      "viewedVia": "Reused personally viewed exact report contact C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-contact-3.png"
     },
     {
-      "name": "sample-report-contact-4.png",
-      "sha256": "328da893986d8c2b0a09b7c8d482d604faaeebee8c472820c6c2649a346ff4f8"
+      "path": "sample-report-contact-4.png",
+      "sha256": "f82aa86d2ccdb7dbf549dc98bb8503c0fc4c2474552bc8de6789992ac0f974e6",
+      "viewedVia": "Reused personally viewed exact report contact C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-contact-4.png"
     },
     {
-      "name": "sample-report-contact-5.png",
-      "sha256": "98e5bbde2352c6d11b9a2aa77f5a298332102b5421bf62225bbfe98cba13f1b7"
+      "path": "sample-report-contact-5.png",
+      "sha256": "fb81d53288a8bb535a1b315129145f4e9449c369e6099aa37ffc8cbdab8a3bd3",
+      "viewedVia": "Reused personally viewed exact report contact C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-contact-5.png"
     },
     {
-      "name": "sample-report-contact-6.png",
-      "sha256": "08fd8434ee75a30d8f121f1cac8866d626b36d7822308def62f73328c24f86bd"
+      "path": "sample-report-contact-6.png",
+      "sha256": "d79f55e68fd4079111e3a7d5c21502ef4164244eeb44d0a499254c7b4c69813c",
+      "viewedVia": "Reused personally viewed exact report contact C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-contact-6.png"
     },
     {
-      "name": "sample-report-contact-7.png",
-      "sha256": "63a4dcfbd1384514a9aff880e4d94487c92c4f2a9633d5fb6bb0afef53d78a77"
+      "path": "sample-report-contact-7.png",
+      "sha256": "9fafbad56300b13a9f58939d7002e16ee7c5b8dc53165eebe4ba16600b81c3a4",
+      "viewedVia": "Reused personally viewed exact report contact C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-contact-7.png"
     }
   ],
-  "originalPagesPersonallyViewed": [
+  "keyOriginalsPersonallyViewed": [
     {
-      "name": "documentation-15.png",
-      "sha256": "e929f8e9c26d71cdd282d0f800732ae0be857c74e932e1bbdc98f374b4541b67"
+      "path": "documentation-15.png",
+      "sha256": "ffb7983e1f04b064270cedc2c93c5865f44ed6bde8d033b701a0e0e4cf338c42"
     },
     {
-      "name": "documentation-16.png",
-      "sha256": "99660705c48538592a435e623b434a587ca6800dbf8fb2fd2dfba9132ec52295"
+      "path": "documentation-16.png",
+      "sha256": "d7da9e0e58a522e5ae36e3da432e14d3e3ce31e081f36ce585715cad030b1099"
     },
     {
-      "name": "presentation-09.png",
+      "path": "documentation-21.png",
+      "sha256": "2483ff1f107fdf436e6ca9555745ab8fe0e49ae1feae57e96590be28c4a297e6"
+    },
+    {
+      "path": "presentation-09.png",
       "sha256": "a1ed8e066bac1108a957abd4810e2932ce17b08e982be11a04e51b218dd2db1b"
     },
     {
-      "name": "presentation-15.png",
-      "sha256": "91a87fdff65a1224cb3669d5f6d53622fd44cf165f5992e70fcd6d7a36624d1d"
+      "path": "presentation-15.png",
+      "sha256": "79fb3940916a2889e94be9217fadc0833005091a04ffbf33ce14d1b208e7800e"
     },
     {
-      "name": "sample-report-01.png",
-      "sha256": "5ee5a5ea5272e28f0260308839d2885c6932a89f3b6f970eeca86eb973248e11"
+      "path": "presentation-independent-fresh-07.png",
+      "sha256": "1339e5005fdfcfef97112cf752c84a05bce4d5bb1edf374281126f531360f8bf"
     },
     {
-      "name": "sample-report-03.png",
-      "sha256": "d3f3a16321e17c475f5ca7588e2a45d96ef798304424d0de9515d1609f6e263e"
+      "path": "presentation-independent-fresh-08.png",
+      "sha256": "3902fa3f3788d7ab41bb67be02a64138a87d00ea0110d2d132d0a57186b6ad2a"
     },
     {
-      "name": "sample-report-04.png",
-      "sha256": "c2d9c009e15c16e95c006172b285af03d38ce15ca834fb77b60a96849fda4c04"
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-01.png",
+      "sha256": "ea1e1110ac3c973e26e699907266fbab623565e286f00976d1fdd5b7a27e0577",
+      "page": 1,
+      "reusedExactReportSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
     },
     {
-      "name": "sample-report-09.png",
-      "sha256": "cb9f853d172bcad25937a9c7e57da661e68b49b781d53bb35188cc3774df4aa0"
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-05.png",
+      "sha256": "6a7e484d78e5d91ae942f42f28d04835a001775a062f7382826f3f3bb703b30f",
+      "page": 5,
+      "reusedExactReportSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
     },
     {
-      "name": "sample-report-18.png",
-      "sha256": "a590f5aac53a4af5f2e294da85377692312389e67c260236b5221567e27dd688"
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-17.png",
+      "sha256": "7844fa6709d34b303dd92e6c6210b4c117de6e858c72bf2a67d50fd8214e9cf9",
+      "page": 17,
+      "reusedExactReportSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
     },
     {
-      "name": "sample-report-19.png",
-      "sha256": "6691cf5dfd7b5c24ffa45bf5a4f6b58a0b0438fe96d77effe3be597c4da8f005"
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-18.png",
+      "sha256": "d68a1e4e79850387885733e9ca2cf736fee17d84109b25e30618ca50881280b8",
+      "page": 18,
+      "reusedExactReportSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
     },
     {
-      "name": "sample-report-32.png",
-      "sha256": "6dc30341570f0f114421f5632320bb8e534b7004e04d94713e3ed111b5641117"
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-19.png",
+      "sha256": "64767ddf706590dfcdae29f02989006aa8edc865a33642ec538f3ca08f6ead27",
+      "page": 19,
+      "reusedExactReportSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
     },
     {
-      "name": "sample-report-38.png",
-      "sha256": "05b162babea868ff4a0d5e757428cdd7564bd5ff48dd2076d16ea4e4993cb2d2"
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-35.png",
+      "sha256": "b4199a6cad84ce7fdb2776d54a9f86296a7f54372a43d67470216d98dc746c8a",
+      "page": 35,
+      "reusedExactReportSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
     }
   ],
-  "fixedFindings": [
-    {
-      "severity": "P2",
-      "artifact": "presentation",
-      "page": 15,
-      "result": "Current50/50 results, compute p95 8.01s, client-result p95 185.18s and failed60s deadline now visibly present."
-    },
-    {
-      "severity": "P3",
-      "artifact": "documentation",
-      "page": 16,
-      "result": "Section12A fits one page; no orphan continuation page remains. Historical e937/da53b43 rows clearly separated from current a944/client60FAIL."
-    }
-  ],
+  "rasterBinding": {
+    "path": "pdf-independent-raster-binding.json",
+    "sha256": "31df1ae9f5f4b04c101b645b37ca98d27ece57378e32e465134af367a3230567"
+  },
+  "priorReportReview": {
+    "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-report-precheck\\sample-report-independent-personal-review.json",
+    "sha256": "2074e2772f62453c671d1cbf47eabef671558982e61d51c834d4fa56f8cab8c2"
+  },
   "findings": [
     {
-      "severity": "P3",
-      "artifact": "sample-report",
-      "page": 19,
-      "issue": "Single complete limitations bullet occupies an otherwise nearly empty page.",
-      "impact": "Minor pagination waste; no missing, clipped or unreadable content.",
-      "status": "OPEN_DISCLOSED"
+      "id": "PDF-P2-E2E-COVERAGE",
+      "severity": "P2",
+      "status": "CLOSED",
+      "artifact": "presentation.pdf",
+      "page": 15,
+      "originalArtifactSha256": "9f5447588ace8f8de00be62df9ab688e6cf1df737f84f76a93cc4cd44a53210e",
+      "artifactSha256": "f10ed3be7d0fb6a943ab6be83f07f8c87851917b485218e84565ea7eebaef42e",
+      "finding": "The 14 selected current E2E cases were incorrectly described as covering an administrator flow.",
+      "closure": "Current slide15 names the project owner, matching actual selected owner/pilot/guest cases; multiple-run wording remains explicit.",
+      "originalRender": {
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\presentation-15.png",
+        "sha256": "315159ef5505d2f3e0c3977106825cdc4134a2ce1b4fbe9fca456123d5e42b0f"
+      },
+      "fixedRender": {
+        "path": "presentation-15.png",
+        "sha256": "79fb3940916a2889e94be9217fadc0833005091a04ffbf33ce14d1b208e7800e"
+      }
     }
   ],
-  "observations": [
-    "No clipped text, overlapping tables, missing glyphs or unintended blank pages observed in inspected pages.",
-    "NominalPARTIAL51.5/51.82 retained separately from controlledPASS55deliveries/54.5closedcycles. N6/C2 and NPV4079992RUB are readable and unchanged.",
-    "Documentation shows36/50clients over60s and keeps historical baselines separate.",
-    "Presentation shows7329numeric/4078methodology checks. Independent PDF text proof404 remains a separate evidence scope."
-  ],
-  "knownExclusions": [
-    "Known P2 OEM verification semantics remain outside PDF layout acceptance.",
-    "No natural calibration, safety certification, Excel recalculation, or whole-product PASS is claimed."
-  ],
-  "packageWritten": false,
-  "baselineReview": {
-    "filename": "independent-pdf-review-beforefix.json",
-    "sha256": "000e2a7c29a9acfed2cc4fbc6f8081392a20dc1f0cb100127fdc11bd8ca73df9"
-  }
+  "targetedFindings": {
+    "printPagination": {
+      "status": "PASS",
+      "artifactSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706",
+      "pages": [
+        17,
+        18,
+        19
+      ],
+      "statement": "Prior exact report-only personal review reused. Limitations span17–18; Parameters starts19, no isolated orphan bullet page."
+    },
+    "browserCoverageClaim": {
+      "status": "PASS",
+      "artifactSha256": "f10ed3be7d0fb6a943ab6be83f07f8c87851917b485218e84565ea7eebaef42e",
+      "page": 15,
+      "statement": "Owner coverage corrected; 14 unique tests after multiple runs, not a clean full14 run."
+    }
+  },
+  "scope": "Exact current three-PDF visual/content review only. All75 pages personally viewed through15 contacts, targeted originals and unchanged exact report component reuse. No source/PDF/package edits; no new browser, load, DB, Excel recalculation, natural-site calibration or whole-product acceptance. Numeric7329/methodology4078/PDFtext412 are separately bound checks, not rerun here. Existing product UI P3 counters remains separate.",
+  "screenshotRasterNote": "Supplied slide7/8 original PNG pixels differed inside embedded screenshot regions from fresh current PDF rendering; fresh current-PDF originals were rendered and personally viewed. The exact fresh rasters are bound above, without a false pixel-equality claim."
 }

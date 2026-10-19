@@ -1088,6 +1088,12 @@
   .report-print h3 {
     break-after: avoid;
   }
+  /* Long model notes remain readable without leaving one final bullet on its own sheet. */
+  .report-print #limitations > ul {
+    font-size: 9.5pt;
+    line-height: 1.4;
+    gap: 2px;
+  }
   /* Лист A4 уже экрана: поля задаёт @page, ширину — лист, а не экранный контейнер. */
   .report-print {
     max-width: none;

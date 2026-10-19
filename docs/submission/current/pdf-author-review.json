@@ -1,0 +1,122 @@
+{
+  "schema": "stage5-pdf-review-1",
+  "reviewer": "root",
+  "reviewedAt": "2026-10-19T08:42:22.376Z",
+  "status": "PASS_IN_REVIEWED_SCOPE",
+  "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+  "allPagesPersonallyViewed": true,
+  "pdfSha256": {
+    "documentation": "e560ac1fb840dc6dc70dbfd5dc52abc846d793c99e85990f27476af9cc5a753d",
+    "presentation": "f10ed3be7d0fb6a943ab6be83f07f8c87851917b485218e84565ea7eebaef42e",
+    "sample-report": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
+  },
+  "pageCounts": {
+    "documentation": 21,
+    "presentation": 15,
+    "sample-report": 39
+  },
+  "contactSheetsPersonallyViewed": [
+    {
+      "path": "../stage7-final-pdf/documentation-contact-1.png",
+      "sha256": "95db7e265fb3da9a9ee63458fe0ed959551ebd51d8abe1b09fc63717b23b5c00"
+    },
+    {
+      "path": "../stage7-final-pdf/documentation-contact-2.png",
+      "sha256": "99cfcc7834f6ac8916fdc67ede28fb0f73a0967fb83c05285fddc5d100db7559"
+    },
+    {
+      "path": "../stage7-final-pdf/documentation-contact-3.png",
+      "sha256": "028e4516523e824f7f5ceafedacb257158c00d15cb6fbc9d3b062a7e1ae779f7"
+    },
+    {
+      "path": "../stage7-final-pdf/documentation-contact-4.png",
+      "sha256": "ff429adbb5f905276bf439ff3786bbff616149d12472d70e0b01938c0dcb9ec9"
+    },
+    {
+      "path": "../stage7-final-pdf/presentation-contact-1.png",
+      "sha256": "13b5e0e9e57c59a50ebed11cf62bee81a18f1443ee527d20114971d469ca8aab"
+    },
+    {
+      "path": "../stage7-final-pdf/presentation-contact-2.png",
+      "sha256": "b06ffec390ed10471a3e0934bec2e3a94d4f06ee1eaeee7dd158abf7836d52dd"
+    },
+    {
+      "path": "../stage7-final-pdf/presentation-contact-3.png",
+      "sha256": "ae33b1b49d05d8ff6b1591a02d98cfa92f2558121d64b33825155e779bfec78a"
+    },
+    {
+      "path": "../stage7-report-precheck/sample-report-contact-1.png",
+      "sha256": "f05186b1e0be673c01096cbd6ee8870b61a7013c2c72ef9137ac415072c7c28b"
+    },
+    {
+      "path": "../stage7-report-precheck/sample-report-contact-2.png",
+      "sha256": "6fece54f5ce440ccaa0fe4e125578541bfa7d8f275f6077035cb67e353e1ca49"
+    },
+    {
+      "path": "../stage7-report-precheck/sample-report-contact-3.png",
+      "sha256": "a7acebce61d41f419783a01402c9c2ca95c4a4e7232560c7f9072afa98c18897"
+    },
+    {
+      "path": "../stage7-report-precheck/sample-report-contact-4.png",
+      "sha256": "f82aa86d2ccdb7dbf549dc98bb8503c0fc4c2474552bc8de6789992ac0f974e6"
+    },
+    {
+      "path": "../stage7-report-precheck/sample-report-contact-5.png",
+      "sha256": "fb81d53288a8bb535a1b315129145f4e9449c369e6099aa37ffc8cbdab8a3bd3"
+    },
+    {
+      "path": "../stage7-report-precheck/sample-report-contact-6.png",
+      "sha256": "d79f55e68fd4079111e3a7d5c21502ef4164244eeb44d0a499254c7b4c69813c"
+    },
+    {
+      "path": "../stage7-report-precheck/sample-report-contact-7.png",
+      "sha256": "9fafbad56300b13a9f58939d7002e16ee7c5b8dc53165eebe4ba16600b81c3a4"
+    },
+    {
+      "path": "presentation-contact-4.png",
+      "sha256": "ee9b6dc6823f8d69e1a6732a480851015bd7f97bb67653e2488097c8ab705e73"
+    }
+  ],
+  "originalsPersonallyViewed": [
+    {
+      "path": "../stage7-final-pdf/documentation-15.png",
+      "sha256": "ffb7983e1f04b064270cedc2c93c5865f44ed6bde8d033b701a0e0e4cf338c42"
+    },
+    {
+      "path": "../stage7-final-pdf/documentation-16.png",
+      "sha256": "d7da9e0e58a522e5ae36e3da432e14d3e3ce31e081f36ce585715cad030b1099"
+    },
+    {
+      "path": "../stage7-final-pdf/presentation-08.png",
+      "sha256": "d4d60a06b9ee23a8174b1209ede1db7061a83e6b6d5a8b062ddeea4d95f40bf7"
+    }
+  ],
+  "targetedFindings": {
+    "printPagination": {
+      "status": "PASS",
+      "artifactSha256": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
+    }
+  },
+  "findings": [
+    {
+      "severity": "P2",
+      "area": "Presentation E2E participant scope",
+      "status": "CLOSED",
+      "finding": "Original slide15 claimed administrator despite selected14 covering guest/owner instead.",
+      "fix": "Exact label corrected to project owner; no test coverage invented.",
+      "previousPdfSha256": "9f5447588ace8f8de00be62df9ab688e6cf1df737f84f76a93cc4cd44a53210e",
+      "currentPdfSha256": "f10ed3be7d0fb6a943ab6be83f07f8c87851917b485218e84565ea7eebaef42e"
+    }
+  ],
+  "reusedReportReview": {
+    "path": "../stage7-report-precheck/sample-report-author-personal-review.json",
+    "sha256": "425fb143c3542df0679240c4fae426237bbf90ac2a503142488e9184fb3cd53f",
+    "reason": "Exact unchanged report SHA and personally reviewed contact pages; documentation and presentation freshly reviewed in full."
+  },
+  "scope": "75 exact PDF pages personally viewed through contact sheets and key originals; no whole-product or physical calibration claim.",
+  "reusedEarlierReview": {
+    "path": "../stage7-final-pdf/pdf-author-review.json",
+    "sha256": "915addcab009ea7ceb2112330a7f7d055d3bd98b6f3da4386c1b55009d15540c",
+    "scope": "Doc/report PDFexactSHAunchanged; presentation1-14 rasterSHAidentical; new presentation15 personally viewed in contact4."
+  }
+}

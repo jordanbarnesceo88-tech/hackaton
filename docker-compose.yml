@@ -85,6 +85,8 @@ services:
       retries: 12
 
   worker:
+    # One CPU job per process; scale replicas separately from the shared DB cap.
+    # Configure resources for your deployment; see docs/CALCULATION_QUEUE_CONFIG.md.
     build:
       context: .
       target: worker

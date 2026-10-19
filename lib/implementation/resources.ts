@@ -222,15 +222,15 @@ function normalized(value: string): string {
   return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("ru-RU");
 }
 
-/** A class page may list examples; a product snapshot gets only explicitly named models. */
+/** Class examples are separate from a product's exact manufacturer-and-model attribution. */
 export function implementationResources(solutionType: string, manufacturer?: string | null, modelName?: string | null): ImplementationResource[] {
   const byClass = manufacturer == null && modelName == null;
-  if (!byClass && (!modelName || !modelName.trim())) return [];
+  if (!byClass && (!manufacturer?.trim() || !modelName?.trim())) return [];
   return structuredClone(entries.filter(entry => {
     if (!entry.resource.solutionTypes.includes(solutionType)) return false;
     if (byClass) return true;
     const models = [...entry.resource.models, ...entry.modelAliases];
     return models.some(model => normalized(model) === normalized(modelName!))
-      && (manufacturer == null || entry.manufacturerAliases.some(alias => normalized(alias) === normalized(manufacturer)));
+      && entry.manufacturerAliases.some(alias => normalized(alias) === normalized(manufacturer!));
   }).map(entry => entry.resource));
 }

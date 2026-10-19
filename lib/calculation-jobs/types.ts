@@ -6,7 +6,6 @@ import { SPATIAL_MODEL_VERSION } from "../sim/spatial-bridge";
 
 export const JOB_LEASE_MS = 20_000;
 export const JOB_HEARTBEAT_MS = 5_000;
-export const JOB_MAX_ACTIVE = 2;
 export const JOB_MAX_ATTEMPTS = 3;
 export const JOB_ENGINE_CONTRACT = "durable-calculation-1";
 

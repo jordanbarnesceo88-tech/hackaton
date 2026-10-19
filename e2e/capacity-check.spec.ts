@@ -121,7 +121,7 @@ test("owned capacity check preserves nominal finances and freezes both observati
     expect(calculated.scenarios.find(scenario => scenario.key === "raas")!.spatialEvidence!.capacityProof).toBeUndefined();
     expect(await db.project.findUniqueOrThrow({ where: { id: projectId }, select: { revision: true, params: true, results: true } })).toEqual(before);
     await expect(capacity).toHaveAttribute("data-capacity-status", "PASS");
-    await expect(capacity).toContainText("Целевая мощность подтверждена контролируемым модельным тестом");
+    await expect(capacity).toContainText("Цель достигнута в условиях теста");
     await expect(capacity).toContainText("55,00 / 51,82");
     await expect(capacity).toContainText("54,50 / 51,82");
 
@@ -147,8 +147,12 @@ test("owned capacity check preserves nominal finances and freezes both observati
     await page.getByRole("navigation", { name: "Шаги расчёта" }).getByRole("link", { name: /^8 / }).click();
     await expect(capacity).toHaveAttribute("data-capacity-status", "PASS");
     await expect(capacity).toContainText("54,50 / 51,82");
-    await expect(capacity).toContainText("Сохранённый тест: критерии выполнены");
-    await expect(capacity).toContainText("Номинальный прогон: PARTIAL.");
+    await expect(capacity).toContainText("Сохранённый тест: цель достигнута в условиях теста");
+    await expect(capacity).toContainText("Номинальный прогон: выполнен частично.");
+    const technicalConditions = capacity.getByText("Условия теста и незавершённые работы", { exact: true });
+    await technicalConditions.click();
+    await expect(capacity.getByText("Код номинального результата: PARTIAL. Код теста: PASS.", { exact: true })).toBeVisible();
+    await technicalConditions.click();
     await expect(capacity.getByRole("button")).toHaveCount(0);
     await page.waitForFunction(() => !document.documentElement.hasAttribute("data-step-dir"));
     await capacity.screenshot({ path: testInfo.outputPath("capacity-readonly-1366.png"), animations: "disabled" });

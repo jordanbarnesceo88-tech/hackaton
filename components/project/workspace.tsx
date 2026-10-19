@@ -9,7 +9,7 @@ import { createSpatialProjectSnapshot, type SpatialProjectSnapshot, type Spatial
 import { buildSpatialFinancialScenario, parseSpatialScenarioProposal, type SpatialScenarioProposal } from "@/lib/sim/spatial-proposal";
 import { DecisionSummary } from "./decision-summary";
 import { CapacityCheck } from "./capacity-check";
-import { PilotPlan } from "./pilot-plan";
+import { PilotPlan, type PilotFormDraft } from "./pilot-plan";
 import { OperationsStaffing } from "./operations-staffing";
 import { DeploymentLogistics } from "./deployment-logistics";
 import { MatchedComparison } from "./matched-comparison";
@@ -463,6 +463,8 @@ export function Workspace({
   const [savedKey, setSavedKey] = useState<string>(() => stateKey(initialParams, initialScenarios));
   const [pending, setPending] = useState<LocalChange[]>([]);
   const [stale, setStale] = useState(false);
+  // Preserve unapplied editor values across loading unmounts; saved ScenarioSpec remains authoritative.
+  const [pilotDrafts, setPilotDrafts] = useState<Record<string, PilotFormDraft>>({});
   const [calc, setCalc] = useState<Calc>(() => ({
     token: 0,
     input: { facility, params: initialParams, paramDefs: defs, scenarios: initialScenarios, products, norms: initialModel.normsUsed },
@@ -701,6 +703,14 @@ export function Workspace({
       : (recommendedKey && results.some((r) => r.key === recommendedKey) ? recommendedKey : (firstRobot?.key ?? ""));
   const focusResult = results.find((r) => r.key === focusKey) ?? null;
   const focusSpec = scenarios.find((s) => s.key === focusKey) ?? model.scenarios.find((s) => s.key === focusKey);
+  const pilotDraftIdentity = JSON.stringify([project.id ?? "guest", facility, focusKey, focusSpec?.items.map(item => [item.process, item.productSlug]) ?? []]);
+  function rememberPilotDraft(value: PilotFormDraft | null) {
+    if (!editable || archive || stale || !calculationReady) return;
+    setPilotDrafts(previous => {
+      if (value === null) { if (!previous[pilotDraftIdentity]) return previous; const next = { ...previous }; delete next[pilotDraftIdentity]; return next; }
+      return { ...previous, [pilotDraftIdentity]: structuredClone(value) };
+    });
+  }
   const matchedInputKey = `${projectDraftKey(params, scenarios)}:${focusKey}:${model.dataVersion}`;
   const tabs = results.map((r) => ({
     key: r.key,
@@ -970,6 +980,7 @@ export function Workspace({
 
   function onPilotChange(value: { pilotPlan: PilotPlanInput; terminalResidualRub: number }) {
     if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    rememberPilotDraft(null); // Explicit Apply transfers the draft into ScenarioSpec before recalculation.
     const shortPlan = (plan: PilotPlanInput | undefined) => plan ? {
       fleet: plan.fleet, chargers: plan.chargers, durationDays: plan.durationDays, dayBasis: plan.dayBasis,
       acquisition: plan.acquisition, targetThroughputPerH: plan.targetThroughputPerH,
@@ -1089,6 +1100,10 @@ export function Workspace({
   function onRemoveScenario() {
     const spec = scenarios.find((s) => s.key === focusKey);
     if (!spec || spec.kind === "asis" || scenarios.length <= SCENARIOS_MIN) return;
+    setPilotDrafts(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => {
+      const [owner, kind, scenario] = JSON.parse(key) as [string, string, string];
+      return owner !== (project.id ?? "guest") || kind !== facility || scenario !== spec.key;
+    })));
     commitScenarios(
       scenarios.filter((s) => s.key !== spec.key),
       [{ scenarioKey: spec.key, field: "scenario:remove", auto: null, old: spec.name, new: null, reason: "удалён в шаге 6" }],
@@ -1735,9 +1750,14 @@ export function Workspace({
           onSimulation={() => goToStep(7, { focusHeading: true })}
           onCapacityCheck={editable && !archive ? onCapacityCheck : undefined}
           onPilot={() => { const plan = document.getElementById(`${uid}-pilot`); plan?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }); }} />}
-        {calculationReady && focusResult?.status === "ok" && focusResult.kind !== "asis" && <section id={`${uid}-pilot`} tabIndex={-1} className="min-w-0 scroll-mt-24"><PilotPlan
-          key={`${focusKey}:${calc.token}`} model={model} scenarioKey={focusKey}
-          readOnly={!editable || stale || !calculationReady} onChange={onPilotChange} /></section>}
+        {calculationReady && focusResult?.status === "ok" && focusResult.kind !== "asis" && <section id={`${uid}-pilot`} tabIndex={-1} className="min-w-0 scroll-mt-24">{archive && !initialModel.scenarios.some(scenario => scenario.key === focusKey)
+          ? <p className="callout text-sm" data-tone="info">Выбранного сценария нет в сохранённом расчёте. Выберите сохранённый сценарий, чтобы посмотреть его план пилота.</p>
+          : <PilotPlan
+          key={`${focusKey}:${calc.token}:${archive ? "archive" : mode}:${!editable || stale || !calculationReady ? "saved" : "editable"}`} model={archive ? initialModel : model} scenarioKey={focusKey}
+          readOnly={!editable || stale || !calculationReady}
+          draft={editable && !archive && !stale && calculationReady ? pilotDrafts[pilotDraftIdentity] : undefined}
+          onDraftChange={editable && !archive && !stale && calculationReady ? rememberPilotDraft : undefined}
+          onChange={editable && !archive && !stale && calculationReady ? onPilotChange : undefined} />}</section>}
         <ProjectToolbar
           mode={archive ? "readonly" : mode}
           revision={revision}

@@ -1,0 +1,1748 @@
+{
+  "schema": "stage3-recovery-result-1",
+  "run": "stage3-recovery-1792367956932",
+  "status": "PASS",
+  "pass": true,
+  "scope": "One real CREATE and abrupt death of all declared workers; no industrial calibration, whole-product acceptance or client SLA claim.",
+  "configuration": {
+    "project": "alfa-queue-scaled-20261019",
+    "origin": "http://127.0.0.1:3087",
+    "workerCount": 14,
+    "workers": [
+      "alfa-queue-scaled-20261019-worker-1",
+      "alfa-queue-scaled-20261019-worker-2",
+      "alfa-queue-scaled-20261019-worker-3",
+      "alfa-queue-scaled-20261019-worker-4",
+      "alfa-queue-scaled-20261019-worker-5",
+      "alfa-queue-scaled-20261019-worker-6",
+      "alfa-queue-scaled-20261019-worker-7",
+      "alfa-queue-scaled-20261019-worker-8",
+      "alfa-queue-scaled-20261019-worker-9",
+      "alfa-queue-scaled-20261019-worker-10",
+      "alfa-queue-scaled-20261019-worker-11",
+      "alfa-queue-scaled-20261019-worker-12",
+      "alfa-queue-scaled-20261019-worker-13",
+      "alfa-queue-scaled-20261019-worker-14"
+    ],
+    "globalCap": 14,
+    "workerPoolMax": 2,
+    "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+    "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+    "images": {
+      "app": "sha256:063706dd9faa5c70c8440c736d12ddbd42e367346030a490352d0cdf7fae8b7d",
+      "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66"
+    },
+    "versions": {
+      "economics": "tz-1.0.8",
+      "analytical": "sim-1.2.1",
+      "spatial": "warehouse-dense-underlift-1.9.1"
+    },
+    "filePins": [
+      {
+        "name": "check-queue-recovery.mjs",
+        "sha256": "2a3fc9373e103b224cb46cd3812e7237c2194bbe8e72064f9045a6f0b57f44c5"
+      },
+      {
+        "name": "isolation.mjs",
+        "sha256": "b8847acf7c4c2a42edf4225c22b84cd2753e2e7ef26115e78f1e17a819863dee"
+      },
+      {
+        "name": "declaration.mjs",
+        "sha256": "3a200f45f0def85c5ee8e40bb8fbf287107adb234e8f5184e3bc73e4dc185b44"
+      },
+      {
+        "name": "benchmark-contract.mjs",
+        "sha256": "dc917a777e7720d3c5001024ca9f83dc82987032ccc3549be5f8146a8751bac7"
+      },
+      {
+        "name": "submission-capacity-contract.mjs",
+        "sha256": "942d2972b96b3030c77908ac29c1e4ac4118c809ed8bd139f08f30bbdc8b8f53"
+      },
+      {
+        "name": "profile.json",
+        "sha256": "b53c2a12dd031fc4c3cf8a13b4bd319ca0a3370b8a82000218ca27f5de809d36"
+      },
+      {
+        "name": "resource-declaration.json",
+        "sha256": "360ffd4692d598e6a5ee86c7b4f4bb72420eaf9fab6af58462eb12062d2df814"
+      },
+      {
+        "name": "report.json",
+        "sha256": "5f670b0334b20c6bc4c7aabefcc13bf5887494d34411ce4bfbf2b5676ec0e1ce"
+      },
+      {
+        "name": "fixed-request.json",
+        "sha256": "39d722eaa96028bbab7d2480bc46e0bffb77a8fabb9d4892b4759abef72ac54d"
+      },
+      {
+        "name": "reference-0-result.json",
+        "sha256": "af8c495f4b18514c7c901d4733d3066008562615279d7b58035d9b37e391bb97"
+      }
+    ],
+    "sourceGraph": {
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "manifestSha256": "22d96fb1255d164f03891a328f4bf5c006613ae5dea524f00c87246053715da9",
+      "sourceCount": 111,
+      "files": {
+        "components/sim/scene-model.ts": "3ae29529626d526348701c3f33727eff05daf5d9348b0f21f27219c64a7d1d0d",
+        "experiments/warehouse-3d/assessment.ts": "dad3ad0c1ad30175cffff2f935deb193726167184ce3ad68369be95ca11a8889",
+        "experiments/warehouse-3d/carriers.ts": "23aaab001e1f980dfea79e50e3c833dca71d44914023e28df9b7da6958d64970",
+        "experiments/warehouse-3d/dock-access.ts": "0d90ada69557f87b21cac36615253a6397b8ac70df1982f6b42ba901a7c812ed",
+        "experiments/warehouse-3d/incidents.ts": "f2ea4102210b9df638f340d9eae8efc307ba6f48d3e07d9f3b48945cdbe119ac",
+        "experiments/warehouse-3d/pedestrians.ts": "ba034509a0a8c4bf8370e6ee5791fa1495df5e1da36acb02a42d810384c92715",
+        "experiments/warehouse-3d/pod-collision.ts": "ad35e314027b3dbab07efbb22c4ef66bd5b6417bf350d1e147366b8e071e2a9d",
+        "experiments/warehouse-3d/project-input.ts": "b0c632bf7c1792fa254c161a6ae75db4035d083fc2b6c2d2dde2e85b64d32fb9",
+        "experiments/warehouse-3d/traffic.ts": "ebd15003d78b66de132e9089b99c042d23d6bb05c44a89d401acf3e5f435c670",
+        "lib/api/calc.ts": "5dd21a2037b463a529ab17988034e7a5c964beae263bbe2417c4b33731f0da9e",
+        "lib/api/http.ts": "5b42924a34bef1092f95ac462313931348635c1adb800db0d53093f7699f92a1",
+        "lib/calculation-jobs/policy.ts": "d9eae73b4fc47c284bcc4a1a123cf1707e8326fb4d166dbf434b3351d3388e8d",
+        "lib/calculation-jobs/service.ts": "4a35fa7921de54c90247f259500abf57029b3fac4f4f02594e32efe6913c3062",
+        "lib/calculation-jobs/store.ts": "2df6352a33af9ca8b852821f270446d98faeea356a3dc488f68a58faad9dbdf8",
+        "lib/calculation-jobs/types.ts": "fb82586672657cc00e8bfc71bac3dbce372be1830be8f9a91544641e9310731e",
+        "lib/calculation-jobs/worker.ts": "778ae9d0c3297e89b5403036c13b4ff8339c6f7cff8a01e9064fd0ced2520a43",
+        "lib/catalog/evidence-date.ts": "be8f49f7ba33979ba63e2ce45977b1d8ea1c57bcd446b30486505fd085d984e5",
+        "lib/catalog/operating-evidence.ts": "7740934e73b8e4da31162eecd68af491b0aeae42ed090c278dc8a829e6f9f46b",
+        "lib/catalog/product-for-calc.ts": "55a58950ca9226a7b571b805c9bfc6dcb300cae1044a0bbb16fb4d3eddd4bd5c",
+        "lib/catalog/promote.ts": "2c37d502998784c7fb536f2d90bf6ef633cfa868e14ed3acabb7d95a2195db2f",
+        "lib/catalog/queries.ts": "b75d6a1385c2598d74aeb82c3c6f0f64adff905f3c319509d0d342bb12adf87c",
+        "lib/catalog/service-evidence.ts": "76f27cf9009c01930ba02d516175b79f11d43a308b6478964dfd288ef44aa98b",
+        "lib/data/organizer/params.generated.ts": "ba7b35574520abdb2e589917c3fb91a4bd20c5ae14109c9b05f1a417f5585716",
+        "lib/data/organizer/params.ts": "553b36b50aaf845f98584cb0b97301aa16338564b051b4fa4eb17a30d9f286d4",
+        "lib/data/organizer/version.generated.ts": "fc4d39ac222a5568ad60c81210e9fea24fc22bb9e246906421e76443b05d7e73",
+        "lib/db/factory.ts": "420bb6dc020031f34fba881ffda10f27c076df41ef1c152e5a9cb32f12b896fd",
+        "lib/economics/finance.ts": "a89fab86d55e6e27f8fd650cdb3e473343005fc96508a4c3eaef8b8e55c02568",
+        "lib/files/csv.ts": "2461e3ea931a1ba3d03395ab2343df87368566c9a914959f98d840671fa5b53b",
+        "lib/format/plural.ts": "9d32ea4103c527bb4f1c4599037c5abae788c610b25515bfab300c1417b6b6d3",
+        "lib/format/rub.ts": "ee90d6374c5196946462e2e68cf65ae400620c3459733abe53f24ea14b2293e8",
+        "lib/implementation/guides.ts": "fcc68f850199e9142e1c503e176411acf2b77c63530e4171c2d87a9ce3c7d6b9",
+        "lib/implementation/resources.ts": "2e47935575beb5deaca20cb1552729f8e24aabd284fcced7c05b5d3f08fe4e96",
+        "lib/implementation/service-directory.ts": "c38f39a39778f296b222a38b06f259ede48a095f6fa9031a5cdc84c98a27c1eb",
+        "lib/implementation/snapshot.ts": "a9eb8443d27b56ae04bdd94eaf730b725ade9027aac121517c09aa906d7d5f40",
+        "lib/projects/archive.ts": "07efe73ff210607631e925875fad345c073074a362d879b972188d4b7efa336e",
+        "lib/projects/changes.ts": "f867a75fe10c4cf0d31be1741fa655623bbe2054772e7a2aaff41081eb989d82",
+        "lib/projects/defaults.ts": "fb291b1ca358796e8d3a8a550f2581d437795e1b3b896fc85d26e83161921a28",
+        "lib/projects/payload-limit.ts": "c61435e6b8f6c627dbd080a8a39cb441410d9defcabffc3834ed1919319bbe16",
+        "lib/projects/queries.ts": "81dffadf911fffe0f71167faa26f5852b940afd08751fcbf78dc245e71517ad7",
+        "lib/projects/recalc.ts": "f683cddee2901e56e9f573923af65457dc53a76e7ba6805a3fffc4482c1eb6e3",
+        "lib/projects/validate.ts": "20c3e45e24f0776452fcc7eefafbaf9d924dd14a7d2af98a76fb21500ea3bc03",
+        "lib/sim/adapter.ts": "5e6c7d4784177e9be9367c3ca3e5b0a264508cbf6642a18870262524e4f63372",
+        "lib/sim/analytic.ts": "527a6a011b518fc0e7b8febbec3c4f75ae543041eff8ea23b5bc676cf585d607",
+        "lib/sim/capacity-protocol.ts": "a0c34ce07e4d7d253ec92b12b08dcd0f00f49343e44f791c81b2053b879ef306",
+        "lib/sim/closed-pod-cycle.ts": "b2163b7bd954b90292f6281e3175d57f83fc9f1c4af0cededf8b589d8a7ecf52",
+        "lib/sim/cooperative.ts": "cfc52017daef53bba6d67490fbd36d2fbfe6e5c33cb254caade9177acc7d091c",
+        "lib/sim/customer-work.ts": "42ebcd0dbfe7b212a44e3799514f7ff6f2a93457cf39fa8c7a346699355efe87",
+        "lib/sim/demand-mix.ts": "407468e15bc021fa4eaefb6b17d14ac97d0c7814ec664bbde00db6973e473ccc",
+        "lib/sim/dispatch.ts": "4ad1adc1aa25195814d5ab67b06a348a6dd74a829c4d0b37951592edce265e65",
+        "lib/sim/engine.ts": "96b95c9d0b278012543f06b6ccd056628c4fa9eb84477fff6b49ce612586ffb6",
+        "lib/sim/export-rows.ts": "0a5093c586829b03b1ff59ae43397ba4cebf2d7b581361897f59ddeab005e1b8",
+        "lib/sim/identity.ts": "91327c985907d429771961cb2cca078aa0279c531e228f4b4d739218ecdced8f",
+        "lib/sim/layout.ts": "6dda71ea23e9d55b881c3967d92a87a3ebe5bae8606eb6668b644317824a277e",
+        "lib/sim/metrics.ts": "6819f0704855d29091853963a06e2fef8747d570bebffe92adf7ff9ebeae544d",
+        "lib/sim/pod-layout.ts": "76465a39bab8241800bd074a78adaf0342a5dd5c21ad830c8115742b02502672",
+        "lib/sim/rng.ts": "73708422a07d91b5bd1340318153b3a5702f16a4e7abaa6923a0fd8bad2505e9",
+        "lib/sim/routing.ts": "01a284357f0dde84eced57b5e1e12a7f5bda75595aba26fa1d90d2f2e7d74a7c",
+        "lib/sim/runner.ts": "c8fdd05bdd1c9c7c1f76141e315dfa66c779c5f5cdb084f1c630adbe493dab2d",
+        "lib/sim/server-execution.ts": "c6691b41b599877c7b5729f82154d21492f1c9eea7c78fd137034a11ce25efca",
+        "lib/sim/site-layout.ts": "ef6ac2bc8cb4464b00b44523991ec2e63a2606994aaf5b86d9a48123709d1c55",
+        "lib/sim/spatial-bridge.ts": "08012421e557d980dce8a65774c0c53abe98705078e7755ed54ef97a10042d5c",
+        "lib/sim/spatial-evidence.ts": "79db627da6412bed5ae28d4daebaf93539f931c79a0ea503915514909faae025",
+        "lib/sim/spatial-server.ts": "1514ba9d63d8c9152a4e84b7224b700752d615aa887587829afe1db10b215d5a",
+        "lib/sim/spatial-version.ts": "59bdc2698d83e7f1722fe382fae3372c2f8cce3d3d0c4d30fb2c5eee20161489",
+        "lib/sim/state.ts": "a8f1cbebb92922c98cc242b02e0563d04e88bf55ba6f0624f1155cf950245ccb",
+        "lib/sim/sweep.ts": "5b352d6c6d6ec551ffb5f1d61359ef07babbe5fd8d02305fc9350ede9bd60e1b",
+        "lib/sim/types.ts": "5357a451f2d331f6efe94afa876884d24d3b0cf4ab60a8a1f66f452842470a0c",
+        "lib/sim/underlift-layout.ts": "393a7902d59a9b7f0f9bd33c0a51126af4e424dcef22a08b605b57efcbcc1b33",
+        "lib/sim/underlift-timing.ts": "758cbc5b8149e545936f754def7870a8c6867b8b5fbb3616cb9eeef79a484491",
+        "lib/tz/capacity-conclusion.ts": "a49bce0afe2e735c732c4788180326bb82bde51cd53efdb4e7609e2023f5043d",
+        "lib/tz/characteristics.ts": "92653610a41ae6024a140039b0e5c7b841670a9b22200dc101e0fe15111236f7",
+        "lib/tz/deployment-logistics.ts": "a671f91b261bfe030bd9b7c95094e1beb90bb28a258f0d451532fd451b83c442",
+        "lib/tz/econ/capex.ts": "363be110d19311dce1f0c9433c7f4c4d94eafb16cbbdc85279a2212380be44cf",
+        "lib/tz/econ/conclusion.ts": "1e5b6c63b9c8c4bba4d30f8eaf2eca0f17754e455f2a1f5fd16904c75851a8f3",
+        "lib/tz/econ/context.ts": "9816cb70ff8027c5d478651bef540d9de4b8e5390ccb7b9ad63d608e7b6bd8ea",
+        "lib/tz/econ/core.ts": "6b9c8177e02d42575caeca7885bb9fcdbc570868f7b2e09b61abd97c5fab3954",
+        "lib/tz/econ/cost-package.ts": "366aee042761bce18b1c196b5694d4cd81cfc60dbebc5ed9288764dbc1f306d3",
+        "lib/tz/econ/demand.ts": "6be272abadc2cb96e9eafd9cc26ac742ea77579904ff8e6278faab0218f77ce1",
+        "lib/tz/econ/finance.ts": "4e89149ab06e02361d8421207fcc0c71e2d416426dadc4942c3f845357e7a73a",
+        "lib/tz/econ/fleet.ts": "b45598bd55499b7985512c31cf6cfe35b8adf47dc2d325ab086b55aadcd81a94",
+        "lib/tz/econ/formulas.ts": "8cd0d97dd9d16baf17f2fbbd04f8e03e2830c0e079cc6679cdb43089f264fe6d",
+        "lib/tz/econ/index.ts": "784d6111af1e32f3ff41dc45b74c67a01a928b4031d1b2f843eee819e8d2e202",
+        "lib/tz/econ/internal.ts": "f148d0257ee6c827c7ffe84dee11555a05bc68e30372f3542e590656edc96602",
+        "lib/tz/econ/interpret.ts": "b97dc5c55880f0d33412d09fc292c749ebbe3ebb1f31e93a0df3864f89443ec4",
+        "lib/tz/econ/labour.ts": "4d46f4c31a05d801ac1d2615d7478b02dd0ef96031ce8edee6310f94f25348dc",
+        "lib/tz/econ/limitations.ts": "e73d75ba7c3c51e7fe994a5c42010a5d821276aea6ddb7aa5a27063de097001b",
+        "lib/tz/econ/opex.ts": "a5ac65ec8c910495371247aa4827312feb579a235557b74725c532951cf25c5f",
+        "lib/tz/econ/risks.ts": "983fba898cd7e5d54336c2e1a608496476bd6f3232ab17bea1bf2b116c95d7cb",
+        "lib/tz/econ/scenario.ts": "eaa51f1e0611aed09a4f31142d78f3bbc5e33a87c98af73bd14fcba62f443541",
+        "lib/tz/econ/sensitivity.ts": "5d21cb37230d1d447a5e93bd14b247866363e4a0940db04cab11dbe8b5800059",
+        "lib/tz/econ/text.ts": "89884b63e40fbd186552f0d7a094ad151fe6ad8d8ee2f7d34da7c3b0a08f2c14",
+        "lib/tz/methodology.ts": "f1726b5960e3d6c3f80b18c4cd71b4f1cfe8b2a5e2026aba3d8ec1280f12586c",
+        "lib/tz/model.ts": "d2b776d5df096907062bca6ce12c49f4e1227fae53f6775c1d02bdb0e5396207",
+        "lib/tz/norms.ts": "ebcfb3d3023103bd18567bd4d327ab847b356b52b09cecdc5b89588ba169e0b4",
+        "lib/tz/params/messages.ts": "043ebe635859f323c81ba5f298ea947b72dae900f13fc3d70b381236e693964d",
+        "lib/tz/params/schema.ts": "80ce22a219fa872b0a41f0bf0f3e49be6ca568b27c9f67371cf032ca6da28670",
+        "lib/tz/params/validate.ts": "5960a881ed8308696326fb9c241031c01a17bec11b9dee4a27f45338ffc16df9",
+        "lib/tz/pilot-budget.ts": "c69fa73130421a88e398082fa6982ee2436db768a80a0a25b913744cb8675e04",
+        "lib/tz/processes.ts": "07317303be5a58e9357a5512b9c7ef662d0db9ab7a3a2c2ccea7186089619387",
+        "lib/tz/selection/constraints.ts": "202f2a3cfd853fa6a4659fd0252961508eece327acddb633334d907b4671f409",
+        "lib/tz/selection/index.ts": "ae6a8510a91326d950d6d6ac85d0ac916e5ef7c098f67ded458db04c50b698bf",
+        "lib/tz/selection/missing.ts": "1af4bdc1e0cec76fe4e3c3eaa70dc5b3e057dacdf4eeb7f83e483a5477af4e3b",
+        "lib/tz/selection/rules.ts": "d402f3f6578b7ed5417831cd7cfb173acecd46f367cdc1c057f473b5ee30de3f",
+        "lib/tz/selection/score.ts": "2e5db3248f6cb0823bfa11736518c129309fd7ba62bb69c8b1eaa49314b3c3f0",
+        "lib/tz/selection/text.ts": "831dc55d3097ba00e8f96d91e31752539ac428a7e2b3b75429d1110e9c1093e7",
+        "lib/tz/timing.ts": "2039e654a5ee1caa7ae0976d45956e6aadd864e698c2cd8ad8ca692fb4b1c14b",
+        "lib/tz/version.ts": "f2dd64a5d000a53903925316b797be5befa3159d40030b29dce9daaad4c40721",
+        "package-lock.json": "0f22c917a848b026946c329f8485bb1d9bb3336d9f41ef5429c9f05ea062d70e",
+        "prisma/schema.prisma": "f0ea7c6f15f3a9ec8b75852c623f4beee6d4835b89ba7d8602095c62d87116d4",
+        "scripts/build-calculation-worker.mjs": "48c8bf4dbf3f0d6f93ee5f9b9cae3cb40885b9084370af1842ad2fc8c4924f52",
+        "scripts/calculation-worker.ts": "b5b594e4abbe10a6e0470e6bf24948d047ceec487f7a218509528de5da859ed3"
+      }
+    }
+  },
+  "events": [
+    {
+      "type": "SIGKILL",
+      "containerIds": [
+        "d3255b1df03ba5d74a03aed2a671f2bee5eed23917c45e1166e780ad80bef30a",
+        "b7fea4a825f099d4a13be05d04dab28f4803c54be8a4ca1061542a9027e5fa05",
+        "be46af0b41ff5b57b0b68feb7be2a55543e41ca22721813c239a35bfd736641c",
+        "6a260b76480f7e0de2da9a693a51215210f41c8ae8150f27b88cbb223a27309f",
+        "11a076f1dc74d9e38f89774f3a50469860495610772cbec523606cea71ae8439",
+        "c068eff246d6e4348ad9b216ffb8bfc5b67abceffab31a68137ac1c210263008",
+        "cd5f3df44c31d238614c6315939f6663cb2b85116abba0fe1ff940315dc8c781",
+        "5e170daedc3d59680a03ea3181acb7adc9ebc8ad22ef09cccecc7d3ec700739c",
+        "c6660dd97ed9dfed6fda035de993343e0de378d139092a676a950bfd486a38cb",
+        "211e566c495fa7053ddf660c026218b9ea6bbbf0b35427f1bd026a66b7c40540",
+        "4d2678c4948b579f7b4e0a04cf59a4c11b724e09f404f966cb0279adf9f7fcb3",
+        "7099939c1aa088bc53a2b805920c70fffe48e4efc25136605dde082f70788fcc",
+        "d56105943081383e50d593e6904a51298eadfcb8434c31d0bba510754e167861",
+        "a13799d9117b1635a88a9fce876cb92cfe0deeb02a2b2160cf46e271f7f2af5f"
+      ],
+      "at": "2026-10-18T23:59:38.223Z"
+    },
+    {
+      "type": "START_SAME_IDS",
+      "containerIds": [
+        "d3255b1df03ba5d74a03aed2a671f2bee5eed23917c45e1166e780ad80bef30a",
+        "b7fea4a825f099d4a13be05d04dab28f4803c54be8a4ca1061542a9027e5fa05",
+        "be46af0b41ff5b57b0b68feb7be2a55543e41ca22721813c239a35bfd736641c",
+        "6a260b76480f7e0de2da9a693a51215210f41c8ae8150f27b88cbb223a27309f",
+        "11a076f1dc74d9e38f89774f3a50469860495610772cbec523606cea71ae8439",
+        "c068eff246d6e4348ad9b216ffb8bfc5b67abceffab31a68137ac1c210263008",
+        "cd5f3df44c31d238614c6315939f6663cb2b85116abba0fe1ff940315dc8c781",
+        "5e170daedc3d59680a03ea3181acb7adc9ebc8ad22ef09cccecc7d3ec700739c",
+        "c6660dd97ed9dfed6fda035de993343e0de378d139092a676a950bfd486a38cb",
+        "211e566c495fa7053ddf660c026218b9ea6bbbf0b35427f1bd026a66b7c40540",
+        "4d2678c4948b579f7b4e0a04cf59a4c11b724e09f404f966cb0279adf9f7fcb3",
+        "7099939c1aa088bc53a2b805920c70fffe48e4efc25136605dde082f70788fcc",
+        "d56105943081383e50d593e6904a51298eadfcb8434c31d0bba510754e167861",
+        "a13799d9117b1635a88a9fce876cb92cfe0deeb02a2b2160cf46e271f7f2af5f"
+      ],
+      "at": "2026-10-18T23:59:57.628Z"
+    }
+  ],
+  "health": [
+    {
+      "status": 200,
+      "db": true,
+      "ms": 11.452499999999418
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 39.471300000001065
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.170399999999063
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.726800000000367
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.367700000002515
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 16.7928000000029
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.404199999997218
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 8.66309999999794
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.006000000001222
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.25920000000042
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 44.16100000000006
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 29.131600000000617
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.915600000000268
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 30.63720000000103
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.451500000002852
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 17.3946999999971
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.06880000000092
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 33.684000000001106
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.598500000000058
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 17.688399999999092
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 39.52779999999984
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.81580000000031
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.485499999998865
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 44.195199999998295
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.135299999998097
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.606800000001385
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.136399999999412
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 77.57589999999982
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.21150000000125
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 27.771600000000035
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.686799999999494
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.873799999993935
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.378199999999197
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 31.538500000002387
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 20.196100000001024
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 29.299999999995634
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.795100000003004
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 17.86409999999887
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.911599999999453
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 31.57050000000163
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.90469999999914
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 31.07940000000235
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 19.769500000002154
+    },
+    {
+      "status": 200,
+      "db": true,
+      "ms": 48.41530000000057
+    }
+  ],
+  "fixtureCleanup": "retained exact synthetic fixture; no DELETE or cancellation",
+  "containersBefore": [
+    {
+      "name": "alfa-queue-scaled-20261019-app-1",
+      "id": "6eb0d0b154e1d3b0d31147f292c2ee415a6e800189097b344a2ef3cbc0582c94",
+      "image": "sha256:063706dd9faa5c70c8440c736d12ddbd42e367346030a490352d0cdf7fae8b7d",
+      "startedAt": "2026-10-18T23:55:20.293326526Z",
+      "limits": {
+        "NanoCpus": 2000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 2147483648,
+        "MemoryReservation": 0,
+        "MemorySwap": 4294967296,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.17",
+        "aliases": [
+          "alfa-queue-scaled-20261019-app-1",
+          "app"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-1",
+      "id": "d3255b1df03ba5d74a03aed2a671f2bee5eed23917c45e1166e780ad80bef30a",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:13.688945582Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.7",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-1",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-2",
+      "id": "b7fea4a825f099d4a13be05d04dab28f4803c54be8a4ca1061542a9027e5fa05",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:13.180759003Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.5",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-2",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-3",
+      "id": "be46af0b41ff5b57b0b68feb7be2a55543e41ca22721813c239a35bfd736641c",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:14.46022247Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.10",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-3",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-4",
+      "id": "6a260b76480f7e0de2da9a693a51215210f41c8ae8150f27b88cbb223a27309f",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:13.393985247Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.6",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-4",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-5",
+      "id": "11a076f1dc74d9e38f89774f3a50469860495610772cbec523606cea71ae8439",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:15.184612413Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.13",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-5",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-6",
+      "id": "c068eff246d6e4348ad9b216ffb8bfc5b67abceffab31a68137ac1c210263008",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:14.971109262Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.12",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-6",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-7",
+      "id": "cd5f3df44c31d238614c6315939f6663cb2b85116abba0fe1ff940315dc8c781",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:14.237753841Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.9",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-7",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-8",
+      "id": "5e170daedc3d59680a03ea3181acb7adc9ebc8ad22ef09cccecc7d3ec700739c",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:15.462816637Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.14",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-8",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-9",
+      "id": "c6660dd97ed9dfed6fda035de993343e0de378d139092a676a950bfd486a38cb",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:15.886700333Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.16",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-9",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-10",
+      "id": "211e566c495fa7053ddf660c026218b9ea6bbbf0b35427f1bd026a66b7c40540",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:13.913735448Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.8",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-10",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-11",
+      "id": "4d2678c4948b579f7b4e0a04cf59a4c11b724e09f404f966cb0279adf9f7fcb3",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:14.68184415Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.11",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-11",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-12",
+      "id": "7099939c1aa088bc53a2b805920c70fffe48e4efc25136605dde082f70788fcc",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:15.685221395Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.15",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-12",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-13",
+      "id": "d56105943081383e50d593e6904a51298eadfcb8434c31d0bba510754e167861",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:12.679321194Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.3",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-13",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-14",
+      "id": "a13799d9117b1635a88a9fce876cb92cfe0deeb02a2b2160cf46e271f7f2af5f",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:55:12.894608403Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.4",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-14",
+          "worker"
+        ]
+      }
+    }
+  ],
+  "databaseContainerBefore": {
+    "name": "alfa-queue-scaled-20261019-db-1",
+    "id": "d61fcb18738d055b0a99e1ba38615a2f54035e9bdc76a8ee65b72e57bc0b5713",
+    "image": "sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+    "startedAt": "2026-10-18T22:33:51.432284502Z",
+    "limits": {
+      "NanoCpus": 2000000000,
+      "CpuPeriod": 0,
+      "CpuQuota": 0,
+      "CpuShares": 0,
+      "CpusetCpus": "",
+      "CpusetMems": "",
+      "Memory": 2147483648,
+      "MemoryReservation": 0,
+      "MemorySwap": 4294967296,
+      "PidsLimit": null
+    },
+    "network": {
+      "name": "alfa-queue-scaled-20261019_default",
+      "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+      "address": "192.168.80.2",
+      "aliases": [
+        "alfa-queue-scaled-20261019-db-1",
+        "db"
+      ]
+    }
+  },
+  "networkBefore": {
+    "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+    "name": "alfa-queue-scaled-20261019_default",
+    "members": [
+      [
+        "11a076f1dc74d9e38f89774f3a50469860495610772cbec523606cea71ae8439",
+        "alfa-queue-scaled-20261019-worker-5"
+      ],
+      [
+        "211e566c495fa7053ddf660c026218b9ea6bbbf0b35427f1bd026a66b7c40540",
+        "alfa-queue-scaled-20261019-worker-10"
+      ],
+      [
+        "4d2678c4948b579f7b4e0a04cf59a4c11b724e09f404f966cb0279adf9f7fcb3",
+        "alfa-queue-scaled-20261019-worker-11"
+      ],
+      [
+        "5e170daedc3d59680a03ea3181acb7adc9ebc8ad22ef09cccecc7d3ec700739c",
+        "alfa-queue-scaled-20261019-worker-8"
+      ],
+      [
+        "6a260b76480f7e0de2da9a693a51215210f41c8ae8150f27b88cbb223a27309f",
+        "alfa-queue-scaled-20261019-worker-4"
+      ],
+      [
+        "6eb0d0b154e1d3b0d31147f292c2ee415a6e800189097b344a2ef3cbc0582c94",
+        "alfa-queue-scaled-20261019-app-1"
+      ],
+      [
+        "7099939c1aa088bc53a2b805920c70fffe48e4efc25136605dde082f70788fcc",
+        "alfa-queue-scaled-20261019-worker-12"
+      ],
+      [
+        "a13799d9117b1635a88a9fce876cb92cfe0deeb02a2b2160cf46e271f7f2af5f",
+        "alfa-queue-scaled-20261019-worker-14"
+      ],
+      [
+        "b7fea4a825f099d4a13be05d04dab28f4803c54be8a4ca1061542a9027e5fa05",
+        "alfa-queue-scaled-20261019-worker-2"
+      ],
+      [
+        "be46af0b41ff5b57b0b68feb7be2a55543e41ca22721813c239a35bfd736641c",
+        "alfa-queue-scaled-20261019-worker-3"
+      ],
+      [
+        "c068eff246d6e4348ad9b216ffb8bfc5b67abceffab31a68137ac1c210263008",
+        "alfa-queue-scaled-20261019-worker-6"
+      ],
+      [
+        "c6660dd97ed9dfed6fda035de993343e0de378d139092a676a950bfd486a38cb",
+        "alfa-queue-scaled-20261019-worker-9"
+      ],
+      [
+        "cd5f3df44c31d238614c6315939f6663cb2b85116abba0fe1ff940315dc8c781",
+        "alfa-queue-scaled-20261019-worker-7"
+      ],
+      [
+        "d3255b1df03ba5d74a03aed2a671f2bee5eed23917c45e1166e780ad80bef30a",
+        "alfa-queue-scaled-20261019-worker-1"
+      ],
+      [
+        "d56105943081383e50d593e6904a51298eadfcb8434c31d0bba510754e167861",
+        "alfa-queue-scaled-20261019-worker-13"
+      ],
+      [
+        "d61fcb18738d055b0a99e1ba38615a2f54035e9bdc76a8ee65b72e57bc0b5713",
+        "alfa-queue-scaled-20261019-db-1"
+      ]
+    ]
+  },
+  "databasePoolErrors": [],
+  "databaseBefore": {
+    "database": "alfa_queue_scaled",
+    "startedAt": "2026-10-18T22:33:55.078Z"
+  },
+  "policyBefore": {
+    "id": 1,
+    "maxActive": 14
+  },
+  "fixtureOwner": "94a899ed-1f21-4118-91f7-46e85ba2f322",
+  "createRequestSha256": "7473ce22dfb5f0d053e4956b82b8f96a42647eb737220fcb7e6616d34ae1c86a",
+  "admissionStatus": 202,
+  "jobId": "cmvehlyc8004g01oz8xunu20w",
+  "runId": "cmvehlybr004f01oz5snucmzf",
+  "frozenInputFileSha256": "ec7212a05e9c9f2098f3f1cefacdac89c5dfcf49036cc9af03d0ab7f412b4326",
+  "beforeKill": {
+    "id": "cmvehlyc8004g01oz8xunu20w",
+    "runId": "cmvehlybr004f01oz5snucmzf",
+    "ownerId": "94a899ed-1f21-4118-91f7-46e85ba2f322",
+    "operation": "CREATE",
+    "idempotencyKey": "stage3-recovery-1792367956932",
+    "requestHash": "7473ce22dfb5f0d053e4956b82b8f96a42647eb737220fcb7e6616d34ae1c86a",
+    "status": "RUNNING",
+    "attempts": 1,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T18:59:26.744Z",
+    "leaseToken": "24cd9cb3-1345-496a-ae59-d434339e64a8",
+    "leaseUntil": "2026-10-18T18:59:47.181Z",
+    "heartbeatAt": "2026-10-18T18:59:27.181Z",
+    "cancelRequestedAt": null,
+    "stage": "preparing",
+    "progress": null,
+    "diagnosticCode": null,
+    "safeMessage": "Подготовка расчёта",
+    "createdAt": "2026-10-18T18:59:26.744Z",
+    "startedAt": "2026-10-18T18:59:27.148Z",
+    "finishedAt": null,
+    "inputHash": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "reservedProjectId": "38a7297c-a4b9-422f-ab2b-99fb7df7c9fb",
+    "projectId": null,
+    "publicationState": "NONE",
+    "publishedRevision": null,
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+    "inputSha256": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "hasResults": false
+  },
+  "killed": [
+    {
+      "id": "d3255b1df03ba5d74a03aed2a671f2bee5eed23917c45e1166e780ad80bef30a",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "b7fea4a825f099d4a13be05d04dab28f4803c54be8a4ca1061542a9027e5fa05",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "be46af0b41ff5b57b0b68feb7be2a55543e41ca22721813c239a35bfd736641c",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "6a260b76480f7e0de2da9a693a51215210f41c8ae8150f27b88cbb223a27309f",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "11a076f1dc74d9e38f89774f3a50469860495610772cbec523606cea71ae8439",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "c068eff246d6e4348ad9b216ffb8bfc5b67abceffab31a68137ac1c210263008",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "cd5f3df44c31d238614c6315939f6663cb2b85116abba0fe1ff940315dc8c781",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "5e170daedc3d59680a03ea3181acb7adc9ebc8ad22ef09cccecc7d3ec700739c",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "c6660dd97ed9dfed6fda035de993343e0de378d139092a676a950bfd486a38cb",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "211e566c495fa7053ddf660c026218b9ea6bbbf0b35427f1bd026a66b7c40540",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "4d2678c4948b579f7b4e0a04cf59a4c11b724e09f404f966cb0279adf9f7fcb3",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "7099939c1aa088bc53a2b805920c70fffe48e4efc25136605dde082f70788fcc",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "d56105943081383e50d593e6904a51298eadfcb8434c31d0bba510754e167861",
+      "running": false,
+      "exitCode": 137
+    },
+    {
+      "id": "a13799d9117b1635a88a9fce876cb92cfe0deeb02a2b2160cf46e271f7f2af5f",
+      "running": false,
+      "exitCode": 137
+    }
+  ],
+  "afterKill": {
+    "id": "cmvehlyc8004g01oz8xunu20w",
+    "runId": "cmvehlybr004f01oz5snucmzf",
+    "ownerId": "94a899ed-1f21-4118-91f7-46e85ba2f322",
+    "operation": "CREATE",
+    "idempotencyKey": "stage3-recovery-1792367956932",
+    "requestHash": "7473ce22dfb5f0d053e4956b82b8f96a42647eb737220fcb7e6616d34ae1c86a",
+    "status": "RUNNING",
+    "attempts": 1,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T18:59:26.744Z",
+    "leaseToken": "24cd9cb3-1345-496a-ae59-d434339e64a8",
+    "leaseUntil": "2026-10-18T18:59:52.211Z",
+    "heartbeatAt": "2026-10-18T18:59:32.211Z",
+    "cancelRequestedAt": null,
+    "stage": "spatial-check",
+    "progress": null,
+    "diagnosticCode": null,
+    "safeMessage": "Подготовка расчёта",
+    "createdAt": "2026-10-18T18:59:26.744Z",
+    "startedAt": "2026-10-18T18:59:27.148Z",
+    "finishedAt": null,
+    "inputHash": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "reservedProjectId": "38a7297c-a4b9-422f-ab2b-99fb7df7c9fb",
+    "projectId": null,
+    "publicationState": "NONE",
+    "publishedRevision": null,
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+    "inputSha256": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "hasResults": false
+  },
+  "leaseClock": {
+    "serverEpoch": "1792367993.258855",
+    "leaseEpoch": "1792367992.211000",
+    "expired": true
+  },
+  "expiredBeforeRestart": {
+    "id": "cmvehlyc8004g01oz8xunu20w",
+    "runId": "cmvehlybr004f01oz5snucmzf",
+    "ownerId": "94a899ed-1f21-4118-91f7-46e85ba2f322",
+    "operation": "CREATE",
+    "idempotencyKey": "stage3-recovery-1792367956932",
+    "requestHash": "7473ce22dfb5f0d053e4956b82b8f96a42647eb737220fcb7e6616d34ae1c86a",
+    "status": "RUNNING",
+    "attempts": 1,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T18:59:26.744Z",
+    "leaseToken": "24cd9cb3-1345-496a-ae59-d434339e64a8",
+    "leaseUntil": "2026-10-18T18:59:52.211Z",
+    "heartbeatAt": "2026-10-18T18:59:32.211Z",
+    "cancelRequestedAt": null,
+    "stage": "spatial-check",
+    "progress": null,
+    "diagnosticCode": null,
+    "safeMessage": "Подготовка расчёта",
+    "createdAt": "2026-10-18T18:59:26.744Z",
+    "startedAt": "2026-10-18T18:59:27.148Z",
+    "finishedAt": null,
+    "inputHash": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "reservedProjectId": "38a7297c-a4b9-422f-ab2b-99fb7df7c9fb",
+    "projectId": null,
+    "publicationState": "NONE",
+    "publishedRevision": null,
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+    "inputSha256": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "hasResults": false
+  },
+  "resultHttpStatus": 200,
+  "afterRecovery": {
+    "id": "cmvehlyc8004g01oz8xunu20w",
+    "runId": "cmvehlybr004f01oz5snucmzf",
+    "ownerId": "94a899ed-1f21-4118-91f7-46e85ba2f322",
+    "operation": "CREATE",
+    "idempotencyKey": "stage3-recovery-1792367956932",
+    "requestHash": "7473ce22dfb5f0d053e4956b82b8f96a42647eb737220fcb7e6616d34ae1c86a",
+    "status": "SUCCEEDED",
+    "attempts": 2,
+    "maxAttempts": 3,
+    "nextAttemptAt": "2026-10-18T18:59:56.481Z",
+    "leaseToken": null,
+    "leaseUntil": null,
+    "heartbeatAt": "2026-10-18T19:00:07.620Z",
+    "cancelRequestedAt": null,
+    "stage": "succeeded",
+    "progress": 100,
+    "diagnosticCode": null,
+    "safeMessage": "Расчёт завершён и сохранён в проекте",
+    "createdAt": "2026-10-18T18:59:26.744Z",
+    "startedAt": "2026-10-18T18:59:56.534Z",
+    "finishedAt": "2026-10-18T19:00:07.936Z",
+    "inputHash": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "reservedProjectId": "38a7297c-a4b9-422f-ab2b-99fb7df7c9fb",
+    "projectId": "38a7297c-a4b9-422f-ab2b-99fb7df7c9fb",
+    "publicationState": "PUBLISHED",
+    "publishedRevision": 0,
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+    "inputSha256": "9d1ba68fc0b65eb21262dd1b105270fae5cfbd3a903080784ed8bc81bb63a7a9",
+    "hasResults": true
+  },
+  "exactlyOneProject": true,
+  "resultSha256": "3d6219e84ac97d001837b3581fde59f95113ecfbb5025133edf34974bd184e3a",
+  "nominal": {
+    "fleet": 6,
+    "queueEnd": 1,
+    "waitP95Min": 4.916666666666667,
+    "achievedPerH": 51.5,
+    "requiredPerH": 51.81818181818181
+  },
+  "controlled": {
+    "arrivedPerH": 57,
+    "offeredPerH": 57,
+    "closedCohort": 109,
+    "requiredPerH": 51.81818181818181,
+    "deliveredCohort": 110,
+    "measurementEndS": 8100,
+    "closedCohortPerH": 54.5,
+    "measurementStartS": 900,
+    "deliveredCohortPerH": 55,
+    "oldestUnfinishedAgeS": 268,
+    "unfinishedServiceCount": 3,
+    "unfinishedCustomerCount": 4
+  },
+  "containersAfter": [
+    {
+      "name": "alfa-queue-scaled-20261019-app-1",
+      "id": "6eb0d0b154e1d3b0d31147f292c2ee415a6e800189097b344a2ef3cbc0582c94",
+      "image": "sha256:063706dd9faa5c70c8440c736d12ddbd42e367346030a490352d0cdf7fae8b7d",
+      "startedAt": "2026-10-18T23:55:20.293326526Z",
+      "limits": {
+        "NanoCpus": 2000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 2147483648,
+        "MemoryReservation": 0,
+        "MemorySwap": 4294967296,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.17",
+        "aliases": [
+          "alfa-queue-scaled-20261019-app-1",
+          "app"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-1",
+      "id": "d3255b1df03ba5d74a03aed2a671f2bee5eed23917c45e1166e780ad80bef30a",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:53.672260512Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.3",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-1",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-2",
+      "id": "b7fea4a825f099d4a13be05d04dab28f4803c54be8a4ca1061542a9027e5fa05",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:54.136574421Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.4",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-2",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-3",
+      "id": "be46af0b41ff5b57b0b68feb7be2a55543e41ca22721813c239a35bfd736641c",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:54.443879361Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.5",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-3",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-4",
+      "id": "6a260b76480f7e0de2da9a693a51215210f41c8ae8150f27b88cbb223a27309f",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:54.674358681Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.6",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-4",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-5",
+      "id": "11a076f1dc74d9e38f89774f3a50469860495610772cbec523606cea71ae8439",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:54.902362517Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.7",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-5",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-6",
+      "id": "c068eff246d6e4348ad9b216ffb8bfc5b67abceffab31a68137ac1c210263008",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:55.194546901Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.8",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-6",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-7",
+      "id": "cd5f3df44c31d238614c6315939f6663cb2b85116abba0fe1ff940315dc8c781",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:55.417501274Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.9",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-7",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-8",
+      "id": "5e170daedc3d59680a03ea3181acb7adc9ebc8ad22ef09cccecc7d3ec700739c",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:55.709338964Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.10",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-8",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-9",
+      "id": "c6660dd97ed9dfed6fda035de993343e0de378d139092a676a950bfd486a38cb",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:55.954003215Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.11",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-9",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-10",
+      "id": "211e566c495fa7053ddf660c026218b9ea6bbbf0b35427f1bd026a66b7c40540",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:56.289996726Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.12",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-10",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-11",
+      "id": "4d2678c4948b579f7b4e0a04cf59a4c11b724e09f404f966cb0279adf9f7fcb3",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:56.532900769Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.13",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-11",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-12",
+      "id": "7099939c1aa088bc53a2b805920c70fffe48e4efc25136605dde082f70788fcc",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:56.885514164Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.14",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-12",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-13",
+      "id": "d56105943081383e50d593e6904a51298eadfcb8434c31d0bba510754e167861",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:57.115345117Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.15",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-13",
+          "worker"
+        ]
+      }
+    },
+    {
+      "name": "alfa-queue-scaled-20261019-worker-14",
+      "id": "a13799d9117b1635a88a9fce876cb92cfe0deeb02a2b2160cf46e271f7f2af5f",
+      "image": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "startedAt": "2026-10-18T23:59:57.430347805Z",
+      "limits": {
+        "NanoCpus": 1000000000,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "Memory": 1610612736,
+        "MemoryReservation": 0,
+        "MemorySwap": 3221225472,
+        "PidsLimit": null
+      },
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+      "jobEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+      "network": {
+        "name": "alfa-queue-scaled-20261019_default",
+        "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+        "address": "192.168.80.16",
+        "aliases": [
+          "alfa-queue-scaled-20261019-worker-14",
+          "worker"
+        ]
+      }
+    }
+  ],
+  "networkAfter": {
+    "id": "b23b3f65c3ad1ef548f27ca891b178c1b27c87aae2e7970dcdc8b460e6e3e868",
+    "name": "alfa-queue-scaled-20261019_default",
+    "members": [
+      [
+        "11a076f1dc74d9e38f89774f3a50469860495610772cbec523606cea71ae8439",
+        "alfa-queue-scaled-20261019-worker-5"
+      ],
+      [
+        "211e566c495fa7053ddf660c026218b9ea6bbbf0b35427f1bd026a66b7c40540",
+        "alfa-queue-scaled-20261019-worker-10"
+      ],
+      [
+        "4d2678c4948b579f7b4e0a04cf59a4c11b724e09f404f966cb0279adf9f7fcb3",
+        "alfa-queue-scaled-20261019-worker-11"
+      ],
+      [
+        "5e170daedc3d59680a03ea3181acb7adc9ebc8ad22ef09cccecc7d3ec700739c",
+        "alfa-queue-scaled-20261019-worker-8"
+      ],
+      [
+        "6a260b76480f7e0de2da9a693a51215210f41c8ae8150f27b88cbb223a27309f",
+        "alfa-queue-scaled-20261019-worker-4"
+      ],
+      [
+        "6eb0d0b154e1d3b0d31147f292c2ee415a6e800189097b344a2ef3cbc0582c94",
+        "alfa-queue-scaled-20261019-app-1"
+      ],
+      [
+        "7099939c1aa088bc53a2b805920c70fffe48e4efc25136605dde082f70788fcc",
+        "alfa-queue-scaled-20261019-worker-12"
+      ],
+      [
+        "a13799d9117b1635a88a9fce876cb92cfe0deeb02a2b2160cf46e271f7f2af5f",
+        "alfa-queue-scaled-20261019-worker-14"
+      ],
+      [
+        "b7fea4a825f099d4a13be05d04dab28f4803c54be8a4ca1061542a9027e5fa05",
+        "alfa-queue-scaled-20261019-worker-2"
+      ],
+      [
+        "be46af0b41ff5b57b0b68feb7be2a55543e41ca22721813c239a35bfd736641c",
+        "alfa-queue-scaled-20261019-worker-3"
+      ],
+      [
+        "c068eff246d6e4348ad9b216ffb8bfc5b67abceffab31a68137ac1c210263008",
+        "alfa-queue-scaled-20261019-worker-6"
+      ],
+      [
+        "c6660dd97ed9dfed6fda035de993343e0de378d139092a676a950bfd486a38cb",
+        "alfa-queue-scaled-20261019-worker-9"
+      ],
+      [
+        "cd5f3df44c31d238614c6315939f6663cb2b85116abba0fe1ff940315dc8c781",
+        "alfa-queue-scaled-20261019-worker-7"
+      ],
+      [
+        "d3255b1df03ba5d74a03aed2a671f2bee5eed23917c45e1166e780ad80bef30a",
+        "alfa-queue-scaled-20261019-worker-1"
+      ],
+      [
+        "d56105943081383e50d593e6904a51298eadfcb8434c31d0bba510754e167861",
+        "alfa-queue-scaled-20261019-worker-13"
+      ],
+      [
+        "d61fcb18738d055b0a99e1ba38615a2f54035e9bdc76a8ee65b72e57bc0b5713",
+        "alfa-queue-scaled-20261019-db-1"
+      ]
+    ]
+  },
+  "finishedAt": "2026-10-19T00:00:16.553Z"
+}

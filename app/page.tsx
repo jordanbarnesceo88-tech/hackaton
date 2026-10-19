@@ -1,43 +1,21 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Accordion, AccordionItem } from "@/components/ui/accordion";
-import { ThemedScreenshot } from "@/components/landing/themed-screenshot";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { cn } from "@/lib/utils";
 import { DemoSceneLinks } from "@/components/project/demo-scene-links";
-import scenariosLight from "@/public/landing/scenarios-light.png";
-import scenariosDark from "@/public/landing/scenarios-dark.png";
-import capexLight from "@/public/landing/capex-light.png";
-import capexDark from "@/public/landing/capex-dark.png";
-import staffLight from "@/public/landing/staff-light.png";
-import staffDark from "@/public/landing/staff-dark.png";
-import sensitivityLight from "@/public/landing/sensitivity-light.png";
-import sensitivityDark from "@/public/landing/sensitivity-dark.png";
 
-/**
- * Первый экран.
- *
- * Построен на возражениях, которые задаёт финансовый директор, и ответах на них: это
- * содержание, а не украшение. Обещание продукта — не «посчитайте ROI», а «получите цифру, с
- * которой можно идти к тому, кто будет спорить».
- *
- * Пересборка 2026-09-27 (просьба владельца: «слишком много текста, добавить картинки»):
- * - поля страницы — те же, что у остальных страниц (.surface-data), текст держит меру строки
- *   сам;
- * - вопросы свёрнуты в раскрывающиеся пункты, в каждом ответе — снимок экрана, который этот
- *   ответ показывает (снимки — настоящие экраны демо-расчёта, scripts/capture-landing-shots.mjs);
- * - на первом экране — снимок сравнения сценариев рядом с кнопками.
- */
+/** Первый экран объясняет путь к решению; расчётные результаты открываются в демо. */
 const OBJECTIONS = [
   {
     q: "«Цены вы взяли с потолка?»",
     a:
-      "Нет. Каждая цена помечена как оценка, у каждой названы источник и дата проверки. У " +
-      "классов решений это опубликованный диапазон с отдельными ссылками на цену и на " +
-      "производительность; класс без обеих ссылок в каталог не попадает. Производители не " +
-      "публикуют цены на промышленных роботов, поэтому точной цены не может быть ни у кого. " +
-      "Платформа говорит об этом прямо.",
-    shot: { light: capexLight, dark: capexDark, alt: "Статьи CAPEX: сумма, формула с подстановкой чисел и происхождение каждой цены" },
+      "В каталоге и расчёте можно проверить источники, даты и статус данных. Оценочную цену " +
+      "нужно отличать от коммерческого предложения для вашего объекта: комплектация, доставка " +
+      "и сервис меняют итоговую стоимость. Неизвестные условия поставки и цены необходимо " +
+      "уточнить у поставщика перед пилотом.",
+    href: "/methodology/tz",
+    link: "Посмотреть методику и источники",
   },
   {
     q: "«Почему замещается столько людей?»",
@@ -49,15 +27,17 @@ const OBJECTIONS = [
       "Денежная экономия зависит от отдельно заданной доли реализации этого эффекта: при нулевой доле " +
       "сотрудники остаются в штате и сокращения ФОТ нет. Решение, обслуживающее " +
       "площадь, не «замещает» тех, кто собирает заказы: у них разная работа и разные мерки.",
-    shot: { light: staffLight, dark: staffDark, alt: "Основные условия складского расчёта: поток, режим работы, численность операторов погрузчиков и их зарплата" },
+    href: "/demo?example=retained-staff",
+    link: "Открыть пример с сохранением сотрудников",
   },
   {
     q: "«А если ставка и сроки другие?»",
     a:
       "Все допущения — ставка дисконтирования, горизонт, срок службы роботов, доля замещения — " +
       "редактируются, а диаграмма чувствительности показывает, какое из них сильнее всего двигает " +
-      "результат. Обычно это стоимость труда.",
-    shot: { light: sensitivityLight, dark: sensitivityDark, alt: "Диаграмма чувствительности NPV к параметрам расчёта" },
+      "результат именно для вашего сценария.",
+    href: "/demo?example=steady-flow",
+    link: "Проверить допущения в демо-расчёте",
   },
 ];
 
@@ -76,10 +56,7 @@ const FOOTER_LINK = "tap-target font-medium underline underline-offset-4 hover:t
 export default function Home() {
   return (
     <div className="surface-data flex flex-col gap-20 py-12 lg:py-16">
-      {/* Первый экран: текст и входы слева, настоящий экран расчёта справа. Колонка текста —
-          42rem: ровно столько, чтобы три входа первого ряда стояли в одну строку; две колонки —
-          с xl (1280px), ниже снимок встаёт под текст во всю ширину. */}
-      <section className="grid items-center gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
+      <section className="grid items-start gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
         <div className="flex flex-col gap-6">
           <h1>Выберите решение для роботизации вашего объекта</h1>
           <p className="text-lg text-muted-foreground">
@@ -90,11 +67,14 @@ export default function Home() {
             <Link href="/demo?example=steady-flow" className={CTA_PRIMARY}>
               Открыть демо-расчёт склада
             </Link>
+            <Link href="/catalog" className={CTA_SECONDARY}>
+              Каталог решений
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
             <Link href="/projects/new" className={CTA_SECONDARY}>
               Создать проект
             </Link>
-            {/* Онбординг-тур: карточки по шагам расчёта, см. components/onboarding/onboarding-tour.tsx.
-                Открывается по желанию пользователя и не закрывает первый экран. */}
             <OnboardingTour triggerSize="xl" triggerClassName="w-full sm:w-auto" />
           </div>
           <p className="text-sm text-muted-foreground">
@@ -103,34 +83,41 @@ export default function Home() {
           </p>
           <DemoSceneLinks />
         </div>
-        <ThemedScreenshot
-          light={scenariosLight}
-          dark={scenariosDark}
-          alt="Сравнение сценариев демо-склада: «Как есть», покупка и услуга рядом, рекомендуемый отмечен звездой"
-          sizes="(min-width: 1280px) 45vw, 100vw"
-          fetchPriority="high"
-        />
+        <div className="min-w-0 border-y border-border py-6">
+          <h2 className="text-xl">От условий объекта к плану внедрения</h2>
+          <ol className="mt-6 grid gap-5" aria-label="Как работает платформа">
+            {[
+              ["Объект", "Задайте поток, режим работы и ограничения площадки."],
+              ["Экономика", "Сравните покупку и услугу, затраты и высвобождаемый труд."],
+              ["Проверка потока", "Оцените выбранный парк и нагрузку с учётом границ модели."],
+              ["План пилота", "Определите подготовку объекта, бюджет и критерии приёмки."],
+            ].map(([title, description], index) => (
+              <li key={title} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 border-b border-border pb-5 last:border-0 last:pb-0">
+                <span aria-hidden="true" className="font-mono text-sm text-primary">{String(index + 1).padStart(2, "0")}</span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold">{title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
       </section>
 
-      {/* Возражения — свёрнутыми пунктами: вопрос виден сразу, ответ и снимок — по раскрытию. */}
+      {/* Подробности и ссылки доступны по раскрытию вопроса. */}
       <section className="grid gap-8 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-14">
         <div className="flex flex-col gap-3">
           <h2>Что спросит ваш финансовый директор</h2>
           <p className="text-muted-foreground">
-            Три вопроса, с которых обычно начинается разговор о роботизации. В каждом ответе — снимок экрана расчёта.
+            Три вопроса, с которых обычно начинается разговор о роботизации. Методика и примеры помогают проверить основания расчёта.
           </p>
         </div>
         <Accordion>
           {OBJECTIONS.map((o) => (
             <AccordionItem key={o.q} title={o.q}>
-              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+              <div className="flex flex-col gap-4">
                 <p className="max-w-prose text-muted-foreground">{o.a}</p>
-                <ThemedScreenshot
-                  light={o.shot.light}
-                  dark={o.shot.dark}
-                  alt={o.shot.alt}
-                  sizes="(min-width: 1280px) 40vw, (min-width: 1024px) 60vw, 100vw"
-                />
+                <Link href={o.href} className="tap-target w-fit font-medium underline underline-offset-4 hover:text-primary">{o.link} →</Link>
               </div>
             </AccordionItem>
           ))}

@@ -326,7 +326,8 @@ function ProcessComparison({
   return (
     <div className="flex flex-col gap-2">
       {showCaption && <p className="text-sm font-medium">{processName}</p>}
-      <div className="data-table-wrap">
+      <p className="text-xs text-muted-foreground md:hidden print:hidden">Сравнение по столбцам — прокрутите таблицу вправо. С клавиатуры используйте стрелки.</p>
+      <div className="data-table-wrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" tabIndex={0} role="region" aria-label={`Прокручиваемая таблица сравнения решений: ${processName}`}>
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">Сравнение решений: {processName}</caption>
           <thead className="border-b border-border text-left text-xs">

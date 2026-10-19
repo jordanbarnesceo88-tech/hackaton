@@ -4,6 +4,7 @@ import { stableJson } from "../tz/version";
 import { computeFrozenCalculation, publishFrozenCalculation } from "./service";
 import { claimJob, completeJob, failJob, heartbeatJob, reapExpiredJobs } from "./store";
 import { JOB_HEARTBEAT_MS, type ClaimedJob } from "./types";
+import { CalculationQueuePolicyError } from "./policy";
 
 /** A lost lease stops execution and can never publish. No transaction spans compute. */
 export async function executeClaim(db: PrismaClient, claim: ClaimedJob, signal?: AbortSignal): Promise<void> {
@@ -80,7 +81,8 @@ export async function runCalculationWorker(db: PrismaClient, signal: AbortSignal
       await reapExpiredJobs(db);
       const claim = await claimJob(db);
       if (claim) { await executeClaim(db, claim, signal); continue; }
-    } catch {
+    } catch (error) {
+      if (error instanceof CalculationQueuePolicyError) throw error;
       console.error("calculation_worker_database_unavailable");
     }
     await waitForWork(signal, 1000);

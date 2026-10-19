@@ -1,17 +1,17 @@
 {
-  "capturedAt": "2026-10-18T21:21:19.934Z",
+  "capturedAt": "2026-10-19T07:53:15.091Z",
   "baseUrl": "http://localhost:3085",
   "project": {
-    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "id": "d0918f13-b0fe-425a-b924-208a844d3665",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
     "revision": 0
   },
   "operation": {
-    "id": "cmvebyexr003t01pet92h3qrr",
+    "id": "cmveyilnt000d01qsswk84q0x",
     "kind": "CREATE",
     "status": "SUCCEEDED",
     "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1"
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1"
   },
   "submitted": {
     "facility": "warehouse",
@@ -245,7 +245,7 @@
         },
         "oversized": false,
         "bottleneck": "none",
-        "durationMs": 3158.4557059998624,
+        "durationMs": 3077.6035359986126,
         "waitP95Min": 4.916666666666667,
         "chargingPct": 5.608796296296297,
         "fleetByNorm": null,
@@ -275,7 +275,7 @@
         },
         "oversized": false,
         "bottleneck": "none",
-        "durationMs": 3158.4557059998624,
+        "durationMs": 3077.6035359986126,
         "waitP95Min": 4.916666666666667,
         "chargingPct": 5.608796296296297,
         "fleetByNorm": null,
@@ -43394,7 +43394,7 @@
     },
     "dataVersion": "f181ea2e",
     "paramIssues": [],
-    "calculatedAt": "2026-10-18T21:21:18.397Z",
+    "calculatedAt": "2026-10-19T07:53:13.801Z",
     "modelVersion": "tz-1.0.8",
     "simModelVersion": "sim-1.2.1",
     "productSnapshots": {

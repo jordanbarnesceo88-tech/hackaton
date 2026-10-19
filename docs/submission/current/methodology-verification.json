@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "checkedAt": "2026-10-18T21:38:47.675Z",
+  "checkedAt": "2026-10-19T07:54:22.413Z",
   "checks": 4078,
   "methodology": {
     "schemaVersion": "methodology-snapshot-1",
@@ -59,33 +59,34 @@
     }
   ],
   "scope": "Read-only saved methodology/norm/trace verification and model-scoped OEM/implementation plus separate nominal/controlled export rows. No live registry lookups, numeric input substitution, Excel recalculation, PDF text/visual review, DB, browser, simulation or contractual SLA verification.",
+  "capturePinsSha256": "83a011e091f8c9cb8ec5b195163cce331917bf7f14b158ea1c6543fc8e270493",
   "project": {
-    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "id": "d0918f13-b0fe-425a-b924-208a844d3665",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
     "revision": 0
   },
   "sourceProject": {
-    "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+    "id": "d0918f13-b0fe-425a-b924-208a844d3665",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
     "revision": 0
   },
   "operation": {
-    "id": "cmvebyexr003t01pet92h3qrr",
+    "id": "cmveyilnt000d01qsswk84q0x",
     "kind": "CREATE",
     "status": "SUCCEEDED",
     "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1"
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1"
   },
   "modelVersion": "tz-1.0.8",
   "spatialVersion": "warehouse-dense-underlift-1.9.1",
   "sha256": {
-    "calculation-source.json": "9f48dac47094cc8c46114e557ec8f81e63a38712ad878b44c187410f4d19498d",
-    "sample-report.xlsx": "263c0c55aed5b84697d9b3833e9574ab142c28565c6ec038a84ea991ea9710ab",
-    "sample-report.csv": "0535282fd3e469c998a49ea1333bcadcfbae279bc0c3004e1f4159a31087addb",
-    "sample-report.pdf": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6",
-    "steady-flow-receipt.json": "a0b3f75bd92f67a1e249b1a8c6d7d1059dea027512b6b699016d6814f71dcf27",
-    "peak-overload-receipt.json": "e99d4bb6a805bbc75275ad7a5ba60929d3ca05a385d98853fb60e438de3ee265",
-    "retained-staff-receipt.json": "ab78623b561d618e53a693c40803fd22f46ae673d412aea98f042e040895257c"
+    "calculation-source.json": "ed5cc7f9e046d044ee8fd88b65806bbb9eeddc9c11759b64ade1cc607aa6478c",
+    "sample-report.xlsx": "f4901a2a64d7a93516fe4f0bee7ce3c8caef4c35c337a55392afe9d1acac192b",
+    "sample-report.csv": "96ef04f907b24527a9a7af5520cb9e4718f42e1cc09c2fbdbbeb034169565048",
+    "sample-report.pdf": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706",
+    "steady-flow-receipt.json": "2a020e6849f3e70263e6cfd1457a3d25225d0226c60042076786ecc16b2c8c3e",
+    "peak-overload-receipt.json": "1199584a803d70b7b375e8a9391d9b9437197107b0f4597a64254741a373e70b",
+    "retained-staff-receipt.json": "2935c221f1ad48d4b69b4fed7a56956343dd5f8d2dd8b1d73c700ae7c2ad5cd1"
   },
   "excelRecalculated": false,
   "rawXmlZeroCacheEvidence": [

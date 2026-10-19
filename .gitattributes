@@ -127,3 +127,11 @@ package-lock.json -text whitespace=cr-at-eol
 prisma/schema.prisma -text whitespace=cr-at-eol
 scripts/build-calculation-worker.mjs -text whitespace=cr-at-eol
 scripts/calculation-worker.ts -text whitespace=cr-at-eol
+
+# Additional engine graph paths introduced by the shared queue policy.
+lib/calculation-jobs/policy.ts -text whitespace=cr-at-eol
+lib/db/factory.ts -text whitespace=cr-at-eol
+
+# Reproducible benchmark CLI and helper hashes.
+scripts/queue-load/** text eol=lf
+scripts/check-queue-recovery.mjs text eol=lf

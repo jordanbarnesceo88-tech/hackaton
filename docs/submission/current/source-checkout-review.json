@@ -1,33 +1,21 @@
 {
-  "status": "PASS_EXACT_110_SOURCE_BYTES",
-  "timestamp": "2026-10-18T21:50:23.397Z",
-  "sourceCount": 110,
-  "graph": [
+  "schema": "stage7-index-checkouts-1",
+  "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+  "createdAt": "2026-10-19T08:15:00.053Z",
+  "checkouts": [
     {
-      "kind": "filesystem",
-      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b"
+      "autocrlf": "true",
+      "sourceCount": 111,
+      "allSourceBytesIdentical": true,
+      "actualCompiledProbeSha256": "d4fed641f27e5df1846efd20b284256e5b87bb47a40ece99f666c901d5528274",
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e"
     },
     {
-      "kind": "index",
-      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b"
-    },
-    {
-      "kind": "actual checkout-index",
-      "coreAutocrlf": "true",
-      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
-      "destination": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\source-checkout-a944-1792360223167\\autocrlf-true"
-    },
-    {
-      "kind": "actual checkout-index",
-      "coreAutocrlf": "false",
-      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
-      "destination": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\source-checkout-a944-1792360223167\\autocrlf-false"
+      "autocrlf": "false",
+      "sourceCount": 111,
+      "allSourceBytesIdentical": true,
+      "actualCompiledProbeSha256": "d4fed641f27e5df1846efd20b284256e5b87bb47a40ece99f666c901d5528274",
+      "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e"
     }
-  ],
-  "gitAttributesSha256": "fc011700d1b74b69fcfd031686d638edd545e8a388075416b1fbcc4049e82ba9",
-  "sourceWritten": false,
-  "indexWritten": false,
-  "packageWritten": false,
-  "networkExecuted": false,
-  "externalQaOutputsWritten": true
+  ]
 }

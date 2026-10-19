@@ -1,0 +1,118 @@
+{
+  "schema": "stage5-oem-case-review-1",
+  "status": "PASS",
+  "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+  "artifactSha256": {
+    "calculation-source.json": "ed5cc7f9e046d044ee8fd88b65806bbb9eeddc9c11759b64ade1cc607aa6478c",
+    "sample-report.xlsx": "f4901a2a64d7a93516fe4f0bee7ce3c8caef4c35c337a55392afe9d1acac192b",
+    "sample-report.csv": "96ef04f907b24527a9a7af5520cb9e4718f42e1cc09c2fbdbbeb034169565048",
+    "sample-report.pdf": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706",
+    "steady-flow-receipt.json": "2a020e6849f3e70263e6cfd1457a3d25225d0226c60042076786ecc16b2c8c3e",
+    "peak-overload-receipt.json": "1199584a803d70b7b375e8a9391d9b9437197107b0f4597a64254741a373e70b",
+    "retained-staff-receipt.json": "2935c221f1ad48d4b69b4fed7a56956343dd5f8d2dd8b1d73c700ae7c2ad5cd1"
+  },
+  "caseIds": [
+    {
+      "kind": "manufacturerless",
+      "projectId": "719bbcf7-3cbc-4592-a678-d91ced61efb6",
+      "jobId": "cmvexi4xj001701qfvfy5mdll",
+      "runId": "cmvexi4x0001601qfatlpohqq",
+      "slug": "qa-oem-null-ac573fee-6364-4620-86d6-b6028d94b4e1"
+    },
+    {
+      "kind": "known",
+      "projectId": "12ad0c16-3e6e-46dd-bd1a-4ca60e310b63",
+      "jobId": "cmvexi89a001a01qfi7u3a0yi",
+      "runId": "cmvexi88w001901qf04x3k1sw",
+      "slug": "ronavi-h1500"
+    }
+  ],
+  "manufacturerlessNotAttributed": true,
+  "correctManufacturerAttributed": true,
+  "snapshotAndExportCompared": true,
+  "normalSourceProjectId": "d0918f13-b0fe-425a-b924-208a844d3665",
+  "normalSourceOperationId": "cmveyilnt000d01qsswk84q0x",
+  "captureSha256": "db945f417bf0095164d55b59fec14869b72033a7cd5cdc8eefc20b25dcec4c4b",
+  "captureFile": "capture.json",
+  "fixtureCloneArchived": true,
+  "existingCatalogueAndNormsUnchanged": true,
+  "caseArtifacts": [
+    {
+      "kind": "manufacturerless",
+      "artifacts": {
+        "request": {
+          "file": "manufacturerless-request.json",
+          "sha256": "095fbe8ec6352fa4057c0d1f10545de3cbabae45d714fd34d45e6f5b96d32566"
+        },
+        "accepted": {
+          "file": "manufacturerless-accepted.json",
+          "sha256": "49b99b1fbbbd5e9c0e79c629c80c8a28e092ba48e96954c0f10c6c3f1d970fd9"
+        },
+        "result": {
+          "file": "manufacturerless-result.json",
+          "sha256": "96170efb0b9eb205841f3179ba9f34a32df33f4e97c4c53ae9114c2e6678ff59"
+        },
+        "frozenProduct": {
+          "file": "manufacturerless-frozen-product.json",
+          "sha256": "429da2dbc649e69e59d90f1f6d00010432b1221a66858a3f73fa1967008f8217"
+        },
+        "project": {
+          "file": "manufacturerless-project.json",
+          "sha256": "f50697e9bbf730f97c836b887cfab26b12f515f8ffc23708e6c9df53c9b1c19b"
+        },
+        "csv": {
+          "file": "manufacturerless-report.csv",
+          "sha256": "1262ef0d2240528b015c81d2e7060c9d064a6ec10a1b4dc41160f297b0bd1eef"
+        },
+        "xlsx": {
+          "file": "manufacturerless-report.xlsx",
+          "sha256": "50b8a956e1492d88f8a4cd6b512650c755184b2e244b63822cb6bc4d07cdcd53"
+        },
+        "reportDom": {
+          "file": "manufacturerless-report-dom.json",
+          "sha256": "52a85b0e28f35c868a8bde1e677e6b506a76595d5ae86b4bec7e81d7831f13f6"
+        }
+      }
+    },
+    {
+      "kind": "known",
+      "artifacts": {
+        "request": {
+          "file": "known-request.json",
+          "sha256": "5cee25343223d7ac376998f07ec9ed469e3704cfdccc87497517b099ddbfbbf6"
+        },
+        "accepted": {
+          "file": "known-accepted.json",
+          "sha256": "2b6b2105f642268c2e860557ff5eef7428748abfc063bbd8b3a2970dc07775d3"
+        },
+        "result": {
+          "file": "known-result.json",
+          "sha256": "0b948639695fa6df5abc226327c810107f9ed0909e6d01c27392ca651946d44b"
+        },
+        "frozenProduct": {
+          "file": "known-frozen-product.json",
+          "sha256": "57d0a01be911d1b710af8f7a2ad1a077389e45cfe56c8dc0793336642a6f7603"
+        },
+        "project": {
+          "file": "known-project.json",
+          "sha256": "beea2fa637b6368ee5678884bc682e0b574d9c9d3ca4aa1186e5824c897f2e7b"
+        },
+        "csv": {
+          "file": "known-report.csv",
+          "sha256": "f901b65e232215bb50ece76b50ed7628127917b7cff5120c907da3891107e72c"
+        },
+        "xlsx": {
+          "file": "known-report.xlsx",
+          "sha256": "75f0615b9a0a20c8ed03a36a4fec5660fff3336a4f5224fcd58b12c97c718ef2"
+        },
+        "reportDom": {
+          "file": "known-report-dom.json",
+          "sha256": "0e00886e2b4365015780bc6c70b8ab83b125aff9f234899ec35ae910e89d84f2"
+        }
+      }
+    }
+  ],
+  "harnessSha256": "7468b7ff9e00aa29c0c2c8692375f86d5c9ea1228e2d585312af73491b0dd8ce",
+  "finalizerSha256": "ebef9493be512610238f1dd87e5667bc4f7095ee8b7c1f60cf273d4955b12957",
+  "scope": "Actual two durable server cases and actual JSON/CSV/XLSX/report DOM plus fresh ordinary artifact binding; no throughput or all-PDF visual claim"
+}

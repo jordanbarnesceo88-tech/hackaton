@@ -255,7 +255,9 @@ export function ScenarioTable({
   const commonTcoYears = periods.size === 1 ? [...periods][0]! : null;
 
   return (
-    <div className="data-table-wrap">
+    <>
+    {!print && <p className="mb-2 text-xs text-muted-foreground md:hidden print:hidden">Сравнение по столбцам — прокрутите таблицу вправо. С клавиатуры используйте стрелки.</p>}
+    <div className="data-table-wrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" tabIndex={print ? undefined : 0} role={print ? undefined : "region"} aria-label={print ? undefined : "Прокручиваемая таблица сравнения сценариев"}>
       {periods.size > 1 && <p className="pb-3 text-sm text-muted-foreground">Периоды TCO различаются и указаны в каждой ячейке. Абсолютные суммы за разные сроки напрямую несопоставимы; изменение TCO каждого сценария рассчитано к базе за его срок.</p>}
       <table className="print-table w-full border-collapse text-sm">
         <caption className="sr-only">Сравнение сценариев: показатели по столбцам сценариев</caption>
@@ -330,5 +332,6 @@ export function ScenarioTable({
         </tbody>
       </table>
     </div>
+    </>
   );
 }

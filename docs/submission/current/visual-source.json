@@ -1,8 +1,8 @@
 {
-  "capturedAt": "2026-10-18T21:22:25.993Z",
-  "project": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+  "capturedAt": "2026-10-19T07:55:48.705Z",
+  "project": "d0918f13-b0fe-425a-b924-208a844d3665",
   "projectRevision": 0,
-  "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
+  "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
   "simulationTimeS": 3000,
   "fleet": 6,
   "chargers": 2,
@@ -607,7 +607,7 @@
     "verdictScope": "intake-sla"
   },
   "projectOrigin": {
-    "requestId": "c0e3eddb-b435-49db-84e6-87ba0518da73",
+    "requestId": "2b8c6528-301e-4a31-9ad6-52e5fef4bf75",
     "scenarioKey": "purchase",
     "variantId": "calculated",
     "sourceInput": {

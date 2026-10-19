@@ -34,14 +34,18 @@ describe("separate capacity observation in UI and saved exports", () => {
   it("shows a current controlled PASS without changing the nominal PARTIAL", () => {
     const { input, evidence } = receipt(), before = structuredClone(evidence);
     const html = renderToStaticMarkup(createElement(CapacityCheck, { evidence, expectedInput: input, fresh: true }));
-    expect(html).toContain("Целевая мощность подтверждена контролируемым модельным тестом");
+    expect(html).toContain("Цель достигнута в условиях теста");
     expect(html).toContain("Номинальный прогон и его статус сохраняются отдельно");
     expect(html).toContain("проектный запас теста");
+    expect(html).toContain("выполнен частично");
+    expect(html).toContain("Полные клиентские циклы");
+    expect(html).toContain("Для приёмки учитывается подача носителя, для отгрузки — возврат; внутренние перемещения закрываются доставкой.");
+    expect(html).toContain("Код номинального результата: PARTIAL");
     expect(evidence).toEqual(before);
     const changed = structuredClone(input); changed.robots.count++;
     const stale = renderToStaticMarkup(createElement(CapacityCheck, { evidence, expectedInput: changed, fresh: false }));
     expect(stale).toContain("Сохранённый тест не подтверждает текущие условия");
-    expect(stale).not.toContain("Целевая мощность подтверждена контролируемым модельным тестом");
+    expect(stale).not.toContain("Цель достигнута в условиях теста");
   });
 
   it("never presents unobserved counters as measured zero on timeout", () => {
@@ -59,7 +63,7 @@ describe("separate capacity observation in UI and saved exports", () => {
       evidence.capacityNominalReview = review;
       const html = renderToStaticMarkup(createElement(CapacityCheck, { evidence, expectedInput: input, fresh: true }));
       expect(html).toContain("Тест достиг целевой мощности; номинальная работа требует разбора");
-      expect(html).not.toContain("Целевая мощность подтверждена контролируемым модельным тестом");
+      expect(html).not.toContain("Цель достигнута в условиях теста");
       expect(evidence.assessment.status).toBe("PARTIAL");
     }
   });
@@ -68,9 +72,9 @@ describe("separate capacity observation in UI and saved exports", () => {
     const { evidence } = receipt();
     const before = structuredClone(evidence);
     const html = renderToStaticMarkup(createElement(CapacityCheck, { evidence, fresh: false, archived: true }));
-    expect(html).toContain("Сохранённый тест: критерии выполнены");
+    expect(html).toContain("Сохранённый тест: цель достигнута в условиях теста");
     expect(html).toContain("PARTIAL"); expect(html).toContain("9,00 из 10,00");
-    expect(html).not.toContain("Целевая мощность подтверждена контролируемым модельным тестом");
+    expect(html).not.toContain("Цель достигнута в условиях теста");
     expect(html).not.toContain("<button");
     expect(evidence).toEqual(before);
   });

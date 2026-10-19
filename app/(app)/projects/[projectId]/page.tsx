@@ -122,12 +122,10 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
       };
   const editing = (await searchParams).edit === "1" && saved?.modelVersion === TZ_MODEL_VERSION &&
     saved.simModelVersion === SIM_MODEL_VERSION && Boolean(saved.runtime) && !project.isDemo;
-  // Ключ — только id проекта: после «Сохранить проект» сервер обновляет страницу, и версия
-  // данных может смениться (в снимок попал новый продукт). Пересоздание рабочей области сбросило
-  // бы её состояние вместе с сообщением «Проект сохранён». Расчёт на экране и так совпадает с
-  // сохранённым (та же функция на том же снимке), а после пересчёта на актуальных данных
-  // (кнопка баннера) страница перезагружается целиком.
-  const workspaceKey = project.id;
+  // SAVE/refresh в том же режиме сохраняет рабочую область и сообщение об успехе.
+  // Смена режима создаёт её заново из серверного снимка: локальный расчёт и черновики
+  // редактирования не должны становиться содержимым архивного просмотра.
+  const workspaceKey = `${project.id}:${editing ? "edit" : "archive"}`;
 
   return (
     <div className="surface-data flex flex-col gap-6 py-8">

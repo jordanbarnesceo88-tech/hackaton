@@ -27,14 +27,34 @@ describe("model-specific OEM resource registry", () => {
   });
 
   it("matches real seed names and exact manufacturer aliases, including long organizer names", () => {
+    const matched = new Set<string>();
     const expected = ["ronavi-h1500", "ronavi-h2000", "ronavi-m", "ronavi-sr", "ronavi-sd", "robocv-shtabeler", "robocv-tyagach", "pudubot-2", "stelkon-pallet-shuttle", "ars-smartcube", "yandex-robot-inventarizator", "evocargo-n1", "dikom-as-rs-p", "dikom-as-rs-b", "smp-tral-patrul-5"];
     for (const slug of expected) {
       const product = CATALOG.find(item => item.slug === slug)!;
       expect(product, slug).toBeDefined();
       expect(implementationResources(product.solutionType, product.manufacturer, product.name), slug).not.toHaveLength(0);
+      implementationResources(product.solutionType, product.manufacturer, product.name).forEach(resource => matched.add(resource.id));
     }
-    for (const product of VENDOR_CLEANING_PRODUCTS) expect(implementationResources(product.solutionType, product.manufacturer, product.name)).toHaveLength(1);
+    for (const product of VENDOR_CLEANING_PRODUCTS) {
+      const resources = implementationResources(product.solutionType, product.manufacturer, product.name);
+      expect(resources).toHaveLength(1);
+      resources.forEach(resource => matched.add(resource.id));
+    }
+    expect(matched.size).toBe(18);
     expect(implementationResources("cleaner", "  PUDU Robotics ", " PUDU   CC1 ")).toHaveLength(1);
+  });
+
+  it.each([
+    ["inventory", "Робот-инвентаризатор"],
+    ["cleaner", "C5"],
+    ["cleaner", "CC1"],
+    ["g2p", "AS-RS B"],
+    ["pallet-asrs", "AS-RS P"],
+    ["cleaner", "PUDU CC1"],
+  ])("does not infer an OEM for %s / %s without the product manufacturer", (solutionType, model) => {
+    for (const manufacturer of [null, undefined, "", "   "]) {
+      expect(implementationResources(solutionType, manufacturer, model)).toEqual([]);
+    }
   });
 
   it("does not transfer a manual to a derivative, another brand, or a whole manufacturer", () => {

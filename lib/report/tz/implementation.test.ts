@@ -1,5 +1,11 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { ImplementationGuidePanel } from "../../../components/implementation/guide-panel";
+import { validateProductSeeds } from "../../api/import";
+import { productForCalcFromSeed } from "../../catalog/product-for-calc";
+import { CATALOG } from "../../data/organizer/catalog";
 import { buildImplementationSnapshot } from "../../implementation/snapshot";
 import { projectCsv } from "./csv";
 import { implementationReportRows } from "./implementation";
@@ -16,6 +22,44 @@ function savedGuidance() {
 }
 
 describe("saved implementation guidance in CSV and XLSX", () => {
+  it("keeps an imported unknown-brand generic model free of inferred OEM materials in snapshots, print and exports", async () => {
+    const original = CATALOG.find(seed => seed.slug === "yandex-robot-inventarizator")!;
+    const checked = validateProductSeeds([{ ...structuredClone(original), slug: "unknown-brand-inventory", manufacturer: null,
+      name: "Робот-инвентаризатор", organizerCatalogId: null, organizerRows: [] }]);
+    expect(checked.ok).toBe(true);
+    if (!checked.ok) throw new Error("Expected a valid unknown-brand import");
+    const product = productForCalcFromSeed(checked.seeds[0]!);
+    expect(product.manufacturer).toBeNull();
+    expect(product.implementation!.resources).toEqual([]);
+    const results = fixtureResults();
+    results.scenarios = [{ key: "unknown-brand", name: "Неустановленный производитель", kind: "purchase",
+      items: [{ productSlug: product.slug, process: product.processes[0]! }] }];
+    results.productSnapshots = { [product.slug]: product };
+    const recorded = structuredClone(results);
+    const rows = implementationReportRows(results);
+    expect(rows.some(row => row.label === "Материалы производителя" && row.text.includes("не сохранены"))).toBe(true);
+    expect(rows.some(row => row.source.includes("yandex.ru"))).toBe(false);
+    const printed = renderToStaticMarkup(createElement(ImplementationGuidePanel, { snapshot: product.implementation!, expanded: true }));
+    expect(printed).not.toContain("https://robotics.yandex.ru/cases/market-inv");
+    expect(printed).not.toContain("Яндекс Роботикс: инвентаризация");
+    expect(projectCsv(results, { projectName: "Неизвестный OEM" })).not.toContain("Яндекс Роботикс");
+    const bytes = await buildProjectXlsx({ results, projectName: "Неизвестный OEM", defs: fixtureDefs() });
+    const workbook = new ExcelJS.Workbook();
+    const buffer = new ArrayBuffer(bytes.byteLength); new Uint8Array(buffer).set(bytes);
+    await workbook.xlsx.load(buffer);
+    expect(JSON.stringify(workbook.getWorksheet("Внедрение")!.getSheetValues())).not.toContain("Яндекс Роботикс");
+    expect(results).toEqual(recorded);
+  });
+
+  it("does not silently erase an already recorded OEM attribution when reading an unknown-brand archive", () => {
+    const { results, product } = savedGuidance();
+    product.manufacturer = null;
+    const before = structuredClone(results);
+    expect(JSON.stringify(implementationReportRows(results))).toContain("ronavi-robotics.ru/catalogue/h1500");
+    expect(projectCsv(results, { projectName: "Историческая атрибуция" })).toContain("ronavi-robotics.ru/catalogue/h1500");
+    expect(results).toEqual(before);
+  });
+
   it("exports preparation, contacts, unknown SLA and model sources even without a persisted pilot budget", async () => {
     const { results } = savedGuidance();
     expect(results.scenarios.every(scenario => !scenario.pilotPlan)).toBe(true);

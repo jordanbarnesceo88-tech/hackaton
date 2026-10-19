@@ -44459,7 +44459,7 @@
         }
       }
     },
-    "calculatedAt": "2026-10-18T21:21:09.836Z",
+    "calculatedAt": "2026-10-19T07:52:43.205Z",
     "sim": {
       "asis": null,
       "purchase": {
@@ -44490,7 +44490,7 @@
         "minStableFleet": null,
         "fleetByNorm": null,
         "verdictByNorm": null,
-        "durationMs": 3066.960834000027
+        "durationMs": 3433.5717770000047
       },
       "raas": {
         "simModelVersion": "warehouse-dense-underlift-1.9.1",
@@ -44520,9 +44520,9 @@
         "minStableFleet": null,
         "fleetByNorm": null,
         "verdictByNorm": null,
-        "durationMs": 3066.960834000027
+        "durationMs": 3433.5717770000047
       }
     }
   },
-  "ms": 7436.114132999908
+  "ms": 7925.786632000003
 }

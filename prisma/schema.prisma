@@ -562,6 +562,13 @@ model CalculationRun {
   @@index([projectId, createdAt])
 }
 
+/// One authoritative admission limit for all worker processes connected to this database.
+/// SQL constraints enforce id=1 and maxActive in 1..100.
+model CalculationQueuePolicy {
+  id        Int @id @default(1)
+  maxActive Int @default(2)
+}
+
 /// PostgreSQL queue; a lease token fences every update and the final publication.
 model CalculationJob {
   id                 String   @id @default(cuid())

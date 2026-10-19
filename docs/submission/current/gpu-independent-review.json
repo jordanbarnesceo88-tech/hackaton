@@ -1,0 +1,587 @@
+{
+  "schema": "stage7-independent-gpu-personal-review-1",
+  "reviewer": "/root/stage7_hostile_acceptance",
+  "reviewedAt": "2026-10-19T08:22:30.734Z",
+  "status": "PASS_IN_REVIEWED_SCOPE_WITH_MINOR_FINDING",
+  "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+  "runSha256": "df8541e7baaac399308cd336078b8101c62a3c2a7a29edb5bfbfcd4911f63624",
+  "rootDeclarationSha256": "8bc78b3d2fbe420ee09f9b1bf72df09a4c7eb35e579282c687d4d91bc1f273b8",
+  "runtimeBeforeSha256": "85474087c4daa96b959a04ab9edafd05115c2f2e805981d5633364d083a524dc",
+  "runtimeAfterSha256": "5da933a9b5823be0e61d95ff025394ae7575a5f00f0e22f49e8e409daee7b1a4",
+  "all59PersonallyViewed": true,
+  "contactSheetsPersonallyViewed": [
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\baseline-mobile-1.png",
+      "sha256": "12698cc6a4c283dbb8681cc36d5f3f61af9651c5a298307d7b689f6b83c3bda7",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\baseline-desktop-1.png",
+      "sha256": "c83f4568da21d8de911f766aaf3dcf2f1f06eb81a656464c24b9b400ece5e0e4",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\capacity-reserve-mobile-1.png",
+      "sha256": "62e1d09cee77ee06323fead8707f188e5f23bd5581660d527f15c27e3e4e3109",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\capacity-reserve-desktop-1.png",
+      "sha256": "baae083b7ba3a483cb3bcc6b1706b885d40f7d57581d77aa518ae3690eee961a",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\complex-mobile-1.png",
+      "sha256": "54f3e08d114b0f1c97906730ce24097b28aaf0d0d2b5f0b3f3666d1ebc673822",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\complex-mobile-2.png",
+      "sha256": "b01e5c3c2dd19ef86fafff9e8beb3ccbb7e0d01fca2c289e0ed0921a2c4b634f",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\complex-desktop-1.png",
+      "sha256": "ffab28ed84206e35b7e9608299eeccdc771b9b340f89186ae2639319fafa4561",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\complex-desktop-2.png",
+      "sha256": "fcb80ad0bf7b3262c639186141d784f4352529afa2fbb9399a79c9fb537c539b",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\increased-flow-mobile-1.png",
+      "sha256": "d357237bd18b929bbaad87a9e01f1cc3f4afc9ab03b358716bd60558aaf457a0",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\increased-flow-desktop-1.png",
+      "sha256": "c54ad0cde26fc6c3e17d916f8250feae4e297ffbe12821456463e673381c6cc0",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\insufficient-mobile-1.png",
+      "sha256": "d4d63e8950e98e6838ba3ca40453a1e9abfc53c43943a8f953d8d5c92678e1ca",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\insufficient-desktop-1.png",
+      "sha256": "08fec7cc41d70293b556a86f2268696aac7b092e1b29b6b9375787bdcd08af4f",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\steady-flow-mobile-1.png",
+      "sha256": "a2bf6a4c19a609a17c5576fbb231d15d39a91be228f6781e48ecdaea6beb2daf",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\steady-flow-desktop-1.png",
+      "sha256": "d5ca1b268cc6d62a3bdf5d254fa9e3739ac22340ce28d55adc35a979d4d7bdba",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\interaction-desktop-1.png",
+      "sha256": "70be957953177e10f2d5346a69de65bbaf984225c3129e9fc658e25ed5304769",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\interaction-mobile-1.png",
+      "sha256": "f7bc3df94cff97ec5a0c19cc983b001d17d8e90cb7583cfd28f0a553d3d78341",
+      "personallyViewed": true
+    },
+    {
+      "path": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\contacts\\interaction-mobile-2.png",
+      "sha256": "e32167d8b46a9da64d0612ac7e7239ef9bdfad28ac8ba3bd579640fe888b3d7e",
+      "personallyViewed": true
+    }
+  ],
+  "keyOriginalsPersonallyViewed": [
+    {
+      "path": "carriers/steady-flow-empty-carry-detail.png",
+      "sha256": "d7bd83036c073ef840daa2c35bbe3fe0c2c6260b2b10bff7c5b20366bafad1a3",
+      "personallyViewed": true
+    },
+    {
+      "path": "interaction/cleaning-robot-telemetry-390.png",
+      "sha256": "744d5ff21e9bff7108fc79bfc21e991c3d3ec3eade5605926235a3e5f0aafaf6",
+      "personallyViewed": true
+    },
+    {
+      "path": "interaction/cleaning-timeline-hover-1366.png",
+      "sha256": "c7d143d70b9651af7ed6c909cae75bc5b39aebc9fe10b5a10d5169354d8e23d8",
+      "personallyViewed": true
+    },
+    {
+      "path": "interaction/pedestrian-stop-robot-1366.png",
+      "sha256": "7554ca5945dac2ca60693ac7b7bedb6f52726b671b3deef07a6d5c9a3590801b",
+      "personallyViewed": true
+    },
+    {
+      "path": "carriers/capacity-reserve-empty-home-overview.png",
+      "sha256": "deeff9ff88754565278c1d3b4eba92a4d728800e346e0c2b43784e6b5dac469f",
+      "personallyViewed": true
+    }
+  ],
+  "pngs": [
+    {
+      "path": "carriers/baseline-empty-carry-detail-390.png",
+      "sha256": "f528b063f7dae9eb0154a59c1ae55f291bc81d4396d702058d6bda59464619dc",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/baseline-empty-carry-detail.png",
+      "sha256": "78709162a3ae61f04309a541f80029a5faff0d789de45cf0fddf4f09b2ee6bd0",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/baseline-empty-home-overview-390.png",
+      "sha256": "54d5d44248966338371ed0ca7bded37f7a9194aef22c39c28201aed4976de9cc",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/baseline-empty-home-overview.png",
+      "sha256": "de8cd4249140bef4bbc60c736681c9a59bcadda4857d32131c6350adb77207df",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/baseline-full-carry-390.png",
+      "sha256": "15111943c80e489a1ce935cb0b4938b97c6b7dc44d7eb2e5094e0e42cf608b5e",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/baseline-full-carry.png",
+      "sha256": "78078c5c66266099267dae6c546fbeada62e6b45f3d48ae18427b856168d2d47",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/baseline-rewind-full-390.png",
+      "sha256": "674359c6405bf0aa12dcee1ac766f3473a16bca60ecf9ce0035e3241155d2c4a",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/baseline-rewind-full.png",
+      "sha256": "5427cf5986743d53d1f0698076819605719aabeef17b0603e6ae59bfc5e50866",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-empty-carry-detail-390.png",
+      "sha256": "24da5968ee3958f42c79d46da637b5b897e26a08fd2e7020385c8bb8db3b2bac",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-empty-carry-detail.png",
+      "sha256": "ed10f6b7d0c3fd1314dac489bcc24f353fc3be3186e80880caef9e03f11efb2e",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-empty-home-overview-390.png",
+      "sha256": "297be854c59d006d3570b65e1dffdea210179ad0c94725de22300b4bdebbe558",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-empty-home-overview.png",
+      "sha256": "deeff9ff88754565278c1d3b4eba92a4d728800e346e0c2b43784e6b5dac469f",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-full-carry-390.png",
+      "sha256": "232a6ef120eb385adc4f9c94b48077ebfaf39bb5e0cafdb636e052c1761c2106",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-full-carry.png",
+      "sha256": "cac725e63717ef9ca842b59acc61cc02c58f97f3b7005c8ee1931d48f44b0abe",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-rewind-full-390.png",
+      "sha256": "d4e8d07807da4ebbea18eae5f62542ca13aba60cad056fbdebdcb317bf6f2412",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/capacity-reserve-rewind-full.png",
+      "sha256": "d81ccfd4424dce9788a1104e91fc9714aa2a57a3db6b7971b9a475e328ec9e43",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-empty-carry-detail-390.png",
+      "sha256": "afa2e75545755d134aed4d07834e840cc9f972cf12f61adc938ee15948265b3d",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-empty-carry-detail.png",
+      "sha256": "2554e1cf9719020f56cc0e29e062967973521e4bc1b62cf864978c03f3724a90",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-empty-home-overview-390.png",
+      "sha256": "42f5e4c3b11df9ba5cf1778c6f4ded016fb0cb8bea24f29f12b5eff04e3162bd",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-empty-home-overview.png",
+      "sha256": "94696ba9eca875c1ed7a42f9c0e41f0ffaf49c68457084e7885c661c99360d2f",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-full-carry-390.png",
+      "sha256": "2dcf48d165a93a820a6bd5f9b2b70cf5a0515c070811883928d10c8b218de3f9",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-full-carry.png",
+      "sha256": "323da99c2125f22e5da90bd154085f67337e869b296b8db53555ac65cb5b9fba",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-rewind-full-390.png",
+      "sha256": "2e05ab90543518369b0cefceadcc1e89d27bfb0a0c33f6b819012f7128f5da6e",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/complex-rewind-full.png",
+      "sha256": "cab7a67a602c41cc4892b25a5619797607a26589eea7e26669ca49d39899f09d",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-empty-carry-detail-390.png",
+      "sha256": "db55366672fa04493942d83131b384708e2386e4b270f9cc2e0c395da43eebb6",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-empty-carry-detail.png",
+      "sha256": "2392fcad93f3f13faaa645b27f71e9203e5bae5811e41843d66a8b79d278834d",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-empty-home-overview-390.png",
+      "sha256": "1a1016823c4802afe561abc9da35f9364a44c70a05cc7a8d21733ddcef9e896b",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-empty-home-overview.png",
+      "sha256": "d3af6a58eb2194a7bdd3c52494cf605866f124f93bd6fb79c0a650b2cef4f23d",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-full-carry-390.png",
+      "sha256": "d81d0f7af5c3937c81ceac32a5285dc3c64b62dc60293d6cd2f231b750ede80b",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-full-carry.png",
+      "sha256": "ba67be65e88c5ec7fd6b077d732e2455ac57386f25890426a9c1967ad5ec5b12",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-rewind-full-390.png",
+      "sha256": "fc09f91f81779a921681d55ee054a509cf202ec02e0c838043504c94ec5d3809",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/increased-flow-rewind-full.png",
+      "sha256": "53f4a7b4aa610777a2b2eed6e5b67f27624eaf9ebb1c00caa7e440e5abefe9fe",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-empty-carry-detail-390.png",
+      "sha256": "968c812e48a3b02fb60a30b3dc7988e99666e322c9a717dd93861fb4d7b1dadd",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-empty-carry-detail.png",
+      "sha256": "7c143c2edbb4efea251067b2b18362f525e92b547e9c9d4d68b29f179ce240d8",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-empty-home-overview-390.png",
+      "sha256": "24302b2b566d371c44b8bc74067afd37f4d1442d72f3f6cd4b1f343bc419f465",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-empty-home-overview.png",
+      "sha256": "98f05d6550374bc62ee70a77033709c4e0e252cdba2b91c876fb0f44b337646e",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-full-carry-390.png",
+      "sha256": "1271bcac9716572c6e4acdbe2de489e7cf7ea13b9089e7ce6ddb62c353516b1f",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-full-carry.png",
+      "sha256": "8ddcc410f6888138a8f336a2d10c9739d0cdd876176773202dda3c153090ec8f",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-rewind-full-390.png",
+      "sha256": "ac019d26e1395f18787c5a9b592d4395476a64eb61fe3e8052a6a35d8d8f4d68",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/insufficient-rewind-full.png",
+      "sha256": "3a5b33c7bbb0362fafb46cbfa7803d4f7bfafef78b5438918904e102d0fe0d95",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-empty-carry-detail-390.png",
+      "sha256": "ec5aab7ad7004b0a6457ecc7d207104b818906fa4d3b8f9e542b9b1850639a11",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-empty-carry-detail.png",
+      "sha256": "d7bd83036c073ef840daa2c35bbe3fe0c2c6260b2b10bff7c5b20366bafad1a3",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-empty-home-overview-390.png",
+      "sha256": "7ce6505ee67a02dc2bd44fc778de27ba643ebe28747863aa3d80f0e934680bad",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-empty-home-overview.png",
+      "sha256": "6e6431a330f9e789843e8ad004e93e66534a5fe8a161c6581f078e08de0ee687",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-full-carry-390.png",
+      "sha256": "61bf1b8d5b119b058fecdf515a7c99d603a06e80f4f8538a388e44d53102f734",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-full-carry.png",
+      "sha256": "c06b3163fd8c3514d78f058cbb031d8bc34d6690a46ca8c397e420674fb80cd7",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-rewind-full-390.png",
+      "sha256": "b6efc84a29eeb37a82095a7e951aa76b8c75a7234c68f5bd21e1867f7265e2e3",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "carriers/steady-flow-rewind-full.png",
+      "sha256": "4526dc40d971df83054c0c50aa6c4b6dc7780c050d6ed86afcba6dbda9e96ce0",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/cleaning-robot-model-1366.png",
+      "sha256": "687468d4679c486ec5224132fd6398fc2658c768df249b74e53a6f2be325a9c7",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/cleaning-robot-model-390.png",
+      "sha256": "353accc5a758b8ef577ed3bdae763ff4d2e589a75002208f0284940204ac00bc",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/cleaning-robot-telemetry-390.png",
+      "sha256": "744d5ff21e9bff7108fc79bfc21e991c3d3ec3eade5605926235a3e5f0aafaf6",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/cleaning-section-hover-1366.png",
+      "sha256": "8d402773b826314c99d8db0c14bec529261ab9efea72b22d57f741686ae9f3a2",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/cleaning-sections-390.png",
+      "sha256": "85318f4845b617a81b1d563c1890b46a0b24762d7545a09b415a2903dc593984",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/cleaning-timeline-390.png",
+      "sha256": "e21e4f44c396e87a0990a711877ff9e5e95b21cd938676aa5118a464b7630a6e",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/cleaning-timeline-hover-1366.png",
+      "sha256": "c7d143d70b9651af7ed6c909cae75bc5b39aebc9fe10b5a10d5169354d8e23d8",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/complex-person-hover-1366.png",
+      "sha256": "ce9f08aba2fea48d24f8070131117a20975bd7185f6edfcf4b195d375f909587",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/complex-person-wait-390.png",
+      "sha256": "a8cac88388d9e509326f9d59e2d56c41c1e7d04cf847eabad15480769a20e8a0",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/pedestrian-stop-robot-1366.png",
+      "sha256": "7554ca5945dac2ca60693ac7b7bedb6f52726b671b3deef07a6d5c9a3590801b",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    },
+    {
+      "path": "interaction/pedestrian-stop-telemetry-390.png",
+      "sha256": "f30e47cbedcf0749bae50c74f5dd99a33459634c12c397e57fb168cc856cb71c",
+      "personallyViewed": true,
+      "viewedVia": "contact sheet; selected originals additionally inspected"
+    }
+  ],
+  "carrierCases": [
+    {
+      "id": "steady-flow",
+      "lifecycleStatus": "PASS",
+      "originalAssessment": "PARTIAL",
+      "cycle": {
+        "carrierId": "pod-home-46",
+        "robotId": 0,
+        "parentTaskId": 8,
+        "returnTaskId": -9,
+        "returnedAt": 1142
+      }
+    },
+    {
+      "id": "complex",
+      "lifecycleStatus": "PASS",
+      "originalAssessment": "PARTIAL",
+      "cycle": {
+        "carrierId": "pod-home-25",
+        "robotId": 0,
+        "parentTaskId": 8,
+        "returnTaskId": -12,
+        "returnedAt": 889
+      }
+    },
+    {
+      "id": "baseline",
+      "lifecycleStatus": "PASS",
+      "originalAssessment": "PARTIAL",
+      "cycle": {
+        "carrierId": "pod-home-75",
+        "robotId": 0,
+        "parentTaskId": 28,
+        "returnTaskId": -39,
+        "returnedAt": 1562
+      }
+    },
+    {
+      "id": "capacity-reserve",
+      "lifecycleStatus": "PASS",
+      "originalAssessment": "PARTIAL",
+      "cycle": {
+        "carrierId": "pod-home-75",
+        "robotId": 0,
+        "parentTaskId": 28,
+        "returnTaskId": -31,
+        "returnedAt": 1577
+      }
+    },
+    {
+      "id": "insufficient",
+      "lifecycleStatus": "PASS",
+      "originalAssessment": "PARTIAL",
+      "cycle": {
+        "carrierId": "pod-home-1896",
+        "robotId": 0,
+        "parentTaskId": 0,
+        "returnTaskId": -2,
+        "returnedAt": 246
+      }
+    },
+    {
+      "id": "increased-flow",
+      "lifecycleStatus": "PASS",
+      "originalAssessment": "PARTIAL",
+      "cycle": {
+        "carrierId": "pod-home-98",
+        "robotId": 0,
+        "parentTaskId": 22,
+        "returnTaskId": -22,
+        "returnedAt": 1161
+      }
+    }
+  ],
+  "interactionFactsSha256": "7875fa2301c844698c332a0a5599c2eb8d0ebb6c85a3fff8244f933e3ad527ad",
+  "carrierFactsSha256": "bbda6979592b469ae37bf76a16b84e0d3d1a594f7ddc4cebfdba2d6b3aa37f27",
+  "findings": [
+    {
+      "id": "F-01",
+      "severity": "P3",
+      "uxSeverity": 2,
+      "status": "OPEN_KNOWN_MINOR",
+      "area": "Overlapping live counters",
+      "screenshot": "carriers/capacity-reserve-empty-home-overview.png",
+      "heuristics": [
+        "Nielsen #1",
+        "Gestalt: Common region",
+        "Content #5"
+      ],
+      "finding": "13 в работе and 5 ждут точку are grouped like disjoint robot states although the fleet is14. Active task ownership and waiting overlap; waiting also includes safety/charger waits.",
+      "smallestFix": "Name units explicitly: активных заданий / роботов ожидают, and explain that counters may overlap. Keep metrics unchanged."
+    }
+  ],
+  "positives": [
+    "All six cases visibly preserve the empty five-level rack; no box-only substitution in reviewed detail views.",
+    "Full-carry and rewind views remain consistent; original nominal capacity PARTIAL is not promoted by lifecycle PASS.",
+    "Separate PUDU model and mobile telemetry expose section/task/time; cleaned area is labelled as coverage, not wash quality.",
+    "Real zoom8 timeline selection shows specific six-second cleaning interval and frame21.7; source facts retain real hover and click."
+  ],
+  "limits": [
+    "Static screenshots do not certify keyboard focus, screen readers, arbitrary resize or animation smoothness.",
+    "Observed lifecycle and telemetry only; not natural-site calibration or safety certification.",
+    "SwiftShader rendering; no hardware GPU performance claim.",
+    "Not whole-product or financial/capacity acceptance."
+  ]
+}

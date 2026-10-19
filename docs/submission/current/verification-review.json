@@ -1,57 +1,396 @@
 {
-  "scope": "Local release evidence; financial, physical, data, browser, visual and HTTP load claims have separate scopes.",
+  "scope": "Current local evidence with separate source, historical DB, current-image runtime, browser, visual, load and physical scopes. Not whole-product acceptance.",
   "versions": {
     "economics": "tz-1.0.8",
     "analytical": "sim-1.2.1",
     "spatial": "warehouse-dense-underlift-1.9.1"
   },
-  "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
+  "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+  "capturePinsSha256": "83a011e091f8c9cb8ec5b195163cce331917bf7f14b158ea1c6543fc8e270493",
+  "evidenceDeclarationSha256": "95ad0648ba8bcf5e36e180d077c9eb616af819949e39325593068e4296d7dad9",
+  "finalRuntime": {
+    "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\root-pins-document-revision5.json",
+    "sha256": "32872afdaaa45c40ba4ceff8f0837dac993ca08f8f18109b03b03bd931dbea3c",
+    "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+    "images": {
+      "app": "sha256:448881d14b0d1c6743ce725624512ed2138492dc26b3dd867cd6ad980c095347",
+      "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "migrate": "sha256:b34d5e4ab6f8022fdd73c86d4a1c9753a6d07191b10a5bfa69d67154bd9c2c1d"
+    },
+    "sourceCount": 111,
+    "manifestSha256": "22d96fb1255d164f03891a328f4bf5c006613ae5dea524f00c87246053715da9",
+    "html": {
+      "/demo/warehouse": "b4132938a88cca11033e8281835199642a3f997c9ca7afd883730217e52a59a6",
+      "/demo/cleaning": "80e4e0ac3bcf473cfe31acdd8945864fb9e8a09f363b6822d6a77cc561432bf4"
+    },
+    "sameDeploymentDeclarations": [
+      {
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\root-pins.json",
+        "sha256": "ec8a807aab960e398b1fb73bb0aae7326070cf9beeaedb64ad32890f541f00bc",
+        "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+        "images": {
+          "app": "sha256:448881d14b0d1c6743ce725624512ed2138492dc26b3dd867cd6ad980c095347",
+          "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+          "migrate": "sha256:b34d5e4ab6f8022fdd73c86d4a1c9753a6d07191b10a5bfa69d67154bd9c2c1d"
+        },
+        "manifestSha256": "22d96fb1255d164f03891a328f4bf5c006613ae5dea524f00c87246053715da9",
+        "html": {
+          "/demo/warehouse": "b4132938a88cca11033e8281835199642a3f997c9ca7afd883730217e52a59a6",
+          "/demo/cleaning": "80e4e0ac3bcf473cfe31acdd8945864fb9e8a09f363b6822d6a77cc561432bf4"
+        },
+        "testOnlyDifferences": [
+          {
+            "file": "e2e/capacity-check.spec.ts",
+            "previousSha256": "91666c2e3a79cbba82ddad651e9fe521c187d6ae0523ef306f6b6fffa6d3a6cf",
+            "finalSha256": "ec3a149c008cd56cd6dac7117e0c83805d2dc72b3cac1d358617be893b16f9e6"
+          },
+          {
+            "file": "e2e/pilot-draft-state.spec.ts",
+            "previousSha256": "d854c7f7490a4250af21d1f2cc8891451e473f40132822f36004e2051dadecc4",
+            "finalSha256": "523977a62634de2a3dc7ba52f254b3b8107d47bc41aaa4a29bd363f9c7680691"
+          },
+          {
+            "file": "e2e/site-quality.spec.ts",
+            "previousSha256": "ef2ef81999e8e82f7643912f2eb19ddd4683c61f1cb492b29111cf90d689ec71",
+            "finalSha256": "115f8f59bd4d09541d40b7291cdeb29d07dce4c764c9e5d51e4732ead4b57f90"
+          }
+        ],
+        "documentGeneratorDifferences": [
+          {
+            "file": "scripts/build-current-submission.mjs",
+            "previousSha256": "0342ce66c0ea5c20a4c402b2d591e2718d03064d19e61df983bab08eeef881fd",
+            "finalSha256": "a81a5f5bee72ecda5cc383c82350e2f2b0ea6b785fac26a89c3e16928914cc70"
+          }
+        ],
+        "scope": "Exact same deployed images, engine, manifest, HTML and every other source; only three named E2E fixtures and two exact approved document-generator SHA pairs may differ. Original run declaration is retained."
+      },
+      {
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\root-pins-test-revision2.json",
+        "sha256": "8bc78b3d2fbe420ee09f9b1bf72df09a4c7eb35e579282c687d4d91bc1f273b8",
+        "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+        "images": {
+          "app": "sha256:448881d14b0d1c6743ce725624512ed2138492dc26b3dd867cd6ad980c095347",
+          "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+          "migrate": "sha256:b34d5e4ab6f8022fdd73c86d4a1c9753a6d07191b10a5bfa69d67154bd9c2c1d"
+        },
+        "manifestSha256": "22d96fb1255d164f03891a328f4bf5c006613ae5dea524f00c87246053715da9",
+        "html": {
+          "/demo/warehouse": "b4132938a88cca11033e8281835199642a3f997c9ca7afd883730217e52a59a6",
+          "/demo/cleaning": "80e4e0ac3bcf473cfe31acdd8945864fb9e8a09f363b6822d6a77cc561432bf4"
+        },
+        "testOnlyDifferences": [
+          {
+            "file": "e2e/site-quality.spec.ts",
+            "previousSha256": "ef2ef81999e8e82f7643912f2eb19ddd4683c61f1cb492b29111cf90d689ec71",
+            "finalSha256": "115f8f59bd4d09541d40b7291cdeb29d07dce4c764c9e5d51e4732ead4b57f90"
+          }
+        ],
+        "documentGeneratorDifferences": [
+          {
+            "file": "scripts/build-current-submission.mjs",
+            "previousSha256": "0342ce66c0ea5c20a4c402b2d591e2718d03064d19e61df983bab08eeef881fd",
+            "finalSha256": "a81a5f5bee72ecda5cc383c82350e2f2b0ea6b785fac26a89c3e16928914cc70"
+          }
+        ],
+        "scope": "Exact same deployed images, engine, manifest, HTML and every other source; only three named E2E fixtures and two exact approved document-generator SHA pairs may differ. Original run declaration is retained."
+      },
+      {
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\root-pins-test-revision3.json",
+        "sha256": "e92e529e0dbad2250f24a084b54e59f12b73cf8b20f9642f33e965298865b933",
+        "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+        "images": {
+          "app": "sha256:448881d14b0d1c6743ce725624512ed2138492dc26b3dd867cd6ad980c095347",
+          "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+          "migrate": "sha256:b34d5e4ab6f8022fdd73c86d4a1c9753a6d07191b10a5bfa69d67154bd9c2c1d"
+        },
+        "manifestSha256": "22d96fb1255d164f03891a328f4bf5c006613ae5dea524f00c87246053715da9",
+        "html": {
+          "/demo/warehouse": "b4132938a88cca11033e8281835199642a3f997c9ca7afd883730217e52a59a6",
+          "/demo/cleaning": "80e4e0ac3bcf473cfe31acdd8945864fb9e8a09f363b6822d6a77cc561432bf4"
+        },
+        "testOnlyDifferences": [],
+        "documentGeneratorDifferences": [
+          {
+            "file": "scripts/build-current-submission.mjs",
+            "previousSha256": "0342ce66c0ea5c20a4c402b2d591e2718d03064d19e61df983bab08eeef881fd",
+            "finalSha256": "a81a5f5bee72ecda5cc383c82350e2f2b0ea6b785fac26a89c3e16928914cc70"
+          }
+        ],
+        "scope": "Exact same deployed images, engine, manifest, HTML and every other source; only three named E2E fixtures and two exact approved document-generator SHA pairs may differ. Original run declaration is retained."
+      },
+      {
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\root-pins-document-revision4.json",
+        "sha256": "0de3401e8283f7674550c3f05e6427339ed03dafd1ed888053be53dbd854d84d",
+        "engine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+        "images": {
+          "app": "sha256:448881d14b0d1c6743ce725624512ed2138492dc26b3dd867cd6ad980c095347",
+          "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+          "migrate": "sha256:b34d5e4ab6f8022fdd73c86d4a1c9753a6d07191b10a5bfa69d67154bd9c2c1d"
+        },
+        "manifestSha256": "22d96fb1255d164f03891a328f4bf5c006613ae5dea524f00c87246053715da9",
+        "html": {
+          "/demo/warehouse": "b4132938a88cca11033e8281835199642a3f997c9ca7afd883730217e52a59a6",
+          "/demo/cleaning": "80e4e0ac3bcf473cfe31acdd8945864fb9e8a09f363b6822d6a77cc561432bf4"
+        },
+        "testOnlyDifferences": [],
+        "documentGeneratorDifferences": [
+          {
+            "file": "scripts/build-current-submission.mjs",
+            "previousSha256": "ab0db041395bc2cecedcb2323c517fac29d78cf02063e762c790d328e0996c8a",
+            "finalSha256": "a81a5f5bee72ecda5cc383c82350e2f2b0ea6b785fac26a89c3e16928914cc70"
+          }
+        ],
+        "scope": "Exact same deployed images, engine, manifest, HTML and every other source; only three named E2E fixtures and two exact approved document-generator SHA pairs may differ. Original run declaration is retained."
+      }
+    ]
+  },
+  "queueMeasurementBoundary": {
+    "measuredImages": {
+      "app": "sha256:063706dd9faa5c70c8440c736d12ddbd42e367346030a490352d0cdf7fae8b7d",
+      "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66"
+    },
+    "finalRuntimeImages": {
+      "app": "sha256:448881d14b0d1c6743ce725624512ed2138492dc26b3dd867cd6ad980c095347",
+      "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66",
+      "migrate": "sha256:b34d5e4ab6f8022fdd73c86d4a1c9753a6d07191b10a5bfa69d67154bd9c2c1d"
+    },
+    "sameBackendEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e",
+    "finalAppMeasuredByQueue": false,
+    "scope": "Queue timing belongs only to the exact measured image pair and resource profile. Backend source continuity does not certify latency of a new UI image."
+  },
   "unit": {
     "status": "PASS",
-    "filesPassed": 213,
-    "testsPassed": 2204,
-    "testsTotal": 2204,
-    "scope": "Полный unit-прогон текущих исходников; независимые профильные повторы к этому числу не прибавляются.",
-    "logSha256": "5f9a46a1001ff5d048b7a718d3f65743eab70d42612da992a617f708d9c2c405"
+    "testsPassed": 2373,
+    "filesPassed": 220,
+    "testsTotal": 2373,
+    "logSha256": "9eca8c3d001ac549de99d26a732fede09dc9b162b7ed1f1e0a13a3e733bcd620",
+    "scope": "Full current stage7 unit run. Focused repeats are not added."
   },
   "database": {
-    "statement": "Изолированный PostgreSQL: 9 файлов, 158/158 PASS; реальные heartbeat, fencing, CAS, журнал и снимки.",
-    "slideStatement": "PostgreSQL: 158/158 PASS.",
-    "logSha256": "ab96bece621b87afd8a755d69cad855caf29cf119ec766fb0ade2c7115cc93a2"
+    "status": "HISTORICAL_DB_PASS_WITH_CURRENT_CONTINUITY",
+    "testsPassed": 169,
+    "filesPassed": 10,
+    "logSha256": "43944884a685bc92c388890c433d1b0cfc3bc7e6615057923a6c1cd09ab50935",
+    "engineRelease": "alfa-robot/sha256:7f00c03f856207347267b446aac8fd4b55b0505097c784da988cacfde6fe6bfd",
+    "statement": "Isolated PostgreSQL: 169/169, 10 files PASS on pre-security7f source/lock. Relevant DB source and Prisma/client/adapter7.9.1, pg8.23.0, dotenv17.4.2 continuity verified against current source/offline image. This is not a full post-security DB rerun. Current CREATE/recovery evidence is separate.",
+    "slideStatement": "PostgreSQL169/169 pre-security; current source/dependency continuity checked.",
+    "sourceReviewSha256": "5ac63dea83241eb3d7570e95d183546a59c3056949ce9dce69ddfa7a0f0027c0",
+    "workerClosureSha256": "25b978befdcd5ff9acbe0a2b6a3ea8d676164ded4ac81ef2e84d1da960368db4",
+    "workerIndependentReviewSha256": "41855b0be54af4ed4fc155c592037da096f4d2231660cd0d3d6ca8ed43bc2bcb"
   },
-  "browser": "54 уникальных E2E подтверждены на a944: 53 PASS в полном прогоне и 5/5 PASS отдельным повтором 3D-маршрутов; четыре повторных теста уже учтены. В полном прогоне Chromium неожиданно закрыл страницу нового reload-теста; причина первого закрытия не установлена, отрицательный trace сохранён. Изолированный reload и полный повтор маршрутов проверяются отдельно. Один генератор образца отчёта намеренно пропущен. Включены три viewport-аудита, архив, гостевой расчёт, очередь, capacity, OEM и нулевая доля труда. Это не нагрузочный тест.",
+  "browser": "Current c390 browser scope: 14/14 selected unique tests passed; PASS. All retained failures and scoped repeat receipts are listed separately. This is not a concurrency or hardware rendering benchmark.",
   "browserVerification": {
-    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
-    "uniqueTestsPassed": 54,
-    "intentionallySkipped": 1,
-    "fullRun": {
-      "passed": 53,
-      "failed": 1,
-      "skipped": 1,
-      "logSha256": "ffc506c67b5a2d78ad38545f678db7ee49cba54a0b0e1f99f61bfb0cbdd40a94"
-    },
-    "routeRepeat": {
-      "passed": 5,
-      "retries": 0,
-      "logSha256": "db0cd55c64b334d5195b0ef659d7eb01760d1d553a6b562d5dc090105c07f5ae"
-    },
-    "originalClosure": "Unexpected Chromium page/context closure before reload; lower-level cause unconfirmed. Negative trace retained."
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+    "status": "PASS",
+    "targetTests": 14,
+    "uniqueTestsPassed": 14,
+    "uniqueTestsObserved": 14,
+    "runs": [
+      {
+        "status": "FAIL",
+        "startedAt": "2026-10-19T08:07:34.252Z",
+        "finishedAt": "2026-10-19T08:15:55.390Z",
+        "report": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397254250-9fc6a8fb\\run.json",
+        "sha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d",
+        "resultsSha256": "9d93b18053923d22967c85f8843e6a9c556d9a9941f3e3f9f48c578ded08d8a1",
+        "afterIdentitySha256": "2010a945a30f8ff02a5a1238ff5426520b6bf8fc61237a0f7346574b8e1e9add",
+        "provenance": {
+          "startedAt": "2026-10-19T08:07:34.689Z",
+          "durationMs": 498311.897,
+          "resultsSha256": "9d93b18053923d22967c85f8843e6a9c556d9a9941f3e3f9f48c578ded08d8a1",
+          "source": "RUN_EMBEDDED_RESULTS_SHA"
+        },
+        "rootDeclarationSha256": "8bc78b3d2fbe420ee09f9b1bf72df09a4c7eb35e579282c687d4d91bc1f273b8",
+        "testOnlyDeclarationDifferences": [
+          {
+            "file": "e2e/site-quality.spec.ts",
+            "previousSha256": "ef2ef81999e8e82f7643912f2eb19ddd4683c61f1cb492b29111cf90d689ec71",
+            "finalSha256": "115f8f59bd4d09541d40b7291cdeb29d07dce4c764c9e5d51e4732ead4b57f90"
+          }
+        ],
+        "documentGeneratorDeclarationDifferences": [
+          {
+            "file": "scripts/build-current-submission.mjs",
+            "previousSha256": "0342ce66c0ea5c20a4c402b2d591e2718d03064d19e61df983bab08eeef881fd",
+            "finalSha256": "a81a5f5bee72ecda5cc383c82350e2f2b0ea6b785fac26a89c3e16928914cc70"
+          }
+        ]
+      },
+      {
+        "status": "FAIL",
+        "startedAt": "2026-10-19T08:22:53.897Z",
+        "finishedAt": "2026-10-19T08:22:57.018Z",
+        "report": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792398173895-f8c36cb1\\run.json",
+        "sha256": "06b7dd10110b41d544e83a011405523a4b3c204da2eef0b9f39509ee256385ae",
+        "resultsSha256": "f9cdcdaeac21d265d8291201988038bd14c81a0bed8dedca8e0f15ff2dcd5621",
+        "afterIdentitySha256": "43de387337078ed3d09c2977c2fef26f3f8ea66991b06d68eb8781dde1d39e6d",
+        "provenance": {
+          "startedAt": "2026-10-19T08:22:54.330Z",
+          "durationMs": 474.322,
+          "resultsSha256": "f9cdcdaeac21d265d8291201988038bd14c81a0bed8dedca8e0f15ff2dcd5621",
+          "source": "RUN_EMBEDDED_RESULTS_SHA"
+        },
+        "rootDeclarationSha256": "e92e529e0dbad2250f24a084b54e59f12b73cf8b20f9642f33e965298865b933",
+        "testOnlyDeclarationDifferences": [],
+        "documentGeneratorDeclarationDifferences": [
+          {
+            "file": "scripts/build-current-submission.mjs",
+            "previousSha256": "0342ce66c0ea5c20a4c402b2d591e2718d03064d19e61df983bab08eeef881fd",
+            "finalSha256": "a81a5f5bee72ecda5cc383c82350e2f2b0ea6b785fac26a89c3e16928914cc70"
+          }
+        ]
+      },
+      {
+        "status": "AUTOMATED_SCOPE_PASS_VISUAL_REVIEW_PENDING",
+        "startedAt": "2026-10-19T08:24:34.186Z",
+        "finishedAt": "2026-10-19T08:26:22.874Z",
+        "report": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792398274184-5a20200e\\run.json",
+        "sha256": "f753ff81cbafa1f66e862771a2aa6e5bbd8dcb5b4e74bf5b60ce5239361f280f",
+        "resultsSha256": "d34dc333f64cc24d95a7ddb81bbc65d86723404869e4e942ad229dd89dac34e9",
+        "afterIdentitySha256": "845dc028878226511e9a51bbadd2ce514b209a26ed740488daf8971d47b825ea",
+        "provenance": {
+          "startedAt": "2026-10-19T08:24:34.517Z",
+          "durationMs": 105899.806,
+          "resultsSha256": "d34dc333f64cc24d95a7ddb81bbc65d86723404869e4e942ad229dd89dac34e9",
+          "source": "RUN_EMBEDDED_RESULTS_SHA"
+        },
+        "rootDeclarationSha256": "e92e529e0dbad2250f24a084b54e59f12b73cf8b20f9642f33e965298865b933",
+        "testOnlyDeclarationDifferences": [],
+        "documentGeneratorDeclarationDifferences": [
+          {
+            "file": "scripts/build-current-submission.mjs",
+            "previousSha256": "0342ce66c0ea5c20a4c402b2d591e2718d03064d19e61df983bab08eeef881fd",
+            "finalSha256": "a81a5f5bee72ecda5cc383c82350e2f2b0ea6b785fac26a89c3e16928914cc70"
+          }
+        ]
+      }
+    ],
+    "retainedWithoutResults": [
+      {
+        "report": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792396295406-f7d7e2c7\\run.json",
+        "sha256": "6f67b5747d83c52d54fe29d6ade5e2e5556b6a21cb761cba703fe0d8c51edb1e",
+        "originalStatus": "FAIL",
+        "rootDeclarationSha256": "ec8a807aab960e398b1fb73bb0aae7326070cf9beeaedb64ad32890f541f00bc",
+        "scope": "Retained incomplete/failed attempt without a JSON result; excluded from test counts and not runtime-after acceptance."
+      }
+    ],
+    "finalTestStates": [
+      {
+        "key": "owned capacity check preserves nominal finances and freezes both observations in archive and exports",
+        "title": "owned capacity check preserves nominal finances and freezes both observations in archive and exports",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "clean viewer routes, crosslinks, legacy redirect fragments and offline files",
+        "title": "clean viewer routes, crosslinks, legacy redirect fragments and offline files",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "reloading a selected warehouse case rebuilds its full history from the same input",
+        "title": "reloading a selected warehouse case rebuilds its full history from the same input",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "guest closed-pod scenario opens its exact server input through the clean 3D popup route",
+        "title": "guest closed-pod scenario opens its exact server input through the clean 3D popup route",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "durable CREATE and SAVE preserve newer edits; closing the view keeps the accepted computation",
+        "title": "durable CREATE and SAVE preserve newer edits; closing the view keeps the accepted computation",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "explicit cancellation of a queued SAVE leaves the published project unchanged",
+        "title": "explicit cancellation of a queued SAVE leaves the published project unchanged",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "a late SAVE is retained as STALE and never adopted into the newer project head",
+        "title": "a late SAVE is retained as STALE and never adopted into the newer project head",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "class preparation and sourced cleaning cards stay reachable and readable",
+        "title": "class preparation and sourced cleaning cards stay reachable and readable",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "owner recalculation uses the worker, preserves newer edits and does not publish",
+        "title": "owner recalculation uses the worker, preserves newer edits and does not publish",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "pilot draft · real guest recalculation and focus preserve unapplied duration notes and costs",
+        "title": "pilot draft · real guest recalculation and focus preserve unapplied duration notes and costs",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "pilot draft · owned archive isolates saved plan and explicit Apply SAVE still publishes",
+        "title": "pilot draft · owned archive isolates saved plan and explicit Apply SAVE still publishes",
+        "status": "passed",
+        "at": "2026-10-19T08:07:34.252Z",
+        "runSha256": "5351b3e6e905dfe0f6ffa8e89cde17e44008a01a98ef3eb7c88509ec7211c54d"
+      },
+      {
+        "key": "site quality · desktop-1366x768 · public pages and eight-step demo",
+        "title": "site quality · desktop-1366x768 · public pages and eight-step demo",
+        "status": "passed",
+        "at": "2026-10-19T08:24:34.186Z",
+        "runSha256": "f753ff81cbafa1f66e862771a2aa6e5bbd8dcb5b4e74bf5b60ce5239361f280f"
+      },
+      {
+        "key": "site quality · desktop-1920x1080 · public pages and eight-step demo",
+        "title": "site quality · desktop-1920x1080 · public pages and eight-step demo",
+        "status": "passed",
+        "at": "2026-10-19T08:24:34.186Z",
+        "runSha256": "f753ff81cbafa1f66e862771a2aa6e5bbd8dcb5b4e74bf5b60ce5239361f280f"
+      },
+      {
+        "key": "site quality · mobile-390x844 · public pages and eight-step demo",
+        "title": "site quality · mobile-390x844 · public pages and eight-step demo",
+        "status": "passed",
+        "at": "2026-10-19T08:24:34.186Z",
+        "runSha256": "f753ff81cbafa1f66e862771a2aa6e5bbd8dcb5b4e74bf5b60ce5239361f280f"
+      }
+    ],
+    "scope": "Current deployed E2E only. Failed attempts remain listed; scoped repeats do not erase them. Not a load test."
   },
-  "pilot": "Actual pilot E2E текущей сборки: CALCULATE → SAVE → reopen → report/CSV/XLSX; учебная программа не является натурным результатом.",
+  "pilot": "Pilot planning is software output, not field deployment evidence. A model candidate does not certify a real site.",
   "sourcePublication": {
     "project": {
-      "id": "4765dbef-8596-45b0-94b7-ca093f1e08b4",
+      "id": "d0918f13-b0fe-425a-b924-208a844d3665",
       "name": "Сдаточный пример - полный цикл мобильного стеллажа",
       "revision": 0
     },
     "operation": {
-      "id": "cmvebyexr003t01pet92h3qrr",
+      "id": "cmveyilnt000d01qsswk84q0x",
       "kind": "CREATE",
       "status": "SUCCEEDED",
       "publication": "PUBLISHED",
-      "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1"
+      "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1"
     },
-    "scope": "Fresh CREATE; exports bound to the same saved revision."
+    "scope": "Fresh CREATE, same saved revision and seven independently pinned artifact bytes."
   },
   "sourceChecks": {
     "fullEslint": {
@@ -61,217 +400,156 @@
     "fullTypeScriptNoEmit": {
       "status": "PASS",
       "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "runtime": {
-      "url": "http://localhost:3085/demo/warehouse",
-      "status": 200,
-      "bytes": 3985890,
-      "servedSha256": "3710cdc8c322ccf96576d5ba013754443013b62c26b5d8172202da6a6d00856a",
-      "localSha256": "3710cdc8c322ccf96576d5ba013754443013b62c26b5d8172202da6a6d00856a",
-      "health": {
-        "ok": true,
-        "db": true,
-        "modelVersion": "tz-1.0.8",
-        "simModelVersion": "sim-1.2.1"
-      },
-      "appRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
-      "workerRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
-      "matched": true
-    },
-    "stagedDiffCheck": {
-      "status": "PASS",
-      "command": "git diff --cached --check",
-      "scope": "Проверка после переиндексации точных байтов 110 исходников движка; замечаний нет."
-    },
-    "stagedSecretPatterns": {
-      "status": "PASS",
-      "scope": "Staged text files: private-key and GitHub token patterns; matched files 0. Not a general security certification."
-    },
-    "sourceCheckout": {
-      "status": "PASS_EXACT_110_SOURCE_BYTES",
-      "sources": 110,
-      "proof": "source-checkout-review.json",
-      "sha256": "7c961c670fce0e5de21718e8feae6f130c196769f29d61640e11be8dbbc94020",
-      "gitAttributesSha256": "fc011700d1b74b69fcfd031686d638edd545e8a388075416b1fbcc4049e82ba9",
-      "scope": "Точные raw bytes FS, Git index и двух реальных checkout-index при autocrlf=true/false дают один a944. Логика и байты рабочих исходников не менялись."
     }
   },
   "numbers": {
     "status": "PASS",
     "numericChecks": 7329,
     "methodologyChecks": 4078,
-    "pdfTextChecks": 404,
-    "scope": "Saved JSON/CSV/cached XLSX, independent financial arithmetic, frozen methodology/OEM and PDF text. Excel was not recalculated."
+    "pdfTextChecks": 412,
+    "scope": "Fresh root-pinned saved JSON/CSV/XLSX/PDF and independent arithmetic/methodology/text checks. Excel was not recalculated."
   },
   "pdfVisual": {
     "status": "PASS",
-    "acceptance": "PASS_IN_REVIEWED_SCOPE_WITH_MINOR_FINDING",
+    "acceptance": "PASS_IN_REVIEWED_SCOPE",
     "authorAllPagesPersonallyViewed": true,
     "independentAllPagesPersonallyViewed": true,
-    "pages": 76,
+    "pages": 75,
     "pageCounts": {
       "documentation": 21,
       "presentation": 15,
-      "sample-report": 40
+      "sample-report": 39
     },
-    "scope": "Root и независимый ревьюер лично просмотрели все 15 контактных листов 76 страниц; плотные и сомнительные страницы дополнительно открыты в исходном разрешении. Проверены читаемость, отсутствие наложений/обрезки текста и согласованность nominal/controlled/load выводов. Это не общий PASS продукта.",
-    "rootOriginalPages": [
-      "documentation-16",
-      "presentation-15",
-      "sample-report-01",
-      "sample-report-09",
-      "sample-report-19"
-    ],
     "finalProofPdfSha256": {
-      "documentation": "a54ea44353cb81d8c0adc03384d86b11c73d4eff9cfe9cf9b248bb40099deb80",
-      "presentation": "ff433ca81b7c99f85abf900b6ccd2b14ff9702f72263c64aa343df1e9c45ccdd",
-      "sample-report": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6"
+      "documentation": "e560ac1fb840dc6dc70dbfd5dc52abc846d793c99e85990f27476af9cc5a753d",
+      "presentation": "f10ed3be7d0fb6a943ab6be83f07f8c87851917b485218e84565ea7eebaef42e",
+      "sample-report": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706"
     },
+    "scope": "Exact fresh three-PDF all-pages author and independent review, with SHA-bound contact sheets. Not whole-product acceptance.",
     "independentProof": {
       "file": "pdf-independent-review.json",
-      "sha256": "1d54d8a174b4eae5164645fde961f39ae7e133877ca0483ad4d7b7ef2428af2d"
+      "sha256": "274fba5f9af17fcd88e4d177083ea6d9610629f0afcdee5f5b2c1e35efeb2fce"
+    },
+    "authorProof": {
+      "file": "pdf-author-review.json",
+      "sha256": "123c544e12d290af8172d3506e1f9a638f7f57af51e90e88e31e1fb4cdc968b2"
     }
   },
   "queueLoad": {
-    "scope": "Текущий a944: 50 одновременных HTTP-клиентов на отдельном локальном контуре, полный N6/C2 nominal + controlled расчёт, 3 worker-процесса, глобальный cap 2. Клиент и сервер на одном компьютере. Предшествующие e937/da53b43 строки исторические: иной профиль и критерии, прямое сравнение производительности некорректно.",
+    "status": "PASS",
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+    "measuredImages": {
+      "app": "sha256:063706dd9faa5c70c8440c736d12ddbd42e367346030a490352d0cdf7fae8b7d",
+      "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66"
+    },
+    "scope": "Measured c390 isolated worker/cap/resource profile on app0637/worker41e2. This result is not a measurement of a later UI app build. Historical runs retain their own outcomes and are not directly comparable across profiles.",
     "baseline": {
-      "label": "Исходный e937",
-      "workerProcesses": 1,
+      "label": "Historical / 3 workers: FAIL",
+      "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
+      "workerProcesses": 3,
+      "globalLeaseCap": 2,
+      "status": "FAIL",
       "pass": false,
-      "accepted": 21,
-      "succeeded": 21,
-      "verified": 21,
+      "durabilityPass": true,
+      "compute60Pass": true,
+      "clientResult60Pass": false,
+      "responsivenessPass": true,
+      "accepted": 50,
+      "succeeded": 50,
+      "verified": 50,
       "admissionMs": {
-        "p50": 11411.4689,
-        "p95": 12713.711800000001,
-        "max": 12815.632500000002
+        "count": 50,
+        "p50": 4425.6541,
+        "p95": 5963.9015,
+        "max": 6088.251700000001
       },
       "queueWaitMs": {
-        "p50": 24409,
-        "p95": 44746,
-        "max": 46984
+        "count": 50,
+        "p50": 86013,
+        "p95": 170928,
+        "max": 178517
       },
       "computeAndStoreMs": {
-        "p50": 2859,
-        "p95": 3103,
-        "max": 3737
+        "count": 50,
+        "p50": 7407,
+        "p95": 8008,
+        "max": 8140
       },
-      "serverCreatedToFinishedMs": {
-        "p50": 27354,
-        "p95": 47543,
-        "max": 49830
+      "clientObservedEndToEndMs": {
+        "count": 50,
+        "p50": 98238.7161,
+        "p95": 185183.1861,
+        "max": 192688.6656
       },
-      "clientObservedEndToEndMs": null,
-      "maxValidLeases": 1,
-      "healthMs": {
-        "p50": 20.53570000000036,
-        "p95": 1836.7716,
-        "max": 2419.468500000001
+      "sourceReportSha256": "98a6bb533b6b303c14367d906e6705edccc9f57ac760646cfa90b9828656771a",
+      "measuredImages": {
+        "app": "sha256:3029271153609e5d2d26dbe0f61d0b6091b6b8ea920e5020484c915bac44d3b2",
+        "worker": "sha256:a9c284f6c46f24afcb1bea529291198909a808b7298fbf8bcaeae7c64ec6b525"
       },
-      "pollMs": null,
-      "scope": "Исходный burst не прошёл: 21 ответ 202 и 29 ответов 503/P2034. Метрики очереди и вычисления относятся лишь к 21 принятому заданию; полное клиентское время в этом старом отчёте не измерялось.",
-      "sourceReport": "queue-baseline-e937.json",
-      "sourceReportSha256": "beecbbf60ab8f65e9f9e56d0982f3ace6d98b9abab5c08f5cb1326f645baf752"
+      "scope": "Historical configuration/profile; not a current capacity claim.",
+      "recovery": {
+        "status": "PENDING",
+        "statement": "Real recovery of this declared load run remains unverified."
+      }
     },
     "runs": [
       {
-        "label": "da53b43 — Исправленный",
-        "workerProcesses": 1,
-        "pass": true,
+        "label": "Historical / 12 workers: FAIL",
+        "engineRelease": "alfa-robot/sha256:eecaab815ab9ef775c4df13fe832c63847c4650d8c60d46dd9ac02c3ce6833a0/alfa-queue-scaled-stage3-20261019",
+        "workerProcesses": 12,
+        "globalLeaseCap": 12,
+        "status": "FAIL",
+        "pass": false,
+        "durabilityPass": false,
+        "compute60Pass": true,
+        "clientResult60Pass": false,
+        "responsivenessPass": false,
         "accepted": 50,
         "succeeded": 50,
         "verified": 50,
         "admissionMs": {
-          "p50": 3037.4072000000015,
-          "p95": 4096.2304,
-          "max": 4166.699300000002
+          "count": 50,
+          "p50": 4926.125499999995,
+          "p95": 6753.967299999997,
+          "max": 6933.740400000002
         },
         "queueWaitMs": {
-          "p50": 73102,
-          "p95": 144030,
-          "max": 150390
+          "count": 50,
+          "p50": 23479,
+          "p95": 44069,
+          "max": 47562
         },
         "computeAndStoreMs": {
-          "p50": 3077,
-          "p95": 3262,
-          "max": 3952
-        },
-        "serverCreatedToFinishedMs": {
-          "p50": 76239,
-          "p95": 147292,
-          "max": 153448
+          "count": 50,
+          "p50": 13545,
+          "p95": 17470,
+          "max": 17884
         },
         "clientObservedEndToEndMs": {
-          "p50": 80277.8381,
-          "p95": 152346.2246,
-          "max": 158569.4587
+          "count": 50,
+          "p50": 39484.277599999994,
+          "p95": 64120.15469999999,
+          "max": 64945.644400000005
         },
-        "maxValidLeases": 1,
-        "healthMs": {
-          "p50": 20.238200000007055,
-          "p95": 88.88510000001406,
-          "max": 1389.5379000000012
+        "sourceReportSha256": "9edc60d1842837dd6679263f1c645ecc2e9b4e9ea7d6c5e78b1496f8a1b544f1",
+        "measuredImages": {
+          "app": "sha256:548f7c87b8ec5fc70cb79ac030c1a92e014071a387253446422b61b59cf9093d",
+          "worker": "sha256:fa5bc171b3d8f4843a9d565a1f1f97fa17bcd52831a67e8ce9ceb5fa6cdf42e0"
         },
-        "pollMs": {
-          "p50": 123.10480000000098,
-          "p95": 192.79339999999866,
-          "max": 274.9444000000003
-        },
-        "scope": "Полностью завершённая серия 50 HTTP-клиентов: 50 SUCCEEDED, 50 сверенных результатов, по одной попытке, без неожиданных 5xx. Точные метрики сохранены в sourceReport.",
-        "sourceReport": "queue-one-worker.json",
-        "sourceReportSha256": "be78e8cc9bc3fb61d950eac0f8e8d81a1b0449944763aa8e62b43dc52c5af542"
+        "scope": "Historical configuration/profile; not a current capacity claim.",
+        "recovery": {
+          "status": "PASS",
+          "report": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage3-load\\recovery-eeca-1792363431267-27ca1649\\recovery-report.json",
+          "sha256": "f4c43f3e2bc2249e41421e029bfac3e8b5c8b0732e728748cbdf35665a50d695",
+          "statement": "Historical real CREATE recovery: PASS; attempts 2. Scope is one exact frozen input/run, not throughput SLA."
+        }
       },
       {
-        "label": "da53b43 — Исправленный",
-        "workerProcesses": 3,
-        "pass": true,
-        "accepted": 50,
-        "succeeded": 50,
-        "verified": 50,
-        "admissionMs": {
-          "p50": 3169.2225,
-          "p95": 4129.231400000002,
-          "max": 4198.724399999999
-        },
-        "queueWaitMs": {
-          "p50": 38414,
-          "p95": 75307,
-          "max": 78562
-        },
-        "computeAndStoreMs": {
-          "p50": 3297,
-          "p95": 3755,
-          "max": 4514
-        },
-        "serverCreatedToFinishedMs": {
-          "p50": 41448,
-          "p95": 78613,
-          "max": 81619
-        },
-        "clientObservedEndToEndMs": {
-          "p50": 45675.1013,
-          "p95": 82904.72750000001,
-          "max": 85995.4341
-        },
-        "maxValidLeases": 2,
-        "healthMs": {
-          "p50": 19.916599999996834,
-          "p95": 99.14800000000105,
-          "max": 1446.1818999999996
-        },
-        "pollMs": {
-          "p50": 123.25679999999556,
-          "p95": 175.96609999999782,
-          "max": 199.60410000000047
-        },
-        "scope": "Полностью завершённая серия 50 HTTP-клиентов: 3 worker-процесса, максимум 2 действующие lease, 50 SUCCEEDED и 50 сверенных результатов, по одной попытке.",
-        "sourceReport": "queue-three-workers.json",
-        "sourceReportSha256": "9b89f84b0aeea870345326bbdbc6baf2e395b2d7c081625ed2ae1f121216afd2"
-      },
-      {
-        "label": "a944 — текущий, клиентский срок FAIL",
-        "workerProcesses": 3,
-        "globalLeaseCap": 2,
+        "label": "Historical / 12 workers: FAIL",
+        "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+        "workerProcesses": 12,
+        "globalLeaseCap": 12,
+        "status": "FAIL",
         "pass": false,
         "durabilityPass": true,
         "compute60Pass": true,
@@ -282,136 +560,308 @@
         "verified": 50,
         "admissionMs": {
           "count": 50,
-          "p50": 4425.6541,
-          "p95": 5963.9015,
-          "max": 6088.251700000001
+          "p50": 4499.842700000001,
+          "p95": 6061.739099999999,
+          "max": 6274.121899999998
         },
         "queueWaitMs": {
           "count": 50,
-          "p50": 86013,
-          "p95": 170928,
-          "max": 178517
+          "p50": 22947,
+          "p95": 45337,
+          "max": 47849
         },
         "computeAndStoreMs": {
           "count": 50,
-          "p50": 7407,
-          "p95": 8008,
-          "max": 8140
+          "p50": 12762,
+          "p95": 17926,
+          "max": 18171
         },
         "clientObservedEndToEndMs": {
           "count": 50,
-          "p50": 98238.7161,
-          "p95": 185183.1861,
-          "max": 192688.6656
+          "p50": 40829.8489,
+          "p95": 64208.0279,
+          "max": 64610.319899999995
         },
-        "maxValidLeases": 2,
-        "healthMs": {
-          "count": 189,
-          "p50": 19.6478000000061,
-          "p95": 72.28159999998752,
-          "max": 2779.3079
+        "sourceReportSha256": "1178f4fdbe7421e19472d371d74ffe4a7461e2abf53d997bd989089f71a2de48",
+        "measuredImages": {
+          "app": "sha256:063706dd9faa5c70c8440c736d12ddbd42e367346030a490352d0cdf7fae8b7d",
+          "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66"
         },
-        "pollMs": {
-          "count": 4432,
-          "p50": 53.332299999994575,
-          "p95": 160.3553000000029,
-          "max": 2658.0795
+        "scope": "Historical configuration/profile; not a current capacity claim.",
+        "recovery": {
+          "status": "PASS",
+          "report": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage4-load\\recovery-c390-1792366243265-0e3c10cd\\recovery-report.json",
+          "sha256": "cbbacb8e4395dd7e3d2c29157d5d0415aed0a925cdb765b217db21267d0be5b8",
+          "statement": "Historical real CREATE recovery: PASS; attempts 2. Scope is one exact frozen input/run, not throughput SLA."
+        }
+      },
+      {
+        "label": "c390 / 14 workers: PASS",
+        "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-queue-scaled-stage4-20261019",
+        "workerProcesses": 14,
+        "globalLeaseCap": 14,
+        "status": "PASS",
+        "pass": true,
+        "durabilityPass": true,
+        "compute60Pass": true,
+        "clientResult60Pass": true,
+        "responsivenessPass": true,
+        "accepted": 50,
+        "succeeded": 50,
+        "verified": 50,
+        "admissionMs": {
+          "count": 50,
+          "p50": 4467.0049,
+          "p95": 6110.532400000004,
+          "max": 6237.511200000001
         },
-        "sourceReport": "queue-current-a944.json",
-        "sourceReportSha256": "98a6bb533b6b303c14367d906e6705edccc9f57ac760646cfa90b9828656771a",
-        "scope": "50/50 сохранённых результатов сверены, одна попытка, без 429/5xx/transport errors. 36/50 клиентов получили результат позднее 60 секунд. Конфигурация и ресурсы до/после неизменны. Независимая проверка фактического прогона ожидается."
+        "queueWaitMs": {
+          "count": 50,
+          "p50": 16284,
+          "p95": 40629,
+          "max": 40684
+        },
+        "computeAndStoreMs": {
+          "count": 50,
+          "p50": 13769,
+          "p95": 16902,
+          "max": 19592
+        },
+        "clientObservedEndToEndMs": {
+          "count": 50,
+          "p50": 35265.6251,
+          "p95": 58229.18030000001,
+          "max": 58412.2438
+        },
+        "sourceReportSha256": "5f670b0334b20c6bc4c7aabefcc13bf5887494d34411ce4bfbf2b5676ec0e1ce",
+        "measuredImages": {
+          "app": "sha256:063706dd9faa5c70c8440c736d12ddbd42e367346030a490352d0cdf7fae8b7d",
+          "worker": "sha256:41e221b87de121ceca2c2175a4c6e445d5bd1cb6be1f3c1da750f1cdb1efac66"
+        },
+        "scope": "Measured isolated c390 image pair only; not a benchmark of the final UI app image. A FAIL stays FAIL."
       }
     ],
     "recovery": {
       "status": "PASS",
-      "sourceReport": "queue-recovery.json",
-      "sourceReportSha256": "2aa227559280c2a037156329fdb73cdc88b843083bf1885022e8ea83d1322013",
-      "statement": "Исторический da53b43: Отдельный CREATE восстановлен после настоящего kill всех worker и ожидания истечения lease по часам PostgreSQL. Простой до restart — 21,462 с; 37 ответов health без ошибок. Тот же job/run/inputHash завершён со второй попытки, опубликован ровно один проект. Это один сценарий восстановления, не универсальная проверка отказоустойчивости.",
-      "jobId": "cmve0cgqu008g01lqhwairt12",
-      "leaseClock": {
-        "serverNow": "2026-10-18T15:56:32.255Z",
-        "leaseExpiresAt": "2026-10-18T15:56:30.890Z",
-        "expired": true
-      },
-      "healthCount": 37,
-      "downtimeMs": 21462,
-      "exactlyOneProject": true,
-      "independentSourceReview": "PASS: SQL serverNow is later than leaseExpiresAt; nonempty health, stable job/run/inputHash, attempt 1 to 2 and one publication independently verified."
+      "report": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage6-load-draft\\recovery-c390-1792367956642-7641fd98\\recovery-report.json",
+      "sha256": "6438b1ded7fd4327915044234b9d1a5eb86eb3350ad8a272431c178853dff196",
+      "statement": "Current real CREATE recovery: PASS; attempts 2. Scope is one exact frozen input/run, not throughput SLA."
     },
-    "statement": "Текущий a944: 50/50 результатов без повторных попыток; расчёт p95 8,008 с, очередь p95 170,928 с, результат клиенту p95 185,183 с. 36/50 клиентов превысили 60 с: клиентский срок FAIL; сохранность, бюджет вычисления и отзывчивость PASS. Лимит параллельного расчёта 2.",
-    "slideStatement": "50/50 результатов; расчёт p95 8,01 с, получение p95 185,18 с: клиентский срок 60 с не пройден.",
-    "status": "FAIL",
-    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
-    "independentActualReview": {
-      "status": "SCOPED_RAW_REVIEW_PASS",
-      "benchmarkStatus": "FAIL",
-      "assertions": 10730,
-      "scope": "Независимая offline сверка 53 receipt, SHA, владельцев, сохранённых SQL-интервалов, финансов и физических ключей. Это не новый запрос к БД или повтор нагрузки.",
-      "report": "queue-current-a944-independent-review.md",
-      "sha256": "0ce3db2ca42811270168e4ec646ca05da398f0c1816684ccbddc98974a1bc19d"
-    }
+    "statement": "Measured c390 image pair: 50 verified results, workers/cap 14/14; load PASS, client60 PASS, compute60 PASS, responsiveness PASS. Current real CREATE recovery: PASS; attempts 2. Scope is one exact frozen input/run, not throughput SLA.",
+    "slideStatement": "Measured queue: 50 verified; load PASS; recovery PASS."
   },
   "spatialVisual": {
-    "engineRelease": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b/alfa-durable-calculation-1",
-    "scope": "Независимый GPU-прогон: 33 PNG, шесть жизненных циклов носителя, пешеход и уборка. Root просмотрел четыре контактных листа и два исходных критических кадра.",
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+    "status": "PASS",
+    "targetScreenshots": 59,
+    "personallyViewedScreenshots": 59,
+    "runs": [
+      {
+        "status": "FAIL",
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792396295965-4aad3795\\run.json",
+        "sha256": "7f8529e5b6ab72b9e54310350221391b05dce4913f082acfdd3bb6190473bbf9",
+        "rootDeclarationSha256": "ec8a807aab960e398b1fb73bb0aae7326070cf9beeaedb64ad32890f541f00bc",
+        "testOnlyDeclarationDifferences": [
+          {
+            "file": "e2e/capacity-check.spec.ts",
+            "previousSha256": "91666c2e3a79cbba82ddad651e9fe521c187d6ae0523ef306f6b6fffa6d3a6cf",
+            "finalSha256": "ec3a149c008cd56cd6dac7117e0c83805d2dc72b3cac1d358617be893b16f9e6"
+          },
+          {
+            "file": "e2e/pilot-draft-state.spec.ts",
+            "previousSha256": "d854c7f7490a4250af21d1f2cc8891451e473f40132822f36004e2051dadecc4",
+            "finalSha256": "523977a62634de2a3dc7ba52f254b3b8107d47bc41aaa4a29bd363f9c7680691"
+          },
+          {
+            "file": "e2e/site-quality.spec.ts",
+            "previousSha256": "ef2ef81999e8e82f7643912f2eb19ddd4683c61f1cb492b29111cf90d689ec71",
+            "finalSha256": "115f8f59bd4d09541d40b7291cdeb29d07dce4c764c9e5d51e4732ead4b57f90"
+          }
+        ]
+      },
+      {
+        "status": "AUTOMATED_SCOPE_PASS_VISUAL_REVIEW_PENDING",
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\run.json",
+        "sha256": "df8541e7baaac399308cd336078b8101c62a3c2a7a29edb5bfbfcd4911f63624",
+        "rootDeclarationSha256": "8bc78b3d2fbe420ee09f9b1bf72df09a4c7eb35e579282c687d4d91bc1f273b8",
+        "testOnlyDeclarationDifferences": [
+          {
+            "file": "e2e/site-quality.spec.ts",
+            "previousSha256": "ef2ef81999e8e82f7643912f2eb19ddd4683c61f1cb492b29111cf90d689ec71",
+            "finalSha256": "115f8f59bd4d09541d40b7291cdeb29d07dce4c764c9e5d51e4732ead4b57f90"
+          }
+        ]
+      }
+    ],
     "review": {
-      "reviewedAt": "2026-10-18T21:09:07.245Z",
-      "scope": "Four contact sheets covering 33 reviewer-inspected PNGs, plus two original key frames personally viewed by coordinator; not a claim of reading every telemetry value in each thumbnail.",
-      "status": "PASS_IN_VIEWED_SCOPE",
-      "files": [
-        {
-          "name": "contact-carriers-1.jpg",
-          "sha256": "14fe455419849da820d3430012b174bed655ae6447ac7ad438b2cedc20449d0e"
-        },
-        {
-          "name": "contact-carriers-2.jpg",
-          "sha256": "dfefeb5e2723836c7f74cc15d0cb8c2b6f9b4859be3c947ca1dbf2419512e65b"
-        },
-        {
-          "name": "contact-carriers-3.jpg",
-          "sha256": "638368f9181b229955c5f2ce83e16971e3fb6372d0f574ef38f3304c39e870f0"
-        },
-        {
-          "name": "contact-interaction.jpg",
-          "sha256": "f0af071f0125425a6e84fa9076ae8fe2fe0c0639294c61d229b30daf17479985"
-        },
-        {
-          "name": "carriers/complex-empty-carry-detail.png",
-          "sha256": "eebfbe64dc57db5abfe6485c0fd143c5b27d3e809c1f2ee8b23516c035c57a38"
-        },
-        {
-          "name": "interaction/pedestrian-stop-telemetry-390.png",
-          "sha256": "f30e47cbedcf0749bae50c74f5dd99a33459634c12c397e57fb168cc856cb71c"
+      "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792397373707-510a0234\\manifest.json",
+      "sha256": "dae069f058e357c7c253016d995a711fc4c8b79ef9a36fb3ac719281debd6af4"
+    },
+    "carrierCases": [
+      {
+        "id": "steady-flow",
+        "lifecycleStatus": "PASS",
+        "originalAssessment": "PARTIAL",
+        "cycle": {
+          "carrierId": "pod-home-46",
+          "robotId": 0,
+          "parentTaskId": 8,
+          "returnTaskId": -9,
+          "returnedAt": 1142
         }
-      ]
-    },
-    "rawNominal": "Все шесть складских сценариев PARTIAL по своему потоку; controlled capacity проверяется отдельно. Complex N11/C1: 78/129,545 операций/ч. Уборка — модельное покрытие, не доказанная чистота."
-  },
-  "previousRelease": {
-    "engineRelease": "alfa-robot/sha256:8099f08241fa62c2d244b10c65365f54da00d003b14dd864653d8c0e5d03be00/alfa-durable-calculation-1",
-    "sourceProject": {
-      "id": "d53f3d4c-21b1-4a2d-93d4-d39063b85f87",
-      "name": "Сдаточный пример - полный цикл мобильного стеллажа",
-      "revision": 0
-    },
-    "scope": "Historical package; its proofs do not certify current source."
+      },
+      {
+        "id": "complex",
+        "lifecycleStatus": "PASS",
+        "originalAssessment": "PARTIAL",
+        "cycle": {
+          "carrierId": "pod-home-25",
+          "robotId": 0,
+          "parentTaskId": 8,
+          "returnTaskId": -12,
+          "returnedAt": 889
+        }
+      },
+      {
+        "id": "baseline",
+        "lifecycleStatus": "PASS",
+        "originalAssessment": "PARTIAL",
+        "cycle": {
+          "carrierId": "pod-home-75",
+          "robotId": 0,
+          "parentTaskId": 28,
+          "returnTaskId": -39,
+          "returnedAt": 1562
+        }
+      },
+      {
+        "id": "capacity-reserve",
+        "lifecycleStatus": "PASS",
+        "originalAssessment": "PARTIAL",
+        "cycle": {
+          "carrierId": "pod-home-75",
+          "robotId": 0,
+          "parentTaskId": 28,
+          "returnTaskId": -31,
+          "returnedAt": 1577
+        }
+      },
+      {
+        "id": "insufficient",
+        "lifecycleStatus": "PASS",
+        "originalAssessment": "PARTIAL",
+        "cycle": {
+          "carrierId": "pod-home-1896",
+          "robotId": 0,
+          "parentTaskId": 0,
+          "returnTaskId": -2,
+          "returnedAt": 246
+        }
+      },
+      {
+        "id": "increased-flow",
+        "lifecycleStatus": "PASS",
+        "originalAssessment": "PARTIAL",
+        "cycle": {
+          "carrierId": "pod-home-98",
+          "robotId": 0,
+          "parentTaskId": 22,
+          "returnTaskId": -22,
+          "returnedAt": 1161
+        }
+      }
+    ],
+    "scope": "Observed carrier cycles, pedestrian/cleaning/retrospective UI and actual viewed PNG bytes only. No promotion of original capacity verdicts.",
+    "independentPersonalReview": {
+      "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-hostile-acceptance\\gpu-personal-review.json",
+      "sha256": "059e3222ab523affec438f142209a61b1a15129295e918e3b3863e42f4a8e1a1"
+    }
   },
   "knownFindings": [
     {
       "severity": "P2",
-      "status": "OPEN_FOR_NEXT_SOURCE_RELEASE",
+      "status": "CLOSED_BY_FRESH_CASE_AND_EXPORT",
       "area": "OEM model matching",
       "finding": "Импортированная модель без указанного производителя может получить OEM-материал по короткому или общему названию (например C5).",
       "impact": "Потенциально неверная атрибуция в новом снимке карточки/проекта/отчёта. Проверенные сдаточные примеры имеют известного производителя; этот дефект не меняет их финансовые или физические результаты.",
-      "correction": "Для модельного OEM-match потребовать подтверждённое совпадение производителя; общие инженерные материалы по классу оставить отдельно."
+      "correction": "Для модельного OEM-match потребовать подтверждённое совпадение производителя; общие инженерные материалы по классу оставить отдельно.",
+      "historicalStatus": "CLOSED_BY_FRESH_CASE_AND_EXPORT",
+      "historicalEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+      "closureProofSha256": "9c4da045966d456a9d9951eb127b053954e48c73de8d8121df0896b3ed6a858b"
     },
     {
       "severity": "P3",
-      "status": "OPEN_FOR_NEXT_SOURCE_RELEASE",
+      "status": "CLOSED_BY_FRESH_AUTHOR_AND_PEER_REVIEW",
       "area": "Report print pagination",
       "finding": "Страница 19 отчёта содержит один пункт ограничений, перенесённый с предыдущей страницы; потери текста нет.",
       "artifactSha256": "f8391aaea39a7bd24eb0300cd47a73d132c6b503dc0fd4f83495d41a7b28aff6",
-      "correction": "Улучшить размещение блока ограничений в печатной версии, затем повторить экспорт и визуальную проверку."
+      "correction": "Улучшить размещение блока ограничений в печатной версии, затем повторить экспорт и визуальную проверку.",
+      "historicalStatus": "FRESH_PDF_REVIEW_PENDING",
+      "historicalEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+      "closureProofSha256": "274fba5f9af17fcd88e4d177083ea6d9610629f0afcdee5f5b2c1e35efeb2fce"
+    },
+    {
+      "id": "F-01",
+      "severity": "P3",
+      "uxSeverity": 2,
+      "status": "OPEN_KNOWN_MINOR",
+      "area": "Overlapping live counters",
+      "screenshot": "carriers/capacity-reserve-empty-home-overview.png",
+      "heuristics": [
+        "Nielsen #1",
+        "Gestalt: Common region",
+        "Content #5"
+      ],
+      "finding": "13 в работе and 5 ждут точку are grouped like disjoint robot states although the fleet is14. Active task ownership and waiting overlap; waiting also includes safety/charger waits.",
+      "smallestFix": "Name units explicitly: активных заданий / роботов ожидают, and explain that counters may overlap. Keep metrics unchanged.",
+      "source": "Fresh independent stage7 GPU review",
+      "proofSha256": "059e3222ab523affec438f142209a61b1a15129295e918e3b3863e42f4a8e1a1",
+      "historicalStatus": "OPEN_KNOWN_MINOR",
+      "historicalEngine": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1"
+    },
+    {
+      "id": "PDF-P2-E2E-COVERAGE",
+      "severity": "P2",
+      "status": "CLOSED",
+      "artifact": "presentation.pdf",
+      "page": 15,
+      "originalArtifactSha256": "9f5447588ace8f8de00be62df9ab688e6cf1df737f84f76a93cc4cd44a53210e",
+      "artifactSha256": "f10ed3be7d0fb6a943ab6be83f07f8c87851917b485218e84565ea7eebaef42e",
+      "finding": "The 14 selected current E2E cases were incorrectly described as covering an administrator flow.",
+      "closure": "Current slide15 names the project owner, matching actual selected owner/pilot/guest cases; multiple-run wording remains explicit.",
+      "originalRender": {
+        "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-final-pdf\\presentation-15.png",
+        "sha256": "315159ef5505d2f3e0c3977106825cdc4134a2ce1b4fbe9fca456123d5e42b0f"
+      },
+      "fixedRender": {
+        "path": "presentation-15.png",
+        "sha256": "79fb3940916a2889e94be9217fadc0833005091a04ffbf33ce14d1b208e7800e"
+      },
+      "source": "Fresh independent PDF review",
+      "proofSha256": "274fba5f9af17fcd88e4d177083ea6d9610629f0afcdee5f5b2c1e35efeb2fce"
     }
-  ]
+  ],
+  "previousRelease": {
+    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+    "sourceProject": {
+      "id": "d0918f13-b0fe-425a-b924-208a844d3665",
+      "name": "Сдаточный пример - полный цикл мобильного стеллажа",
+      "revision": 0
+    },
+    "scope": "Retained historical claims and findings are not current PASS."
+  },
+  "publicVisual": {
+    "status": "PASS_IN_REVIEWED_SCOPE",
+    "publicScreenshots": 33,
+    "ownedScreenshots": 5,
+    "author": {
+      "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-browser-gpu\\run-1792398274184-5a20200e\\root-public-personal-review.json",
+      "sha256": "1369fbff4cfdce1246b4ba89574c662b07e5e72641d6e6bb7633e29de9400e2d"
+    },
+    "peer": {
+      "file": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\stage7-hostile-acceptance\\public-owned-personal-review.json",
+      "sha256": "dea6ccb89a3fdd1e03200fbc8e09981b70783c4f84eba380d39183649c7c9d14"
+    },
+    "scope": "Actual screenshot review; dynamic behavior verified by separately retained browser assertions."
+  }
 }

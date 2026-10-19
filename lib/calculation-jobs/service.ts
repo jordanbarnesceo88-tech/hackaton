@@ -13,8 +13,8 @@ import { getProject, persistNewProject, persistProjectCalculation, ProjectRevisi
 import { loadLiveInputs, resultsFromInputsAsync, type ComputedProject, type ComputeProjectInput, type LiveInputs } from "../projects/recalc";
 import { projectInputSizeIssue } from "../projects/payload-limit";
 import { sanitizeProjectName, validProjectRevision, validatePendingChanges, validateScenarioSpecs } from "../projects/validate";
-import { assertQueueCapacity, enqueueWithinTransaction, findIdempotent, lockEnqueueAdmission } from "./store";
-import { engineRelease, type JobReceipt } from "./types";
+import { assertQueueCapacity, enqueueWithinTransaction, findIdempotent } from "./store";
+import type { JobReceipt } from "./types";
 
 export type CalculationRequest =
   | { operation: "CREATE"; name: string; objectName?: string | null; facility: string; params?: unknown; scenarios?: unknown; paramsSource?: ParamsSource }
@@ -167,29 +167,26 @@ export async function enqueueCalculation(db: PrismaClient, ownerId: string, raw:
   for (let attempt = 0; ; attempt++) {
     try {
       return await db.$transaction(async tx => {
-        await lockEnqueueAdmission(tx);
-        const existing = await findIdempotent(tx, ownerId, idempotencyKey, requestHash);
-        if (existing) return existing;
-        await assertQueueCapacity(tx, ownerId);
-        // Match account deletion/publication order before taking a project lock or FK.
-        const owners = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "User" WHERE id = ${ownerId} FOR KEY SHARE`;
-        if (!owners.length) throw new CalculationRequestError(401, "Войдите в аккаунт");
-        if (payload.publication?.projectId) {
-          // Preparation may have raced a save/delete; keep this head stable until enqueue.
-          const projects = await tx.$queryRaw<{ revision: number; isDemo: boolean }[]>`
-            SELECT revision, "isDemo" FROM "Project"
-            WHERE id = ${payload.publication.projectId} AND "userId" = ${ownerId} FOR SHARE`;
-          const project = projects[0];
-          if (!project) throw new CalculationRequestError(404, "Проект не найден");
-          if (project.isDemo) throw new CalculationRequestError(422, "Демонстрационный проект доступен только для чтения — создайте копию");
-          if (project.revision !== payload.publication.expectedRevision) {
-            throw new CalculationRequestError(409, new ProjectRevisionConflict().message);
-          }
-        }
         return enqueueWithinTransaction(tx, { ownerId, operation: request.operation, idempotencyKey, requestHash,
           inputHash, payload: payload as unknown as Prisma.InputJsonValue,
           projectId: payload.publication?.projectId, baseRevision: payload.publication?.expectedRevision,
-          reservedProjectId: payload.publication?.reservedProjectId, engineRelease: engineRelease() });
+          reservedProjectId: payload.publication?.reservedProjectId }, async () => {
+          // Match account deletion/publication order before taking a project lock or FK.
+          const owners = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "User" WHERE id = ${ownerId} FOR KEY SHARE`;
+          if (!owners.length) throw new CalculationRequestError(401, "Войдите в аккаунт");
+          if (payload.publication?.projectId) {
+            // Preparation may have raced a save/delete; keep this head stable until enqueue.
+            const projects = await tx.$queryRaw<{ revision: number; isDemo: boolean }[]>`
+              SELECT revision, "isDemo" FROM "Project"
+              WHERE id = ${payload.publication.projectId} AND "userId" = ${ownerId} FOR SHARE`;
+            const project = projects[0];
+            if (!project) throw new CalculationRequestError(404, "Проект не найден");
+            if (project.isDemo) throw new CalculationRequestError(422, "Демонстрационный проект доступен только для чтения — создайте копию");
+            if (project.revision !== payload.publication.expectedRevision) {
+              throw new CalculationRequestError(409, new ProjectRevisionConflict().message);
+            }
+          }
+        });
       }, { isolationLevel: "ReadCommitted", maxWait: 10_000, timeout: 15_000 });
     } catch (error) {
       const code = isPlainObject(error) ? error.code : (error as { code?: unknown } | null)?.code;

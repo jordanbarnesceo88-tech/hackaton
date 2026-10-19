@@ -8,7 +8,7 @@
 - [calculation-source.json](./calculation-source.json) — вход, версия, операция и сохранённый результат.
 - Три *-receipt.json — реальные серверные ответы; [demo-numbers.md](./demo-numbers.md) содержит числа и допущения.
 - [content-coverage.json](./content-coverage.json) — карта обязательного содержания документов; не общий вердикт соответствия.
-- queue-*.json — текущий a944: результаты 50/50 сохранены, но клиентский срок 60 секунд не пройден (FAIL). Исторические серии e937/da53b43 и отдельная проверка восстановления CREATE сохранены для своих версий; их PASS не переносится на текущий клиентский срок. Методика в [CALCULATION_JOBS](../../CALCULATION_JOBS.md#нагрузочная-проверка-методика-и-область).
+- queue-*.json — Measured c390 image pair: 50 verified results, workers/cap 14/14; load PASS, client60 PASS, compute60 PASS, responsiveness PASS. Current real CREATE recovery: PASS; attempts 2. Scope is one exact frozen input/run, not throughput SLA. Исторические серии и восстановление CREATE оцениваются только для своих версий и профилей. Методика в [CALCULATION_JOBS](../../CALCULATION_JOBS.md#нагрузочная-проверка-методика-и-область).
 - [release-manifest.json](./release-manifest.json) — SHA256 и границы приёмки.
 
 Номинальный прогон сохранён отдельно как PARTIAL; capacity PASS подтверждает только объявленный контролируемый тест полного цикла. Это кандидат для дальнейшей проверки, без общей рекомендации полного внедрения. Учебные данные не являются коммерческими условиями заказчика. Локальная приёмка не означает обновление внешнего стенда. Документы на уровень выше архивные.

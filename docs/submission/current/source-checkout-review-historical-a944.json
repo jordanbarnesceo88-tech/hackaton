@@ -1,0 +1,33 @@
+{
+  "status": "PASS_EXACT_110_SOURCE_BYTES",
+  "timestamp": "2026-10-18T21:50:23.397Z",
+  "sourceCount": 110,
+  "graph": [
+    {
+      "kind": "filesystem",
+      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b"
+    },
+    {
+      "kind": "index",
+      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b"
+    },
+    {
+      "kind": "actual checkout-index",
+      "coreAutocrlf": "true",
+      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
+      "destination": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\source-checkout-a944-1792360223167\\autocrlf-true"
+    },
+    {
+      "kind": "actual checkout-index",
+      "coreAutocrlf": "false",
+      "engine": "alfa-robot/sha256:a944224406e9bd5e40de9bffeccc8da0f55bd79c85b982f97ff0e5c935648c9b",
+      "destination": "C:\\workspace\\hackaton\\research\\alfa-audit\\RND\\source-checkout-a944-1792360223167\\autocrlf-false"
+    }
+  ],
+  "gitAttributesSha256": "fc011700d1b74b69fcfd031686d638edd545e8a388075416b1fbcc4049e82ba9",
+  "sourceWritten": false,
+  "indexWritten": false,
+  "packageWritten": false,
+  "networkExecuted": false,
+  "externalQaOutputsWritten": true
+}
