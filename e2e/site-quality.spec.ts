@@ -98,7 +98,7 @@ for (const viewport of VIEWPORTS) {
     });
     try {
       for (const route of [
-        { path: "/", heading: "Выберите решение для роботизации вашего объекта", name: "home" },
+        { path: "/", heading: "Подбор роботов от тех, кто уже запускал их на других объектах", name: "home" },
         { path: "/catalog", heading: "Каталог роботизированных решений", name: "catalog" },
         { path: "/methodology", heading: "Откуда цифры", name: "methodology" },
       ]) {
