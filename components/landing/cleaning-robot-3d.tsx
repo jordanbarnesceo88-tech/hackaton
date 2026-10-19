@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IsoStyles } from "@/components/sim/sim-iso-scene";
@@ -13,7 +14,9 @@ import { cn } from "@/lib/utils";
  * фантики. Мусор, задетый щётками, втягивается под робота, за ним остаётся влажный след. Новый
  * мусор падает позади робота, на уже убранном участке и не ближе SPAWN_GAP, — на обратном пути
  * ему снова есть что убирать. У края робот разворачивается лицом к зрителю и моргает. Нажатие на
- * пол подкидывает мусор туда, куда нажали.
+ * пол подкидывает мусор туда, куда нажали. Сам робот — ссылка на каталог: поверх холста ездит
+ * настоящий <a> (доступен с клавиатуры и открывается в новой вкладке), под указателем робот
+ * останавливается и показывает подпись.
  *
  * Рисуется на canvas плоскими гранями с освещением по Ламберту. Без three.js сознательно:
  * зависимость меняет package-lock.json, а он входит в отпечаток расчётного движка
@@ -599,9 +602,10 @@ function drawLitter(f: Frame, it: Litter, t: number, pal: Palette) {
 
 // ── Сцена. ─────────────────────────────────────────────────────────────────────────────────────
 
-/** Состояние сцены: время, где робот и куда едет, начало разворота, мусор, искорки, след. */
+/** Состояние сцены: время, где робот и куда едет, начало разворота, мусор, искорки, след; hold — робот под указателем и стоит. */
 type Scene = {
   t: number;
+  hold: boolean;
   y: number;
   dir: 1 | -1;
   turn: number | null;
@@ -651,7 +655,7 @@ function drop(sc: Scene, y: number, born: number, x = (Math.random() * 2 - 1) * 
 /** still — неподвижный кадр: робот вполоборота, впереди мусор, позади след. */
 function newScene(half: number, still: boolean): Scene {
   const end = turnAt(half);
-  const sc: Scene = { t: 0, y: still ? -0.35 * end : -end + 0.4, dir: 1, turn: null, brush: 0, half, cleaned: 0, pending: 0, litter: [], sparkles: [], trail: [] };
+  const sc: Scene = { t: 0, hold: false, y: still ? -0.35 * end : -end + 0.4, dir: 1, turn: null, brush: 0, half, cleaned: 0, pending: 0, litter: [], sparkles: [], trail: [] };
   const n = litterTarget(half);
   for (let i = 0; i < n; i++) {
     const y = still ? freeSpot(sc, sc.y + 0.7, half - 0.4) : (freeSpot(sc, sc.y + 0.9, half - 0.4) ?? freeSpot(sc, -half + 0.4, sc.y - 0.9));
@@ -683,7 +687,10 @@ function step(sc: Scene, dt: number) {
   sc.t += dt;
   sc.brush += BRUSH_SPIN * dt;
   const end = turnAt(sc.half);
-  if (sc.turn === null) {
+  if (sc.hold) {
+    // Стоит под указателем; разворот, если начат, ждёт.
+    if (sc.turn !== null) sc.turn += dt;
+  } else if (sc.turn === null) {
     sc.y += sc.dir * SPEED * dt;
     if (sc.dir * sc.y >= end) {
       sc.y = sc.dir * end;
@@ -698,7 +705,7 @@ function step(sc: Scene, dt: number) {
   sc.trail = sc.trail.filter((p) => sc.t - p.t < TRAIL_S);
 
   // Щётки задевают мусор только на ходу: он втягивается под робота.
-  if (sc.turn === null) {
+  if (sc.turn === null && !sc.hold) {
     for (const it of sc.litter) {
       if (it.gone !== null || sc.t - it.born < APPEAR_S * 0.6) continue;
       const ahead = (it.y - sc.y) * sc.dir;
@@ -818,12 +825,17 @@ export function CleaningRobot3D({ className }: { className?: string }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const countRef = useRef<HTMLSpanElement | null>(null);
+  const linkRef = useRef<HTMLAnchorElement | null>(null);
   const sceneRef = useRef<Scene | null>(null);
+  /** Под указателем или в фокусе робот стоит — по движущейся цели трудно попасть. */
+  const hold = (on: boolean) => {
+    if (sceneRef.current) sceneRef.current.hold = on;
+  };
 
   useEffect(() => {
-    const wrap = wrapRef.current, canvas = canvasRef.current, count = countRef.current;
+    const wrap = wrapRef.current, canvas = canvasRef.current, count = countRef.current, link = linkRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!wrap || !canvas || !ctx || !count) return;
+    if (!wrap || !canvas || !ctx || !count || !link) return;
     let palette = readPalette(wrap);
     const font = getComputedStyle(wrap).fontFamily || "sans-serif";
     let width = 0, height = 0, dpr = 1;
@@ -837,8 +849,9 @@ export function CleaningRobot3D({ className }: { className?: string }) {
       canvas!.width = Math.max(1, Math.round(width * dpr));
       canvas!.height = Math.max(1, Math.round(height * dpr));
       // Робот ≈ 0,92 м в высоту плюс глубина полосы с мусором; по ширине видно не меньше 3,4 м пола.
+      // Сверху остаётся место под подпись ссылки и строку со счётчиком.
       const se = Math.sin(ELEVATION), ce = Math.cos(ELEVATION);
-      const perM = Math.max(1, Math.min((height * 0.8) / (0.92 * ce + 0.8 * se), width / 3.4));
+      const perM = Math.max(1, Math.min((height * 0.72) / (0.92 * ce + 0.8 * se), width / 3.4));
       cam = { cx: width / 2, cy: height / 2 + (perM * (0.92 * ce - 0.1 * se)) / 2, scale: perM };
       const half = width / 2 / perM;
       if (!sceneRef.current) sceneRef.current = newScene(half, reduced);
@@ -854,9 +867,34 @@ export function CleaningRobot3D({ className }: { className?: string }) {
       drawTrail(world, palette, sc);
       [...sc.litter].sort((a, b) => a.x - b.x).forEach((it) => drawLitter(world, it, sc.t, palette));
       const yaw = robotYaw(sc, reduced);
-      drawRobot({ ...world, cos: Math.cos(yaw), sin: Math.sin(yaw), oy: sc.y }, palette, sc.brush, font, reduced ? 1 : blinkAt(sc.t));
+      const robot: Frame = { ...world, cos: Math.cos(yaw), sin: Math.sin(yaw), oy: sc.y };
+      drawRobot(robot, palette, sc.brush, font, reduced ? 1 : blinkAt(sc.t));
       drawSparkles(world, palette, sc);
       count!.textContent = `Убрано: ${sc.cleaned}`;
+      placeLink(robot);
+    }
+
+    /** Ссылка на каталог — прямоугольник вокруг робота на экране, по углам его габаритов. */
+    function placeLink(f: Frame) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const x of [-0.36, 0.36]) {
+        for (const y of [-0.33, 0.33]) {
+          for (const z of [0, 0.92]) {
+            const [sx, sy] = screen(f, [x, y, z]);
+            x0 = Math.min(x0, sx);
+            y0 = Math.min(y0, sy);
+            x1 = Math.max(x1, sx);
+            y1 = Math.max(y1, sy);
+          }
+        }
+      }
+      const left = clamp(x0 - 4, 0, width), top = clamp(y0 - 4, 0, height);
+      link!.style.left = `${left}px`;
+      link!.style.top = `${top}px`;
+      link!.style.width = `${clamp(x1 + 4, 0, width) - left}px`;
+      link!.style.height = `${clamp(y1 + 4, 0, height) - top}px`;
+      // Подпись — над роботом, а если сверху тесно, то внутри, поверх его верха.
+      link!.dataset.tip = top > 36 ? "above" : "inside";
     }
 
     layout();
@@ -933,15 +971,34 @@ export function CleaningRobot3D({ className }: { className?: string }) {
       <IsoStyles />
       <canvas
         ref={canvasRef}
-        className="block h-full w-full cursor-pointer touch-pan-y"
+        className="block h-full w-full cursor-crosshair touch-pan-y"
         role="img"
         aria-label="Робот-уборщик Alfa Robot ездит туда-обратно по офису и убирает мусор: бумагу, банановую кожуру, стаканчики"
       />
       <span ref={countRef} className="pointer-events-none absolute top-3 left-4 text-sm font-semibold tabular-nums" aria-hidden="true">
         Убрано: 0
       </span>
+      {/* Робот — ссылка на каталог; draw() ставит её поверх робота в каждом кадре. */}
+      <Link
+        ref={linkRef}
+        href="/catalog"
+        aria-label="Каталог роботизированных решений"
+        className="group absolute rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        style={{ left: 0, top: 0, width: 0, height: 0 }}
+        onPointerEnter={() => hold(true)}
+        onPointerLeave={() => hold(false)}
+        onFocus={() => hold(true)}
+        onBlur={() => hold(false)}
+      >
+        <span
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium whitespace-nowrap opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 group-data-[tip=above]:bottom-full group-data-[tip=above]:mb-1 group-data-[tip=inside]:top-1"
+          aria-hidden="true"
+        >
+          Каталог роботов →
+        </span>
+      </Link>
       <p className="pointer-events-none absolute bottom-2 left-4 text-xs text-muted-foreground" aria-hidden="true">
-        Нажмите на пол, чтобы подкинуть мусор
+        Нажмите на пол, чтобы подкинуть мусор, или на робота — чтобы открыть каталог
       </p>
       {!reduced && (
         <Button type="button" variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => setPaused((v) => !v)}>
