@@ -4,33 +4,36 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IsoStyles } from "@/components/sim/sim-iso-scene";
 import { useReducedMotion } from "@/components/sim/use-reduced-motion";
+import { cn } from "@/lib/utils";
 
 /**
- * Превью уборки на первой странице: один робот проходит торговый зал полосами между
+ * Полоса во всю ширину первой страницы: один робот проходит торговый зал полосами между
  * стеллажами и возвращается на базу, убранный пол подсвечивается следом. Схема условная;
  * полная сцена с парком, зарядкой и диспетчерской — отдельная страница /demo/cleaning
  * (≈4 МБ, на первую страницу её не тянем, а встроить во фрейм не даёт frame-ancestors 'none').
  *
- * Палитра и материалы — из таблицы стилей изометрии (IsoStyles), проекция — та же, что у
- * схемы склада (components/sim/iso-scene.ts). Кадры двигают DOM напрямую и React-состояние не
- * трогают. Вне экрана цикл стоит; при «уменьшить движение» показан конечный кадр без анимации;
- * кнопка «Пауза» — для всех остальных (движение дольше 5 секунд, WCAG 2.2.2).
+ * Проекция фронтальная (кабинетная), а не изометрия схемы склада: изометрия всегда около 2 : 1 и
+ * в широкую низкую полосу не ложится, а здесь пропорцию задают размеры зала. Палитра и материалы —
+ * из таблицы стилей изометрии (IsoStyles). Схема вписывается в высоту, которую ей оставила
+ * страница; кадры двигают DOM напрямую и React-состояние не трогают. Вне экрана цикл стоит; при
+ * «уменьшить движение» показан конечный кадр; кнопка «Пауза» — для остальных (движение дольше
+ * 5 секунд, WCAG 2.2.2).
  */
 
-/** Проекция прототипа: cos 30° и сжатие глубины. */
-const C = 0.866;
-const K = 0.42;
-/** Зал, м: x — вдоль, y — от дальней стены. */
-const W = 16;
-const H = 10;
+/** Зал, м: x — вдоль экрана, y — от дальней стены к зрителю. */
+const W = 28;
+const H = 9;
 /** Единиц viewBox на метр. */
 const S = 40;
+/** Сдвиг вправо на метр глубины и сжатие глубины. */
+const DX = 0.45;
+const DY = 0.55;
 /** Ширина полосы уборки, м. */
 const BRUSH_M = 0.7;
 /** Отступ центра робота от стеллажей и стен, м. */
 const CLEARANCE_M = 0.4;
 /** Скорость показа, м/с: это темп схемы, не паспорт робота. */
-const SPEED_MPS = 8;
+const SPEED_MPS = 10;
 /** Пауза на базе перед новым кругом, с. */
 const HOLD_S = 2.5;
 const WALL_H = 0.6;
@@ -39,8 +42,9 @@ const SLAB_H = 0.25;
 type P = { x: number; y: number };
 type Box = { x: number; y: number; w: number; d: number; h: number; mat: "rack" | "charger" };
 
-function iso(x: number, y: number, z = 0): P {
-  return { x: (x - y) * C * S, y: ((x + y) * K - z) * S };
+/** Точка зала на экране: дальнее — выше и правее. */
+function proj(x: number, y: number, z = 0): P {
+  return { x: (x + (H - y) * DX) * S, y: (y * DY - z) * S };
 }
 
 function n1(v: number): string {
@@ -50,29 +54,28 @@ function n1(v: number): string {
 
 function pts(list: readonly [number, number, number][]): string {
   return list.map(([x, y, z]) => {
-    const p = iso(x, y, z);
+    const p = proj(x, y, z);
     return `${n1(p.x)},${n1(p.y)}`;
   }).join(" ");
 }
 
 /**
- * Три острова низких стеллажей поперёк зала; куски по 2,5 м, чтобы порядок отрисовки не ошибался
- * у соседей. Высота занижена нарочно: в изометрии стеллаж в рост закрывал бы робота в проходе.
+ * Три ряда низких стеллажей вдоль зала, у торцов свободный проезд; куски по 3,2 м, чтобы порядок
+ * отрисовки не ошибался у соседей. Высота занижена нарочно: стеллаж в рост закрывал бы робота
+ * в проходе за ним.
  */
-const SHELF_ROWS = [2.6, 5.0, 7.4];
-const SHELF_X0 = 3;
-const SHELF_PIECE = 2.5;
+const SHELF_ROWS = [2.0, 4.2, 6.4];
+const SHELF_X0 = 4.5;
+const SHELF_PIECE = 3.2;
 const SHELF_D = 0.8;
 const SHELVES: Box[] = SHELF_ROWS.flatMap((y) =>
-  [0, 1, 2, 3].map((i) => ({ x: SHELF_X0 + i * SHELF_PIECE, y, w: SHELF_PIECE, d: SHELF_D, h: 0.45, mat: "rack" as const })),
+  [0, 1, 2, 3, 4, 5].map((i) => ({ x: SHELF_X0 + i * SHELF_PIECE, y, w: SHELF_PIECE, d: SHELF_D, h: 0.45, mat: "rack" as const })),
 );
 const CHARGER: Box = { x: 0.1, y: 0.3, w: 0.5, d: 0.8, h: 0.5, mat: "charger" };
+/** Глубина для порядка отрисовки: ближе к зрителю — позже. */
+const depthOf = (b: Box) => b.y + b.d / 2;
 const BOXES = [...SHELVES, CHARGER].sort((a, b) => depthOf(a) - depthOf(b));
 const DOCK: P = { x: 1.0, y: 0.7 };
-
-function depthOf(b: Box): number {
-  return b.x + b.w / 2 + b.y + b.d / 2;
-}
 
 /** Полосы «змейкой» по свободным проходам, проезд между полосами — у торцов стеллажей. */
 function buildRoute(): { route: P[]; cleanEnd: number } {
@@ -110,8 +113,8 @@ const CUM = ROUTE.reduce<number[]>((acc, p, i) => {
 }, []);
 const TOTAL = CUM[CUM.length - 1]!;
 const CLEAN_LEN = CUM[CLEAN_END_IDX]!;
-const ROUTE_ISO = ROUTE.map((p) => {
-  const s = iso(p.x, p.y);
+const ROUTE_SCREEN = ROUTE.map((p) => {
+  const s = proj(p.x, p.y);
   return `${n1(s.x)},${n1(s.y)}`;
 });
 
@@ -125,39 +128,39 @@ function at(d: number): { p: P; i: number } {
   return { p: { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, i };
 }
 
+/** Видимые грани коробки: перед, правый бок (дальнее уходит вправо) и верх. */
 function boxFaces(b: Box) {
   const x0 = b.x, x1 = b.x + b.w, y0 = b.y, y1 = b.y + b.d, z1 = b.h;
   return {
-    south: pts([[x0, y1, 0], [x1, y1, 0], [x1, y1, z1], [x0, y1, z1]]),
-    east: pts([[x1, y0, 0], [x1, y1, 0], [x1, y1, z1], [x1, y0, z1]]),
+    front: pts([[x0, y1, 0], [x1, y1, 0], [x1, y1, z1], [x0, y1, z1]]),
+    side: pts([[x1, y1, 0], [x1, y0, 0], [x1, y0, z1], [x1, y1, z1]]),
     top: pts([[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]),
   };
 }
 
 const FLOOR = pts([[0, 0, 0], [W, 0, 0], [W, H, 0], [0, H, 0]]);
-const SLAB_SOUTH = pts([[0, H, 0], [W, H, 0], [W, H, -SLAB_H], [0, H, -SLAB_H]]);
-const SLAB_EAST = pts([[W, 0, 0], [W, H, 0], [W, H, -SLAB_H], [W, 0, -SLAB_H]]);
+const SLAB_FRONT = pts([[0, H, 0], [W, H, 0], [W, H, -SLAB_H], [0, H, -SLAB_H]]);
+const SLAB_SIDE = pts([[W, H, 0], [W, 0, 0], [W, 0, -SLAB_H], [W, H, -SLAB_H]]);
 const WALL_BACK = pts([[0, 0, 0], [W, 0, 0], [W, 0, WALL_H], [0, 0, WALL_H]]);
 const WALL_LEFT = pts([[0, 0, 0], [0, H, 0], [0, H, WALL_H], [0, 0, WALL_H]]);
 const GRID = [
-  ...Array.from({ length: W / 2 - 1 }, (_, i) => [iso((i + 1) * 2, 0), iso((i + 1) * 2, H)] as const),
-  ...Array.from({ length: H / 2 - 1 }, (_, i) => [iso(0, (i + 1) * 2), iso(W, (i + 1) * 2)] as const),
+  ...Array.from({ length: Math.floor(W / 2) - 1 }, (_, i) => [proj((i + 1) * 2, 0), proj((i + 1) * 2, H)] as const),
+  ...Array.from({ length: Math.ceil(H / 2) - 1 }, (_, i) => [proj(0, (i + 1) * 2), proj(W, (i + 1) * 2)] as const),
 ];
 const DOCK_PAD = pts([[DOCK.x - 0.45, DOCK.y - 0.45, 0.02], [DOCK.x + 0.45, DOCK.y - 0.45, 0.02], [DOCK.x + 0.45, DOCK.y + 0.45, 0.02], [DOCK.x - 0.45, DOCK.y + 0.45, 0.02]]);
-const DOCK_ISO = iso(DOCK.x, DOCK.y);
-const DOCK_LABEL = iso(CHARGER.x + CHARGER.w / 2, CHARGER.y + CHARGER.d / 2, CHARGER.h + 0.7);
+const DOCK_SCREEN = proj(DOCK.x, DOCK.y);
+const DOCK_LABEL = proj(CHARGER.x + CHARGER.w / 2, CHARGER.y, CHARGER.h + 0.5);
 
 const VB = (() => {
-  const left = iso(0, H).x - 20;
-  const right = iso(W, 0).x + 20;
-  const top = iso(0, 0, WALL_H).y - 40;
-  const bottom = iso(W, H, -SLAB_H).y + 16;
+  const left = proj(0, H).x - 12;
+  const right = proj(W, 0).x + 12;
+  const top = proj(0, 0, WALL_H + 0.9).y;
+  const bottom = proj(0, H, -SLAB_H).y + 10;
   return { x: left, y: top, w: right - left, h: bottom - top };
 })();
-const HUD = { x: VB.x + VB.w - 14, y: VB.y + 26 };
 
-/** Полоса уборки на экране: ширина щётки в метрах, приведённая к масштабу схемы. */
-const TRAIL_W = BRUSH_M * S * 0.8;
+/** Полоса уборки на экране: ширина щётки, приведённая к сжатой глубине схемы. */
+const TRAIL_W = BRUSH_M * S * DY * 1.1;
 
 /** Робот-поломойка: низкий круглый корпус, датчик сверху, щётка снизу. Нарисован в экранных единицах, основание — (0, 0). */
 function CleanerSprite() {
@@ -180,7 +183,7 @@ export function CleaningRobotPreview({ className }: { className?: string }) {
   const layerRef = useRef<SVGGElement | null>(null);
   const botRef = useRef<SVGGElement | null>(null);
   const trailRef = useRef<SVGPolylineElement | null>(null);
-  const hudRef = useRef<SVGTextElement | null>(null);
+  const hudRef = useRef<HTMLSpanElement | null>(null);
   const progress = useRef({ d: 0, hold: 0 });
 
   useEffect(() => {
@@ -190,12 +193,11 @@ export function CleaningRobotPreview({ className }: { className?: string }) {
 
     function render(d: number) {
       const { p, i } = at(d);
-      const s = iso(p.x, p.y);
-      trail!.setAttribute("points", `${ROUTE_ISO.slice(0, i + 1).join(" ")} ${n1(s.x)},${n1(s.y)}`);
+      const s = proj(p.x, p.y);
+      trail!.setAttribute("points", `${ROUTE_SCREEN.slice(0, i + 1).join(" ")} ${n1(s.x)},${n1(s.y)}`);
       bot!.setAttribute("transform", `translate(${n1(s.x)} ${n1(s.y)})`);
-      // Робот встаёт перед первым стеллажом, который ближе к зрителю, — иначе он «проезжал» бы сквозь них.
-      const depth = p.x + p.y;
-      const ahead = boxEls.find((el) => Number(el.dataset.depth) > depth) ?? null;
+      // Робот встаёт перед первым рядом, который ближе к зрителю, — иначе он «проезжал» бы сквозь стеллажи.
+      const ahead = boxEls.find((el) => Number(el.dataset.depth) > p.y) ?? null;
       if (bot!.nextSibling !== ahead) layer!.insertBefore(bot!, ahead);
       hud!.textContent = `Убрано ${Math.round((100 * Math.min(d, CLEAN_LEN)) / CLEAN_LEN)} %`;
     }
@@ -244,74 +246,66 @@ export function CleaningRobotPreview({ className }: { className?: string }) {
   }, [reduced, paused]);
 
   return (
-    <div className={className}>
+    <div className={cn("relative", className)}>
       <IsoStyles />
-      <div className="relative">
-        <svg
-          ref={svgRef}
-          className="iso-root block h-auto w-full"
-          viewBox={[VB.x, VB.y, VB.w, VB.h].map(n1).join(" ")}
-          role="img"
-          aria-label="Схема: робот-уборщик проходит торговый зал полосами между стеллажами и возвращается на базу"
-        >
-          <defs>
-            <clipPath id="cleaning-floor">
-              <polygon points={FLOOR} />
-            </clipPath>
-          </defs>
-          <g className="iso-slab">
-            <polygon className="s" points={SLAB_SOUTH} />
-            <polygon className="e" points={SLAB_EAST} />
+      <svg
+        ref={svgRef}
+        className="iso-root block h-auto w-full xl:h-full"
+        viewBox={[VB.x, VB.y, VB.w, VB.h].map(n1).join(" ")}
+        role="img"
+        aria-label="Схема: робот-уборщик проходит торговый зал полосами между стеллажами и возвращается на базу"
+      >
+        <defs>
+          <clipPath id="cleaning-floor">
+            <polygon points={FLOOR} />
+          </clipPath>
+        </defs>
+        <g className="iso-slab">
+          <polygon className="s" points={SLAB_FRONT} />
+          <polygon className="e" points={SLAB_SIDE} />
+        </g>
+        <polygon className="iso-floor-storage" points={FLOOR} />
+        {GRID.map(([a, b], i) => (
+          <line key={i} className="iso-grid" x1={n1(a.x)} y1={n1(a.y)} x2={n1(b.x)} y2={n1(b.y)} />
+        ))}
+        <g className="iso-wall">
+          <polygon className="s" points={WALL_BACK} />
+          <polygon className="e" points={WALL_LEFT} />
+        </g>
+        <polyline
+          ref={trailRef}
+          points={ROUTE_SCREEN[0]}
+          clipPath="url(#cleaning-floor)"
+          style={{ fill: "none", stroke: "var(--iso-accent)", strokeOpacity: 0.28, strokeWidth: TRAIL_W, strokeLinecap: "round", strokeLinejoin: "round" }}
+        />
+        <polygon className="iso-pad" points={DOCK_PAD} />
+        <g ref={layerRef}>
+          {BOXES.map((b, i) => {
+            const f = boxFaces(b);
+            return (
+              <g key={i} className={`iso-box iso-${b.mat}`} data-depth={depthOf(b)}>
+                <polygon className="s" points={f.front} />
+                <polygon className="e" points={f.side} />
+                <polygon className="t" points={f.top} />
+              </g>
+            );
+          })}
+          <g ref={botRef} className="iso-bot" transform={`translate(${n1(DOCK_SCREEN.x)} ${n1(DOCK_SCREEN.y)})`}>
+            <CleanerSprite />
           </g>
-          <polygon className="iso-floor-storage" points={FLOOR} />
-          {GRID.map(([a, b], i) => (
-            <line key={i} className="iso-grid" x1={n1(a.x)} y1={n1(a.y)} x2={n1(b.x)} y2={n1(b.y)} />
-          ))}
-          <g className="iso-wall">
-            <polygon className="s" points={WALL_BACK} />
-            <polygon className="e" points={WALL_LEFT} />
-          </g>
-          <polyline
-            ref={trailRef}
-            points={ROUTE_ISO[0]}
-            clipPath="url(#cleaning-floor)"
-            style={{ fill: "none", stroke: "var(--iso-accent)", strokeOpacity: 0.28, strokeWidth: TRAIL_W, strokeLinecap: "round", strokeLinejoin: "round" }}
-          />
-          <polygon className="iso-pad" points={DOCK_PAD} />
-          <text className="iso-pad-label" x={n1(DOCK_LABEL.x)} y={n1(DOCK_LABEL.y)} aria-hidden="true">
-            База
-          </text>
-          <g ref={layerRef}>
-            {BOXES.map((b, i) => {
-              const f = boxFaces(b);
-              return (
-                <g key={i} className={`iso-box iso-${b.mat}`} data-depth={depthOf(b)}>
-                  <polygon className="s" points={f.south} />
-                  <polygon className="e" points={f.east} />
-                  <polygon className="t" points={f.top} />
-                </g>
-              );
-            })}
-            <g ref={botRef} className="iso-bot" transform={`translate(${n1(DOCK_ISO.x)} ${n1(DOCK_ISO.y)})`}>
-              <CleanerSprite />
-            </g>
-          </g>
-          <text ref={hudRef} className="iso-hud iso-hud--end" x={n1(HUD.x)} y={n1(HUD.y)} aria-hidden="true">
-            Убрано 0 %
-          </text>
-        </svg>
-        {!reduced && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="absolute bottom-2 left-2"
-            onClick={() => setPaused((v) => !v)}
-          >
-            {paused ? "Продолжить" : "Пауза"}
-          </Button>
-        )}
-      </div>
+        </g>
+        <text className="iso-pad-label" x={n1(DOCK_LABEL.x)} y={n1(DOCK_LABEL.y)} aria-hidden="true">
+          База
+        </text>
+      </svg>
+      <span ref={hudRef} className="absolute top-2 right-3 text-sm font-semibold text-muted-foreground" aria-hidden="true">
+        Убрано 0 %
+      </span>
+      {!reduced && (
+        <Button type="button" variant="outline" size="sm" className="absolute top-2 left-2" onClick={() => setPaused((v) => !v)}>
+          {paused ? "Продолжить" : "Пауза"}
+        </Button>
+      )}
     </div>
   );
 }
