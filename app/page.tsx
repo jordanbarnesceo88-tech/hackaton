@@ -58,10 +58,10 @@ export default function Home() {
     <div className="surface-data flex flex-col gap-20 py-12 lg:py-16">
       <section className="grid items-start gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
         <div className="flex flex-col gap-6">
-          <h1>Выберите решение для роботизации вашего объекта</h1>
+          <h1>Подбор роботов от тех, кто уже запускал их на других объектах</h1>
           <p className="text-lg text-muted-foreground">
-            Узнайте, какую работу выполнят роботы, сколько понадобится техники и какие затраты изменятся.
-            Сравните покупку и услугу, проверьте рабочий поток и подготовьте план пилота.
+            Считаем по реальной производительности и находим узкие места до покупки. Для собственников, УК и
+            операторов, которым нельзя ошибиться с бюджетом.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/demo?example=steady-flow" className={CTA_PRIMARY}>
@@ -78,8 +78,7 @@ export default function Home() {
             <OnboardingTour triggerSize="xl" triggerClassName="w-full sm:w-auto" />
           </div>
           <p className="text-sm text-muted-foreground">
-            Демо-расчёт открывается без входа и ничего не сохраняет. Проект сохраняется с версиями модели и данных
-            и выгружается в отчёт и Excel.
+            Парк и экономика за 30 секунд. Дальше ведём до запуска: подготовка объекта, пилот, сервис.
           </p>
           <DemoSceneLinks />
         </div>
