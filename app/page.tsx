@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
-import { CleaningRobotPreview } from "@/components/landing/cleaning-robot-preview";
+import { CleaningRobot3D } from "@/components/landing/cleaning-robot-3d";
 import { cn } from "@/lib/utils";
 
 /**
  * Первый экран: кто подбирает роботов и почему этому можно верить, три входа и путь от объекта
- * к пилоту, под ними — робот-уборщик в работе во всю ширину.
+ * к пилоту, под ними — вращающаяся 3D-модель робота-уборщика во всю ширину.
  *
  * С xl (1280px, шапка там в одну строку, 60px) страница ровно в экран: колонка высотой
  * 100dvh − шапка, схема забирает остаток высоты и вписывается в него. Уже — обычная прокрутка:
@@ -73,8 +73,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Робот в работе: лёгкая схема на месте 4-мегабайтной сцены; на xl забирает остаток экрана. */}
-      <CleaningRobotPreview className="pt-10 xl:min-h-36 xl:flex-1 xl:pt-0" />
+      {/* 3D-модель робота-уборщика; на xl забирает остаток экрана. */}
+      <CleaningRobot3D className="h-72 xl:h-auto xl:min-h-44 xl:flex-1" />
 
       {/* Методика текущего расчёта и словарь — для проверки формул, источников и терминов. */}
       <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-sm">
