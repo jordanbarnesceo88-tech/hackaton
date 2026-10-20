@@ -29,6 +29,7 @@ const DB_TESTS = [
   "lib/admin/actions.test.ts",
   "lib/calculation-jobs/adversarial.test.ts",
   "lib/calculation-jobs/policy-integration.test.ts",
+  "lib/ai/advice/store.test.ts",
 ];
 
 export default defineConfig({

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { baseValuesFor, paramSpecsFor } from "@/lib/data/organizer/params";
 import type { ProjectChangeEntry, ProjectRecord } from "@/lib/projects/queries";
 import { MANUAL_NOTE } from "@/lib/report/tz/rows";
-import { fixtureChanges, fixtureDefs, fixtureResults } from "@/lib/report/tz/test-fixtures";
+import { fixtureAdvice, fixtureChanges, fixtureDefs, fixtureResults } from "@/lib/report/tz/test-fixtures";
 import { expectedClosedPodLegsM } from "@/lib/sim/closed-pod-cycle";
 import { prepareClosedPodSource } from "@/lib/sim/underlift-layout";
 import { warehouseBaseInput } from "@/lib/sim/fixtures";
@@ -52,7 +52,7 @@ const PROJECT = {
 function renderReport(
   results: ProjectResults = fixtureResults(),
   defs: readonly ParamSpec[] = fixtureDefs(),
-  extra: Partial<Pick<ProjectReportProps, "project" | "liveDataVersion">> = {},
+  extra: Partial<Pick<ProjectReportProps, "project" | "liveDataVersion" | "aiAdvice">> = {},
 ): string {
   return renderToStaticMarkup(
     createElement(ProjectReport, { project: PROJECT, results, defs, changes: fixtureChanges(), ...extra }),
@@ -142,6 +142,18 @@ describe("ProjectReport — печатный отчёт", () => {
   it("все разделы ТЗ §3.7.2 — заголовками h2 в заданном порядке", () => {
     const h2 = [...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1]);
     expect(h2).toEqual(SECTION_TITLES);
+  });
+
+  it("рекомендации ИИ — раздел после рисков и пункт содержания; без них ни того ни другого", () => {
+    const withAdvice = renderReport(undefined, undefined, { aiAdvice: fixtureAdvice() });
+    const h2 = [...withAdvice.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1]);
+    const risks = SECTION_TITLES.indexOf("6. Риски") + 1;
+    expect(h2).toEqual([...SECTION_TITLES.slice(0, risks), "Рекомендации ИИ", ...SECTION_TITLES.slice(risks)]);
+    expect(withAdvice).toContain('href="#aiAdvice-title"');
+    const section = textOf(sectionHtml(withAdvice, "aiAdvice"));
+    expect(section).toContain("Как снизить: Развести потоки по времени.");
+    expect(section).toContain("Модель test-model");
+    expect(html).not.toContain("aiAdvice");
   });
 
   it("оговорка о предварительной оценке — дословно и один раз", () => {

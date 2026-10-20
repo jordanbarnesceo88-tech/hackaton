@@ -532,8 +532,29 @@ model Project {
   scenarios        Scenario[]
   changes          ChangeLog[]
   calculationRuns  CalculationRun[]
+  aiAdvice         AiAdvice[]
 
   @@index([userId])
+}
+
+/// Рекомендации ИИ к сохранённому расчёту проекта: кнопка «Рекомендации ИИ» под выводом и раздел
+/// отчёта. Текст ИИ не воспроизводится бит-в-бит, поэтому хранится отдельно от Project.results.
+/// factsHash — ключ фактов расчёта, модели и версии инструкции (lib/ai/advice/facts.ts): тот же
+/// ключ — тот же ответ без нового вызова ИИ; новый расчёт с другими числами даёт другой ключ, и
+/// прежний ответ показывается как устаревший. Хранится только последний ответ проекта; удаляется
+/// вместе с проектом.
+model AiAdvice {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  factsHash     String
+  model         String
+  promptVersion String
+  content       Json
+  createdAt     DateTime @default(now())
+
+  @@unique([projectId, factsHash])
+  @@index([projectId, createdAt])
 }
 
 /// Immutable accepted calculation input and completed result. Project remains unchanged

@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { ScenarioOk } from "../../tz/types";
-import { fixtureChanges, fixtureDefs, fixtureResults } from "./test-fixtures";
+import { fixtureAdvice, fixtureChanges, fixtureDefs, fixtureResults } from "./test-fixtures";
 import { XLSX_SHEET_NAMES, buildProjectXlsx } from "./xlsx";
 
 /**
@@ -196,5 +196,37 @@ describe("книга XLSX проекта", () => {
     expect(found.getCell(12).value).toBe("отказ расчёта");
     expect(found.getCell(14).value).toBe("—");
     expect(found.getCell(15).value).toBe("—");
+  });
+});
+
+describe("рекомендации ИИ на сводке", () => {
+  async function summary(aiAdvice?: ReturnType<typeof fixtureAdvice>): Promise<ExcelJS.Worksheet> {
+    const bytes = await buildProjectXlsx({ projectName: "ИИ", results, defs: fixtureDefs(), aiAdvice });
+    const ab = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(ab).set(bytes);
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.load(ab);
+    const ws = book.getWorksheet("Сводка");
+    if (!ws) throw new Error("нет листа Сводка");
+    return ws;
+  }
+
+  it("блок между выводом и сравнением сценариев; мера и проверка на пилоте — отдельными строками", async () => {
+    const ws = await summary(fixtureAdvice());
+    const start = findRow(ws, "Рекомендации ИИ");
+    expect(start).toBeLessThan(findRow(ws, "Сравнение сценариев"));
+    const risk = findRow(ws, "• [высокий] Покупка — Ronavi H1500: Узкое место на воротах отгрузки.", start);
+    expect(findRow(ws, "1. Уточнить пиковый поток — от него зависит число роботов.", start)).toBeLessThan(risk);
+    expect(ws.getCell(risk + 1, 1).value).toBe("   Как снизить: Развести потоки по времени.");
+    expect(ws.getCell(risk + 2, 1).value).toBe("   Проверить на пилоте: Очередь у ворот в пиковый час.");
+    expect(findRow(ws, "1. Согласовать зону пилота.", start)).toBeGreaterThan(risk);
+    expect(findRow(ws, /^Сформировано ИИ .* Модель test-model, /, start)).toBeGreaterThan(risk);
+    // Пустые списки — без заголовков.
+    expect(() => findRow(ws, "Что изменит вывод:", start)).toThrow();
+  });
+
+  it("без рекомендаций блока нет", async () => {
+    const ws = await summary();
+    expect(() => findRow(ws, "Рекомендации ИИ")).toThrow();
   });
 });

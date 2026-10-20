@@ -7,6 +7,7 @@ import { selectProducts } from "../../tz/selection";
 import type { ComparisonRow, ParamSpec, ProjectResults, ScenarioResult, ScenarioSpec } from "../../tz/types";
 import { TZ_MODEL_VERSION, dataVersionOf } from "../../tz/version";
 import { captureMethodologySnapshot } from "../../tz/methodology";
+import type { AdviceView } from "../../ai/advice/view";
 import type { ReportChange } from "./rows";
 
 /**
@@ -186,4 +187,28 @@ export function fixtureChanges(): ReportChange[] {
     },
     { at: "2026-09-25T09:32:00.000Z", field: "norm:utilization", auto: 0.775, old: 0.775, new: 0.8 },
   ];
+}
+
+/** Рекомендации ИИ для тестов выгрузок: по одному пункту в каждом разделе, кроме пустых списков. */
+export function fixtureAdvice(): AdviceView {
+  return {
+    content: {
+      summary: "Покупка H1500 окупается быстрее услуги.",
+      whyThisScenario: "Платформа выбрала покупку по сроку окупаемости.",
+      recommendations: [{ action: "Уточнить пиковый поток", why: "от него зависит число роботов." }],
+      risks: [{
+        scenario: "Покупка — Ronavi H1500",
+        severity: "high",
+        risk: "Узкое место на воротах отгрузки.",
+        mitigation: "Развести потоки по времени.",
+        checkOnPilot: "Очередь у ворот в пиковый час.",
+      }],
+      whenConclusionChanges: [],
+      nextSteps: ["Согласовать зону пилота."],
+      missingData: [],
+    },
+    model: "test-model",
+    createdAt: "2026-09-25T10:05:00.000Z",
+    stale: false,
+  };
 }

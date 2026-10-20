@@ -1,5 +1,6 @@
 // только сервер: exceljs не попадает в клиентский бандл
 import ExcelJS from "exceljs";
+import { ADVICE_NOTE, SEVERITY_LABEL, type AdviceView } from "../../ai/advice/view";
 import { normLabelsFromSnapshot } from "../../tz/methodology";
 import { ORGANIZER_DATA_VERSION } from "../../data/organizer/version.generated";
 import { displayDataText } from "../../tz/characteristics";
@@ -94,6 +95,8 @@ export type ProjectXlsxInput = {
   defs: readonly ParamSpec[];
   /** Журнал корректировок проекта; для гостевого расчёта — пустой. */
   changes?: readonly ReportChange[];
+  /** Актуальные рекомендации ИИ к этому расчёту — блок на листе итогов; нет — блока нет. */
+  aiAdvice?: AdviceView | null;
 };
 
 /** Числовые форматы в записи OOXML (русский Excel показывает их с пробелами и запятой). */
@@ -164,6 +167,35 @@ function putRow(ws: ExcelJS.Worksheet, rowNum: number, values: readonly Value[],
   return row;
 }
 
+/** Блок «Рекомендации ИИ» на листе итогов — те же разделы, что на экране и в печатном отчёте. */
+function aiAdviceRows(ws: ExcelJS.Worksheet, start: number, advice: AdviceView): number {
+  const { content } = advice;
+  let r = start;
+  titleCell(ws, r++, "Рекомендации ИИ");
+  noteRow(ws, r++, content.summary);
+  noteRow(ws, r++, content.whyThisScenario);
+  noteRow(ws, r++, "Что сделать:");
+  content.recommendations.forEach((x, i) => noteRow(ws, r++, `${i + 1}. ${x.action} — ${x.why}`));
+  if (content.risks.length > 0) noteRow(ws, r++, "Главные риски:");
+  for (const x of content.risks) {
+    noteRow(ws, r++, `• [${SEVERITY_LABEL[x.severity]}] ${x.scenario}: ${x.risk}`);
+    noteRow(ws, r++, `   Как снизить: ${x.mitigation}`);
+    noteRow(ws, r++, `   Проверить на пилоте: ${x.checkOnPilot}`);
+  }
+  const lists: [string, readonly string[], boolean][] = [
+    ["Что изменит вывод:", content.whenConclusionChanges, false],
+    ["Шаги до пилота:", content.nextSteps, true],
+    ["Что уточнить:", content.missingData, false],
+  ];
+  for (const [title, items, numbered] of lists) {
+    if (items.length === 0) continue;
+    noteRow(ws, r++, title);
+    items.forEach((x, i) => noteRow(ws, r++, numbered ? `${i + 1}. ${x}` : `• ${x}`));
+  }
+  noteRow(ws, r++, `${ADVICE_NOTE} Модель ${advice.model}, ${formatCalcDate(advice.createdAt)}.`);
+  return r + 1;
+}
+
 /** Текст в столбце A без переноса: длинная строка продолжается в пустые ячейки справа. */
 function noteRow(ws: ExcelJS.Worksheet, rowNum: number, text: string): void {
   const c = ws.getCell(rowNum, 1);
@@ -220,6 +252,8 @@ function summarySheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
   noteRow(ws, r++, results.conclusion.headline);
   for (const b of results.conclusion.bullets) noteRow(ws, r++, `• ${b}`);
   r++;
+
+  if (input.aiAdvice) r = aiAdviceRows(ws, r, input.aiAdvice);
 
   titleCell(ws, r++, "Сравнение сценариев");
   headerRow(ws, r, ["Показатель", ...cols.map((c) => c.title)]);
