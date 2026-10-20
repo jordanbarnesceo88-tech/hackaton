@@ -104,4 +104,20 @@ describe("AI project advice revision boundary", () => {
     expect((await result.json()).advice).toMatchObject({ content: advice, stale: false });
     expect(mocks.save).toHaveBeenCalledWith(expect.anything(), "owned-project", "owner", 2, expect.objectContaining({ model: "test-model" }));
   });
+
+  it("refuses paid generation when the quota database is unavailable", async () => {
+    mocks.rate.mockResolvedValue({ ok: true, retryAfterSec: 0, unavailable: true });
+    const result = await POST(request(), context);
+    expect(result.status).toBe(503);
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it("keeps a known exhausted quota distinct from an unavailable limiter", async () => {
+    mocks.rate.mockResolvedValue({ ok: false, retryAfterSec: 120 });
+    const result = await POST(request(), context);
+    expect(result.status).toBe(429);
+    expect(result.headers.get("retry-after")).toBe("120");
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
 });

@@ -9,7 +9,8 @@
  *   правилах запрет называть поля входа («(limitations)» попало в ответ на демо-складе).
  */
 
-export const ADVICE_PROMPT_VERSION = "advice-4";
+export const ADVICE_PROMPT_VERSION = "advice-5";
+export const ADVICE_TEXT_MAX_LENGTH = 1200;
 
 export const ADVICE_SYSTEM_PROMPT = `Ты — инженер-консультант Alfa Robot по роботизации складов и торговых площадей. Пиши ТОЛЬКО на русском языке, деловым стилем, обращайся к руководителю на «вы».
 
@@ -35,7 +36,7 @@ export const ADVICE_SYSTEM_PROMPT = `Ты — инженер-консульта�
 - nextSteps — 3–5 шагов по порядку.
 - missingData — что уточнить у клиента: всё, что во входе названо оценкой, не подтверждено или не задано.`;
 
-const text = { type: "string" } as const;
+const text = { type: "string", maxLength: ADVICE_TEXT_MAX_LENGTH } as const;
 
 function object(properties: Record<string, unknown>) {
   return { type: "object", additionalProperties: false, required: Object.keys(properties), properties };

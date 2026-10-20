@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AdviceFacts, AiAdviceContent } from "./types";
 import { numbersIn, parseAdvice, unknownNumbers } from "./validate";
+import { adviceSchema, ADVICE_TEXT_MAX_LENGTH } from "./prompt";
 
 const facts: AdviceFacts = {
   object: "Склад",
@@ -31,8 +32,13 @@ describe("numbersIn", () => {
   it("разбирает русскую запись: группы по три цифры, запятая, слипшиеся названия", () => {
     expect(numbersIn("CAPEX 38 500 000 ₽, окупаемость 4,1 г.")).toEqual([38500000, 4.1]);
     expect(numbersIn("Цена AMR 1500 2 200 000 ₽")).toEqual([1500, 2200000]);
-    expect(numbersIn("NPV −4,1 млн ₽ при 30–70 %")).toEqual([4.1, 30, 70]);
+    expect(numbersIn("NPV −4,1 млн ₽ при 30–70 %")).toEqual([-4.1, 30, 70]);
     expect(numbersIn("1 540 000 ₽ и 132,5 пал./ч")).toEqual([1540000, 132.5]);
+  });
+
+  it("сохраняет ASCII/Unicode минус и плюс, не превращая дефис модели или диапазона в знак", () => {
+    expect(numbersIn("−18 000 000 ₽, - 3,5 %, +2 года, AMR-1500, CC1, 30-70 %")).toEqual([-18000000, -3.5, 2, 1500, 1, 30, 70]);
+    expect(numbersIn("NPV−18 000 000 ₽")).toEqual([-18000000]);
   });
 });
 
@@ -52,10 +58,31 @@ describe("parseAdvice", () => {
     expect(parsed.ok && parsed.content.risks).toEqual(valid.risks);
   });
 
-  it("обрезает слишком длинный текст и лишние пункты", () => {
-    const long = parseAdvice(JSON.stringify({ ...valid, summary: "а".repeat(5000), nextSteps: Array.from({ length: 20 }, (_, i) => `шаг ${i}`) }), names);
-    expect(long.ok && long.content.summary.length).toBe(1200);
-    expect(long.ok && long.content.nextSteps.length).toBe(8);
+  it("отклоняет длинную строку целиком, сохраняя право на оговорку в конце ответа", () => {
+    const summary = "а".repeat(ADVICE_TEXT_MAX_LENGTH) + " Экономика не подтверждена.";
+    expect(parseAdvice(JSON.stringify({ ...valid, summary }), names)).toEqual({ ok: false, reason: "ответ не по схеме" });
+    expect(parseAdvice(JSON.stringify({ ...valid, summary: "а".repeat(ADVICE_TEXT_MAX_LENGTH) }), names).ok).toBe(true);
+    expect(parseAdvice(JSON.stringify({ ...valid, recommendations: [{ action: "а".repeat(1201), why: "Оговорка" }] }), names).ok).toBe(false);
+  });
+
+  it("отклоняет лишние пункты во всех списках вместо потери хвостовых ограничений", () => {
+    for (const [field, limit] of Object.entries({ recommendations: 5, risks: 8, whenConclusionChanges: 5, nextSteps: 5, missingData: 8 })) {
+      const sample = valid[field as keyof AiAdviceContent] as unknown[];
+      const items = Array.from({ length: limit }, () => sample[0]);
+      expect(parseAdvice(JSON.stringify({ ...valid, [field]: items }), names).ok, field).toBe(true);
+      expect(parseAdvice(JSON.stringify({ ...valid, [field]: [...items, sample[0]] }), names).ok, field).toBe(false);
+    }
+  });
+
+  it("объявляет тот же maxLength для каждого свободного текста в схеме провайдера", () => {
+    const schema = adviceSchema(names);
+    const visit = (value: unknown) => {
+      if (!value || typeof value !== "object") return;
+      const node = value as Record<string, unknown>;
+      if (node.type === "string" && !node.enum) expect(node.maxLength).toBe(ADVICE_TEXT_MAX_LENGTH);
+      for (const child of Object.values(node)) visit(child);
+    };
+    visit(schema);
   });
 });
 
@@ -69,7 +96,31 @@ describe("unknownNumbers", () => {
   });
 
   it("малые целые — счёт пунктов, не данные", () => {
-    expect(unknownNumbers({ ...valid, nextSteps: ["Сделайте 3 шага", "Проверьте 2 участка", "Пилот"] }, facts)).toEqual([]);
+    expect(unknownNumbers({ ...valid, nextSteps: ["Сделайте 3 шага", "Проверьте 2 участка", "1. Обследование\n2) Пилот"] }, facts)).toEqual([]);
+  });
+
+  it("не принимает положительный NPV, если в фактах есть только отрицательное значение", () => {
+    const negative = { ...facts, recommended: { ...facts.recommended!, metrics: { NPV: "−18 000 000 ₽" } } };
+    const baseline = { ...valid, summary: "NPV −18 000 000 ₽", whyThisScenario: "Нужна проверка", recommendations: [{ action: "Запросите КП", why: "Нужна цена" }], whenConclusionChanges: [] };
+    expect(unknownNumbers(baseline, negative)).toEqual([]);
+    expect(unknownNumbers({ ...baseline, summary: "NPV положительный: 18 000 000 ₽" }, negative)).toEqual([18000000]);
+    expect(unknownNumbers({ ...baseline, summary: "NPV -18 000 000 ₽" }, negative)).toEqual([]);
+    expect(unknownNumbers({ ...baseline, summary: "NPV−18 000 000 ₽" }, negative)).toEqual([]);
+  });
+
+  it.each(["Сервис стоит 3 ₽ в год", "Скидка 2 %", "Окупится за 1 год", "Доставка за 5 дней", "NPV 0", "Платформа стоит 3 рубля", "Пилот длится 2 месяца", "Зарядка длится 1 час", "Расходы −3 ₽", "Доход +3 ₽"])("проверяет малые числа в значимом контексте: %s", (summary) => {
+    const noNumbers: AdviceFacts = { object: "Склад", recommended: null, alternatives: [{ name: "База", kind: "База", metrics: {}, risks: [] }], platformConclusion: { headline: "Нет выбора", points: [] }, limitations: [] };
+    const content: AiAdviceContent = { summary, whyThisScenario: "Нет выбора", recommendations: [{ action: "Запросите КП", why: "Нет цены" }], risks: [], whenConclusionChanges: [], nextSteps: ["Пилот"], missingData: [] };
+    expect(unknownNumbers(content, noNumbers)).not.toEqual([]);
+  });
+
+  it("разрешает малое значение, действительно присутствующее в фактах", () => {
+    expect(unknownNumbers({ ...valid, summary: "Срок сравнения 5 лет" }, facts)).toEqual([]);
+  });
+
+  it("не пропускает числовой токен, переполняющий Number", () => {
+    expect(unknownNumbers({ ...valid, summary: "NPV " + "9".repeat(310) + " ₽" }, facts)).toEqual([Infinity]);
+    expect(unknownNumbers({ ...valid, summary: "NPV −" + "9".repeat(310) + " ₽" }, facts)).toEqual([-Infinity]);
   });
 });
 

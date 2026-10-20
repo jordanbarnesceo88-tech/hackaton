@@ -59,6 +59,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
       return apiJson({ advice: { content: stored.content, model: stored.model, createdAt: stored.createdAt.toISOString(), stale: false } satisfies AdviceView });
     }
     const limited = await rateLimit(`ai-advice:user:${user.userId}`, RATE);
+    if (limited.unavailable) return apiError(503, "Не удалось проверить лимит рекомендаций ИИ. Повторите попытку позже.");
     if (!limited.ok) return tooManyRequests(limited.retryAfterSec);
     const { content } = await generateAdvice(facts, config, { signal: request.signal });
     const saved = await saveAdvice(prisma, projectId, user.userId, expectedRevision, { factsHash, model: config.model, promptVersion: ADVICE_PROMPT_VERSION, content });

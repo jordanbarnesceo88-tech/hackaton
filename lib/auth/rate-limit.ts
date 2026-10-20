@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/client";
 
-export type RateLimitResult = { ok: boolean; retryAfterSec: number };
+export type RateLimitResult = { ok: boolean; retryAfterSec: number; unavailable?: true };
 
 /**
  * DB-backed fixed-window rate limiter. Works on a single Docker instance AND serverless/
@@ -10,6 +10,7 @@ export type RateLimitResult = { ok: boolean; retryAfterSec: number };
  *
  * Fail-open: if the DB read/write errors, allow the request (never lock users out on infra
  * hiccups) — the limiter is defense-in-depth, not the primary auth control.
+ * Cost-bearing callers must check `unavailable` and refuse work when the quota cannot be checked.
  *
  * Counting is a single atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING`. This was a
  * read-then-write, which the previous comment described as over-counting "by up to N". Measured,
@@ -54,7 +55,7 @@ export async function rateLimit(
     `;
 
     const row = rows[0];
-    if (!row) return { ok: true, retryAfterSec: 0 }; // shouldn't happen; fail open
+    if (!row) return { ok: true, retryAfterSec: 0, unavailable: true };
 
     const count = Number(row.count);
     const windowStart =
@@ -66,7 +67,7 @@ export async function rateLimit(
     if (count > limit) return { ok: false, retryAfterSec: Math.max(1, retryAfterSec) };
     return { ok: true, retryAfterSec };
   } catch {
-    return { ok: true, retryAfterSec: 0 }; // fail-open
+    return { ok: true, retryAfterSec: 0, unavailable: true }; // auth remains fail-open
   }
 }
 

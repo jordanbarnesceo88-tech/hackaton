@@ -58,4 +58,28 @@ describe("generateAdvice", () => {
     expect(error).toMatchObject({ code: "AI_BAD_RESPONSE" });
     expect(broken.bodies).toHaveLength(2);
   });
+
+  it("отклоняет потерю минуса и выдуманную малую цену до выдачи ответа", async () => {
+    const negativeFacts = { ...facts, recommended: { ...facts.recommended!, metrics: { NPV: "−18 000 000 ₽" } } };
+    const changedSign = service(JSON.stringify(answer("NPV положительный: 18 000 000 ₽")));
+    await expect(generateAdvice(negativeFacts, config, { fetchImpl: changedSign.fetchImpl })).rejects.toMatchObject({ code: "AI_UNVERIFIED_NUMBERS" });
+    expect(changedSign.bodies).toHaveLength(2);
+    const tinyPrice = service(JSON.stringify(answer("Сервис стоит 3 ₽ в год")));
+    await expect(generateAdvice(facts, config, { fetchImpl: tinyPrice.fetchImpl })).rejects.toMatchObject({ code: "AI_UNVERIFIED_NUMBERS" });
+  });
+
+  it("перезапрашивает длинный ответ целиком и не выдаёт обрезанный текст", async () => {
+    const tooLong = JSON.stringify(answer("а".repeat(1200) + " Пилот не подтверждён."));
+    const recovered = service(tooLong, JSON.stringify(answer("NPV 4,0 млн ₽")));
+    expect(await generateAdvice(facts, config, { fetchImpl: recovered.fetchImpl })).toEqual({ content: answer("NPV 4,0 млн ₽"), attempts: 2 });
+    const repeated = service(tooLong);
+    await expect(generateAdvice(facts, config, { fetchImpl: repeated.fetchImpl })).rejects.toMatchObject({ code: "AI_BAD_RESPONSE" });
+    expect(repeated.bodies).toHaveLength(2);
+  });
+
+  it("отклоняет непредставимое число вместо обхода проверки через Number overflow", async () => {
+    const overflow = service(JSON.stringify(answer("NPV " + "9".repeat(310) + " ₽")));
+    await expect(generateAdvice(facts, config, { fetchImpl: overflow.fetchImpl })).rejects.toMatchObject({ code: "AI_UNVERIFIED_NUMBERS" });
+    expect(overflow.bodies).toHaveLength(2);
+  });
 });

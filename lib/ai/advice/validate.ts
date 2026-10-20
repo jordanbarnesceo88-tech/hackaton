@@ -1,15 +1,15 @@
 import type { AdviceFacts, AdviceSeverity, AiAdviceContent } from "./types";
+import { ADVICE_TEXT_MAX_LENGTH } from "./prompt";
 
 /**
  * Проверка ответа ИИ до показа: форма по схеме (сервис обещает strict, но ответ всё равно чужой
- * текст) и числа. Каждое число ответа должно встречаться в фактах — так ИИ не может «досчитать»
- * NPV или придумать срок. Числа разбираются по русской записи: группы по три цифры через пробел,
+ * текст) и наличие чисел в фактах. Это лексическая проверка: она не доказывает, что число
+ * относится к тому же показателю, единице или сценарию. Числа разбираются по русской записи: группы по три цифры через пробел,
  * дробная часть через запятую («38 500 000 ₽», «4,1 г.»); иначе «AMR 1500 2 200 000 ₽» слипалось
  * в одно число (ложная тревога на первом прогоне).
  */
 
 /** Предел длины одной строки и числа пунктов списка — чтобы чужой текст не ломал вёрстку. */
-const MAX_TEXT = 1200;
 const MAX_ITEMS = 8;
 
 const SEVERITIES: ReadonlySet<string> = new Set<AdviceSeverity>(["high", "medium", "low"]);
@@ -19,20 +19,21 @@ export type ParsedAdvice = { ok: true; content: AiAdviceContent } | { ok: false;
 
 /** Строка без хвостовой запятой и точки с запятой: модель ставит их в конце пунктов («Запросите КП, — …»). */
 function str(v: unknown): string | null {
-  const s = typeof v === "string" ? v.trim().replace(/[\s,;]+$/, "") : "";
-  return s ? s.slice(0, MAX_TEXT) : null;
+  if (typeof v !== "string" || v.length > ADVICE_TEXT_MAX_LENGTH) return null;
+  const s = v.trim().replace(/[\s,;]+$/, "");
+  return s || null;
 }
 
-function strings(v: unknown): string[] | null {
-  if (!Array.isArray(v)) return null;
+function strings(v: unknown, maxItems = MAX_ITEMS): string[] | null {
+  if (!Array.isArray(v) || v.length > maxItems) return null;
   const out = v.map(str);
-  return out.every((s): s is string => s !== null) ? out.slice(0, MAX_ITEMS) : null;
+  return out.every((s): s is string => s !== null) ? out : null;
 }
 
-function records<T>(v: unknown, read: (item: Record<string, unknown>) => T | null): T[] | null {
-  if (!Array.isArray(v)) return null;
+function records<T>(v: unknown, maxItems: number, read: (item: Record<string, unknown>) => T | null): T[] | null {
+  if (!Array.isArray(v) || v.length > maxItems) return null;
   const out = v.map((item) => (item && typeof item === "object" ? read(item as Record<string, unknown>) : null));
-  return out.every((x): x is T => x !== null) ? out.slice(0, MAX_ITEMS) : null;
+  return out.every((x): x is T => x !== null) ? out : null;
 }
 
 /** Названия сценариев из фактов — допустимые значения поля «сценарий» у риска. */
@@ -55,17 +56,17 @@ export function parseAdvice(raw: string, scenarioNames: readonly string[]): Pars
   if (!data || typeof data !== "object") return { ok: false, reason: "ответ не объект" };
   const d = data as Record<string, unknown>;
   const summary = str(d.summary), whyThisScenario = str(d.whyThisScenario);
-  const recommendations = records(d.recommendations, (r) => {
+  const recommendations = records(d.recommendations, 5, (r) => {
     const action = str(r.action), why = str(r.why);
     return action && why ? { action, why } : null;
   });
   const known = new Set(scenarioNames);
-  const risks = records(d.risks, (r) => {
+  const risks = records(d.risks, MAX_ITEMS, (r) => {
     const scenario = str(r.scenario), risk = str(r.risk), mitigation = str(r.mitigation), checkOnPilot = str(r.checkOnPilot);
     const severity = typeof r.severity === "string" && SEVERITIES.has(r.severity) ? (r.severity as AdviceSeverity) : null;
     return scenario && severity && risk && mitigation && checkOnPilot ? { scenario, severity, risk, mitigation, checkOnPilot } : null;
   });
-  const whenConclusionChanges = strings(d.whenConclusionChanges), nextSteps = strings(d.nextSteps), missingData = strings(d.missingData);
+  const whenConclusionChanges = strings(d.whenConclusionChanges, 5), nextSteps = strings(d.nextSteps, 5), missingData = strings(d.missingData);
   if (!summary || !whyThisScenario || !recommendations?.length || !risks || !whenConclusionChanges || !nextSteps?.length || !missingData) {
     return { ok: false, reason: "ответ не по схеме" };
   }
@@ -77,12 +78,16 @@ export function parseAdvice(raw: string, scenarioNames: readonly string[]): Pars
   return { ok: true, content: { summary, whyThisScenario, recommendations, risks: knownRisks, whenConclusionChanges, nextSteps, missingData } };
 }
 
-/** Число в русской записи: «38 500 000», «4,1», «−4,1», «132,5». Знак отбрасывается — его сверяет смысл, не число. */
-const NUMBER = /\d{1,3}(?:[   ]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?/g;
+/** Знак перед числом сохраняется; дефис внутри AMR-1500 и диапазона 30-70 — не минус. */
+const NUMBER = /(?:[+−][   ]*|(?<![\p{L}\p{N}])-[   ]*)?(?:\d{1,3}(?:[   ]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)/gu;
+
+function numberValue(raw: string): number {
+  return Number(raw.replace(/[   ]/g, "").replace("−", "-").replace(",", "."));
+}
 
 export function numbersIn(text: string): number[] {
   return [...text.matchAll(NUMBER)]
-    .map((m) => Number(m[0].replace(/[   ]/g, "").replace(",", ".")))
+    .map((m) => numberValue(m[0]))
     .filter(Number.isFinite);
 }
 
@@ -100,14 +105,23 @@ export function adviceText(content: AiAdviceContent): string {
 }
 
 /**
- * Числа ответа, которых нет в фактах. Малые целые (до 5) не проверяются: это счёт пунктов и
- * шагов, а не данные расчёта.
+ * Числа ответа, которых нет в фактах. Исключение — только явно обозначенный счёт шагов,
+ * пунктов или участков и нумерация списка. Малые цены, проценты и сроки проверяются тоже.
  */
 export function unknownNumbers(content: AiAdviceContent, facts: AdviceFacts): number[] {
   const known = new Set(numbersIn(JSON.stringify(facts)));
   const unknown = new Set<number>();
-  for (const n of numbersIn(adviceText(content))) {
-    if (Number.isInteger(n) && n <= 5) continue;
+  const text = adviceText(content);
+  for (const match of text.matchAll(NUMBER)) {
+    const n = numberValue(match[0]);
+    // Overflow cannot match the finite facts set, so it must remain an unknown token.
+    if (Number.isInteger(n) && n >= 0 && n <= 5 && !/^[+−-]/u.test(match[0])) {
+      const before = text.slice(0, match.index);
+      const after = text.slice(match.index + match[0].length);
+      const listNumber = /(?:^|\n)\s*$/u.test(before) && /^[.)]\s/u.test(after);
+      const structuralCount = /^\s+(?:шаг(?:а|ов)?|пункт(?:а|ов)?|участ(?:ок|ка|ков))(?!\p{L})/iu.test(after);
+      if (listNumber || structuralCount) continue;
+    }
     if (!known.has(n)) unknown.add(n);
   }
   return [...unknown];

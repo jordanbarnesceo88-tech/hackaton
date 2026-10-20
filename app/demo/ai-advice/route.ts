@@ -42,6 +42,7 @@ export async function POST(request: Request): Promise<Response> {
     const facts = parseAdviceFacts(body.value.facts);
     if (!facts) return apiError(422, "Факты расчёта не прошли проверку. Пересчитайте демо и повторите");
     const limited = await rateLimit(`ai-advice:guest:ip:${clientIp(request.headers)}`, RATE);
+    if (limited.unavailable) return apiError(503, "Не удалось проверить лимит рекомендаций ИИ. Повторите попытку позже.");
     if (!limited.ok) return tooManyRequests(limited.retryAfterSec);
     const { content } = await generateAdvice(facts, config, { signal: request.signal });
     return apiJson({ advice: { content, model: config.model, createdAt: new Date().toISOString(), stale: false } satisfies AdviceView });
