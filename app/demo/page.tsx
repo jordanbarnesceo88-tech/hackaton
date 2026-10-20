@@ -8,6 +8,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import type { NormPanelRow } from "@/components/project/norms-panel";
 import { Workspace } from "@/components/project/workspace";
+import { readAiConfig } from "@/lib/ai/config";
 import { getCatalogProduct, getNormRows, getProcessesFor, type NormRow } from "@/lib/catalog/queries";
 import { buildProductDemoPreview } from "@/lib/projects/product-demo";
 import { prisma } from "@/lib/db/client";
@@ -156,6 +157,7 @@ export default async function DemoPage({
         processes={processes}
         initialModel={demo.model}
         initialMs={demo.ms}
+        ai={readAiConfig() ? { enabled: true, advice: null } : undefined}
       />
     </div>
   );

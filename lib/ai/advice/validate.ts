@@ -13,6 +13,7 @@ const MAX_TEXT = 1200;
 const MAX_ITEMS = 8;
 
 const SEVERITIES: ReadonlySet<string> = new Set<AdviceSeverity>(["high", "medium", "low"]);
+const SEVERITY_ORDER: Readonly<Record<AdviceSeverity, number>> = { high: 0, medium: 1, low: 2 };
 
 export type ParsedAdvice = { ok: true; content: AiAdviceContent } | { ok: false; reason: string };
 
@@ -39,7 +40,8 @@ export function adviceScenarioNames(facts: AdviceFacts): string[] {
 
 /**
  * Ответ ИИ → проверенное содержимое. Риск с неизвестным сценарием отбрасывается, а не валит
- * весь ответ: остальной текст от этого не становится неверным.
+ * весь ответ: остальной текст от этого не становится неверным. Риски — от высоких к низким, как
+ * в отчёте (модель порядок не соблюдает).
  */
 export function parseAdvice(raw: string, scenarioNames: readonly string[]): ParsedAdvice {
   let data: unknown;
@@ -65,7 +67,11 @@ export function parseAdvice(raw: string, scenarioNames: readonly string[]): Pars
   if (!summary || !whyThisScenario || !recommendations?.length || !risks || !whenConclusionChanges || !nextSteps?.length || !missingData) {
     return { ok: false, reason: "ответ не по схеме" };
   }
-  const knownRisks = risks.filter((r) => known.has(r.scenario));
+  const knownRisks = risks
+    .filter((r) => known.has(r.scenario))
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => SEVERITY_ORDER[a.r.severity] - SEVERITY_ORDER[b.r.severity] || a.i - b.i)
+    .map(({ r }) => r);
   return { ok: true, content: { summary, whyThisScenario, recommendations, risks: knownRisks, whenConclusionChanges, nextSteps, missingData } };
 }
 

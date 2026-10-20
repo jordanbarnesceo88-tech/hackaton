@@ -72,3 +72,11 @@ describe("unknownNumbers", () => {
     expect(unknownNumbers({ ...valid, nextSteps: ["Сделайте 3 шага", "Проверьте 2 участка", "Пилот"] }, facts)).toEqual([]);
   });
 });
+
+describe("порядок рисков", () => {
+  it("от высоких к низким, внутри важности — как ответила модель", () => {
+    const risk = (severity: "high" | "medium" | "low", text: string) => ({ ...valid.risks[0], severity, risk: text });
+    const parsed = parseAdvice(JSON.stringify({ ...valid, risks: [risk("medium", "м1"), risk("high", "в1"), risk("low", "н1"), risk("high", "в2")] }), names);
+    expect(parsed.ok && parsed.content.risks.map((r) => r.risk)).toEqual(["в1", "в2", "м1", "н1"]);
+  });
+});

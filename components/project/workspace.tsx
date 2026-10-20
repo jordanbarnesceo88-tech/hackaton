@@ -69,6 +69,9 @@ import { SelectionPanel } from "./selection-panel";
 import { SensitivityPanel } from "./sensitivity-panel";
 import { StepNav, StepPager, TZ_STEP_COUNT, TZ_STEPS, stepHeading } from "./step-nav";
 import { VersionBanner } from "./version-banner";
+import { AiAdvicePanel } from "./ai-advice-panel";
+import { buildAdviceFacts } from "@/lib/ai/advice/facts";
+import type { AdviceView } from "@/lib/ai/advice/view";
 
 /**
  * Рабочая область проекта — весь путь ТЗ §2.2 на одной странице, восемь шагов с якорями
@@ -149,6 +152,8 @@ export type WorkspaceProps = {
   };
   /** Журнал корректировок из БД (владелец). */
   changes?: ChangeLogEntry[];
+  /** Рекомендации ИИ: показываются, если на сервере настроен ИИ; advice — сохранённый ответ проекта. */
+  ai?: { enabled: boolean; advice: AdviceView | null };
 };
 
 // ——————————————————————————— Чистые помощники ———————————————————————————
@@ -444,6 +449,7 @@ export function Workspace({
   initialMs,
   stored,
   changes = [],
+  ai,
 }: WorkspaceProps) {
   const uid = useId();
   const facility = project.facility;
@@ -1603,7 +1609,17 @@ export function Workspace({
         />
         <div className="rounded-lg border px-4 py-3">
           <Conclusion conclusion={model.conclusion} />
-        </div></> : <p role="status" className="rounded border border-border p-4 text-sm" data-comparison-pending>
+        </div>
+        {ai?.enabled && <div className="rounded-lg border px-4 py-3">
+          <AiAdvicePanel
+            endpoint={guest ? "/demo/ai-advice" : `/projects/${project.id}/ai-advice`}
+            initial={ai.advice}
+            body={guest ? () => ({ facts: buildAdviceFacts({ ...model, sim: calc.sims ?? {} }) }) : undefined}
+            ready={guest ? serverRun.kind === "ready" && calc.simSource === "server" && !stale : mode === "owner" && !dirty && (archive || serverRun.kind === "ready")}
+            reason={serverRun.kind === "running" ? "Рекомендации станут доступны после расчёта." : guest ? "Пересчитайте условия, чтобы получить рекомендации." : mode === "owner" && dirty ? "Сохраните проект: рекомендации готовятся по сохранённому расчёту и попадают в отчёт." : "Рекомендации доступны владельцу в рабочей версии проекта."}
+            calculationKey={guest ? calc.token : revision ?? 0}
+          />
+        </div>}</> : <p role="status" className="rounded border border-border p-4 text-sm" data-comparison-pending>
           Сравнение и рекомендация ожидают серверного расчёта текущих условий. Состав сценариев можно настроить ниже.
         </p>}
 

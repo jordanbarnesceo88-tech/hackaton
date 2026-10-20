@@ -5,6 +5,8 @@ import { connection } from "next/server";
 import type { ChangeLogEntry } from "@/components/project/change-log";
 import type { NormPanelRow } from "@/components/project/norms-panel";
 import { Workspace } from "@/components/project/workspace";
+import { projectAdviceView } from "@/lib/ai/advice/load";
+import { readAiConfig } from "@/lib/ai/config";
 import { requireUser } from "@/lib/auth/guards";
 import { getNormRows, getProcessesFor, type NormRow } from "@/lib/catalog/queries";
 import { prisma } from "@/lib/db/client";
@@ -106,6 +108,10 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
     getProcessesFor(prisma, project.facility),
   ]);
   const facilityLabel = FACILITY_LABELS[project.facility] ?? project.facility;
+  // Рекомендации ИИ — по сохранённому расчёту: без него и без настроенного ИИ блока нет.
+  const ai = readAiConfig() && project.results
+    ? { enabled: true, advice: await projectAdviceView(prisma, project.id, user.userId, project.results) }
+    : undefined;
   const defs = (project.results?.runtime?.paramDefs ?? live.paramDefs).filter((d) => d.facility === project.facility);
   const baseValues: ParamValues = Object.fromEntries(defs.map((d) => [d.key, d.base]));
   const processes = dbProcesses.length > 0 ? dbProcesses : processesForFacility(project.facility);
@@ -170,6 +176,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         initialMs={first.ms}
         stored={stored}
         changes={(changes ?? []).map(toChangeLogEntry)}
+        ai={ai}
       />
     </div>
   );
