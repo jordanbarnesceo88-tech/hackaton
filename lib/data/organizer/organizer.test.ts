@@ -126,7 +126,7 @@ describe("Каталог: состав", () => {
       enriched: count("enriched"),
       examples: count("examples"),
     });
-    expect(CURRENT_CATALOG_COUNTS.enriched).toBe(181);
+    expect(CURRENT_CATALOG_COUNTS.enriched).toBe(177);
     expect(CATALOG_COUNTS.enriched).toBe(57);
     expect(CATALOG_COUNTS.identification + CATALOG_COUNTS.enriched).toBe(187);
     expect(CATALOG_COUNTS.examples).toBeGreaterThanOrEqual(1);

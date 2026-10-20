@@ -5,7 +5,7 @@ import source from "./customer-videos.source.json";
 import bindings from "./customer-videos.bindings.json";
 import verification from "./customer-videos.verification.json";
 import review from "./customer-videos.review.json";
-import { CATALOG_VIDEOS, CUSTOMER_VIDEO_AUDIT, FEATURED_CUSTOMER_VIDEOS, SCHOOL_CC1_REVIEW, SHEET_VIDEOS, videosForProduct } from "./customer-videos";
+import { CATALOG_VIDEOS, CUSTOMER_VIDEO_AUDIT, SCHOOL_CC1_REVIEW, SHEET_VIDEOS, videosForProduct } from "./customer-videos";
 
 describe("spreadsheet video provenance and exact model bindings", () => {
   it("accounts for every source row and URL exactly once, including six explicit no-link entries", () => {
@@ -45,7 +45,9 @@ describe("spreadsheet video provenance and exact model bindings", () => {
     expect(contains("avtomakon-ak-sc80", "777001:14")).toBe(true); // Description explicitly says АК-SC80.
     expect(contains("pudu-cc1", "777001:21")).toBe(true); // Description resolves generic PUDU title.
     expect(contains("dikom-dmr-600", "777003:19")).toBe(true);
-    expect(contains("dikom-dmr-carrier-p", "777003:19")).toBe(true);
+    expect(contains("dikom-dmr-carrier-p", "777003:19")).toBe(false);
+    expect(contains("dikom-dmr-300-carrier-b", "777005:5")).toBe(true);
+    expect(contains("evocargo-n1", "777004:11")).toBe(false);
     expect(contains("dikom-dmr-1200", "777003:19")).toBe(false);
     expect(contains("evocargo-n1", "777004:12")).toBe(true);
     expect(contains("evocargo-n1", "777004:13")).toBe(false); // PEK says Evocargo, no N1.
@@ -74,9 +76,6 @@ describe("spreadsheet video provenance and exact model bindings", () => {
     expect(SCHOOL_CC1_REVIEW).toMatchObject({ origin: "supplemental", platform: "Rutube", kind: "customer-interview", publisher: "SPI robotics", publisherRole: "Интегратор", publishedAt: "2025-07-03" });
     expect(SCHOOL_CC1_REVIEW.scope).toContain("Иван Мальцев"); expect(SCHOOL_CC1_REVIEW.scope).toContain("Wunderpark");
     expect(videosForProduct("pudu-cc1")).toContain(SCHOOL_CC1_REVIEW);
-    expect(FEATURED_CUSTOMER_VIDEOS).toHaveLength(3);
-    expect(FEATURED_CUSTOMER_VIDEOS.map(v => v.kind)).toEqual(["customer-interview", "customer-interview", "customer-talk"]);
-    expect(FEATURED_CUSTOMER_VIDEOS.every(v => v.descriptionPresent)).toBe(true);
     expect(new Set(CATALOG_VIDEOS.map(v => v.url)).size).toBe(66);
   });
 });

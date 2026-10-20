@@ -89,6 +89,27 @@ describe("saved v2 specification import", () => {
     expect(result.audit.deltas).toEqual([]);
   });
 
+  it("quarantines the complete reviewed quantity and variant groups without losing source rows", () => {
+    const reasons = new Set(["scaled-speed-not-travel-speed", "training-already-in-hardware-package", "whole-complex-mass-not-robot-mass",
+      "shaft-height-not-robot-load-lift", "maximum-takeoff-mass-not-own-mass", "repeatability-not-absolute-positioning",
+      "optional-ranging-depth-error-not-planar-positioning", "base-chassis-climate-not-autonomous-system", "family-platform-not-explicit-mark-a",
+      "rozum-cafe-not-confirmed-r-cafe-1-3", "kingpro-archived-platform-not-facade-configuration", "gorodovoy-chassis-not-established",
+      "aidol-walking-desktop-unspecified-variant", "ronavi-family-offer-model-rcm-not-identified", "mass-basis-not-stated",
+      "legat-vs-legat-patrol-equivalence-not-established", "robocv-x-motion-ng-not-confirmed-stacker"]);
+    const reviewed = audit.decisions.filter(decision => reasons.has(decision.reason));
+    expect(reviewed).toHaveLength(131);
+    expect(new Set(reviewed.map(decision => decision.reason)).size).toBe(17);
+    for (const decision of reviewed) {
+      expect(decision.numeric, `source row ${decision.row}`).toBe(false);
+      expect(decision.disposition, `source row ${decision.row}`).toBe("reference");
+      const value = generated.patches[decision.slug as keyof typeof generated.patches].characteristics[decision.targetKey as never] as Sourced<CharValue> | undefined;
+      const evidence = [value, ...(value?.alternatives ?? [])].filter(item => item?.sourceRef?.includes(`Найдено!${decision.row};`));
+      expect(evidence.length, `retained source row ${decision.row}`).toBeGreaterThan(0);
+      for (const item of evidence) expect(item?.confirmed).toBe(false);
+    }
+    for (const row of [219, 1124, 2254]) expect(audit.decisions.find(decision => decision.row === row)?.reason).not.toBe("maximum-takeoff-mass-not-own-mass");
+  });
+
   it("promotes enriched from actual substantive field-level sourcing, without pretending financial readiness", () => {
     const rows = [fixture(4000,"100"),fixture(4001,"1.5","speedMps","м/с"),fixture(4002,"SLAM","navigation",""),fixture(4003,"Wi-Fi","connectivity",""),fixture(4004,"API","integration","")];
     const result = build(rows), patch = result.runtime.patches["fixture-model"]!;

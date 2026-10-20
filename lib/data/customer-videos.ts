@@ -4,9 +4,9 @@ import bindings from "./customer-videos.bindings.json";
 import review from "./customer-videos.review.json";
 
 export const VIDEO_KIND_LABELS = {
-  "claimed-review": "Отзыв — по названию автора", "customer-interview": "Интервью с заказчиком — по описанию автора",
-  "customer-talk": "Выступление с участием заказчика — по описанию автора",
-  "customer-case": "Опыт заказчика — по описанию автора", "author-case": "Кейс внедрения — по материалу автора",
+  "claimed-review": "Отзыв", "customer-interview": "Интервью с заказчиком",
+  "customer-talk": "Выступление с участием заказчика",
+  "customer-case": "Опыт заказчика", "author-case": "Кейс внедрения",
   demonstration: "Демонстрация", overview: "Обзор", instruction: "Инструкция", report: "Репортаж",
   conference: "Доклад", "supplier-interview": "Интервью с поставщиком",
 } as const;
@@ -25,7 +25,7 @@ const PRODUCT_NAMES: Readonly<Record<string, string>> = {
   "ronavi-h1500": "Ronavi H1500", "robocv-shtabeler": "Робот-штабелёр RoboCV", "sm-robotics-mule": "MULE",
   "stelkon-pallet-shuttle": "Pallet Shuttle", "smp-tral-patrul-5": "Трал Патруль 5", "evocargo-n1": "EVOCARGO N1",
   "avtomakon-ai-stock-counter-12m": "AI Stock Counter 12M", "pudubot-2": "PuduBot 2", "pick-by-light": "Pick by light",
-  "pick-by-voice": "Pick by Voice", "dikom-dmr-600": "DMR 600", "dikom-dmr-carrier-p": "DMR Carrier P",
+  "pick-by-voice": "Pick by Voice", "dikom-dmr-600": "DMR 600", "dikom-dmr-carrier-p": "DMR Carrier P", "dikom-dmr-300-carrier-b": "DMR 300 Carrier B",
 };
 
 /** Curated links only: no runtime requests, player embeds or inference of financial/operating evidence. */
@@ -57,9 +57,12 @@ export const SCHOOL_CC1_REVIEW: CatalogVideo = {
   sourceUrl: "https://rutube.ru/api/video/e9d23b3512cbdbad16363a493cb88841/", sourceLabel: "Страница и метаданные Rutube; дополнительный источник вне таблицы", origin: "supplemental",
 };
 export const CATALOG_VIDEOS: readonly CatalogVideo[] = [SCHOOL_CC1_REVIEW, ...SHEET_VIDEOS];
-export const FEATURED_CUSTOMER_VIDEOS = [SCHOOL_CC1_REVIEW, ...["777005:9", "777004:33"].map(id => SHEET_VIDEOS.find(video => video.id === id)!)];
+export function videosForProducts(productSlugs: readonly string[]): readonly CatalogVideo[] {
+  const slugs = new Set(productSlugs);
+  return CATALOG_VIDEOS.filter(video => video.products.some(product => slugs.has(product.slug)));
+}
 export function videosForProduct(productSlug: string): readonly CatalogVideo[] {
-  return CATALOG_VIDEOS.filter(video => video.products.some(product => product.slug === productSlug));
+  return videosForProducts([productSlug]);
 }
 export const CUSTOMER_VIDEO_AUDIT = {
   sourceRecords: source.records.length, sourceLinks: SHEET_VIDEOS.length,

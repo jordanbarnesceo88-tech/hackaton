@@ -9,6 +9,7 @@ import { simInputIdentity } from "@/lib/sim/identity";
 import { createSpatialProjectSnapshot, type SpatialProjectSnapshot, type SpatialProjectResult } from "@/lib/sim/spatial-bridge";
 import { buildSpatialFinancialScenario, parseSpatialScenarioProposal, type SpatialScenarioProposal } from "@/lib/sim/spatial-proposal";
 import { DecisionSummary } from "./decision-summary";
+import { ScenarioCustomerVideos } from "./scenario-customer-videos";
 import { CapacityCheck } from "./capacity-check";
 import { PilotPlan, type PilotFormDraft } from "./pilot-plan";
 import { OperationsStaffing } from "./operations-staffing";
@@ -1757,6 +1758,7 @@ export function Workspace({
         <div className="rounded-lg border px-4 py-3">
           <Conclusion conclusion={model.conclusion} />
         </div>
+        {!archive && <ScenarioCustomerVideos model={model} scenarioKey={recommendedKey} stale={stale} id={`${uid}-recommended-videos`} />}
         {ai?.enabled && <div className="rounded-lg border px-4 py-3">
           <AiAdvicePanel
             endpoint={guest ? "/demo/ai-advice" : `/projects/${project.id}/ai-advice`}
@@ -1916,6 +1918,7 @@ export function Workspace({
           onSimulation={() => goToStep(7, { focusHeading: true })}
           onCapacityCheck={editable && !archive ? onCapacityCheck : undefined}
           onPilot={() => { const plan = document.getElementById(`${uid}-pilot`); plan?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); plan?.focus({ preventScroll: true }); }} />}
+        {!archive && calculationReady && <ScenarioCustomerVideos model={model} scenarioKey={focusKey} stale={stale} id={`${uid}-result-videos`} />}
         {calculationReady && focusResult?.status === "ok" && focusResult.kind !== "asis" && <section id={`${uid}-pilot`} tabIndex={-1} className="min-w-0 scroll-mt-24">{archive && !initialModel.scenarios.some(scenario => scenario.key === focusKey)
           ? <p className="callout text-sm" data-tone="info">Выбранного сценария нет в сохранённом расчёте. Выберите сохранённый сценарий, чтобы посмотреть его план пилота.</p>
           : <PilotPlan

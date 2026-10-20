@@ -2,7 +2,6 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { CleaningRobot3D } from "@/components/landing/cleaning-robot-3d";
-import { CustomerVideos } from "@/components/catalog/customer-videos";
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,7 +9,7 @@ import { cn } from "@/lib/utils";
  * к пилоту, под ними во всю ширину — робот Alfa Robot убирает офисный мусор.
  *
  * С xl (1280px, шапка там в одну строку, 60px) первый блок занимает минимум экран:
- * схема забирает остаток высоты. Видео и отзывы идут ниже отдельным блоком. Уже — обычная прокрутка:
+ * схема забирает остаток высоты. Уже — обычная прокрутка:
  * шапка переносится, а текст в столбик в один экран не помещается.
  */
 // Первый ряд — три входа одного размера (xl): одно основное действие залито, остальные —
@@ -96,7 +95,6 @@ export default function Home() {
         </Link>
       </footer>
     </div>
-    <CustomerVideos />
     </div>
   );
 }

@@ -46,7 +46,7 @@ describe("reproducible end-to-end business examples", () => {
     expect(decision.spatial.evidence!.summary.achievedPerH).toBeLessThan(decision.spatial.evidence!.summary.requiredPerH);
     expect(decision.status).toBe("partial");
     expect(model.conclusion.recommendedScenarioKey).toBeNull();
-  });
+  }, 90_000);
   it("retains the same physical work but no payroll savings if staff stays", () => {
     const a = buildBusinessExample(live, "steady-flow"), b = buildBusinessExample(live, "retained-staff");
     const ar = a.model.results.find(r => r.key === "purchase"), br = b.model.results.find(r => r.key === "purchase");

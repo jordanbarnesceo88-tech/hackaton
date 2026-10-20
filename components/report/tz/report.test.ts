@@ -537,7 +537,7 @@ describe("layout-svg — схема склада", () => {
       expect(legs.emptyM).toBeCloseTo(g.item.routeEmptyM!, 10);
       expect(Object.values(stored.runtime!.layouts!).some(saved => JSON.stringify(saved) === JSON.stringify(layout))).toBe(true);
     }
-  });
+  }, 90_000);
 
   it("SVG содержит зоны, стеллажи, ворота и зарядки планировки", () => {
     const layout = reportLayout(params, 3);

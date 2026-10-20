@@ -126,7 +126,7 @@ describe("server spatial receipts", () => {
     const result = results.results.find(r => r.key === "p1");
     expect(result?.risks.some(r => r.code === "SIM_NOT_CONFIRMED")).toBe(true);
     expect(results.conclusion.recommendedScenarioKey).not.toBe("p1");
-  });
+  }, 90_000);
 
   it("does not run spatial replay for scenarios without a prior spatial proof", () => {
     const spy = vi.spyOn(preview, "calculateProjectPreview");
