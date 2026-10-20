@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { CHARACTERISTIC_KEYS } from "../../tz/characteristics";
 import { PROCESS_DEFS, SOLUTION_TYPE_DEFS, processDef } from "../../tz/processes";
 import type { CharValue, ParamSpec, ProductSeed, Sourced } from "../../tz/types";
-import { CATALOG, catalogProduct } from "./catalog";
+import { CATALOG, CURRENT_CATALOG_COUNTS, catalogProduct } from "./catalog";
 import { DUPLICATE_ROW_MERGES, PARAM_EXTRAS } from "./decisions";
 import { CLEANING_PARAM_EXTRAS, PARAM_SPECS, baseValuesFor, paramSpecsFor } from "./params";
 import { CATALOG_COUNTS, ORGANIZER_DATA_VERSION } from "./version.generated";
@@ -119,13 +119,14 @@ describe("Каталог: состав", () => {
     expect(new Set(ids).size).toBe(187);
   });
 
-  it("счётчики уровней совпадают с данными: 57 обогащённых, продукты «Примеров решений»", () => {
+  it("счётчики текущего импорта совпадают с каталогом; исходные счётчики организатора сохранены", () => {
     const count = (level: string) => CATALOG.filter((p) => p.level === level).length;
-    expect(CATALOG_COUNTS).toEqual({
+    expect(CURRENT_CATALOG_COUNTS).toEqual({
       identification: count("identification"),
       enriched: count("enriched"),
       examples: count("examples"),
     });
+    expect(CURRENT_CATALOG_COUNTS.enriched).toBe(181);
     expect(CATALOG_COUNTS.enriched).toBe(57);
     expect(CATALOG_COUNTS.identification + CATALOG_COUNTS.enriched).toBe(187);
     expect(CATALOG_COUNTS.examples).toBeGreaterThanOrEqual(1);
@@ -183,7 +184,8 @@ describe("Каталог: состав", () => {
     expect(pudu.level).toBe("examples");
     expect(pudu.organizerCatalogId).toBeNull();
     expect(pudu.flags).toContain("no-price");
-    expect(pudu.characteristics.priceRub).toBeUndefined();
+    expect(typeof pudu.characteristics.priceRub?.value).toBe("string");
+    expect(pudu.characteristics.priceRub?.alternatives?.some(alt => alt.unit === "USD")).toBe(true);
     expect(num(pudu.characteristics.payloadKg?.value)).toBe(10);
     expect(pudu.processes).toEqual(["hospital-delivery"]);
   });

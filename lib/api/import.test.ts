@@ -22,6 +22,20 @@ function errorsOf(raw: unknown): string[] {
 const base = exampleImportSeed();
 
 describe("validateProductSeeds", () => {
+  it("round-trips an explicit alternative conflict and rejects markers on primary values", () => {
+    const seed = structuredClone(base), primary = seed.characteristics.priceRub!;
+    const alternative = { ...primary }; delete alternative.alternatives;
+    primary.alternatives = [{ ...alternative, value: "Условная цена партии", conflict: true }];
+    const result = validateProductSeeds([seed]);
+    expect(result.ok ? [] : result.issues).toEqual([]);
+    if (result.ok) expect(result.seeds[0]!.characteristics.priceRub!.alternatives![0]!.conflict).toBe(true);
+    primary.conflict = true;
+    expect(errorsOf(seed).join(" ")).toContain("только у альтернативного источника");
+    delete primary.conflict;
+    (primary.alternatives[0] as unknown as Record<string, unknown>).conflict = "true";
+    expect(errorsOf(seed).join(" ")).toContain("conflict");
+  });
+
   it("принимает каждый продукт данных организатора (та же форма и те же правила провенанса)", () => {
     const res = validateProductSeeds(CATALOG.slice(0, IMPORT_MAX_PRODUCTS).map((s) => asApiSeed(s)));
     expect(res.ok ? [] : res.issues.slice(0, 5)).toEqual([]);

@@ -26,7 +26,7 @@ test("class preparation and sourced cleaning cards stay reachable and readable",
     await expect(page.locator("body")).toContainText("Цена не подтверждена");
     await expect(page.locator("a[href='/knowledge/cleaner']")).toBeVisible();
     await expect(page.locator("a[href='https://pudurobots.ru/support']").first()).toBeVisible();
-    await expect(page.locator("body")).toContainText("срок не опубликован");
+    await expect(page.locator("body")).toContainText("Гарантия конкретной поставки не подтверждена");
     await expect(page.getByRole("row", { name: /Время зарядки/ })).toContainText(/до\s+180\s+мин/);
     await expect(page.getByRole("row", { name: /Дата общей проверки карточки/ })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);

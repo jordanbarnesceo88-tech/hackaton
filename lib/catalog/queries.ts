@@ -600,6 +600,7 @@ export type CatalogAlternative = {
   confirmed: boolean;
   confidence: string | null;
   asInSource: string | null;
+  basis?: string | null;
 };
 
 /** Характеристика в карточке продукта: значение, как в источнике и полный провенанс (§3.3.4). */
@@ -691,6 +692,7 @@ function parseAlternatives(json: Prisma.JsonValue | null): CatalogAlternative[] 
       confirmed: a.confirmed === true,
       confidence: str(a.confidence),
       asInSource: str(a.asInSource),
+      basis: str(a.basis),
     });
   }
   return out;

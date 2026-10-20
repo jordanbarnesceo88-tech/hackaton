@@ -12,6 +12,10 @@
   $('warehouse-demo-link').href = viewerUrl('warehouse');
   $('complex-demo-link').href = `${viewerUrl('warehouse')}?case=complex`;
   $('cleaning-demo-link').href = viewerUrl('cleaning');
+  if (projectMode) for (const id of ['warehouse-demo-link', 'complex-demo-link', 'cleaning-demo-link']) {
+    $(id).target = '_blank';
+    $(id).rel = 'noopener noreferrer';
+  }
   if (location.protocol === 'file:') $('cad-methodology').hidden = true;
   const numberFormats = new Map();
   const format = (value, digits = 1) => {

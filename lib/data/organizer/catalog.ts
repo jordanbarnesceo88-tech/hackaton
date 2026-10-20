@@ -1,5 +1,6 @@
 import type { ProductSeed } from "../../tz/types";
 import data from "./catalog.generated.json";
+import { withParsedSpecifications } from "../parsed-specifications";
 
 /**
  * Каталог продуктов из данных организатора (T1.1): все 187 id каталога организатора на уровне
@@ -22,7 +23,9 @@ export function withApplicableScopes(product: ProductSeed): ProductSeed {
   return product;
 }
 
-export const CATALOG: readonly ProductSeed[] = (data as unknown as ProductSeed[]).map(withApplicableScopes);
+export const CATALOG: readonly ProductSeed[] = (data as unknown as ProductSeed[]).map(withParsedSpecifications).map(withApplicableScopes);
+
+export const CURRENT_CATALOG_COUNTS = Object.fromEntries((["identification", "enriched", "examples"] as const).map(level => [level, CATALOG.filter(product => product.level === level).length]));
 
 const BY_SLUG: ReadonlyMap<string, ProductSeed> = new Map(CATALOG.map((p) => [p.slug, p]));
 

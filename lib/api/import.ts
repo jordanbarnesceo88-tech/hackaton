@@ -130,6 +130,7 @@ const SOURCED_FIELDS: ReadonlySet<string> = new Set([
   "scope",
   "granularity",
   "alternatives",
+  "conflict",
 ]);
 const RANGE_FIELDS: ReadonlySet<string> = new Set(["min", "max", "typical", "qualifier"]);
 
@@ -350,6 +351,9 @@ function checkSourced(
   if (typeof date !== "string" || !isIsoDate(date)) {
     errors.push(`${where}: date — дата проверки значения в формате ГГГГ-ММ-ДД, например 2026-09-23`);
   }
+  if (raw.conflict !== undefined && (!nested || typeof raw.conflict !== "boolean")) {
+    errors.push(`${where}: conflict — boolean только у альтернативного источника`);
+  }
   if (typeof raw.confirmed !== "boolean") errors.push(`${where}: confirmed — true или false (подтверждено первоисточником)`);
   if (raw.confidence !== undefined && (typeof raw.confidence !== "string" || !CONFIDENCES.has(raw.confidence))) {
     errors.push(`${where}: confidence — high, medium или low`);
@@ -412,6 +416,7 @@ function checkSourced(
   if (formula !== null) out.formula = formula;
   if (raw.scope !== undefined) out.scope = raw.scope as Scope;
   if (raw.granularity !== undefined) out.granularity = raw.granularity as "field" | "row";
+  if (nested && typeof raw.conflict === "boolean") out.conflict = raw.conflict;
   if (alternatives) out.alternatives = alternatives;
   return out;
 }

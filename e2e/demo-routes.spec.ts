@@ -61,16 +61,16 @@ test("clean viewer routes, crosslinks, legacy redirect fragments and offline fil
   await ready(page, "warehouse");
   await expect(page.locator("#complex-demo-link")).toHaveAttribute("href", "/demo/warehouse?case=complex");
   await expect(page.locator("#cleaning-demo-link")).toHaveAttribute("href", "/demo/cleaning");
-  expect(await page.locator("#demo-link").getAttribute("href")).toBe("/demo/cleaning");
+  expect(await page.locator("#cleaning-demo-link").getAttribute("href")).toBe("/demo/cleaning");
   await testInfo.attach("warehouse-viewer", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
-  await page.locator("#demo-link").click();
+  await page.locator("#cleaning-demo-link").click();
   await expect(page).toHaveURL(new URL("/demo/cleaning", baseURL).href);
   await ready(page, "cleaning");
   await expect(page.locator("#complex-demo-link")).toHaveAttribute("href", "/demo/warehouse?case=complex");
   await expect(page.locator("#cleaning-demo-link")).toHaveAttribute("href", "/demo/cleaning");
-  expect(await page.locator("#demo-link").getAttribute("href")).toBe("/demo/warehouse");
+  expect(await page.locator("#warehouse-demo-link").getAttribute("href")).toBe("/demo/warehouse");
   await testInfo.attach("cleaning-viewer", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
-  await page.locator("#demo-link").click();
+  await page.locator("#warehouse-demo-link").click();
   await ready(page, "warehouse");
 
   for (const [file, canonical, domain] of [
@@ -97,12 +97,12 @@ test("clean viewer routes, crosslinks, legacy redirect fragments and offline fil
   await ready(page, "warehouse");
   await expect(page.locator("#complex-demo-link")).toHaveAttribute("href", "./warehouse-3d.html?case=complex");
   await expect(page.locator("#cleaning-demo-link")).toHaveAttribute("href", "./cleaning-3d.html");
-  expect(await page.locator("#demo-link").getAttribute("href")).toBe("./cleaning-3d.html");
-  await page.locator("#demo-link").click();
+  expect(await page.locator("#cleaning-demo-link").getAttribute("href")).toBe("./cleaning-3d.html");
+  await page.locator("#cleaning-demo-link").click();
   await ready(page, "cleaning");
   expect(new URL(page.url()).protocol).toBe("file:");
   expect(new URL(page.url()).pathname).toMatch(/\/cleaning-3d\.html$/);
-  expect(await page.locator("#demo-link").getAttribute("href")).toBe("./warehouse-3d.html");
+  expect(await page.locator("#warehouse-demo-link").getAttribute("href")).toBe("./warehouse-3d.html");
   expect(errors).toEqual([]);
 });
 
@@ -222,8 +222,17 @@ test("guest closed-pod scenario opens its exact server input through the clean 3
   expect(result.summary.requiredPerH).toBe(input.demand.peakPerH);
   await expect(page.locator("[data-guest-calculation]")).toHaveAttribute("data-guest-calculation", "ready", { timeout: 120_000 });
   await expect(simulation.locator('[data-validation-kind="spatial"]')).toHaveAttribute("data-spatial-receipt", result.assessment.status);
-  expect(await child.locator("#demo-link").getAttribute("href")).toBe("/demo/warehouse");
-  await child.locator("#demo-link").click();
+  expect(await child.locator("#warehouse-demo-link").getAttribute("href")).toBe("/demo/warehouse");
+  const separateDemo = child.waitForEvent("popup");
+  await child.locator("#cleaning-demo-link").click();
+  const cleaning = await separateDemo;
+  observeErrors(cleaning, errors);
+  await ready(cleaning, "cleaning");
+  expect(await child.evaluate(() => (window as unknown as DemoWindow).warehouseDemo.snapshot().projectOrigin?.requestId)).toBe(nonce);
+  expect(await cleaning.evaluate(() => Boolean(window.opener))).toBe(false);
+  await cleaning.close();
+  // Explicit navigation out of the project clears the bridge; ordinary links preserve it in this tab.
+  await child.goto("/demo/warehouse");
   await expect(child).toHaveURL(new URL("/demo/warehouse", baseURL).href);
   await ready(child, "warehouse");
   expect(await child.evaluate(() => Boolean((window as unknown as DemoWindow).warehouseDemo.snapshot().projectOrigin))).toBe(false);

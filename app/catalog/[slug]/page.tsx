@@ -23,6 +23,8 @@ import { getProcessFacilities } from "../_lib/data";
 import { ImplementationGuidePanel } from "@/components/implementation/guide-panel";
 import { buildImplementationSnapshot } from "@/lib/implementation/snapshot";
 import { serviceOverridesOf } from "@/lib/catalog/service-evidence";
+import { CustomerVideos } from "@/components/catalog/customer-videos";
+import { videosForProduct } from "@/lib/data/customer-videos";
 
 type Params = Promise<{ slug: string }>;
 
@@ -124,6 +126,7 @@ export default async function CatalogProductPage({ params }: { params: Params })
           </a>
         ))}
         <a href="#implementation" className="text-primary underline-offset-2 hover:underline">Внедрение и сервис</a>
+        {videosForProduct(product.slug).length > 0 && <a href="#customer-videos" className="text-primary underline-offset-2 hover:underline">Видео и отзывы</a>}
       </nav>
 
       {CHAR_GROUP_ORDER.map((g) => (
@@ -135,6 +138,8 @@ export default async function CatalogProductPage({ params }: { params: Params })
       <section id="implementation" className="scroll-mt-20">
         <ImplementationGuidePanel snapshot={buildImplementationSnapshot(product.solutionType?.slug ?? "other", product.manufacturer, serviceOverridesOf(Object.values(product.characteristics).flat()), product.name)} />
       </section>
+
+      <CustomerVideos productSlug={product.slug} />
 
       <p className="border-t pt-4 text-xs text-muted-foreground">
         Характеристики — справочные данные каталога. Перед покупкой значения нужно подтвердить у производителя и

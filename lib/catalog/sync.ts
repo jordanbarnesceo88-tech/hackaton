@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
 import type { PrismaClient, ProductCharacteristic } from "@prisma/client";
-import { CATALOG } from "../data/organizer/catalog";
+import { CATALOG, CURRENT_CATALOG_COUNTS } from "../data/organizer/catalog";
+import { PARSED_SPECIFICATIONS_VERSION } from "../data/parsed-specifications";
 import { PARAM_SPECS } from "../data/organizer/params";
-import { CATALOG_COUNTS, ORGANIZER_DATA_VERSION } from "../data/organizer/version.generated";
+import { ORGANIZER_DATA_VERSION } from "../data/organizer/version.generated";
 import { NORM_DEFS } from "../tz/norms";
 import type { NormDef } from "../tz/norms";
 import { PROCESS_DEFS, SOLUTION_TYPE_DEFS } from "../tz/processes";
@@ -205,6 +206,7 @@ export function formatSyncReport(r: SyncReport): string[] {
 export function organizerReleaseVersion(): string {
   return dataVersionOf({
     organizer: ORGANIZER_DATA_VERSION,
+    parsedSpecifications: PARSED_SPECIFICATIONS_VERSION,
     norms: NORM_DEFS,
     params: PARAM_SPECS,
     processes: PROCESS_DEFS,
@@ -218,7 +220,8 @@ function releaseManifest(): Prisma.InputJsonObject {
   return {
     ...ORGANIZER_DATA_VERSION,
     products: CATALOG.length,
-    productsByLevel: { ...CATALOG_COUNTS },
+    productsByLevel: { ...CURRENT_CATALOG_COUNTS },
+    parsedSpecifications: PARSED_SPECIFICATIONS_VERSION,
     params: PARAM_SPECS.length,
     norms: NORM_DEFS.length,
     processes: PROCESS_DEFS.length,
@@ -828,7 +831,7 @@ async function upsertRelease(db: Db, report: SyncReport): Promise<void> {
         organizerVersion: releaseManifest(),
         note:
           `Исходные данные: демо-набор данных ${ORGANIZER_DATA_VERSION.datasets}, каталог ${ORGANIZER_DATA_VERSION.catalog}, ` +
-          `«Примеры решений» ${ORGANIZER_DATA_VERSION.examples}; открытые источники: ${ORGANIZER_DATA_VERSION.research}`,
+          `«Примеры решений» ${ORGANIZER_DATA_VERSION.examples}; открытые источники: ${ORGANIZER_DATA_VERSION.research}; импорт: ${PARSED_SPECIFICATIONS_VERSION}`,
       },
     ],
     skipDuplicates: true,

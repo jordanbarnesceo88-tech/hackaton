@@ -263,7 +263,7 @@ beforeAll(async () => {
         unit: "₽",
         confirmed: true,
         verifiedAt: new Date("2026-09-23T00:00:00Z"),
-        alternatives: [{ value: 2_600_000, unit: "₽", origin: "research", sourceType: "dealer", date: "2026-09-20" }],
+        alternatives: [{ value: 2_600_000, unit: "₽", origin: "research", sourceType: "dealer", date: "2026-09-20", basis: "Цена партии, не единицы", conflict: true }],
       },
       { key: "raasRubMonth", group: "ECONOMICS", valueNum: 90_000, qualifier: "от", unit: "₽/мес" },
       {
@@ -539,6 +539,7 @@ describe("getCatalogProduct / getCatalogProducts", () => {
     expect(price.alternatives[0]!.value.replace(/\s/g, " ")).toBe("2 600 000 ₽");
     expect(price.alternatives[0]!.sourceType).toBe("dealer");
     expect(price.alternatives[0]!.date).toBe("2026-09-20");
+    expect(price.alternatives[0]!.basis).toBe("Цена партии, не единицы");
 
     const thr = p.characteristics.TECHNICAL.find((c) => c.key === "throughput")!;
     expect(thr.display).toBe("40–60 паллет/ч (на робота)");

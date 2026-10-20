@@ -2,14 +2,15 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { CleaningRobot3D } from "@/components/landing/cleaning-robot-3d";
+import { CustomerVideos } from "@/components/catalog/customer-videos";
 import { cn } from "@/lib/utils";
 
 /**
  * Первый экран: кто подбирает роботов и почему этому можно верить, три входа и путь от объекта
  * к пилоту, под ними во всю ширину — робот Alfa Robot убирает офисный мусор.
  *
- * С xl (1280px, шапка там в одну строку, 60px) страница ровно в экран: колонка высотой
- * 100dvh − шапка, схема забирает остаток высоты и вписывается в него. Уже — обычная прокрутка:
+ * С xl (1280px, шапка там в одну строку, 60px) первый блок занимает минимум экран:
+ * схема забирает остаток высоты. Видео и отзывы идут ниже отдельным блоком. Уже — обычная прокрутка:
  * шапка переносится, а текст в столбик в один экран не помещается.
  */
 // Первый ряд — три входа одного размера (xl): одно основное действие залито, остальные —
@@ -26,7 +27,8 @@ const FOOTER_LINK = "tap-target font-medium underline underline-offset-4 hover:t
 
 export default function Home() {
   return (
-    <div className="surface-data flex flex-col gap-8 py-8 xl:h-[calc(100dvh-60px)] xl:gap-5 xl:py-5">
+    <div className="surface-data">
+    <div className="flex flex-col gap-8 py-8 xl:min-h-[calc(100dvh-60px)] xl:gap-5 xl:py-5">
       <section className="grid items-start gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
         <div className="flex flex-col gap-5 xl:gap-3">
           <h1>Подбор роботов от тех, кто уже запускал их на других объектах</h1>
@@ -93,6 +95,8 @@ export default function Home() {
           Словарь терминов
         </Link>
       </footer>
+    </div>
+    <CustomerVideos />
     </div>
   );
 }

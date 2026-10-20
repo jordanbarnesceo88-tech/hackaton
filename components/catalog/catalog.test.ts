@@ -7,7 +7,7 @@ import type { CharGroup } from "@/lib/tz/characteristics";
 import { FLAG_NOTES } from "@/lib/tz/selection/missing";
 import { Breadcrumb, buildTrails, HIERARCHY_LEVELS } from "./breadcrumb";
 import { CatalogTable, priceText, processesText, throughputText } from "./catalog-table";
-import { checkedOnText, quoteText } from "./characteristic-row";
+import { Alternatives, checkedOnText, quoteText } from "./characteristic-row";
 import { clampPct } from "./chips";
 import { CompareForm } from "./compare-form";
 import { CompareTable, compareRowKeys } from "./compare-table";
@@ -604,5 +604,14 @@ describe("список и сравнение", () => {
     expect(pageNumbers(1, 4)).toEqual([1, 2, 3, 4]);
     expect(pageNumbers(5, 10)).toEqual([1, null, 4, 5, 6, null, 10]);
     expect(pageNumbers(1, 10)).toEqual([1, 2, null, 10]);
+  });
+});
+
+
+describe("alternative source conditions", () => {
+  it("shows the conditions of reference-only values with the disagreement", () => {
+    const html = renderToStaticMarkup(createElement(Alternatives, { c: { hasConflict: true, alternatives: [{ value: "25 лет", origin: "research", sourceType: "manufacturer", sourceUrl: "https://example.test/spec", sourceRef: "Авторская проверка CSV", date: "2026-10-20", confirmed: false, confidence: "medium", asInSource: "Срок службы 25 лет", basis: "Относится к стеллажной конструкции, а не к роботу" }] } }));
+    expect(html).toContain("есть расхождения");
+    expect(html).toContain("Относится к стеллажной конструкции, а не к роботу");
   });
 });

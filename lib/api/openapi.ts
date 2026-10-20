@@ -788,7 +788,7 @@ const SCHEMAS: Record<string, Schema> = {
       formula: str("Формула; обязательна для derived"),
       scope: str("К чему относится значение", { enum: ["per-robot", "per-station", "per-channel", "per-fleet"] }),
       granularity: str("field — значение для поля, row — источник на всю строку", { enum: ["field", "row"] }),
-      alternatives: arr({ type: "object", description: "Sourced без alternatives" }, "Другие найденные значения, до 10"),
+      alternatives: arr({ type: "object", description: "Sourced без alternatives; optional conflict:boolean отмечает неразрешённое расхождение" }, "Другие найденные значения, до 10"),
     },
     ["value", "origin", "sourceType", "sourceUrl", "date", "confirmed"],
     "Значение характеристики с источником",

@@ -82,7 +82,9 @@ function alternativeNumber(value: unknown): number | null {
  */
 export function hasConflictingAlternatives(c: Pick<CharRow, "valueNum" | "unit" | "alternatives">): boolean {
   const primary = finiteOrNull(c.valueNum);
-  if (primary === null || !Array.isArray(c.alternatives)) return false;
+  if (!Array.isArray(c.alternatives)) return false;
+  if (c.alternatives.some(alt => alt !== null && typeof alt === "object" && (alt as { conflict?: unknown }).conflict === true)) return true;
+  if (primary === null) return false;
   for (const alt of c.alternatives as unknown[]) {
     if (alt === null || typeof alt !== "object") continue;
     const record = alt as { value?: unknown; unit?: unknown };

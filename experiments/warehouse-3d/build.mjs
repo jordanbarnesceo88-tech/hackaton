@@ -33,7 +33,7 @@ const sources = await Promise.all(libraries.map(async name => {
   }
   return `<script>/* Three.js r128, MIT license. https://github.com/mrdoob/three.js/tree/r128 — ${name} */\n${inline(source)}</script>`;
 }));
-const core = await build({ entryPoints: [path.join(dir, 'core.ts')], bundle: true, write: false, format: 'iife', globalName: 'WarehouseDemoCore', platform: 'browser', target: 'es2020', minify: true, legalComments: 'inline' });
+const core = await build({ entryPoints: [path.join(dir, 'core.ts')], bundle: true, write: false, format: 'iife', globalName: 'WarehouseDemoCore', platform: 'browser', target: 'es2020', charset: 'utf8', minify: true, legalComments: 'inline' });
 const [template, scene, app, detail, history, panel, panelCss, incidents, incidentCss, assessment, comparison] = await Promise.all(['index.html', 'scene.js', 'app.js', 'robot-detail.js', 'robot-history.js', 'robot-panel.js', 'robot-panel.css', 'incident-panel.js', 'incident-panel.css', 'assessment-panel.js', 'comparison-panel.js'].map(name => readFile(path.join(dir, name), 'utf8')));
 validateTemplate(template);
 const photos = {};

@@ -1,0 +1,417 @@
+{
+  "exact": [
+    {
+      "sourceId": "777001:6",
+      "productSlugs": [
+        "r2b-mark-2-se"
+      ],
+      "kind": "overview",
+      "scope": "MARK 2 SE; обзор производителя, не клиентский отзыв."
+    },
+    {
+      "sourceId": "777001:12",
+      "productSlugs": [
+        "waybot-klinbotiks-400-pro"
+      ],
+      "kind": "overview",
+      "scope": "Cleanbotics 400 PRO; в исходном заголовке опечатка «Clanbotics»."
+    },
+    {
+      "sourceId": "777001:13",
+      "productSlugs": [
+        "yaku-unit"
+      ],
+      "kind": "demonstration",
+      "scope": "Unit на выставке. Связь канала с производителем не подтверждена."
+    },
+    {
+      "sourceId": "777001:15",
+      "productSlugs": [
+        "viggo-sc80"
+      ],
+      "kind": "overview",
+      "scope": "VIGGO SC80 от дилера UMSERV. Не АК-SC80 и не модификация PRO."
+    },
+    {
+      "sourceId": "777001:17",
+      "productSlugs": [
+        "viggo-sc80"
+      ],
+      "kind": "demonstration",
+      "scope": "VIGGO SC80: мойка и обход препятствий. Тождество с АК-SC80 не установлено."
+    },
+    {
+      "sourceId": "777001:20",
+      "productSlugs": [
+        "pudu-cc1"
+      ],
+      "kind": "instruction",
+      "scope": "Первичная настройка PUDU CC1; не CC1 Pro."
+    },
+    {
+      "sourceId": "777001:22",
+      "productSlugs": [
+        "pudu-cc1"
+      ],
+      "kind": "overview",
+      "scope": "PUDU CC1: коммерческий обзор; в описании предлагаются поставка и обслуживание."
+    },
+    {
+      "sourceId": "777001:23",
+      "productSlugs": [
+        "pudu-cc1"
+      ],
+      "kind": "demonstration",
+      "scope": "PUDU CC1 в демонстрации дилера; английский язык."
+    },
+    {
+      "sourceId": "777001:24",
+      "productSlugs": [
+        "agibot-c5"
+      ],
+      "kind": "demonstration",
+      "scope": "AGIBOT C5 в демонстрации дистрибьютора; английский язык."
+    },
+    {
+      "sourceId": "777001:25",
+      "productSlugs": [
+        "agibot-c5"
+      ],
+      "kind": "author-case",
+      "scope": "Подборка кейсов AGIBOT C5, опубликованная производителем; не независимые отзывы."
+    },
+    {
+      "sourceId": "777003:6",
+      "productSlugs": [
+        "ronavi-h1500"
+      ],
+      "kind": "report",
+      "scope": "Ronavi H1500 на складе «Газпром нефти»: репортаж, опубликованный Technospark, не отзыв заказчика."
+    },
+    {
+      "sourceId": "777003:7",
+      "productSlugs": [
+        "ronavi-h1500"
+      ],
+      "kind": "report",
+      "scope": "Производство Ronavi H1500: телевизионный репортаж 2020 года."
+    },
+    {
+      "sourceId": "777003:8",
+      "productSlugs": [
+        "ronavi-h1500"
+      ],
+      "kind": "demonstration",
+      "scope": "Ronavi H1500 под управлением RMS на инженерном полигоне; материал интегратора."
+    },
+    {
+      "sourceId": "777003:16",
+      "productSlugs": [
+        "robocv-shtabeler"
+      ],
+      "kind": "demonstration",
+      "scope": "Робот-штабелёр RoboCV. Ролик производителя."
+    },
+    {
+      "sourceId": "777003:17",
+      "productSlugs": [
+        "robocv-shtabeler"
+      ],
+      "kind": "author-case",
+      "scope": "Внедрение штабелёра RoboCV в ООО «Фирма Цикл» по названию ролика. Независимость автора не проверена."
+    },
+    {
+      "sourceId": "777003:21",
+      "productSlugs": [
+        "sm-robotics-mule"
+      ],
+      "kind": "demonstration",
+      "scope": "Тест MULE на складе от производителя, не независимый замер."
+    },
+    {
+      "sourceId": "777003:22",
+      "productSlugs": [
+        "sm-robotics-mule"
+      ],
+      "kind": "demonstration",
+      "scope": "MULE в ролике производителя."
+    },
+    {
+      "sourceId": "777003:23",
+      "productSlugs": [
+        "stelkon-pallet-shuttle"
+      ],
+      "kind": "demonstration",
+      "scope": "Pallet Shuttle Stelkon: система хранения с шаттлами."
+    },
+    {
+      "sourceId": "777003:24",
+      "productSlugs": [
+        "stelkon-pallet-shuttle"
+      ],
+      "kind": "report",
+      "scope": "Pallet Shuttle Stelkon: запуск производства по сообщению производителя."
+    },
+    {
+      "sourceId": "777004:5",
+      "productSlugs": [
+        "smp-tral-patrul-5"
+      ],
+      "kind": "overview",
+      "scope": "Трал Патруль 5 в обзоре серии, включающем также модель 7. Возможности серии не переносятся целиком на модель 5."
+    },
+    {
+      "sourceId": "777004:11",
+      "productSlugs": [
+        "evocargo-n1"
+      ],
+      "kind": "demonstration",
+      "scope": "EVOCARGO N1 в ролике производителя."
+    },
+    {
+      "sourceId": "777004:14",
+      "productSlugs": [
+        "evocargo-n1"
+      ],
+      "kind": "author-case",
+      "scope": "EVOCARGO N1 на «Томскнефтехиме» по названию ролика. Связь автора с заказчиком не подтверждена."
+    },
+    {
+      "sourceId": "777004:32",
+      "productSlugs": [
+        "avtomakon-ai-stock-counter-12m"
+      ],
+      "kind": "overview",
+      "scope": "AI Stock Counter 12M (AISC12); материал производителя."
+    },
+    {
+      "sourceId": "777005:6",
+      "productSlugs": [
+        "pudubot-2"
+      ],
+      "kind": "demonstration",
+      "scope": "PuduBot 2: демонстрация дилера, не подтверждение больничного применения."
+    },
+    {
+      "sourceId": "777005:7",
+      "productSlugs": [
+        "pudubot-2"
+      ],
+      "kind": "demonstration",
+      "scope": "PuduBot 2: ролик об испытании. Связь канала с производителем и метод испытания не проверены."
+    },
+    {
+      "sourceId": "777005:9",
+      "productSlugs": [
+        "pick-by-light",
+        "pick-by-voice"
+      ],
+      "kind": "customer-interview",
+      "scope": "Интервью с представителем заказчика Дикси о Pick-by-Voice и Pick-by-Light — по описанию UMSERV. Технологии отбора, а не роботы; экономические заявления не используются в расчёте."
+    },
+    {
+      "sourceId": "777005:10",
+      "productSlugs": [
+        "pick-by-light",
+        "pick-by-voice"
+      ],
+      "kind": "customer-interview",
+      "scope": "Интервью с представителем заказчика Дикси о Pick-by-Voice и Pick-by-Light — по описанию UMSERV. Технологии отбора, а не роботы; экономические заявления не используются в расчёте."
+    },
+    {
+      "sourceId": "777001:14",
+      "productSlugs": [
+        "avtomakon-ak-sc80"
+      ],
+      "kind": "overview",
+      "scope": "В описании прямо указан АК-SC80 Автомакон; тождество с VIGGO не предполагается."
+    },
+    {
+      "sourceId": "777001:21",
+      "productSlugs": [
+        "pudu-cc1"
+      ],
+      "kind": "author-case",
+      "scope": "Описание прямо называет CC1 в ТЦ Проспект; отзывы персонала пересказаны интегратором."
+    },
+    {
+      "sourceId": "777003:19",
+      "productSlugs": [
+        "dikom-dmr-600",
+        "dikom-dmr-carrier-p"
+      ],
+      "kind": "overview",
+      "scope": "Описание явно перечисляет DMR 600 и DMR Carrier P среди нескольких изделий. DMR 1200 не привязан."
+    },
+    {
+      "sourceId": "777004:12",
+      "productSlugs": [
+        "evocargo-n1"
+      ],
+      "kind": "author-case",
+      "scope": "Описание производителя прямо называет Evocargo N1 на RAK Ceramics."
+    }
+  ],
+  "omitted": [
+    {
+      "sourceId": "777001:5",
+      "reason": "В названии Mark 2, а карточка — MARK 2 SE; модификация и автор отзыва не подтверждены."
+    },
+    {
+      "sourceId": "777001:7",
+      "reason": "В названии Mark 2 без SE; нельзя переносить на MARK 2 SE."
+    },
+    {
+      "sourceId": "777001:8",
+      "reason": "Указана серия Cleanbotics без модели 600."
+    },
+    {
+      "sourceId": "777001:9",
+      "reason": "В описании указан Cleanbotics 750, а карточка — Cleanbotics 600; другая модификация."
+    },
+    {
+      "sourceId": "777001:10",
+      "reason": "Указана серия Cleanbotics без модели 600."
+    },
+    {
+      "sourceId": "777001:11",
+      "reason": "Указана серия Cleanbotics без модели 600."
+    },
+    {
+      "sourceId": "777001:16",
+      "reason": "Показана модификация VIGGO SC80 PRO; карточка VIGGO SC80 не PRO."
+    },
+    {
+      "sourceId": "777003:5",
+      "reason": "В названии Ronavi без H1500; модель по метаданным не установлена."
+    },
+    {
+      "sourceId": "777003:9",
+      "reason": "Общий материал про RMS и Ronavi, H1500 в названии нет."
+    },
+    {
+      "sourceId": "777003:10",
+      "reason": "Таблица указывает H1500/H2000, но конкретные модели в метаданных не названы."
+    },
+    {
+      "sourceId": "777003:11",
+      "reason": "Доклад компании Ronavi без однозначной модели."
+    },
+    {
+      "sourceId": "777003:12",
+      "reason": "В названии AGV Ronavi без H1500."
+    },
+    {
+      "sourceId": "777003:13",
+      "reason": "Материал о флоте Автомакон без AK-2000-2."
+    },
+    {
+      "sourceId": "777003:14",
+      "reason": "Общий материал о роботизации, AK-2000-2 в названии нет."
+    },
+    {
+      "sourceId": "777003:15",
+      "reason": "Общее AGV Автомакон без AK-2000-2."
+    },
+    {
+      "sourceId": "777003:18",
+      "reason": "Серия TAGARKA без подтверждения модификации 35 т, указанной в карточке."
+    },
+    {
+      "sourceId": "777003:20",
+      "reason": "Общий материал ДиКом без однозначной модели."
+    },
+    {
+      "sourceId": "777003:25",
+      "reason": "В таблице видео не найдено; URL отсутствует."
+    },
+    {
+      "sourceId": "777003:26",
+      "reason": "В таблице видео Сёмабота не найдено; TAGARKA — другое изделие."
+    },
+    {
+      "sourceId": "777004:6",
+      "reason": "В названии робот на заводе Татнефти без модели Трал Патруль 5."
+    },
+    {
+      "sourceId": "777004:7",
+      "reason": "В названии общее патрулирование без модели Трал Патруль 5."
+    },
+    {
+      "sourceId": "777004:8",
+      "reason": "Интервью компании ГУМИЧ без однозначного подтверждения модели Городовой."
+    },
+    {
+      "sourceId": "777004:9",
+      "reason": "Сельскохозяйственный мини-трактор; карточка содержит другой класс — беспилотный тягач."
+    },
+    {
+      "sourceId": "777004:10",
+      "reason": "Сельскохозяйственный мини-трактор, не подтверждение тягача или аэропортового применения."
+    },
+    {
+      "sourceId": "777004:13",
+      "reason": "Кейс испытаний платформы Evocargo, опубликованный ПЭК. В названии и описании нет модификации N1; ссылка доступна в общей подборке без привязки к карточке."
+    },
+    {
+      "sourceId": "777004:15",
+      "reason": "Канал ТЕХНОНИКОЛЬ подтверждён, но вид робота (инвентаризация или другой) не установлен."
+    },
+    {
+      "sourceId": "777004:16",
+      "reason": "Конференционный доклад; конкретная модель инвентаризатора по метаданным не установлена."
+    },
+    {
+      "sourceId": "777004:17",
+      "reason": "ПО Yandex Robotics Platform, не конкретный робот."
+    },
+    {
+      "sourceId": "777004:18",
+      "reason": "В таблице видео Воркер не найдено; URL отсутствует."
+    },
+    {
+      "sourceId": "777004:33",
+      "reason": "Интервью с представителем Лемана ПРО по описанию; конкретная модель не указана. Доступно в общей подборке без привязки к карточке."
+    },
+    {
+      "sourceId": "777004:34",
+      "reason": "Общий опыт Автомакон без однозначной модели; независимость автора не установлена."
+    },
+    {
+      "sourceId": "777004:35",
+      "reason": "Репортаж Ronavi без указания M/SR/SD."
+    },
+    {
+      "sourceId": "777004:36",
+      "reason": "Репортаж Ronavi/TEAMIDEA без указания M/SR/SD."
+    },
+    {
+      "sourceId": "777005:5",
+      "reason": "В заголовке D.Carrier B без DMR 300; преемственность/тождество модификации не подтверждены."
+    },
+    {
+      "sourceId": "777005:8",
+      "reason": "PuduBot без цифры 2, другую модификацию нельзя привязать к PuduBot 2."
+    },
+    {
+      "sourceId": "777005:11",
+      "reason": "В описании указана система SSI SCHAEFER, а карточка — решение Умного сервиса."
+    },
+    {
+      "sourceId": "777005:12",
+      "reason": "Решение GOLAS S3, соответствие позиции Умного сервиса не подтверждено."
+    },
+    {
+      "sourceId": "777005:13",
+      "reason": "В таблице видео моделей Эйдос не найдено; URL отсутствует."
+    },
+    {
+      "sourceId": "777005:14",
+      "reason": "В таблице видео Роборуки не найдено; URL отсутствует."
+    },
+    {
+      "sourceId": "777005:15",
+      "reason": "В таблице видео AMR 100 не найдено; URL отсутствует."
+    }
+  ]
+}

@@ -63,6 +63,7 @@ function AlternativeItem({ alt }: { alt: CatalogAlternative }) {
         confirmed={alt.confirmed}
       />
       {quote && <span className="text-muted-foreground italic">{quote}</span>}
+      {alt.basis && <span className="text-muted-foreground [overflow-wrap:anywhere]">Условия источника: {alt.basis}</span>}
       {confidence && <span className="text-muted-foreground">достоверность: {confidence}</span>}
     </li>
   );
@@ -89,9 +90,7 @@ export function Alternatives({ c }: { c: Pick<CatalogCharacteristic, "alternativ
       </summary>
       {c.hasConflict && (
         <p className="mt-1 text-muted-foreground">
-          Источники расходятся больше допуска. Основное значение (выше) выбрано по приоритету источника:
-          базовые данные, документация производителя, сайт производителя, дилер, агрегатор, пресса. Остальные
-          найденные значения — ниже.
+          В источниках есть расхождения по значениям, единицам или условиям. Сопоставьте основное значение с найденными альтернативами и их основаниями.
         </p>
       )}
       <ul className="mt-1 grid gap-2">

@@ -233,6 +233,13 @@ describe("needsVerification", () => {
 });
 
 describe("hasConflictingAlternatives", () => {
+  it("preserves explicit disagreements for ranges and conditional text without inventing a scalar", () => {
+    const c = row("priceRub", { valueNum: null, valueText: "Условия требуют уточнения", alternatives: [{ value: "от 500000 за партию", conflict: true }] });
+    expect(hasConflictingAlternatives(c)).toBe(true);
+    expect(verificationReasons([c], NO_FLAGS)).toContain("источники расходятся: Цена оборудования");
+    expect(hasConflictingAlternatives({ ...c, alternatives: [{ value: "от 500000", conflict: "true" }] })).toBe(false);
+  });
+
   const primary = (alternatives: unknown, patch: Partial<CharRow> = {}) =>
     hasConflictingAlternatives({ valueNum: 2_700_000, unit: "₽", alternatives, ...patch });
 

@@ -96,6 +96,8 @@ export type Sourced<T> = {
   /** field — значение найдено для этого поля; row — источник указан на всю строку продукта. */
   granularity?: "field" | "row";
   /** Другие найденные значения, проигравшие по приоритету источника. Показываются как «альтернативы». */
+  /** Explicit unresolved disagreement attached to an alternative source, including non-scalar values. */
+  conflict?: boolean;
   alternatives?: Omit<Sourced<T>, "alternatives">[];
 };
 
