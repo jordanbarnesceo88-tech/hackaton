@@ -2,6 +2,8 @@ import { horizonOf, normsForSpec } from "./econ/context";
 import type { PilotPlanInput, ProductForCalc, ProjectResults } from "./types";
 import { RAAS_CHARGE_LABELS, raasChargeAmount, raasPackageForItem } from "./econ/raas-package";
 import { parseCostPackage } from "./econ/cost-package";
+import { parsePilotAcceptanceThresholds, parsePilotObservation } from "./pilot-evaluation";
+import { isCleaningProcess } from "./cleaning-zones";
 
 export const PILOT_WORKS = {
   setup: "Развёртывание и настройка",
@@ -48,7 +50,7 @@ function string(value: unknown, max: number, label: string): string {
 
 /** Strict persisted input: missing costs stay null, an explicit zero requires a source. */
 export function parsePilotPlanInput(value: unknown): PilotPlanInput {
-  const v = object(value), allowed = new Set(["schemaVersion", "fleet", "chargers", "durationDays", "dayBasis", "acquisition", "costs", "equipmentUnitRubOverride", "raasFirstMonthRubOverride", "chargerBudgetRubOverride", "chargerBudgetSource", "contingencyPct", "targetThroughputPerH", "maxP95WaitMin", "maxInterventionsPerShift", "readiness", "notes"]);
+  const v = object(value), allowed = new Set(["schemaVersion", "fleet", "chargers", "durationDays", "dayBasis", "acquisition", "costs", "equipmentUnitRubOverride", "raasFirstMonthRubOverride", "chargerBudgetRubOverride", "chargerBudgetSource", "contingencyPct", "targetThroughputPerH", "maxP95WaitMin", "maxInterventionsPerShift", "readiness", "notes", "acceptanceThresholds", "actualResult", "productSlug"]);
   if (Object.keys(v).some(key => !allowed.has(key)) || v.schemaVersion !== "pilot-plan-1" || !["working", "calendar"].includes(String(v.dayBasis)) || !["purchase", "raas"].includes(String(v.acquisition))) throw new Error("Неподдерживаемый план пилота");
   const rawCosts = object(v.costs);
   if (Object.keys(rawCosts).some(key => !Object.hasOwn(PILOT_WORKS, key))) throw new Error("Неизвестная статья бюджета пилота");
@@ -65,6 +67,8 @@ export function parsePilotPlanInput(value: unknown): PilotPlanInput {
   const chargerBudgetSource = v.chargerBudgetSource === undefined ? undefined : string(v.chargerBudgetSource, 1000, "источник стоимости зарядок");
   if (chargerBudgetRubOverride !== undefined && chargerBudgetRubOverride !== null && !chargerBudgetSource?.trim()) throw new Error("Укажите источник ручной оценки зарядок пилота");
   const raasFirstMonthRubOverride = v.raasFirstMonthRubOverride === undefined ? undefined : v.raasFirstMonthRubOverride === null ? null : number(v.raasFirstMonthRubOverride, Number.MIN_VALUE, MONEY_MAX, "первый месяц RaaS");
+  const productSlug = v.productSlug === undefined ? undefined : string(v.productSlug, 160, "выбранная модель пилота").trim();
+  if (productSlug === "") throw new Error("Выберите модель робота для пилота");
   if (v.acquisition !== "raas" && raasFirstMonthRubOverride != null) throw new Error("Первый месяц RaaS неприменим к покупке оборудования пилота");
   return {
     schemaVersion: "pilot-plan-1", fleet: number(v.fleet, 1, 500, "парк пилота", true), chargers: number(v.chargers, 0, 2000, "зарядки пилота", true),
@@ -75,13 +79,20 @@ export function parsePilotPlanInput(value: unknown): PilotPlanInput {
     readiness: [...v.readiness] as string[], notes: string(v.notes, 4000, "примечание"),
     ...(chargerBudgetRubOverride === undefined ? {} : { chargerBudgetRubOverride }), ...(chargerBudgetSource === undefined ? {} : { chargerBudgetSource }),
     ...(raasFirstMonthRubOverride === undefined ? {} : { raasFirstMonthRubOverride }),
+    ...(v.acceptanceThresholds === undefined ? {} : { acceptanceThresholds: parsePilotAcceptanceThresholds(v.acceptanceThresholds) }),
+    ...(v.actualResult === undefined ? {} : { actualResult: parsePilotObservation(v.actualResult) }),
+    ...(productSlug === undefined ? {} : { productSlug }),
   };
 }
 
-function selected(model: PilotBudgetModel, scenarioKey: string) {
+function selected(model: PilotBudgetModel, scenarioKey: string, productSlug?: string) {
   const spec = model.scenarios.find(s => s.key === scenarioKey), result = model.results.find(r => r.key === scenarioKey);
-  if (!spec || !result || result.status !== "ok" || spec.kind === "asis" || result.items.length !== 1) throw new Error("План пилота доступен для рассчитанного сценария с одним выбранным решением");
-  const item = spec.items[0], full = result.items[0], product = item ? model.productSnapshots[item.productSlug] : undefined;
+  if (!spec || !result || result.status !== "ok" || spec.kind === "asis") throw new Error("План пилота доступен для рассчитанного сценария с выбранным решением");
+  if (productSlug === undefined && (result.items.length !== 1 || spec.items.length !== 1)) throw new Error("Для пилота смешанного состава явно выберите модель робота. Общая смета нескольких моделей не вычисляется автоматически.");
+  const matches = productSlug === undefined ? spec.items : spec.items.filter(item => item.productSlug === productSlug);
+  if (matches.length !== 1) throw new Error("Выбранная модель пилота отсутствует или неоднозначна в сценарии");
+  const item = matches[0], full = item ? result.items.find(row => row.productSlug === item.productSlug && row.process === item.process) : undefined;
+  const product = item ? model.productSnapshots[item.productSlug] : undefined;
   if (!item || !full || !product || full.n === null || full.n < 1) throw new Error("Для пилота не определены решение и состав оборудования");
   return { spec, result, item, full, product };
 }
@@ -89,7 +100,7 @@ function selected(model: PilotBudgetModel, scenarioKey: string) {
 function pricingReference(model: PilotBudgetModel, selection: ReturnType<typeof selected>, acquisition: PilotPlanInput["acquisition"]) {
   const { result, full } = selection;
   if (result.kind === acquisition) return result;
-  const matches = model.results.filter(row => row.kind === acquisition && row.status === "ok" && row.items.length === 1 && row.items[0]?.productSlug === full.productSlug);
+  const matches = model.results.filter(row => row.kind === acquisition && row.status === "ok" && row.items.some(item => item.productSlug === full.productSlug));
   // Older archives retain the first-match pricing used when their pilot was saved.
   if (matches.length > 1 && supportsPackagePricing(model, 10)) {
     throw new Error(`Для этого продукта несколько рассчитанных сценариев ${acquisition === "purchase" ? "покупки" : "услуги RaaS"}. Откройте пилот в нужном сценарии ${acquisition === "purchase" ? "покупки" : "услуги RaaS"}, чтобы использовать именно его цену и состав поставки.`);
@@ -98,8 +109,8 @@ function pricingReference(model: PilotBudgetModel, selection: ReturnType<typeof 
 }
 
 /** Starting estimates reuse scenario sources; local work and logistics remain explicitly unknown. */
-export function defaultPilotPlan(model: PilotBudgetModel, scenarioKey: string, acquisition?: PilotPlanInput["acquisition"]): PilotPlanInput {
-  const selection = selected(model, scenarioKey), { spec, full } = selection;
+export function defaultPilotPlan(model: PilotBudgetModel, scenarioKey: string, acquisition?: PilotPlanInput["acquisition"], productSlug?: string): PilotPlanInput {
+  const selection = selected(model, scenarioKey, productSlug), { spec, full } = selection;
   const fleet = Math.min(2, full.n!), norms = normsForSpec({ norms: model.normsUsed }, spec);
   const method = acquisition ?? (spec.kind === "raas" ? "raas" : "purchase");
   const reference = pricingReference(model, selection, method);
@@ -107,7 +118,8 @@ export function defaultPilotPlan(model: PilotBudgetModel, scenarioKey: string, a
   for (const key of Object.keys(PILOT_WORKS) as WorkKey[]) costs[key] = { valueRub: null, source: "Оценка команды для выбранного участка — пока не задана" };
   if (method === "purchase") costs.setup = { valueRub: fleet * norms.commissioningRubPerUnit, source: `Норматив commissioningRubPerUnit: ${fleet} робота × ${norms.commissioningRubPerUnit} ₽; стартовая оценка настройки пилота, уточнить при изменении состава.` };
   for (const [work, capexKey] of [["setup", "commissioning"], ["integration", "integration"], ["training", "training"]] as const) {
-    const line = reference?.status === "ok" ? reference.capexLines.find(l => l.key === capexKey) : undefined;
+    // Aggregated multi-model work lines are not a quote for the selected model's pilot.
+    const line = reference?.status === "ok" && reference.items.length === 1 ? reference.capexLines.find(l => l.key === capexKey) : undefined;
     if (line?.includedInSubscription) costs[work] = { valueRub: 0, source: `Включено в подписку по допущению сценария «${reference!.name}»: ${line.label}. Подтвердить состав услуги договором.` };
     else if (line && work !== "setup") costs[work] = { valueRub: line.valueRub, source: `Опорная оценка сценария «${line.label}»: ${line.originNote ?? line.origin}. Принята для пилота без уменьшения; подтвердить состав работ и цену.` };
   }
@@ -123,14 +135,16 @@ export function defaultPilotPlan(model: PilotBudgetModel, scenarioKey: string, a
     costs.setup = { valueRub: raasChargeAmount(purchaseScope.startup, fleet), source: `Явный запуск покупки заменяет интеграцию, настройку и обучение; перенос на пилот — оценка. ${purchaseScope.reason}` };
     for (const key of ["integration", "training"] as const) costs[key] = { valueRub: 0, source: `Учтено в единой статье запуска покупки. ${purchaseScope.reason}` };
   }
-  return { schemaVersion: "pilot-plan-1", fleet, chargers: spec.items[0]?.cleaningProfile ? fleet : Math.min(1, full.chargers), durationDays: 10, dayBasis: "working", acquisition: method, costs, equipmentUnitRubOverride: null, contingencyPct: 10, targetThroughputPerH: null, maxP95WaitMin: 10, maxInterventionsPerShift: 1, readiness: [], notes: "Оценочный пилот на ограниченном участке. Состав, срок и условия согласовать с заказчиком и интегратором." };
+  return { schemaVersion: "pilot-plan-1", ...(productSlug === undefined ? {} : { productSlug }), fleet, chargers: isCleaningProcess(selection.item.process) ? fleet : Math.min(1, full.chargers), durationDays: 10, dayBasis: "working", acquisition: method, costs, equipmentUnitRubOverride: null, contingencyPct: 10, targetThroughputPerH: null, maxP95WaitMin: 10, maxInterventionsPerShift: 1, readiness: [], notes: "Оценочный пилот на ограниченном участке. Состав, срок и условия согласовать с заказчиком и интегратором." };
 }
 
 export type PilotBudgetLine = { key: string; label: string; valueRub: number | null; formula: string; source: string; estimate: true };
 
 /** Pilot scope is costed separately; no full-fleet capacity claim is transferred to a smaller park. */
 export function buildPilotBudget(model: PilotBudgetModel, scenarioKey: string, input?: PilotPlanInput) {
-  const { spec, item, full, product, result } = selected(model, scenarioKey), plan = parsePilotPlanInput(input ?? spec.pilotPlan ?? defaultPilotPlan(model, scenarioKey));
+  const savedPlan = model.scenarios.find(spec => spec.key === scenarioKey)?.pilotPlan;
+  const plan = parsePilotPlanInput(input ?? savedPlan ?? defaultPilotPlan(model, scenarioKey));
+  const { spec, item, full, product, result } = selected(model, scenarioKey, plan.productSlug);
   const norms = normsForSpec({ norms: model.normsUsed }, spec);
   const calendarDays = plan.dayBasis === "calendar" ? plan.durationDays : Math.ceil(plan.durationDays * 7 / 5);
   const subscriptionMonths = Math.max(1, Math.ceil(calendarDays / 30));
@@ -138,7 +152,7 @@ export function buildPilotBudget(model: PilotBudgetModel, scenarioKey: string, i
   const referenceSpec = model.scenarios.find(s => s.key === reference?.key);
   const referenceItem = referenceSpec?.items.find(i => i.productSlug === full.productSlug);
   const pricedItem = supportsPackagePricing(model) ? referenceItem ?? item : item;
-  if (item.cleaningProfile && plan.chargers < plan.fleet) throw new Error("Пилот уборки с этим аналитическим профилем требует отдельной станции для каждого робота; конкуренция за зарядки не смоделирована");
+  if (isCleaningProcess(item.process) && plan.chargers < plan.fleet) throw new Error("Пилот уборки с этим аналитическим профилем требует отдельной станции для каждого робота; конкуренция за зарядки не смоделирована");
   const unit = plan.equipmentUnitRubOverride ?? (plan.acquisition === "purchase" ? pricedItem.priceRubOverride ?? product.priceRub : pricedItem.raasRubMonthOverride ?? product.raasRubMonth);
   const sourceKey = plan.acquisition === "purchase" ? "priceRub" : "raasRubMonth", source = product.sources.find(s => s.key === sourceKey);
   const scenarioPriceOverride = plan.acquisition === "purchase" ? pricedItem.priceRubOverride : pricedItem.raasRubMonthOverride;
@@ -177,7 +191,7 @@ export function buildPilotBudget(model: PilotBudgetModel, scenarioKey: string, i
   const chargerIncluded = (plan.acquisition === "raas" && chargerLine?.includedInSubscription) || purchaseScope?.allChargersIncluded === true;
   // A fixed bundle belongs to its quoted fleet; do not silently transfer it to a smaller pilot.
   const fixedBundle = supportsPackagePricing(model, 10) && !chargerIncluded && (purchaseScope?.includedChargers ?? 0) > 0;
-  const sourceFleet = reference?.items[0]?.n;
+  const sourceFleet = reference?.items.find(item => item.productSlug === full.productSlug)?.n;
   const fixedBundleUnknown = fixedBundle && plan.fleet !== sourceFleet;
   const includedChargers = fixedBundle && !fixedBundleUnknown ? Math.min(plan.chargers, purchaseScope!.includedChargers) : 0;
   const chargerUnknown = (plan.acquisition === "raas" && !chargerLine) || fixedBundleUnknown;
@@ -203,14 +217,14 @@ export function buildPilotBudget(model: PilotBudgetModel, scenarioKey: string, i
     scenarioKey, scenarioName: spec.name, productName: product.name, product, plan, fullFleet: full.n!, fullChargers: full.chargers,
     calendarDays, subscriptionMonths, lines, knownSubtotalRub, unknowns, reserveRub, totalRub,
     readiness: Object.entries(PILOT_READINESS).map(([key, label]) => ({ key, label, ready: plan.readiness.includes(key) })),
-    criteria: item.cleaningProfile ? [
-      plan.targetThroughputPerH === null ? "До старта согласовать принимаемую площадь именно участка уборочного пилота и критерии качества; площадь полного парка не перенесена." : `На участке принимать не меньше ${plan.targetThroughputPerH} м²/ч рабочего окна, то есть ${plan.targetThroughputPerH * item.cleaningProfile.windowH} м² за окно ${item.cleaningProfile.windowH} ч, при составе ${plan.fleet} роботов. Это час окна с уходом и зарядками, не активный час щёток.`,
+    criteria: isCleaningProcess(item.process) ? [
+      plan.targetThroughputPerH === null ? "До старта согласовать принимаемую площадь именно участка уборочного пилота и критерии качества; площадь полного парка не перенесена." : `На участке принимать не меньше ${plan.targetThroughputPerH} м²/ч рабочего окна${item.cleaningProfile ? `, то есть ${plan.targetThroughputPerH * item.cleaningProfile.windowH} м² за окно ${item.cleaningProfile.windowH} ч` : "; длительность и зоны окна пилота согласовать отдельно"}, при составе ${plan.fleet} роботов. Это час окна с уходом и зарядками, не активный час щёток.`,
       "Согласовать проверку качества уборки по секциям: фиксировать принятую площадь, незавершённые секции и площадь ручной повторной уборки; повторный проход не считать новой принятой площадью.",
       `Ручных вмешательств за смену ≤ ${plan.maxInterventionsPerShift}; отдельно записывать минуты ежедневного ухода, причины вмешательств и ручной доработки.`,
       "Измерить активную уборку, уход, зарядку и дозаряд до следующего дня; подтвердить доступность каждой станции. Сравнить площадь и суммарный ручной труд с ручной базой; финансовый профиль не подтверждает качество и безопасность пилота.",
     ] : [plan.targetThroughputPerH === null ? "До старта согласовать измеримый поток именно участка пилота; цель полного парка не перенесена." : `На участке завершать не меньше ${plan.targetThroughputPerH} операций/ч при составе ${plan.fleet} роботов.`, `p95 ожидания до начала обработки ≤ ${plan.maxP95WaitMin} мин; для стеллажей включает ожидание связанной подачи носителя.`, `Ручных вмешательств за смену ≤ ${plan.maxInterventionsPerShift}; учитывать причину и длительность.`, "Зафиксировать остановки, инциденты, доступность зарядки и фактическое время цикла; результаты сравнить с ручной базой."],
-    residual: { valueRub: residualRub, year: T, financialHorizonYears: H, includedInNpv: H >= T, note: "Ручная оценка чистой суммы реализации собственных активов после налогов, демонтажа и вывоза; цена продажи не подтверждена. Не входит в бюджет пилота." },
-    warning: plan.fleet === full.n ? "Состав пилота совпадает с полным парком; условия участка всё равно требуется проверить отдельно." : `Пилот: ${plan.fleet} роботов, полный сценарий: ${full.n}. Выполнение нагрузки полного парка не доказано уменьшенным составом.`,
+    residual: { valueRub: residualRub, source: spec.terminalResidualSource ?? "", year: T, financialHorizonYears: H, includedInNpv: H >= T, note: "Ручная оценка чистой суммы реализации собственных активов после налогов, демонтажа и вывоза; цена продажи не подтверждена. Не входит в бюджет пилота." },
+    warning: (spec.items.length > 1 ? `Пилот только модели «${product.name}»: остальные модели смешанного сценария не входят в эту смету. ` : "") + (plan.fleet === full.n ? "Состав пилота совпадает с парком выбранной модели; условия участка всё равно требуется проверить отдельно." : `Пилот: ${plan.fleet} роботов, ${spec.items.length > 1 ? "выбранная модель" : "полный сценарий"}: ${full.n}. Выполнение нагрузки полного парка не доказано уменьшенным составом.`),
     quoteNote: "Смета оценочная, не коммерческое предложение. Неизвестные статьи не равны нулю. Для короткого RaaS-пилота предполагается отдельное соглашение с оплатой целыми месяцами; согласие поставщика и включённые услуги нужно подтвердить. Годовой договор полного внедрения автоматически не сокращается до срока пилота.",
     financialStatus: result.risks.some(r => ["SIM_NOT_CONFIRMED", "SPATIAL_STALE"].includes(r.code)) ? "Сценарий имеет ограничения проверки нагрузки; пилот предназначен для измерения и уточнения условий." : "Модельный результат не заменяет приёмку пилота на объекте.",
   };

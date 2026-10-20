@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ScenarioOk, ScenarioResult, ScenarioSpec, SensitivityRow } from "../types";
 import { computeScenarios } from "./scenario";
 import { FIXTURE_H1500, fixtureContext, fixtureSpecs } from "./fixtures";
+import { cleaningContext, cleaningSpecs, TEST_CLEANER } from "./cleaning-fixtures";
 import { leverBounds, scenarioSensitivity } from "./sensitivity";
 
 /** Анализ чувствительности (ТЗ §3.5.6): не меньше трёх рычагов на каждый сценарий. */
@@ -103,8 +104,10 @@ describe("чувствительность", () => {
       boundsSource: "организатор",
     });
     // Не склад и без границ: подпись «организатор» для 3–10 лет была бы неверной — ±20 %.
-    const other = { ...fixtureContext(20, { paramBounds: false }), facility: "airport" };
-    expect(lever(ok(computeScenarios(other, fixtureSpecs()), "p1").sensitivity, "horizon")).toMatchObject({
+    const other = { ...cleaningContext(), facility: "airport", paramBounds: undefined };
+    other.products[TEST_CLEANER.slug] = { ...TEST_CLEANER, processes: ["terminal-cleaning"], facilityTypes: ["airport"] };
+    const airportSpecs = cleaningSpecs(); airportSpecs[1]!.items[0]!.process = "terminal-cleaning";
+    expect(lever(ok(computeScenarios(other, airportSpecs), "c1").sensitivity, "horizon")).toMatchObject({
       low: 4,
       high: 6,
       boundsSource: "±20 %",

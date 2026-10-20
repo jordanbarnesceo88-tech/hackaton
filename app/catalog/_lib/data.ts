@@ -2,6 +2,7 @@ import type { HierarchyProduct } from "@/components/catalog/hierarchy";
 import type { CatalogOptions, FacilityOption } from "@/components/catalog/options";
 import type { Db } from "@/lib/catalog/queries";
 import { FACILITY_PROCESSES, SOLUTION_TYPE_DEFS } from "@/lib/tz/processes";
+import { catalogVisibilityWhere } from "@/lib/catalog/assignment";
 
 /**
  * Чтения для страниц публичного каталога, которых нет в lib/catalog/queries: справочники
@@ -24,20 +25,23 @@ function orderIndex(order: readonly string[], slug: string): number {
  * в порядке объекта), и все типы решений (в порядке модели). Названия — из БД, то есть с
  * правками администратора.
  */
-export async function getCatalogOptions(db: Db): Promise<CatalogOptions> {
+export async function getCatalogOptions(db: Db, includeUnassigned = false): Promise<CatalogOptions> {
+  const visibleProduct = catalogVisibilityWhere(includeUnassigned);
+  const visibleProcess = { products: { some: { product: visibleProduct } } };
   const facilityRows = await db.facilityType.findMany({
-    where: { processes: { some: {} } },
+    where: { processes: { some: { process: visibleProcess } } },
     select: {
       slug: true,
       name: true,
       industry: { select: { slug: true, name: true } },
       processes: {
+        where: { process: visibleProcess },
         select: { process: { select: { slug: true, name: true } } },
         orderBy: [{ order: "asc" }, { process: { order: "asc" } }, { process: { slug: "asc" } }],
       },
     },
   });
-  const solutionRows = await db.solutionType.findMany({ select: { slug: true, name: true } });
+  const solutionRows = await db.solutionType.findMany({ where: { products: { some: visibleProduct } }, select: { slug: true, name: true } });
 
   const facilities: FacilityOption[] = facilityRows
     .map((f) => ({
@@ -66,9 +70,9 @@ export async function getCatalogOptions(db: Db): Promise<CatalogOptions> {
  * Неархивные продукты в форме для подсчёта дерева иерархии: привязка к типам объектов,
  * процессы и тип решения. Каталог — пара сотен строк, читается одним лёгким запросом.
  */
-export async function getHierarchyProducts(db: Db): Promise<HierarchyProduct[]> {
+export async function getHierarchyProducts(db: Db, includeUnassigned = false): Promise<HierarchyProduct[]> {
   const rows = await db.catalogProduct.findMany({
-    where: { archived: false },
+    where: catalogVisibilityWhere(includeUnassigned),
     select: {
       facilityTypeSlugs: true,
       solutionType: { select: { slug: true, name: true } },

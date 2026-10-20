@@ -27,6 +27,7 @@ export type CatalogQuery = {
   confirmed: boolean;
   /** «Есть модель RaaS»: опубликована ставка аренды. */
   raas: boolean;
+  unassigned: boolean;
   sort: CatalogSort;
   page: number;
 };
@@ -77,6 +78,7 @@ export function parseCatalogQuery(sp: RawSearchParams): CatalogQuery {
     level: oneOf(stringParam(sp, "level"), LEVELS),
     confirmed: flagParam(sp, "confirmed"),
     raas: flagParam(sp, "raas"),
+    unassigned: flagParam(sp, "unassigned"),
     sort: sort === "" ? "name" : sort,
     page: pageParam(sp),
   };
@@ -93,6 +95,7 @@ export function toCatalogFilters(query: CatalogQuery): CatalogFilters {
   if (query.level) f.level = query.level;
   if (query.confirmed) f.confirmedOnly = true;
   if (query.raas) f.raas = true;
+  if (query.unassigned) f.includeUnassigned = true;
   return f;
 }
 
@@ -106,7 +109,7 @@ export function hasActiveFilters(query: CatalogQuery): boolean {
     query.status !== "" ||
     query.level !== "" ||
     query.confirmed ||
-    query.raas
+    query.raas || query.unassigned
   );
 }
 
@@ -120,6 +123,7 @@ export const EMPTY_QUERY: CatalogQuery = {
   level: "",
   confirmed: false,
   raas: false,
+  unassigned: false,
   sort: "name",
   page: 1,
 };
@@ -139,6 +143,7 @@ export function catalogHref(patch: Partial<CatalogQuery> = {}, base: CatalogQuer
   if (q.level) params.set("level", q.level);
   if (q.confirmed) params.set("confirmed", "1");
   if (q.raas) params.set("raas", "1");
+  if (q.unassigned) params.set("unassigned", "1");
   if (q.sort !== "name") params.set("sort", q.sort);
   if (q.page > 1) params.set("page", String(q.page));
   const s = params.toString();

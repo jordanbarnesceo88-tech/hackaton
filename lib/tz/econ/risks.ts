@@ -1,13 +1,14 @@
 import { pluralRu } from "../../format/plural";
 import { LABOR_SHARE_SENSITIVITY_RANGE, normDef } from "../norms";
 import type { ItemResult, ProductForCalc, Risk, ScenarioItem, ScenarioResult, ScenarioSpec, SensitivityRow } from "../types";
-import { FACILITY_PARAM_KEYS, normsForSpec, optNum, type ScenarioContext } from "./context";
+import { FACILITY_PARAM_KEYS, normsForSpec, optNum, workHours, type ScenarioContext } from "./context";
 import { costPackageWarnings } from "./cost-package";
 import { raasPackageDescription } from "./raas-package";
 import { cleaningProfileDescription } from "./cleaning-profile";
 import { deploymentLogisticsText } from "../deployment-logistics";
 import { baseOutsideSourceRange } from "./sensitivity";
 import { fx, mrub, q, rangeText, rub, share, unitShort } from "./text";
+import { evaluateCleaningPlan, isCleaningProcess } from "../cleaning-zones";
 
 /**
  * Риски сценария (ТЗ §3.5.7: рекомендация — не только число, но и риски с интерпретацией).
@@ -52,7 +53,7 @@ function itemViews(ctx: ScenarioContext, result: ScenarioResult, spec?: Scenario
       const product = ctx.products[it.productSlug];
       return {
         spec: it,
-        result: result.items.find((r) => r.process === it.process),
+        result: result.items.find((r) => r.process === it.process && r.productSlug === it.productSlug),
         product,
         name: product?.name ?? it.productSlug,
       };
@@ -79,6 +80,17 @@ export function scenarioRisks(
   const norms = spec ? normsForSpec(ctx, spec) : ctx.norms;
   const views = itemViews(ctx, result, spec);
   const ok = result.status === "ok" ? result : null;
+  if (spec?.cleaningPlan && ok) {
+    try {
+      const item = spec.items.find(item => isCleaningProcess(item.process)), process = item ? ctx.processes[item.process] : undefined;
+      const baselineFte = process?.headcountParam ? optNum(ctx.params, process.headcountParam) : null;
+      const area = process?.demand?.sumParams[0] ? optNum(ctx.params, process.demand.sumParams[0]) : null;
+      if (baselineFte === null || area === null) throw new Error("Нет численности уборщиков или площади плана");
+      const plan = evaluateCleaningPlan(spec.cleaningPlan, { workDaysPerYear: workHours(ctx).D, annualHoursPerFte: norms.annualHoursPerFte, baselineFte, items: spec.items, cleaningAreaM2: area });
+      add("CLEANING_PLAN_ASSUMPTION", "medium", `План зон уборки — прогноз по явным назначениям, не проверка 2D/3D: ${plan.status === "full" ? "заданный объём покрыт роботами, существующими машинами и оставленным персоналом" : "остаются незакрытые зоны"}. Источник: ${plan.plan.source}. Качество и безопасность требуют фактического пилота.`);
+      if (plan.status !== "full") add("CLEANING_PLAN_PARTIAL", "high", `План зон не закрывает всю уборку: дефицит ${fx(plan.zones.reduce((sum, zone) => sum + zone.uncoveredM2PerDay, 0))} м²/день. Финансовая оценка не делает неполный план рекомендованным.`);
+    } catch (error) { add("CLEANING_PLAN_UNVERIFIED", "high", `План зон не проверен: ${error instanceof Error ? error.message : "неверные исходные данные"}. Финансовые числа не подтверждают выполнение плана.`); }
+  }
   add(spec?.logistics ? "LOGISTICS_ASSUMPTION" : "LOGISTICS_NOT_ASSESSED", "medium", deploymentLogisticsText(spec?.logistics));
   if (ok?.operationsStaffing) {
     const staffing = ok.operationsStaffing;

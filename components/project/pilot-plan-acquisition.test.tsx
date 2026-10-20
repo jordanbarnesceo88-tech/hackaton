@@ -57,7 +57,7 @@ describe("pilot acquisition selection", () => {
   it("shows ambiguity without an uncaught error, draft reset or apply callback", () => {
     const m = model(true), plan = defaultPilotPlan(m, "r1");
     plan.notes = "Неприменённые замеры участка"; plan.equipmentUnitRubOverride = 333_000;
-    const draft = { plan, residual: 12345 }, before = structuredClone(draft);
+    const draft = { plan, residual: 12345, residualSource: "Тестовая оценка остаточной стоимости" }, before = structuredClone(draft);
     const props = { model: m, scenarioKey: "r1", draft, onChange: vi.fn(), onDraftChange: vi.fn() };
     const tree = editor(props);
     expect(() => changeAcquisition(tree)).not.toThrow();
@@ -93,10 +93,10 @@ describe("pilot acquisition selection", () => {
   it("applies a valid own RaaS quote and the current residual exactly once", () => {
     const m = packagedModel(), plan = defaultPilotPlan(m, "r1");
     plan.equipmentUnitRubOverride = 300_000; plan.raasFirstMonthRubOverride = 400_000;
-    const draft = { plan, residual: 45678 }, before = structuredClone(draft);
+    const draft = { plan, residual: 45678, residualSource: "Тестовая оценка стоимости продажи" }, before = structuredClone(draft);
     const props = { model: m, scenarioKey: "r1", draft, onChange: vi.fn(), onDraftChange: vi.fn() };
     submit(editor(props));
-    expect(props.onChange).toHaveBeenCalledExactlyOnceWith({ pilotPlan: plan, terminalResidualRub: draft.residual });
+    expect(props.onChange).toHaveBeenCalledExactlyOnceWith({ pilotPlan: plan, terminalResidualRub: draft.residual, terminalResidualSource: draft.residualSource });
     expect(props.onDraftChange).not.toHaveBeenCalled(); expect(draft).toEqual(before);
   });
 });

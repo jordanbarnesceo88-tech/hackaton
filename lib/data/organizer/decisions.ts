@@ -1388,7 +1388,7 @@ export const PRODUCT_DECISIONS: Readonly<Record<number, ProductDecision>> = {
   15: {
     slug: "dikom-dmr-300-carrier-b",
     solutionType: "tote-amr",
-    processes: ["piece-picking", "hospital-delivery"],
+    processes: ["piece-picking"],
     values: [
       {
         key: "priceRub",
@@ -1414,7 +1414,7 @@ export const PRODUCT_DECISIONS: Readonly<Record<number, ProductDecision>> = {
       },
     ],
   },
-  18: { slug: "moros-amr-100", solutionType: "tote-amr", processes: ["piece-picking", "hospital-delivery"] },
+  18: { slug: "moros-amr-100", solutionType: "tote-amr", processes: ["piece-picking"] },
   19: { slug: "moros-amr-1500", solutionType: "pallet-amr", processes: ["pallet-transport"] },
   20: { slug: "moros-amr-800", solutionType: "pallet-amr", processes: ["pallet-transport"] },
   // Строки 21 и 22 — Ronavi H1500 в двух сценариях каталога. Лучше всех документированный продукт:
@@ -1485,7 +1485,7 @@ export const PRODUCT_DECISIONS: Readonly<Record<number, ProductDecision>> = {
   25: {
     slug: "ronavi-m",
     solutionType: "tote-amr",
-    processes: ["piece-picking", "hospital-delivery"],
+    processes: ["piece-picking"],
     values: [
       ronaviPrice(
         "Ronavi M",
@@ -1517,7 +1517,7 @@ export const PRODUCT_DECISIONS: Readonly<Record<number, ProductDecision>> = {
   27: {
     slug: "ronavi-sd",
     solutionType: "sorter",
-    processes: ["sorting", "hospital-delivery"],
+    processes: ["sorting"],
     // Цена организатора 1,4 млн ₽ против 360–400 тыс. ₽ на сайте производителя.
     flags: ["price-disputed"],
     values: [

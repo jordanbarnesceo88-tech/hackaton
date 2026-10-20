@@ -37,6 +37,7 @@ function activeFilterLabels(query: CatalogQuery, options: CatalogOptions): strin
   if (query.level) out.push(`глубина описания «${LEVEL_LABELS[query.level]}»`);
   if (query.confirmed) out.push("только с подтверждёнными данными");
   if (query.raas) out.push("есть ставка RaaS");
+  if (query.unassigned) out.push("включая непривязанные карточки");
   return out;
 }
 
@@ -52,13 +53,13 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   const query = parseCatalogQuery(sp);
   const [list, options, hierarchyProducts, release] = await Promise.all([
     getCatalogList(prisma, toCatalogFilters(query)),
-    getCatalogOptions(prisma),
-    getHierarchyProducts(prisma),
+    getCatalogOptions(prisma, query.unassigned),
+    getHierarchyProducts(prisma, query.unassigned),
     latestDataRelease(prisma),
   ]);
   const active = hasActiveFilters(query);
   const tree = buildHierarchy(options.facilities, hierarchyProducts);
-  const unassigned = hierarchyProducts.filter((p) => p.facilityTypeSlugs.length === 0).length;
+  const unassigned = hierarchyProducts.filter(p => !options.facilities.some(facility => p.facilityTypeSlugs.includes(facility.slug) && facility.processes.some(process => p.processSlugs.includes(process.slug)))).length;
   const filters = activeFilterLabels(query, options);
   const sortLabel = SORT_OPTIONS.find((s) => s.value === query.sort)?.label ?? "";
   const beyondLastPage = list.total > 0 && list.items.length === 0;
@@ -75,13 +76,13 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
         </p>
         <p className="text-xs text-muted-foreground">
           {release
-            ? `Выпуск данных ${release.version} от ${RELEASE_DATE.format(release.seededAt)} · всего в каталоге ${formatNum(hierarchyProducts.length)} ${pluralRu(hierarchyProducts.length, ["продукт", "продукта", "продуктов"])}`
+            ? `Выпуск данных ${release.version} от ${RELEASE_DATE.format(release.seededAt)} · ${query.unassigned ? "все карточки каталога" : "карточки с привязкой к объекту и процессу"}: ${formatNum(hierarchyProducts.length)} ${pluralRu(hierarchyProducts.length, ["продукт", "продукта", "продуктов"])}`
             : "Данные каталога ещё не загружены — обратитесь к администратору."}
         </p>
       </header>
 
       {/* Дерево свёрнуто: на экране 1366×768 раскрытое (~480 px) уводит таблицу ниже первого экрана. */}
-      <CatalogHierarchy tree={tree} unassigned={unassigned} open={false} />
+      <CatalogHierarchy tree={tree} unassigned={unassigned} includeUnassigned={query.unassigned} open={false} />
 
       <CatalogFiltersForm query={query} options={options} />
 
@@ -100,7 +101,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
             <p className="font-medium">По этим условиям решений нет.</p>
             <p className="mt-1 text-muted-foreground">
               Уберите часть фильтров или измените запрос. Продукты, описанные только на уровне идентификации,
-              часто не привязаны к типу объекта и процессу — попробуйте искать без фильтра «Тип объекта».
+              часто не привязаны к типу объекта и процессу — включите «Показать также непривязанные карточки».
             </p>
             {active && (
               <Link href="/catalog" prefetch={false} className="mt-2 inline-block text-primary underline underline-offset-2">

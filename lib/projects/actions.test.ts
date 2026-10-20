@@ -17,7 +17,7 @@ import { catalogProduct } from "../data/organizer/catalog";
 import { processDef, solutionTypeDef } from "../tz/processes";
 import { AUTO_MANUAL_SUFFIX, buildProjectModel, expectedSpatialInputFromStored, storedPartOf } from "../tz/model";
 import type { ProductSeed, ProjectResults, ScenarioSpec } from "../tz/types";
-import { stableJson } from "../tz/version";
+import { stableJson, TZ_MODEL_VERSION } from "../tz/version";
 import { buildPilotBudget, defaultPilotPlan } from "../tz/pilot-budget";
 import { TEST_CLEANING_PROFILE } from "../tz/econ/cleaning-fixtures";
 import { VENDOR_CLEANING_PRODUCTS } from "../data/vendor-cleaning";
@@ -844,7 +844,7 @@ describe("server-derived audit and consistent report snapshot", () => {
       const saved = await commands.save(created.id, { expectedRevision: 0, params, scenarios: edited, changes: [] });
       expect(saved.ok).toBe(true);
       if (!saved.ok) throw new Error(saved.message);
-      expect(saved.results.modelVersion).toBe("tz-1.0.10");
+      expect(saved.results.modelVersion).toBe(TZ_MODEL_VERSION);
       expect(Object.values(saved.results.sim).every(value => value === null)).toBe(true);
       const result = saved.results.results.find(row => row.key === "p1");
       if (result?.status !== "ok") throw new Error(JSON.stringify(result));

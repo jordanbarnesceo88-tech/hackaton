@@ -162,6 +162,10 @@ export function CatalogFiltersForm({ query, options }: { query: CatalogQuery; op
 
       <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
         <label className="flex max-w-md items-start gap-2 text-sm">
+          <input type="checkbox" name="unassigned" value="1" defaultChecked={query.unassigned} className="mt-1" />
+          <span>Показать также непривязанные карточки<span className="block text-[11px] text-muted-foreground">По умолчанию показаны модели с привязкой к процессу и типу объекта. Отсутствие цены и статус прототипа сами по себе карточку не скрывают.</span></span>
+        </label>
+        <label className="flex max-w-md items-start gap-2 text-sm">
           <input type="checkbox" name="confirmed" value="1" defaultChecked={query.confirmed} className="mt-1" />
           <span>
             Только с подтверждёнными данными

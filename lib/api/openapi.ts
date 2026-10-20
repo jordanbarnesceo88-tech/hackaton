@@ -1012,6 +1012,7 @@ export const OPENAPI: OpenApiDocument = {
           { name: "sort", in: "query", description: "Сортировка", schema: str("Порядок", { enum: ["name", "price", "throughput", "completeness"] }) },
           { name: "page", in: "query", description: "Страница, с 1", schema: int("Страница", { minimum: 1 }) },
           { name: "confirmedOnly", in: "query", description: "Только продукты с данными, подтверждёнными первоисточником (1 или 0)", schema: str("Флаг", { enum: ["1", "0"] }) },
+          { name: "unassigned", in: "query", description: "Включить карточки без привязки к поддерживаемому объекту и процессу (по умолчанию 0); финансовая готовность и статус прототипа не фильтруются", schema: str("Флаг", { enum: ["1", "0"] }) },
           { name: "raas", in: "query", description: "Только продукты с опубликованной ставкой RaaS (1 или 0)", schema: str("Флаг", { enum: ["1", "0"] }) },
         ],
         responses: {

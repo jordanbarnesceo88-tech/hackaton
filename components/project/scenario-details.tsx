@@ -111,7 +111,7 @@ type ItemView = {
 function itemViews(result: ScenarioResult, spec: ScenarioSpec | undefined, products?: Readonly<Record<string, ProductForCalc>>): ItemView[] {
   if (spec && spec.items.length > 0) {
     return spec.items.map((it) => {
-      const r = result.items.find((x) => x.process === it.process);
+      const r = result.items.find((x) => x.process === it.process && x.productSlug === it.productSlug);
       const product = products?.[it.productSlug];
       return {
         process: it.process,

@@ -14,6 +14,7 @@ import type { PendingChange, ScenarioItem, ScenarioKind, ScenarioSpec, SpatialEv
 import { stableJson } from "../tz/version";
 import { parsePilotPlanInput } from "../tz/pilot-budget";
 import { parseCleaningProfile } from "../tz/econ/cleaning-profile";
+import { isCleaningProcess, parseCleaningPlan } from "../tz/cleaning-zones";
 import { parseOperationsStaffing } from "../tz/econ/labour";
 import { parseCostPackage } from "../tz/econ/cost-package";
 import { parseRaasPackage, validateRaasSiteCharges } from "../tz/econ/raas-package";
@@ -54,7 +55,7 @@ export function validProjectRevision(value: unknown): value is number {
 export type Checked<T> = { ok: true; value: T } | { ok: false; errors: string[] };
 
 const SCENARIO_KINDS: ReadonlySet<string> = new Set<ScenarioKind>(["asis", "purchase", "raas"]);
-const SPEC_FIELDS: ReadonlySet<string> = new Set(["key", "name", "kind", "items", "normOverrides", "cashRealizationShare", "operationsStaffing", "spatialEvidence", "siteLayout", "pedestrians", "simSeed", "pilotPlan", "terminalResidualRub", "logistics"]);
+const SPEC_FIELDS: ReadonlySet<string> = new Set(["key", "name", "kind", "items", "normOverrides", "cashRealizationShare", "operationsStaffing", "spatialEvidence", "siteLayout", "pedestrians", "simSeed", "pilotPlan", "terminalResidualRub", "terminalResidualSource", "cleaningPlan", "logistics"]);
 const ITEM_FIELDS: ReadonlySet<string> = new Set([
   "process",
   "productSlug",
@@ -241,7 +242,7 @@ function checkItem(
   if (raw.cleaningProfile !== undefined) {
     try { item.cleaningProfile = parseCleaningProfile(raw.cleaningProfile); }
     catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный профиль уборки"}`); }
-    if (process !== "cleaning") errors.push(`${where}: профиль уборки применим только к уборке склада`);
+    if (typeof process !== "string" || !isCleaningProcess(process)) errors.push(`${where}: профиль уборки применим только к процессам уборки`);
     if (raw.throughputPerHOverride !== undefined) errors.push(`${where}: производительность уборки задаётся только в профиле`);
   }
   if (raw.operatingMode !== undefined) {
@@ -380,11 +381,12 @@ export function validateScenarioSpecs(
         if (!item) return;
         if (item.costPackage && kind !== "purchase") errors.push(`${where}: ценовой пакет применим только к покупке`);
         if (item.raasPackage && kind !== "raas") errors.push(`${where}: состав услуги RaaS применим только к RaaS`);
-        if (seenProcess.has(item.process)) {
+        const itemKey = raw.cleaningPlan !== undefined && ["cleaning", "terminal-cleaning", "hospital-cleaning"].includes(item.process) ? `${item.process}:${item.productSlug}` : item.process;
+        if (seenProcess.has(itemKey)) {
           errors.push(`${where}: на процесс «${processName(item.process)}» уже выбрано решение — оставьте одно`);
           return;
         }
-        seenProcess.add(item.process);
+        seenProcess.add(itemKey);
         items.push(item);
       });
     }
@@ -450,10 +452,22 @@ export function validateScenarioSpecs(
       if (kind === "asis") errors.push(`${where}: план роботизированного пилота не относится к сценарию «Как есть»`);
     }
     let terminalResidualRub: number | undefined;
+    let terminalResidualSource: string | undefined;
+    if (raw.terminalResidualSource !== undefined) {
+      if (typeof raw.terminalResidualSource !== "string" || raw.terminalResidualSource.trim().length > 1000) errors.push(`${where}: основание остаточной стоимости — строка до 1000 символов`);
+      else terminalResidualSource = raw.terminalResidualSource.trim();
+    }
     if (raw.terminalResidualRub !== undefined) {
       if (!(finite(raw.terminalResidualRub) && raw.terminalResidualRub >= 0 && raw.terminalResidualRub <= 1_000_000_000_000)) errors.push(`${where}: остаточная стоимость — неотрицательная чистая сумма до 1 трлн ₽`);
       else if (kind === "asis" && raw.terminalResidualRub > 0) errors.push(`${where}: остаточная стоимость задаётся в сценарии роботизации`);
       else terminalResidualRub = raw.terminalResidualRub;
+    }
+    if ((terminalResidualRub ?? 0) > 0 && !terminalResidualSource) errors.push(`${where}: для ненулевой остаточной стоимости укажите источник или основание оценки продажи`);
+    let cleaningPlan: ScenarioSpec["cleaningPlan"];
+    if (raw.cleaningPlan !== undefined) {
+      try { cleaningPlan = parseCleaningPlan(raw.cleaningPlan); }
+      catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный план зон уборки"}`); }
+      if (kind === "asis") errors.push(`${where}: план роботизированной уборки задаётся в сценарии покупки или RaaS`);
     }
     if (raw.cashRealizationShare !== undefined) {
       if (!(finite(raw.cashRealizationShare) && raw.cashRealizationShare >= 0 && raw.cashRealizationShare <= 1)) errors.push(`${where}: доля денежной реализации должна быть от 0 до 1`);
@@ -486,6 +500,8 @@ export function validateScenarioSpecs(
       if (operationsStaffing) spec.operationsStaffing = operationsStaffing;
       if (pilotPlan) spec.pilotPlan = pilotPlan;
       if (terminalResidualRub !== undefined) spec.terminalResidualRub = terminalResidualRub;
+      if (terminalResidualSource !== undefined) spec.terminalResidualSource = terminalResidualSource;
+      if (cleaningPlan !== undefined) spec.cleaningPlan = cleaningPlan;
       if (spatialEvidence) spec.spatialEvidence = spatialEvidence;
       if (siteLayout) spec.siteLayout = siteLayout;
       if (pedestrians) spec.pedestrians=pedestrians;
@@ -507,7 +523,7 @@ export function checkScenarioPedestrians(raw:unknown,site?:SimLayout):Pedestrian
 const ITEM_CHANGE_FIELDS = "quantity|price|throughput|service|raasRate|manual|package|raasPackage|cleaningProfile|operatingMode";
 /** Допустимые значения PendingChange.field (ТЗ §3.5.4 — журнал корректировок). */
 const CHANGE_FIELD_RE = new RegExp(
-  `^(param:[A-Za-z][A-Za-z0-9_]{0,63}|item:[a-z0-9-]{1,60}:(${ITEM_CHANGE_FIELDS})|norm:[A-Za-z][A-Za-z0-9]{0,63}|scenario:add|scenario:remove|scenario:pilot|scenario:residual|scenario:staffing|scenario:logistics|scenario:pedestrians)$`,
+  `^(param:[A-Za-z][A-Za-z0-9_]{0,63}|item:[a-z0-9-]{1,60}:(${ITEM_CHANGE_FIELDS})|norm:[A-Za-z][A-Za-z0-9]{0,63}|scenario:add|scenario:remove|scenario:pilot|scenario:residual|scenario:residualSource|scenario:cleaningPlan|scenario:staffing|scenario:logistics|scenario:pedestrians)$`,
 );
 const CHANGE_FIELDS: ReadonlySet<string> = new Set(["scenarioKey", "field", "auto", "old", "new", "unit", "reason"]);
 /** Наибольший размер старого или нового значения в журнале, символов JSON. */

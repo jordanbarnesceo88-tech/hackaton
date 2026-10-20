@@ -1,7 +1,7 @@
 import type { CleaningProfile } from "../types";
 
 /** Working assumptions are scenario inputs, never an approved field observation. */
-export function parseCleaningProfile(value: unknown): CleaningProfile {
+export function parseCleaningProfile(value: unknown, options: { deferDailySchedule?: boolean } = {}): CleaningProfile {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Error("Профиль уборки должен быть JSON-объектом");
   const v = value as Record<string, unknown>;
   const fields = ["basis", "throughputM2PerH", "workBeforeChargeH", "chargeH", "dailyCareMin", "windowH", "initiallyCharged", "careWithinWindow", "automatableLabourShare", "mode", "source", "date", "reason"];
@@ -17,14 +17,14 @@ export function parseCleaningProfile(value: unknown): CleaningProfile {
     return s.trim();
   };
   const windowH = num("windowH", 1 / 60, 24), dailyCareMin = num("dailyCareMin", 0, 1440);
-  if (dailyCareMin / 60 >= windowH) throw new Error("Профиль уборки: уход занимает всё рабочее окно, времени для уборки не остаётся");
+  if (!options.deferDailySchedule && dailyCareMin / 60 >= windowH) throw new Error("Профиль уборки: уход занимает всё рабочее окно, времени для уборки не остаётся");
   const date = text("date", 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) throw new Error("Профиль уборки: дата должна быть существующей датой YYYY-MM-DD");
   const profile: CleaningProfile = { basis: "active-hour", throughputM2PerH: num("throughputM2PerH", 0.01, 1_000_000), workBeforeChargeH: num("workBeforeChargeH", 1 / 60, 24),
     chargeH: num("chargeH", 1 / 60, 24), dailyCareMin, windowH, initiallyCharged: true, careWithinWindow: true,
     automatableLabourShare: num("automatableLabourShare", 0, 1), mode: text("mode", 100), source: text("source", 1000), date, reason: text("reason", 1000) };
   const day = cleaningDay(profile);
-  if (day.remainingChargeH > day.overnightH + 1e-9) throw new Error("Профиль уборки: вне рабочего окна не хватает времени восстановить полный заряд к следующему дню. Сократите окно или уточните цикл; каждый день начинать с бесплатного полного заряда нельзя");
+  if (!options.deferDailySchedule && day.remainingChargeH > day.overnightH + 1e-9) throw new Error("Профиль уборки: вне рабочего окна не хватает времени восстановить полный заряд к следующему дню. Сократите окно или уточните цикл; каждый день начинать с бесплатного полного заряда нельзя");
   return profile;
 }
 

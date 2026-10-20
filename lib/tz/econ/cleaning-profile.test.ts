@@ -78,6 +78,10 @@ describe("finite cleaning workday and financial assumptions", () => {
     expect(calculated(normal, ctx).items[0]!.releasedFte).toBeGreaterThan(0);
     const foreign = computeScenarios({ ...ctx, facility: "airport" }, cleaningSpecs())[1]!;
     expect(foreign.status).toBe("refused");
+    if (foreign.status === "refused") expect(foreign.refusal.reason).toBe("calc_not_supported");
+    const airportSpecs = cleaningSpecs(); airportSpecs[1]!.items[0]!.process = "terminal-cleaning";
+    const airport = { ...ctx, facility: "airport", products: { ...ctx.products, [TEST_CLEANER.slug]: { ...TEST_CLEANER, processes: ["terminal-cleaning"], facilityTypes: ["airport"] } } };
+    expect(computeScenarios(airport, airportSpecs)[1]!.status).toBe("ok");
   });
   it("refuses insufficient chargers and missing/ambiguous operating profiles", () => {
     const ctx = cleaningContext();

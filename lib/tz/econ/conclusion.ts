@@ -1,11 +1,12 @@
 import { formatYearsRu } from "../../format/plural";
 import type { Conclusion, Risk, ScenarioOk, ScenarioResult, ScenarioSpec } from "../types";
-import { FACILITY_PARAM_KEYS, HORIZON_MAX_YEARS, HORIZON_SCAN, normsForSpec, optNum, type ScenarioContext } from "./context";
+import { FACILITY_PARAM_KEYS, HORIZON_MAX_YEARS, HORIZON_SCAN, normsForSpec, optNum, workHours, type ScenarioContext } from "./context";
 import { computeScenariosCore } from "./core";
 import { interpretBand } from "./interpret";
 import { sortRisks } from "./risks";
 import { horizonBounds } from "./sensitivity";
 import { fx, mrub, q, rangeText, rub, yearsGen, yearsNom } from "./text";
+import { evaluateCleaningPlan, isCleaningProcess } from "../cleaning-zones";
 
 /**
  * Вывод по проекту (ТЗ §3.5.7): не жёсткий порог окупаемости, а число, риски и интерпретация.
@@ -37,7 +38,20 @@ export function isViableScenario(r: ScenarioOk): boolean {
 
 /** Этот риск добавляется сборщиком модели только для актуальной проверки данного входа. */
 export function simulationFailure(r: ScenarioOk): Risk | undefined {
-  return r.risks.find((risk) => risk.code === "SIM_NOT_CONFIRMED" || risk.code === "SPATIAL_STALE" || risk.code === "SIM_NOT_EVALUATED");
+  return r.risks.find((risk) => risk.code === "SIM_NOT_CONFIRMED" || risk.code === "SPATIAL_STALE" || risk.code === "SIM_NOT_EVALUATED" || risk.code === "CLEANING_PLAN_PARTIAL" || risk.code === "CLEANING_PLAN_UNVERIFIED");
+}
+
+/** Raw core results used by horizon scans have no risks yet; do not promote an incomplete plan. */
+function cleaningPlanEligible(ctx: ScenarioContext, spec: ScenarioSpec): boolean {
+  if (!spec.cleaningPlan) return true;
+  try {
+    const item = spec.items.find(item => isCleaningProcess(item.process));
+    const process = item ? ctx.processes[item.process] : undefined;
+    const baselineFte = process?.headcountParam ? optNum(ctx.params, process.headcountParam) : null;
+    const area = process?.demand?.sumParams[0] ? optNum(ctx.params, process.demand.sumParams[0]) : null;
+    if (baselineFte === null || area === null) return false;
+    return evaluateCleaningPlan(spec.cleaningPlan, { workDaysPerYear: workHours(ctx).D, annualHoursPerFte: normsForSpec(ctx, spec).annualHoursPerFte, baselineFte, items: spec.items, cleaningAreaM2: area }).status === "full";
+  } catch { return false; }
 }
 
 /** Рекомендуемый сценарий: наибольший NPV среди жизнеспособных, при равенстве — меньший CAPEX. */
@@ -161,6 +175,8 @@ function reinvestText(r: ReinvestNote): string {
  * вывод на всём диапазоне тот же.
  */
 export function horizonFlip(ctx: ScenarioContext, specs: readonly ScenarioSpec[]): HorizonFlip | null {
+  const blockedPlans = new Set(specs.filter(spec => !cleaningPlanEligible(ctx, spec)).map(spec => spec.key));
+  const choose = (rows: readonly ScenarioResult[]) => pickRecommended(rows.filter(row => !blockedPlans.has(row.key)));
   const H = horizonYears(ctx);
   const { low: from, high: to } = horizonBounds(ctx, H);
   const cache = new Map<number, ScenarioResult[]>();
@@ -173,8 +189,8 @@ export function horizonFlip(ctx: ScenarioContext, specs: readonly ScenarioSpec[]
     return r;
   };
   const winners = new Map<number, ScenarioOk | null>();
-  for (let h = from; h <= to; h++) winners.set(h, pickRecommended(resultsAt(h)));
-  const current = winners.has(H) ? (winners.get(H) ?? null) : pickRecommended(resultsAt(H));
+  for (let h = from; h <= to; h++) winners.set(h, choose(resultsAt(h)));
+  const current = winners.has(H) ? (winners.get(H) ?? null) : choose(resultsAt(H));
   const currentKey = current?.key ?? null;
   const keyAt = (h: number) => winners.get(h)?.key ?? null;
 
@@ -259,7 +275,8 @@ export function buildConclusion(
 ): Conclusion {
   const H = horizonYears(ctx);
   const robots = results.filter(isRobotOk);
-  const rec = pickRecommended(results);
+  const blockedPlans = new Set(specs?.filter(spec => !cleaningPlanEligible(ctx, spec)).map(spec => spec.key) ?? []);
+  const rec = pickRecommended(results.filter(row => !blockedPlans.has(row.key)));
   const bullets: string[] = [];
   const bestRobot =
     rec ??
@@ -281,6 +298,8 @@ export function buildConclusion(
     headline = `Предварительный финансовый выбор: ${rec.name}. NPV ${mrub(rec.npvRub ?? 0)} за ${yearsNom(H)}, окупаемость ${pb} — ${band.text}.`;
     bullets.push("Финансовый выбор не подтверждает эксплуатационную пригодность: проверьте нагрузку и условия объекта; успешная имитация относится только к условиям модели.");
     if (rec.items.some(item => item.cleaning)) bullets.push("Уборка рассчитана по рабочему эксплуатационному профилю: расписание является прогнозом, а не подтверждением имитацией. Принятая площадь, качество, ручная доработка, уход и зарядка требуют измерительного пилота; один транспортный прогон не подтверждает весь состав смешанного сценария.");
+  } else if (robots.some(r => isViableScenario(r) && (blockedPlans.has(r.key) || r.risks.some(risk => risk.code === "CLEANING_PLAN_PARTIAL" || risk.code === "CLEANING_PLAN_UNVERIFIED")))) {
+    headline = "Рекомендации нет: план уборки не закрывает все зоны или не проверен; финансовые показатели оставлены для сравнения. Уточните дефицит, состав и организацию ручной работы.";
   } else if (robots.some((r) => isViableScenario(r) && r.risks.some(risk => risk.code === "SIM_NOT_EVALUATED")) &&
     !robots.some(r => isViableScenario(r) && r.risks.some(risk => risk.code === "SIM_NOT_CONFIRMED"))) {
     headline = "Рекомендации нет: выполнение нагрузки не оценено, актуального подтверждения нет. Проверьте причину отсутствия оценки; при недостаточной нагрузке увеличьте окно или выполните нагруженный прогон. Финансовые показатели оставлены для сравнения.";

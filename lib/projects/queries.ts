@@ -9,6 +9,7 @@ import { resultsFromInputsAsync, type ComputedProject, type LiveInputs } from ".
 import { checkExecution } from "../sim/cooperative";
 import { checkScenarioPedestrians, checkScenarioSiteLayout, validProjectRevision } from "./validate";
 import { parsePilotPlanInput } from "../tz/pilot-budget";
+import { parseCleaningPlan } from "../tz/cleaning-zones";
 import { parseOperationsStaffing } from "../tz/econ/labour";
 import { parseDeploymentLogistics } from "../tz/deployment-logistics";
 import { normLabelsFromSnapshot } from "../tz/methodology";
@@ -115,6 +116,8 @@ export function scenarioFromRow(row: {
     out.simSeed = spec.simSeed as number;
   }
   if (spec.pilotPlan !== undefined) out.pilotPlan = parsePilotPlanInput(spec.pilotPlan);
+  if (spec.cleaningPlan !== undefined) out.cleaningPlan = parseCleaningPlan(spec.cleaningPlan);
+  if (typeof spec.terminalResidualSource === "string") out.terminalResidualSource = spec.terminalResidualSource;
   if (spec.terminalResidualRub !== undefined) {
     const value = spec.terminalResidualRub;
     if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1e12) throw new Error("В сохранённом сценарии некорректна остаточная стоимость");

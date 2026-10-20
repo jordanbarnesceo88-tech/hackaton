@@ -6,6 +6,7 @@ import { DEFAULT_NORMS, normDef } from "../tz/norms";
 import type { CharValue, ProductSeed, Sourced } from "../tz/types";
 import { productForCalcFromSeed, sourcedToCharRow } from "./product-for-calc";
 import { promoteColumns } from "./promote";
+import { getCatalogOptions, getHierarchyProducts } from "../../app/catalog/_lib/data";
 import {
   CATALOG_PAGE_SIZE,
   getCalcProducts,
@@ -407,6 +408,25 @@ afterAll(async () => {
 const own = (slugs: string[]) => slugs.filter((s) => s.startsWith(P)).map((s) => s.slice(P.length));
 
 describe("getCatalogList", () => {
+  it("hides only unassigned cards by default with consistent counts, hierarchy and explicit all-card pagination", async () => {
+    try {
+      await product("assignment-orphan", { name: "TZT18 assignment orphan", level: "identification", facilityTypeSlugs: [] }, []);
+      await product("assignment-mismatch", { name: "TZT18 assignment mismatch", level: "enriched", facilityTypeSlugs: ["warehouse"] }, [PROC_AIRPORT]);
+      await product("assignment-prototype", { name: "TZT18 assignment prototype", level: "identification", status: "rnd", facilityTypeSlugs: ["warehouse"] }, [PROC]);
+      const normal = await getCatalogList(db, { q: "TZT18 assignment" });
+      expect(normal.total).toBe(1); expect(normal.items.map(item => item.slug)).toEqual([`${P}assignment-prototype`]);
+      const all = await getCatalogList(db, { q: "TZT18 assignment", includeUnassigned: true });
+      expect(all.total).toBe(3); expect(all.pageCount).toBe(1); expect(all.items).toHaveLength(3);
+      const afterLast = await getCatalogList(db, { q: "TZT18 assignment", includeUnassigned: true, page: 2 });
+      expect(afterLast.items).toEqual([]); expect(afterLast.total).toBe(3); expect(afterLast.pageCount).toBe(1);
+      const visible = await getHierarchyProducts(db), every = await getHierarchyProducts(db, true);
+      expect(every.length - visible.length).toBeGreaterThanOrEqual(2);
+      const options = await getCatalogOptions(db);
+      expect(options.facilities.find(facility => facility.slug === "warehouse")?.processes.some(process => process.slug === PROC)).toBe(true);
+    } finally {
+      await db.catalogProduct.deleteMany({ where: { slug: { in: ["assignment-orphan", "assignment-mismatch", "assignment-prototype"].map(slug => `${P}${slug}`) } } });
+    }
+  });
   const list = (filters: CatalogFilters) => getCatalogList(db, { process: PROC, ...filters });
 
   it("по умолчанию — по названию, без архивных", async () => {

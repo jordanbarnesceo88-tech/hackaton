@@ -7,7 +7,7 @@ describe("scenario terminal net residual", () => {
   it.each([3, 5, 8])("horizon H=%s preserves operating economics and values disposal at TCO end only", H => {
     const ctx = fixtureContext(20, { params: { horizonYears: H } }), specs = fixtureSpecs();
     const base = computeScenariosCore(ctx, specs).find(r => r.key === "p1") as ScenarioOk;
-    specs[1]!.terminalResidualRub = 1_000_000;
+    specs[1]!.terminalResidualRub = 1_000_000; specs[1]!.terminalResidualSource = "Тестовая оценка чистой стоимости реализации в конце периода";
     const withResidual = computeScenariosCore(ctx, specs).find(r => r.key === "p1") as ScenarioOk;
     expect(withResidual.status).toBe("ok");
     expect(withResidual.capexRub).toBe(base.capexRub); expect(withResidual.effectYearRub).toBe(base.effectYearRub); expect(withResidual.opexYearRub).toBe(base.opexYearRub);

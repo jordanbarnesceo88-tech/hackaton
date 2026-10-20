@@ -95,7 +95,7 @@ describe("pilot scope and budget", () => {
     const copy = parsePilotPlanInput(valid); copy.costs.logistics.source = "Changed"; expect(valid.costs.logistics.source).not.toBe("Changed");
   });
   it("roundtrips pilot/residual through the scenario validator without allowing them on the baseline", () => {
-    const m = model(), specs = fixtureSpecs(); specs[1]!.pilotPlan = defaultPilotPlan(m, "p1"); specs[1]!.terminalResidualRub = 100_000;
+    const m = model(), specs = fixtureSpecs(); specs[1]!.pilotPlan = defaultPilotPlan(m, "p1"); specs[1]!.terminalResidualRub = 100_000; specs[1]!.terminalResidualSource = "Ручная оценка чистой реализации после демонтажа, требует подтверждения";
     const checked = validateScenarioSpecs(specs, "warehouse", FIXTURE_PRODUCTS.map(p => p.slug), ["pallet-transport"]);
     expect(checked.ok).toBe(true); if (!checked.ok) throw new Error(checked.errors.join());
     expect(checked.value[1]?.pilotPlan).toEqual(specs[1]?.pilotPlan); expect(checked.value[1]?.terminalResidualRub).toBe(100_000);

@@ -138,3 +138,10 @@ lib/db/factory.ts -text whitespace=cr-at-eol
 # Reproducible benchmark CLI and helper hashes.
 scripts/queue-load/** text eol=lf
 scripts/check-queue-recovery.mjs text eol=lf
+
+# Shared cleaning and actual-pilot engine inputs.
+lib/tz/cleaning-zones.ts -text whitespace=cr-at-eol
+lib/tz/cleaning-selection.ts -text whitespace=cr-at-eol
+lib/tz/pilot-evaluation.ts -text whitespace=cr-at-eol
+lib/report/tz/operating-plan.ts -text whitespace=cr-at-eol
+lib/catalog/assignment.ts -text whitespace=cr-at-eol

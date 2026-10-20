@@ -10,7 +10,19 @@ import data from "./catalog.generated.json";
  * Приведение через unknown: TypeScript выводит из JSON широкие типы (строки вместо литералов
  * origin/level/flags), а форма проверяется тестом organizer.test.ts на каждой записи.
  */
-export const CATALOG: readonly ProductSeed[] = data as unknown as ProductSeed[];
+/** Floor cleaning can be considered in all three facilities; clinical disinfection is separate.
+ * Generic warehouse carriers are not a proven hospital delivery workflow. No numbers change.
+ */
+export function withApplicableScopes(product: ProductSeed): ProductSeed {
+  if (product.solutionType === "cleaner") return { ...product,
+    processes: ["cleaning", "terminal-cleaning", "hospital-cleaning"], facilityTypes: ["warehouse", "airport", "medical"] };
+  if (["dikom-dmr-300-carrier-b", "moros-amr-100", "ronavi-m", "ronavi-sd"].includes(product.slug)) {
+    return { ...product, processes: product.processes.filter(process => process !== "hospital-delivery"), facilityTypes: ["warehouse"] };
+  }
+  return product;
+}
+
+export const CATALOG: readonly ProductSeed[] = (data as unknown as ProductSeed[]).map(withApplicableScopes);
 
 const BY_SLUG: ReadonlyMap<string, ProductSeed> = new Map(CATALOG.map((p) => [p.slug, p]));
 

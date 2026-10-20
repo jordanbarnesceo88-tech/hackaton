@@ -12,6 +12,7 @@ import type { ProductForCalc, ScenarioSpec } from "./types";
 const ALT: ProductForCalc = { ...structuredClone(FIXTURE_H1500), slug: "alternative-fast", name: "Альтернативная модель", speedMps: 2.2, priceRub: 3_100_000, raasRubMonth: 90_000 };
 function setup() {
   const source: ScenarioSpec = { key: "source", name: "Исходный состав", kind: "purchase", items: [{ process: "pallet-transport", productSlug: FIXTURE_H1500.slug, quantityOverride: 14, chargersOverride: 1, automationCoverageOverride: 0.7 }], cashRealizationShare: 0.25, simSeed: 23, terminalResidualRub: 500_000,
+    terminalResidualSource: "Синтетическая оценка чистой продажи собственных активов для теста; после налогов, демонтажа и вывоза",
     operationsStaffing: { mode: "shared-existing", incrementalHoursYear: 100, grossHourlyRub: 500, payrollMultiplier: 1.302, reason: "Оценка дополнительных оплачиваемых часов" } };
   const input: BuildProjectModelInput = { facility: "warehouse", params: structuredClone(WAREHOUSE_BASE_PARAMS), paramDefs: paramSpecsFor("warehouse"), products: [structuredClone(FIXTURE_H1500), structuredClone(ALT), structuredClone(FIXTURE_DMR600)], norms: resolveNorms(), scenarios: [source] };
   return { source, input };

@@ -67,11 +67,13 @@ export function CatalogHierarchy({
   tree,
   unassigned,
   open,
+  includeUnassigned = false,
 }: {
   tree: readonly HierarchyIndustryNode[];
   /** Сколько продуктов не привязано ни к одному типу объекта (в дерево не попадают). */
   unassigned: number;
   open: boolean;
+  includeUnassigned?: boolean;
 }) {
   if (tree.length === 0) return null;
   return (
@@ -87,7 +89,7 @@ export function CatalogHierarchy({
               <div>
                 <div className="text-xs text-muted-foreground">{g.industry?.name ?? "Отрасль не указана"}</div>
                 <Link
-                  href={catalogHref({ facility: f.slug })}
+                  href={catalogHref({ facility: f.slug, unassigned: includeUnassigned })}
                   prefetch={false}
                   className="font-medium text-primary underline-offset-2 hover:underline"
                 >
@@ -99,7 +101,7 @@ export function CatalogHierarchy({
                 {f.processes.map((p) => (
                   <li key={p.slug}>
                     <Link
-                      href={catalogHref({ facility: f.slug, process: p.slug })}
+                      href={catalogHref({ facility: f.slug, process: p.slug, unassigned: includeUnassigned })}
                       prefetch={false}
                       className="underline-offset-2 hover:underline"
                     >
@@ -111,7 +113,7 @@ export function CatalogHierarchy({
                         {p.solutionTypes.map((s) => (
                           <li key={s.slug}>
                             <Link
-                              href={catalogHref({ facility: f.slug, process: p.slug, solutionType: s.slug })}
+                              href={catalogHref({ facility: f.slug, process: p.slug, solutionType: s.slug, unassigned: includeUnassigned })}
                               prefetch={false}
                               className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                             >
@@ -131,8 +133,7 @@ export function CatalogHierarchy({
       </div>
       {unassigned > 0 && (
         <p className="mt-3 text-xs text-muted-foreground">
-          Не привязаны к типу объекта: {formatNum(unassigned)} {pluralRu(unassigned, ["продукт", "продукта", "продуктов"])} — они есть в
-          списке, если не выбирать «Тип объекта».
+          Нет полной привязки к типу объекта и процессу: {formatNum(unassigned)} {pluralRu(unassigned, ["продукт", "продукта", "продуктов"])} — они включены в список явным флажком «Показать также непривязанные карточки».
         </p>
       )}
     </details>

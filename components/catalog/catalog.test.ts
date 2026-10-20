@@ -257,6 +257,14 @@ describe("адрес каталога", () => {
     expect(hasActiveFilters(parseCatalogQuery({ sort: "price", page: "2" }))).toBe(false);
   });
 
+  it("явно включает непривязанные карточки и сохраняет opt-in при сортировке и пагинации", () => {
+    const query = parseCatalogQuery({ unassigned: "1", page: "2", sort: "price" });
+    expect(query.unassigned).toBe(true); expect(hasActiveFilters(query)).toBe(true);
+    expect(toCatalogFilters(query)).toEqual({ includeUnassigned: true, page: 2, sort: "price" });
+    expect(catalogHref({ page: 3 }, query)).toContain("unassigned=1");
+    expect(parseCatalogQuery({ unassigned: ["1", "0"] }).unassigned).toBe(false);
+  });
+
   it("ссылка без умолчаний и разбирается обратно в то же состояние", () => {
     expect(catalogHref()).toBe("/catalog");
     expect(catalogHref({ facility: "warehouse", process: "pallet-transport" })).toBe(
@@ -318,9 +326,9 @@ describe("иерархия", () => {
     expect(wh.processes[1]).toMatchObject({ slug: "cleaning", count: 0, solutionTypes: [] });
     expect(tree[1]!.facilities[0]!.count).toBe(1);
 
-    const html = renderToStaticMarkup(createElement(CatalogHierarchy, { tree, unassigned: 3, open: true }));
-    expect(html).toContain('href="/catalog?facility=warehouse&amp;process=pallet-transport&amp;solutionType=pallet-amr"');
-    expect(html).toContain("Не привязаны к типу объекта: 3 продукта");
+    const html = renderToStaticMarkup(createElement(CatalogHierarchy, { tree, unassigned: 3, open: true, includeUnassigned: true }));
+    expect(html).toContain('href="/catalog?facility=warehouse&amp;process=pallet-transport&amp;solutionType=pallet-amr&amp;unassigned=1"');
+    expect(html).toContain("Нет полной привязки к типу объекта и процессу: 3 продукта");
     expectNoForbidden(html);
   });
 

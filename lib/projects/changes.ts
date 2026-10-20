@@ -52,11 +52,15 @@ export function projectAuditDiff(
       const k = norm as keyof NonNullable<ScenarioSpec["normOverrides"]>;
       add(`norm:${norm}`, old.normOverrides?.[k], spec.normOverrides?.[k], key, isNormKey(norm) ? normDef(norm).unit : undefined);
     }
-    const scenarioFields = { pilotPlan: "pilot", terminalResidualRub: "residual", operationsStaffing: "staffing", logistics: "logistics",
+    const scenarioFields = { pilotPlan: "pilot", terminalResidualRub: "residual", terminalResidualSource: "residualSource", cleaningPlan: "cleaningPlan", operationsStaffing: "staffing", logistics: "logistics",
       cashRealizationShare: "cashShare", siteLayout: "site", pedestrians: "pedestrians", simSeed: "seed" } as const;
     for (const [property, field] of Object.entries(scenarioFields)) {
       const p = property as keyof typeof scenarioFields;
       add(`scenario:${field}`, old[p], spec[p], key, field === "residual" ? "₽" : undefined);
+    }
+    if (old.cleaningPlan || spec.cleaningPlan) {
+      add("scenario:cleaningItems", old.items, spec.items, key);
+      continue;
     }
     const oldItems = new Map(old.items.map(item => [item.process, item]));
     const newItems = new Map(spec.items.map(item => [item.process, item]));
@@ -256,7 +260,7 @@ export function changeFieldLabel(
   if (field === "scenario:remove") return "Сценарий удалён";
   if (field === "project:name") return "Название проекта";
   const scenarioLabels: Record<string, string> = { name: "Название сценария", kind: "Способ внедрения", order: "Порядок сценария",
-    pilot: "План и смета пилота", residual: "Чистая остаточная стоимость", cashShare: "Доля денежной реализации эффекта",
+    pilot: "План и смета пилота", residual: "Чистая остаточная стоимость", residualSource: "Основание остаточной стоимости", cleaningPlan: "Уборка по зонам и этажам", cleaningItems: "Коммерческий состав смешанного парка", cashShare: "Доля денежной реализации эффекта",
     site: "Исходная планировка сценария", pedestrians: "Модель пешеходов и параметры перехода", seed: "Зерно имитации" };
   if (field.startsWith("scenario:") && scenarioLabels[field.slice(9)]) return scenarioLabels[field.slice(9)]!;
   if (field === "scenario:staffing") return "Организация и дополнительные расходы эксплуатации";

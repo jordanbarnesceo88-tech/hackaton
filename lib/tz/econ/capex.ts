@@ -7,6 +7,7 @@ import { FACILITY_PARAM_KEYS, isRonavi, isWaybot, optNum, paramLabel, refuse, ty
 import { CAPEX_LINE_KEYS, FORMULAS, capexFormulaKey, type CapexLineKey } from "./formulas";
 import { charOrigin, mergeLines, sumLines, type ItemCalc } from "./internal";
 import { fx, rub, share } from "./text";
+import { isCleaningProcess } from "../cleaning-zones";
 
 /**
  * CAPEX по укрупнённым статьям (ТЗ §3.5.2: оборудование + инфраструктура + ПО + интеграция +
@@ -124,14 +125,15 @@ function logisticsLines(value: DeploymentLogistics | undefined): LineItem[] {
 }
 
 /** Площадь активной зоны для статьи инфраструктуры: activeAreaM2, иначе общая площадь. */
-function activeArea(ctx: Pick<ScenarioContext, "params" | "paramLabels">): number {
+function activeArea(ctx: Pick<ScenarioContext, "params" | "paramLabels">, cleaningOnly: boolean): number {
   const K = FACILITY_PARAM_KEYS;
-  const a = optNum(ctx.params, K.activeAreaM2) ?? optNum(ctx.params, K.totalAreaM2);
+  const key = cleaningOnly ? "cleaningAreaM2" : K.activeAreaM2;
+  const a = optNum(ctx.params, key) ?? (cleaningOnly ? null : optNum(ctx.params, K.totalAreaM2));
   if (a === null || a < 0) {
     refuse(
       "invalid_inputs",
-      `Не задана площадь активной зоны («${paramLabel(ctx, K.activeAreaM2)}»): она нужна для статьи «Инфраструктура площадки»`,
-      [`param:${K.activeAreaM2}`],
+      `Не задана площадь ${cleaningOnly ? "уборки" : "активной зоны"} («${paramLabel(ctx, key)}»): она нужна для статьи «Инфраструктура площадки»`,
+      [`param:${key}`],
     );
   }
   return a;
@@ -142,9 +144,11 @@ function infrastructureLine(ctx: Pick<ScenarioContext, "params" | "paramLabels">
   if (!items.some((c) => c.product.mobile)) {
     return line("infrastructure", 0, "стационарное решение — разметка и навигация для мобильных роботов не нужны", "derived");
   }
-  const area = activeArea(ctx);
+  const cleaningOnly = items.length > 0 && items.every(c => isCleaningProcess(c.process.slug));
+  const area = activeArea(ctx, cleaningOnly);
   const rate = norms.siteInfraRubPerM2;
-  return line("infrastructure", area * rate, `${fx(area)} м² × ${rub(rate)}/м²`, normDef("siteInfraRubPerM2").origin);
+  return line("infrastructure", area * rate, `${fx(area)} м² × ${rub(rate)}/м²`, normDef("siteInfraRubPerM2").origin,
+    cleaningOnly ? { originNote: "Для уборочного сценария взята явно заданная доступная площадь cleaningAreaM2; ставка инфраструктуры — общий норматив, уточнить состав работ" } : {});
 }
 
 /** Строки CAPEX покупки одной позиции, кроме инфраструктуры и резерва. */

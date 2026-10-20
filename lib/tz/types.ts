@@ -346,6 +346,25 @@ export type CleaningProfileResult = {
   careFte: number;
 };
 
+/** Disjoint floor area; repeat passes are demand, never extra unique floor area. */
+export type CleaningZone = {
+  id: string; name: string; floor: number; areaM2: number; cleaningsPerDay: number;
+  windowStartH: number; windowH: number;
+  baselineLabourHoursPerDay: number; retainedLabourHoursPerDay: number;
+  manualThroughputM2PerH: number | null;
+  existingMachineIds: string[];
+  assignments: { robotId: string; profile: CleaningProfile; transferMin: number; transferLabourMin: number }[];
+};
+
+export type CleaningPlan = {
+  schemaVersion: "cleaning-zones-1";
+  source: string; disjointAreaReason: string;
+  robots: { id: string; productSlug: string }[];
+  existingMachines: { id: string; name: string; floor: number; capacityM2PerDay: number;
+    operatorHoursPerDay: number; baselineAnnualCostRub: number; retainedAnnualCostRub: number; source: string }[];
+  zones: CleaningZone[];
+};
+
 export type ScenarioItem = {
   process: string;
   productSlug: string;
@@ -388,6 +407,8 @@ export type SpatialEvidence = {
 
 export type PilotPlanInput = {
   schemaVersion: "pilot-plan-1"; fleet: number; chargers: number; durationDays: number; dayBasis: "working" | "calendar"; acquisition: "purchase" | "raas";
+  /** Explicit model selected for a pilot within a multi-model scenario; never an implicit first item. */
+  productSlug?: string;
   costs: Record<"setup" | "integration" | "training" | "logistics" | "sitePreparation" | "evaluation", { valueRub: number | null; source: string }>;
   equipmentUnitRubOverride: number | null;
   /** Full first-month RaaS tariff per robot for a separately estimated pilot quote. */
@@ -396,6 +417,41 @@ export type PilotPlanInput = {
   chargerBudgetRubOverride?: number | null;
   chargerBudgetSource?: string;
   maxInterventionsPerShift: number; readiness: string[]; notes: string;
+  /** Explicit pilot acceptance agreement and observations; absence preserves old archives. */
+  acceptanceThresholds?: PilotAcceptanceThresholds;
+  actualResult?: PilotObservation;
+};
+
+export type PilotAcceptanceMetric = "accepted-area-m2-day" | "completed-operations-hour";
+export type PilotAcceptanceThresholds = {
+  schemaVersion: "pilot-acceptance-1";
+  scope: string; metric: PilotAcceptanceMetric; source: string; date: string | null;
+  minAcceptedPerUnit: number | null;
+  minPlanCompletionPct: number | null;
+  maxManualReworkPct: number | null;
+  maxDowntimePct: number | null;
+  maxIncidents: number | null;
+  maxInterventionsPerShift: number | null;
+  minCustomerScore: number | null;
+  minDurationDays: number | null;
+};
+export type PilotObservation = {
+  schemaVersion: "pilot-observation-1";
+  scope: string; metric: PilotAcceptanceMetric; productSlug: string; fleet: number | null;
+  periodStart: string | null; periodEnd: string | null;
+  observedDays: number | null; dayBasis: "working" | "calendar";
+  acceptedQuantity: number | null; plannedQuantity: number | null; manualReworkQuantity: number | null;
+  scheduledHours: number | null; downtimeHours: number | null;
+  incidents: number | null; interventions: number | null; shifts: number | null;
+  customerScore: number | null; source: string; date: string | null;
+};
+export type PilotAcceptanceCheck = {
+  key: string; label: string; status: "PASS" | "FAIL" | "INCOMPLETE";
+  actual: number | null; target: number | null; unit: string; reason: string;
+};
+export type PilotAcceptanceResult = {
+  status: "PASS" | "FAIL" | "INCOMPLETE";
+  checks: PilotAcceptanceCheck[]; missing: string[]; reasons: string[];
 };
 
 /** Additional site operating costs; absent retains the original per-item dedicated-post model. */
@@ -476,7 +532,10 @@ export type ScenarioSpec = {
   pedestrians?: SimInput["pedestrians"];
   simSeed?: number;
   pilotPlan?: PilotPlanInput;
+  cleaningPlan?: CleaningPlan;
   terminalResidualRub?: number;
+  /** Source or stated valuation basis for a nonzero net resale estimate. */
+  terminalResidualSource?: string;
   logistics?: DeploymentLogistics;
 };
 

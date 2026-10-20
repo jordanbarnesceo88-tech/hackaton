@@ -7,7 +7,7 @@ import { PROCESS_DEFS, SOLUTION_TYPE_DEFS, processDef } from "../../tz/processes
 import type { CharValue, ParamSpec, ProductSeed, Sourced } from "../../tz/types";
 import { CATALOG, catalogProduct } from "./catalog";
 import { DUPLICATE_ROW_MERGES, PARAM_EXTRAS } from "./decisions";
-import { PARAM_SPECS, baseValuesFor, paramSpecsFor } from "./params";
+import { CLEANING_PARAM_EXTRAS, PARAM_SPECS, baseValuesFor, paramSpecsFor } from "./params";
 import { CATALOG_COUNTS, ORGANIZER_DATA_VERSION } from "./version.generated";
 
 /**
@@ -257,9 +257,9 @@ describe("Параметры объектов", () => {
     for (const f of FACILITIES) {
       const specs = paramSpecsFor(f);
       expect(specs.filter((s) => s.origin === "organizer"), f).toHaveLength(expected[f]);
-      expect(specs.filter((s) => s.origin !== "organizer"), f).toHaveLength(PARAM_EXTRAS[f].length);
+      expect(specs.filter((s) => s.origin !== "organizer"), f).toHaveLength(PARAM_EXTRAS[f].length + CLEANING_PARAM_EXTRAS.filter(s => s.facility === f).length);
     }
-    expect(PARAM_SPECS).toHaveLength(42 + 39 + 57 + FACILITIES.reduce((n, f) => n + PARAM_EXTRAS[f].length, 0));
+    expect(PARAM_SPECS).toHaveLength(42 + 39 + 57 + CLEANING_PARAM_EXTRAS.length + FACILITIES.reduce((n, f) => n + PARAM_EXTRAS[f].length, 0));
   });
 
   it("ключи уникальны в пределах типа объекта, порядок показа — 1…N", () => {

@@ -19,6 +19,7 @@ export const CATALOG_QUERY_PARAMS = [
   "page",
   "confirmedOnly",
   "raas",
+  "unassigned",
 ] as const;
 
 const STATUSES = ["operation", "piloting", "rnd", "unknown"] as const;
@@ -98,6 +99,8 @@ export function parseCatalogQuery(sp: URLSearchParams): CatalogQueryCheck {
   if (confirmedOnly !== null && flag(confirmedOnly, "confirmedOnly", errors)) filters.confirmedOnly = true;
   const raas = sp.get("raas");
   if (raas !== null && flag(raas, "raas", errors)) filters.raas = true;
+  const unassigned = sp.get("unassigned");
+  if (unassigned !== null && flag(unassigned, "unassigned", errors)) filters.includeUnassigned = true;
 
   return errors.length > 0 ? { ok: false, errors } : { ok: true, filters };
 }

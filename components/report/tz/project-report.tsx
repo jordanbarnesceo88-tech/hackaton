@@ -1,3 +1,4 @@
+import { operatingPlanReportRows } from "@/lib/report/tz/operating-plan";
 import { expectedSpatialInputFromStored } from "@/lib/tz/model";
 import { AiAdviceContent } from "@/components/project/ai-advice-content";
 import type { AdviceView } from "@/lib/ai/advice/view";
@@ -1258,6 +1259,7 @@ function AiAdviceSection({ advice }: { advice: AdviceView }) {
 }
 
 export function ProjectReport({ project, results, defs, changes, scenarioKey, liveDataVersion = null, aiAdvice = null }: ProjectReportProps) {
+  const operatingRows = operatingPlanReportRows(results);
   const decisionKey = scenarioKey ?? results.conclusion.recommendedScenarioKey ?? results.results.find(r => r.kind !== "asis")?.key ?? "";
   const selectedSpec = results.scenarios.find(spec => spec.key === decisionKey);
   const savedSpatial = selectedSpec?.spatialEvidence;
@@ -1286,6 +1288,9 @@ export function ProjectReport({ project, results, defs, changes, scenarioKey, li
       <Contents aiAdvice={aiAdvice !== null} />
       <EconomicsSection results={results} defs={defs} />
       <PilotSection results={results} scenarioKey={scenarioKey} />
+      {operatingRows.length > 0 && <Section id="operating-plan" title="План работы и фактическая приёмка">
+        <div className="min-w-0 overflow-x-auto"><table className="print-table w-full text-sm"><thead><tr>{["Сценарий", "Показатель", "Значение", "Единица", "Источник"].map(label => <th key={label} className={TH}>{label}</th>)}</tr></thead><tbody>{operatingRows.map((row, index) => <tr key={index}><td className={TD}>{row.scenarioName}</td><th scope="row" className={`${TD} text-left font-normal`}>{row.label}</th><td className={TD}>{typeof row.value === "number" ? formatNum(row.value, 2) : row.value}</td><td className={TD}>{row.unit}</td><td className={`${TD} [overflow-wrap:anywhere]`}>{row.source}</td></tr>)}</tbody></table></div>
+      </Section>}
       <EquipmentSection results={results} />
       <SimSection results={results} />
       <SensitivitySection results={results} />

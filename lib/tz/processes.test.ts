@@ -69,8 +69,8 @@ describe("PROCESS_DEFS", () => {
     }
   });
 
-  it("экономика и имитация заявлены только для перемещения паллет (остальное — прототип, §5.7)", () => {
-    expect(PROCESS_DEFS.filter((p) => p.calcSupported).map((p) => p.slug)).toEqual(["pallet-transport", "cleaning"]);
+  it("экономика поддерживает перевозку и три процесса уборки; транспортная имитация остаётся отдельной", () => {
+    expect(PROCESS_DEFS.filter((p) => p.calcSupported).map((p) => p.slug)).toEqual(["pallet-transport", "cleaning", "terminal-cleaning", "hospital-cleaning"]);
     expect(PROCESS_DEFS.filter((p) => p.simSupported).map((p) => p.slug)).toEqual(["pallet-transport"]);
   });
 

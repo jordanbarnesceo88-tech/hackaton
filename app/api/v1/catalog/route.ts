@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db/client";
  * (ТЗ §3.3.7; §3.8 — выгрузка каталога во внешние системы и аналитику ФЦ БАС). Вход не нужен:
  * каталог открыт гостю (§3.1.2).
  *
- * Параметры: facility, process, solutionType, status, level, q, sort, page, confirmedOnly, raas.
+ * Параметры: facility, process, solutionType, status, level, q, sort, page, confirmedOnly, raas, unassigned.
  * Ответ: `{ items, total, page, pageSize, pageCount, dataRelease }`; строки — вынесенные
  * колонки продукта, полная карточка с провенансом — GET /api/v1/catalog/{slug}.
  */

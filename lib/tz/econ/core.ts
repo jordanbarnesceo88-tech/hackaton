@@ -18,6 +18,7 @@ import {
   normsForSpec,
   refuse,
   workHours,
+  toNumber,
   type ScenarioContext,
   type WorkHours,
 } from "./context";
@@ -43,6 +44,7 @@ import {
 } from "./labour";
 import { asisOpexLines, batteryOf, equipmentRub, lifeOf, purchaseOpexLines, raasOpexLines } from "./opex";
 import { fx, q, rub, share, yearsNom } from "./text";
+import { evaluateCleaningPlan, parseCleaningPlan, isCleaningProcess, type CleaningPlanEvaluation } from "../cleaning-zones";
 
 /**
  * Сборка сценариев без анализа чувствительности, рисков и пороговой зарплаты — «ядро»,
@@ -65,6 +67,8 @@ type BaseOk = {
   byProcess: Map<string, ProcessBaseline>;
   totalRub: number;
   trace: TraceStep[];
+  machineCostRub: number;
+  machineCostBasis: string;
 };
 type Base = BaseOk | { ok: false; refusal: Refusal };
 
@@ -112,16 +116,22 @@ function baseOf(ctx: ScenarioContext, specs: readonly ScenarioSpec[]): Base {
   }
   try {
     const list = scope.map((p) => processBaseline(ctx, p, ctx.norms));
+    const plans = specs.filter(s => s.cleaningPlan).map(s => parseCleaningPlan(s.cleaningPlan));
+    const machineBasis = (plan: typeof plans[number]) => JSON.stringify(plan.existingMachines.map(m => [m.id, m.baselineAnnualCostRub]).sort((a,b) => String(a[0]).localeCompare(String(b[0]))));
+    if (plans.some(plan => machineBasis(plan) !== machineBasis(plans[0]!))) refuse("invalid_inputs", "Сравниваемые планы должны иметь одинаковую исходную стоимость существующих машин", ["scenario:cleaningPlan"]);
+    const machineCostRub = plans[0]?.existingMachines.reduce((s,m) => s+m.baselineAnnualCostRub,0) ?? 0;
     return {
       ok: true,
       list,
       byProcess: new Map(list.map((b) => [b.process.slug, b])),
-      totalRub: list.reduce((a, b) => a + b.baselineRub, 0),
+      totalRub: list.reduce((a, b) => a + b.baselineRub, 0) + machineCostRub,
+      machineCostRub,
+      machineCostBasis: plans[0]?.existingMachines.map(m => `${m.id}: ${m.baselineAnnualCostRub / 12} ₽/мес × 12 = ${m.baselineAnnualCostRub} ₽/год; ${m.source}`).join("; ") ?? "",
       trace: list.flatMap((b) => b.trace),
     };
   } catch (e) {
     if (e instanceof RefusalError) return { ok: false, refusal: e.refusal };
-    throw e;
+    return { ok: false, refusal: { reason: "invalid_inputs", fields: ["scenario:cleaningPlan"], message: e instanceof Error ? e.message : "Некорректный план зон" } };
   }
 }
 
@@ -146,6 +156,12 @@ function refused(
 
 function finite(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
+}
+
+function machineCostLine(valueRub: number, baseline: boolean, basis: string) {
+  return { key: "existingMachines", label: baseline ? "Существующие уборочные машины — исходные затраты" : "Существующие уборочные машины — оставшиеся затраты", valueRub,
+    formula: "Сумма явных затрат существующих машин: месячная оценка × 12, один раз на ID", substituted: `${basis}; всего ${valueRub} ₽/год`, origin: "user" as const,
+    originNote: "Оценка плана зон; труд операторов включён в часы существующего персонала" };
 }
 
 /** Отказ-страховка: расчёт дал NaN или ±∞ (вырожденный ввод, который не поймали проверки). */
@@ -216,9 +232,8 @@ function physicalOf(ctx: ScenarioContext, item: ScenarioItem, norms: NormValues,
   const product = ctx.products[item.productSlug];
   // Наличие проверено до вызова; повтор — для сужения типов.
   if (!process || !product) refuse("invalid_inputs", "Сценарий ссылается на неизвестный процесс или продукт");
-  if (process.slug === "cleaning" && ctx.facility !== "warehouse") refuse("calc_not_supported", "Эксплуатационный профиль уборки сейчас рассчитывается только для склада", ["item:cleaning:cleaningProfile"]);
-  if (process.slug === "cleaning" && ctx.facility === "warehouse") {
-    if (!item.cleaningProfile) refuse("throughput_required", "Для уборки склада задайте явный эксплуатационный профиль: выработку за активный час, рабочее окно, работу/зарядку, ежедневный уход и долю роботизируемого труда. Паспортная цифра его не заменяет.", ["item:cleaning:cleaningProfile"]);
+  if (isCleaningProcess(process.slug)) {
+    if (!item.cleaningProfile) refuse("throughput_required", "Для уборки задайте явный эксплуатационный профиль: выработку за активный час, рабочее окно, работу/зарядку, ежедневный уход и долю роботизируемого труда. Паспортная цифра его не заменяет.", ["item:cleaning:cleaningProfile"]);
     let profile;
     try { profile = parseCleaningProfile(item.cleaningProfile); }
     catch (error) { refuse("invalid_inputs", error instanceof Error ? error.message : "Неверный профиль уборки", ["item:cleaning:cleaningProfile"]); }
@@ -328,6 +343,7 @@ function withLabour(
   hours: WorkHours,
   cashRealizationShare?: number,
   explicitStaffing = false,
+  planLabour?: { headcount: number; releasedFte: number; careFte: number },
 ): { calc: ItemCalc; trace: TraceStep[] } {
   const product = ctx.products[ph.item.productSlug];
   const pb = base.byProcess.get(ph.process.slug);
@@ -335,11 +351,12 @@ function withLabour(
   const cleaning = ph.cleaning;
   const careFte = cleaning ? ph.n * cleaning.careHoursPerDay * hours.D / norms.annualHoursPerFte : 0;
   const grossReleased = cleaning ? pb.headcount * ph.item.cleaningProfile!.automatableLabourShare * ph.kappa : 0;
-  if (cleaning && careFte > grossReleased + 1e-9 * Math.max(1, careFte, grossReleased)) refuse("staffing_required",
+  if (!planLabour && cleaning && careFte > grossReleased + 1e-9 * Math.max(1, careFte, grossReleased)) refuse("staffing_required",
     `Требуется ${fx(careFte * norms.annualHoursPerFte)} ч ухода/год, высвобождается ${fx(grossReleased * norms.annualHoursPerFte)} ч; при этих исходных данных уход не обеспечен. Уточните фактические трудозатраты и организацию обслуживания.`, ["item:cleaning:cleaningProfile", "param:cleanersCount"]);
-  const F = cleaning ? Math.max(0, grossReleased - careFte)
-    : releasedFte(pb.headcount, norms.laborShareAutomatable, ph.demand.excludeSharePct, ph.kappa);
-  const remainingRub = remaining(pb.headcount, F, pb.roleCost, cashRealizationShare);
+  const F = planLabour?.releasedFte ?? (cleaning ? Math.max(0, grossReleased - careFte)
+    : releasedFte(pb.headcount, norms.laborShareAutomatable, ph.demand.excludeSharePct, ph.kappa));
+  const headcount = planLabour?.headcount ?? pb.headcount;
+  const remainingRub = remaining(headcount, F, pb.roleCost, cashRealizationShare);
   const posts = explicitStaffing || cleaning ? 0 : operatorPosts(ph.n, norms);
   const opStaff = explicitStaffing || cleaning ? 0 : operatingStaff(posts, hours.Hd, hours.D, norms, pb.roleCost);
   const result: ItemResult = {
@@ -355,7 +372,7 @@ function withLabour(
     thrEff: ph.thr.thrEff,
     thrSource: ph.thr.thrSource,
     ...(ph.thr.evidence ? { thrEvidence: ph.thr.evidence } : {}),
-    ...(cleaning ? { cleaning: { ...cleaning, careFte } } : {}),
+    ...(cleaning ? { cleaning: { ...cleaning, careFte: planLabour?.careFte ?? careFte } } : {}),
     routeLoadedM: ph.thr.routeLoadedM,
     routeEmptyM: ph.thr.routeEmptyM,
     nExact: ph.nExact,
@@ -365,10 +382,10 @@ function withLabour(
     coverage: ph.kappa,
     chargers: ph.chargers.count,
     operatorPosts: posts,
-    headcount: pb.headcount,
+    headcount,
     roleCostRubYear: pb.roleCost,
     releasedFte: F,
-    baselineLabourRub: pb.baselineRub,
+    baselineLabourRub: headcount * pb.roleCost,
     remainingLabourRub: remainingRub,
     operatingStaffRub: opStaff,
   };
@@ -404,6 +421,10 @@ function withLabour(
     },
   ];
   if (explicitStaffing || cleaning) trace.pop(); // Site staffing is separate; cleaning care already reduces released labour once.
+  if (planLabour) {
+    trace[0] = { key: "releasedFte", label: "Высвобождение труда по непересекающимся зонам", formula: "min(сокращаемые часы; роботизированная доля труда − уход − переносы) × дней / фонд ставки", substituted: `${F} ставок; исходный ФОТ модели распределён между продуктами один раз`, value: F, unit: "ставок", origin: "derived" };
+    trace[1] = { ...trace[1]!, substituted: `${headcount} × ${pb.roleCost} − ${F} × ${pb.roleCost} × ${cashRealizationShare ?? 1} = ${remainingRub}` };
+  }
   const calc: ItemCalc = {
     item: ph.item,
     process: ph.process,
@@ -457,12 +478,14 @@ function asisResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scena
   const norms = normsForSpec(ctx, spec);
   const trace: TraceStep[] = [...base.trace];
   try {
+    if (spec.cleaningPlan !== undefined) refuse("invalid_inputs", "План зон задаётся в сценарии роботизации; исходные люди и машины учитываются в общей базе сравнения", ["scenario:cleaningPlan"]);
     if (spec.operationsStaffing !== undefined) refuse("invalid_inputs", "Дополнительный эксплуатационный персонал задаётся только в сценарии роботизации", ["scenario:operationsStaffing"]);
     if (spec.logistics !== undefined) refuse("invalid_inputs", "Доставка внедрения задаётся только в сценарии роботизации", ["scenario:logistics"]);
     if (spec.terminalResidualRub !== undefined && spec.terminalResidualRub !== 0) refuse("invalid_inputs", "Остаточная стоимость задаётся в сценарии роботизации для собственных активов", ["scenario:terminalResidualRub"]);
     // H «Как есть» не нужен (нет CAPEX и NPV), но проверяется: без горизонта нет и T.
     const { T } = horizonOf(ctx, norms);
     const opexLines = asisOpexLines(base.list);
+    if (base.machineCostRub) opexLines.push(machineCostLine(base.machineCostRub, true, base.machineCostBasis));
     const opex = sumLines(opexLines);
     const rows = cashflows({
       capexRub: 0,
@@ -494,7 +517,7 @@ function asisResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scena
       capexLines: [],
       opexYearRub: opex,
       opexLines,
-      processLabourYearRub: opex,
+      processLabourYearRub: base.list.reduce((s,b) => s+b.baselineRub,0),
       effectYearRub: 0,
       paybackYears: null,
       band: "none",
@@ -536,6 +559,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     if (spec.terminalResidualRub !== undefined && !(finite(spec.terminalResidualRub) && spec.terminalResidualRub >= 0 && spec.terminalResidualRub <= 1_000_000_000_000)) {
       refuse("invalid_inputs", "Остаточная стоимость должна быть неотрицательной чистой суммой до 1 трлн ₽", ["scenario:terminalResidualRub"]);
     }
+    if ((spec.terminalResidualRub ?? 0) > 0 && (typeof spec.terminalResidualSource !== "string" || !spec.terminalResidualSource.trim() || spec.terminalResidualSource.length > 1000)) refuse("invalid_inputs", "Укажите источник и основание остаточной стоимости собственных активов (до 1000 символов)", ["scenario:terminalResidualSource"]);
     if (spec.kind !== "purchase" && spec.kind !== "raas") {
       refuse("invalid_inputs", `Неизвестный вид сценария ${q(String(spec.kind))}`);
     }
@@ -551,16 +575,18 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     }
     const seen = new Set<string>();
     for (const item of specItems) {
-      if (seen.has(item.process)) {
+      const itemKey = spec.cleaningPlan && isCleaningProcess(item.process) ? `${item.process}:${item.productSlug}` : item.process;
+      if (seen.has(itemKey)) {
         refuse(
           "invalid_inputs",
           `В сценарии ${q(spec.name)} несколько решений для одного процесса ${q(ctx.processes[item.process]?.name ?? item.process)}: оставьте одно`,
           [`item:${item.process}:manual`],
         );
       }
-      seen.add(item.process);
+      seen.add(itemKey);
       const process = ctx.processes[item.process];
       if (!process) refuse("invalid_inputs", `Неизвестный процесс ${q(item.process)}`, [`item:${item.process}:manual`]);
+      if (!process.facilityTypes.includes(ctx.facility)) refuse("calc_not_supported", `Процесс ${q(process.name)} не применяется к выбранному типу объекта`, [`item:${item.process}:manual`]);
       if (!process.calcSupported) {
         refuse("calc_not_supported", `Экономика для процесса ${q(process.name)} в прототипе не рассчитывается`);
       }
@@ -575,8 +601,34 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
 
     const hours = workHours(ctx);
     trace.push(hours.trace);
+    let cleaningPlan: CleaningPlanEvaluation | undefined;
+    if (spec.cleaningPlan) {
+      if (!base.ok) throw new RefusalError(base.refusal);
+      const clean = specItems.filter(i => isCleaningProcess(i.process));
+      if (!clean.length || new Set(clean.map(i => i.process)).size !== 1) refuse("invalid_inputs", "План зон требует один процесс уборки и отдельные коммерческие позиции моделей", ["scenario:cleaningPlan"]);
+      const pb = base.byProcess.get(clean[0]!.process)!;
+      const areaKey = ctx.processes[clean[0]!.process]!.demand?.sumParams[0] ?? "cleaningAreaM2";
+      const cleaningArea = toNumber(ctx.params[areaKey]);
+      if (cleaningArea === null) refuse("invalid_inputs", "Укажите общую площадь уборки объекта для проверки плана зон", [`param:${areaKey}`]);
+      try { cleaningPlan = evaluateCleaningPlan(spec.cleaningPlan, { workDaysPerYear: hours.D, annualHoursPerFte: norms.annualHoursPerFte, baselineFte: pb.headcount, items: specItems, cleaningAreaM2: cleaningArea }); }
+      catch (error) { refuse("invalid_inputs", error instanceof Error ? error.message : "Некорректный план зон", ["scenario:cleaningPlan"]); }
+      if (cleaningPlan.zones.some(z => !z.careProvided)) refuse("staffing_required", "План зон: оставшихся часов людей недостаточно для ухода, переносов и работы существующих машин", ["scenario:cleaningPlan"]);
+      if (cleaningPlan.zones.some(z => !z.manualCapacityKnown)) refuse("throughput_required", "План зон: укажите выработку людей для оставшейся ручной уборки; неизвестная мощность не равна выполненной работе", ["scenario:cleaningPlan"]);
+      trace.push(...cleaningPlan.zones.map(z => ({ key: `cleaningZone:${z.id}`, label: `Зона ${z.name}, этаж ${z.floor}`, formula: "задано = роботы + существующие машины + ручная уборка + дефицит", substituted: `${z.demandM2PerDay} = ${z.robotAcceptedM2PerDay} + ${z.machineCoveredM2PerDay} + ${z.manualCoveredM2PerDay} + ${z.uncoveredM2PerDay} м²/день; ${z.status}; ${spec.cleaningPlan!.source}`, value: z.robotAcceptedM2PerDay, unit: "м²/сут", origin: "user" as const })));
+    }
     const physical = specItems.map((item) => {
-      const ph = physicalOf(ctx, item, norms, hours);
+      const p = cleaningPlan?.products.find(p => isCleaningProcess(item.process) && p.productSlug === item.productSlug);
+      const profile = p ? spec.cleaningPlan!.zones.flatMap(z => z.assignments).find(a => spec.cleaningPlan!.robots.find(r => r.id === a.robotId)?.productSlug === p.productSlug)!.profile : undefined;
+      const windowH = p ? p.windowHoursPerDay / p.fleet : 0;
+      const ph: Physical = p && profile ? {
+        item: { ...item, cleaningProfile: { ...profile, windowH } }, process: ctx.processes[item.process]!,
+        demand: { perDay: p.demandM2PerDay, avgPerHour: p.demandM2PerDay / windowH, peakPerHour: p.demandM2PerDay / windowH, peakFactor: 1, excludeSharePct: 0, trace: [] },
+        thr: { thrNorm: null, thrCycle: null, thrEff: p.acceptedM2PerDay / p.fleet / windowH, thrSource: "профиль уборки", routeLoadedM: null, routeEmptyM: null, normSkipped: "Парк и выработка рассчитаны по назначениям зон", trace: [] },
+        n: p.fleet, nAuto: p.fleet, nExact: p.fleet, kappa: p.demandM2PerDay ? p.acceptedM2PerDay / p.demandM2PerDay : 0,
+        chargers: { count: item.chargersOverride ?? p.fleet, method: "override", substituted: "Уникальные физические роботы плана зон, отдельная станция каждому" }, trace: [],
+        cleaning: { activeHoursPerDay: p.activeHoursPerDay / p.fleet, capacityM2PerDay: p.acceptedM2PerDay / p.fleet,
+          chargeHoursPerDay: p.chargeHoursPerDay / p.fleet, careHoursPerDay: p.careHoursPerDay / p.fleet, remainingChargeH: p.remainingChargeH, overnightH: p.overnightH },
+      } : physicalOf(ctx, item, norms, hours);
       costPackageForItem(item, { kind: spec.kind, chargers: ph.chargers.count });
       raasPackageForItem(item, spec.kind);
       if (spec.siteLayout && ph.process.simSupported && ph.chargers.count !== spec.siteLayout.chargers.length) {
@@ -591,7 +643,9 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     for (const b of base.list) if (covered.has(b.process.slug)) trace.push(...b.trace);
 
     const calcs = physical.map((ph) => {
-      const { calc, trace: t } = withLabour(ctx, ph, base, norms, hours, spec.cashRealizationShare, staffing !== undefined);
+      const p = cleaningPlan?.products.find(p => isCleaningProcess(ph.item.process) && p.productSlug === ph.item.productSlug);
+      const { calc, trace: t } = withLabour(ctx, ph, base, norms, hours, spec.cashRealizationShare, staffing !== undefined,
+        p ? { headcount: base.byProcess.get(ph.item.process)!.headcount * (cleaningPlan!.baselineHoursPerDay ? p.baselineHoursPerDay / cleaningPlan!.baselineHoursPerDay : p.fleet / spec.cleaningPlan!.robots.length), releasedFte: p.releasedFte, careFte: p.careHoursPerDay * hours.D / norms.annualHoursPerFte } : undefined);
       trace.push(...t);
       items.push(calc.result);
       return calc;
@@ -624,6 +678,8 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
     const purchase = spec.kind === "purchase";
     const capexLines = purchase ? purchaseCapexLines(ctx, calcs, norms, spec.logistics) : raasCapexLines(calcs, norms, spec.logistics);
     const opexLines = purchase ? purchaseOpexLines(calcs, uncovered, siteStaff) : raasOpexLines(calcs, uncovered, siteStaff);
+    const machineCost = cleaningPlan?.retainedMachineCostRub ?? base.machineCostRub;
+    if (machineCost) opexLines.push(machineCostLine(machineCost, false, spec.cleaningPlan?.existingMachines.map(m => `${m.id}: ${m.retainedAnnualCostRub / 12} ₽/мес × 12 = ${m.retainedAnnualCostRub} ₽/год; ${m.source}`).join("; ") ?? base.machineCostBasis));
     if (siteStaff?.includedInService && !opexLines.some(line => line.key === (purchase ? "service" : "subscription") && line.valueRub > 0)) {
       refuse("invalid_inputs", "Включение эксплуатационного персонала требует положительной стоимости сервиса или подписки в этом сценарии", ["scenario:operationsStaffing"]);
     }
@@ -677,7 +733,7 @@ function robotResult(ctx: ScenarioContext, spec: ScenarioSpec, base: Base): Scen
       calcs.reduce((a, c) => a + c.result.remainingLabourRub + c.result.operatingStaffRub, 0) +
       uncovered.reduce((a, b) => a + b.baselineRub, 0);
 
-    trace.push(...financeTrace({ capexLines, opexLines, capex, opex, opexAsis, effect, pb, roi, net, npvRub, dpb, tco, rows, H, T, rate: norms.discountRate }));
+    trace.push(...financeTrace({ capexLines, opexLines, capex, opex, opexAsis, effect, pb, roi, net, npvRub, dpb, tco, rows, H, T, rate: norms.discountRate, residualSource: spec.terminalResidualSource }));
 
     const ok: ScenarioOk = {
       key: spec.key,
@@ -731,6 +787,7 @@ function financeTrace(f: {
   H: number;
   T: number;
   rate: number;
+  residualSource?: string;
 }): TraceStep[] {
   const out: TraceStep[] = [
     {
@@ -797,7 +854,7 @@ function financeTrace(f: {
   }
   for (const r of f.rows) {
     if ((r.residualRub ?? 0) > 0) {
-      out.push({ key: "terminalResidual", label: `Остаточная стоимость, год ${r.year}`, formula: "CF_T = E_T − докупка_T + чистая остаточная стоимость; TCO = затраты − остаточная стоимость", substituted: `год ${r.year}: ${rub(r.residualRub!)} чистых поступлений после налогов, демонтажа и вывоза (оценка пользователя); ${r.year <= f.H ? "включено в NPV" : `не входит в NPV за ${f.H} лет`}`, value: r.residualRub!, unit: "₽", origin: "user" });
+      out.push({ key: "terminalResidual", label: `Остаточная стоимость, год ${r.year}`, formula: "CF_T = E_T − докупка_T + чистая остаточная стоимость; TCO = затраты − остаточная стоимость", substituted: `год ${r.year}: ${rub(r.residualRub!)} чистых поступлений после налогов, демонтажа и вывоза (оценка пользователя); ${r.year <= f.H ? "включено в NPV" : `не входит в NPV за ${f.H} лет`}; основание: ${f.residualSource}`, value: r.residualRub!, unit: "₽", origin: "user" });
     }
     if (r.batteryRub > 0) {
       out.push({

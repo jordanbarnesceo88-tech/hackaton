@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -73,6 +74,10 @@ import { SensitivityPanel } from "./sensitivity-panel";
 import { StepNav, StepPager, TZ_STEP_COUNT, TZ_STEPS, stepHeading } from "./step-nav";
 import { VersionBanner } from "./version-banner";
 import { AiAdvicePanel } from "./ai-advice-panel";
+import { WorkspaceOverview } from "./workspace-overview";
+import { CleaningSelectionPanel } from "./cleaning-selection";
+import { CleaningZonesEditor } from "./cleaning-zones";
+import { isCleaningProcess } from "@/lib/tz/cleaning-zones";
 import { buildAdviceFacts } from "@/lib/ai/advice/facts";
 import type { AdviceView } from "@/lib/ai/advice/view";
 
@@ -464,6 +469,7 @@ export function Workspace({
   const [params, setParams] = useState<ParamValues>(initialParams);
   const [savedParams, setSavedParams] = useState<ParamValues>(initialParams);
   const [revision, setRevision] = useState(project.revision);
+  const [viewMode, setViewMode] = useState<"brief" | "detailed">("detailed");
   const [paramMeta, setParamMeta] = useState<Record<string, { at: string; reason?: string }>>({});
   const [scenarios, setScenarios] = useState<ScenarioSpec[]>(initialScenarios);
   const [matched, setMatched] = useState<{ inputKey: string; comparison: MatchedComparisonData } | null>(null);
@@ -551,7 +557,10 @@ export function Workspace({
       revealStepTop();
       // С нижней кнопки «Далее» фокус переносится на заголовок нового шага: сама кнопка
       // осталась в скрытом шаге, и фокус иначе упал бы на body.
-      if (opts.focusHeading && id) document.getElementById(`${uid}-h-${id}`)?.focus({ preventScroll: true });
+      if (opts.focusHeading && id) {
+        const heading = viewMode === "brief" ? workspaceRef.current?.querySelector<HTMLElement>("[data-workspace-overview] h2") : document.getElementById(`${uid}-h-${id}`);
+        heading?.focus({ preventScroll: true });
+      }
     };
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce || typeof document.startViewTransition !== "function") {
@@ -713,9 +722,13 @@ export function Workspace({
       : (recommendedKey && results.some((r) => r.key === recommendedKey) ? recommendedKey : (firstRobot?.key ?? ""));
   const focusResult = results.find((r) => r.key === focusKey) ?? null;
   const focusSpec = scenarios.find((s) => s.key === focusKey) ?? model.scenarios.find((s) => s.key === focusKey);
-  const cleaningItem = focusSpec?.items.find(item => item.process === "cleaning");
-  const cleaningResult = focusResult?.items.find(item => item.process === "cleaning");
-  const cleaningOnly = Boolean(focusSpec?.items.length && focusSpec.items.every(item => item.process === "cleaning"));
+  const cleaningItem = focusSpec?.items.find(item => isCleaningProcess(item.process));
+  const cleaningResults = focusResult?.items.filter(item => isCleaningProcess(item.process)) ?? [];
+  const cleaningResult = cleaningResults[0];
+  const cleaningFleet = cleaningResults.length && cleaningResults.every(item => item.n !== null) ? cleaningResults.reduce((sum, item) => sum + item.n!, 0) : null;
+  const cleaningChargers = cleaningResults.reduce((sum, item) => sum + item.chargers, 0);
+  const cleaningDailyDemand = cleaningResults.reduce((sum, item) => sum + item.demandPerDay, 0);
+  const cleaningOnly = Boolean(focusSpec?.items.length && focusSpec.items.every(item => isCleaningProcess(item.process)));
   const pilotDraftIdentity = JSON.stringify([project.id ?? "guest", facility, focusKey, focusSpec?.items.map(item => [item.process, item.productSlug]) ?? []]);
   function rememberPilotDraft(value: PilotFormDraft | null) {
     if (!editable || archive || stale || !calculationReady) return;
@@ -1015,7 +1028,7 @@ export function Workspace({
   }
 
 
-  function onPilotChange(value: { pilotPlan: PilotPlanInput; terminalResidualRub: number }) {
+  function onPilotChange(value: { pilotPlan: PilotPlanInput; terminalResidualRub: number; terminalResidualSource?: string }) {
     if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
     rememberPilotDraft(null); // Explicit Apply transfers the draft into ScenarioSpec before recalculation.
     const shortPlan = (plan: PilotPlanInput | undefined) => plan ? {
@@ -1028,6 +1041,35 @@ export function Workspace({
       { scenarioKey: focusSpec.key, field: "scenario:pilot", auto: null, old: shortPlan(focusSpec.pilotPlan), new: shortPlan(value.pilotPlan), reason: "Состав, срок, смета и критерии пилота заданы для выбранного сценария" },
       ...(value.terminalResidualRub === (focusSpec.terminalResidualRub ?? 0) ? [] : [{ scenarioKey: focusSpec.key, field: "scenario:residual", auto: 0, old: focusSpec.terminalResidualRub ?? 0, new: value.terminalResidualRub, unit: "₽", reason: "Явная оценка чистой остаточной стоимости в конце TCO-периода" }]),
     ]);
+  }
+
+  function onPilotEvaluationChange(pilotPlan: PilotPlanInput) {
+    if (!editable || stale || !focusSpec || focusSpec.kind === "asis") return;
+    setPilotDrafts(previous => {
+      const draft = previous[pilotDraftIdentity];
+      return draft ? { ...previous, [pilotDraftIdentity]: { ...draft, plan: { ...draft.plan, acceptanceThresholds: pilotPlan.acceptanceThresholds, actualResult: pilotPlan.actualResult } } } : previous;
+    });
+    commitScenarios(scenarios.map(spec => spec.key === focusSpec.key ? { ...spec, pilotPlan } : spec), [{
+      scenarioKey: focusSpec.key, field: "scenario:pilot", auto: null, old: null, new: null,
+      reason: "Применены согласованные критерии и фактические измерения пилота; вердикт вычисляет платформа",
+    }]);
+  }
+
+  function onCleaningSelection(incoming: ScenarioSpec[]) {
+    if (!editable || archive) return;
+    const incomingKeys = new Set(incoming.map(spec => spec.key));
+    const next = [...scenarios.filter(spec => !incomingKeys.has(spec.key)), ...incoming];
+    if (next.length > SCENARIOS_MAX) { setNotice({ where: "selection", text: "Удалите лишние сценарии перед добавлением пары покупки и RaaS: максимум 10." }); return; }
+    setFocusPick(incoming[0]?.key ?? null);
+    commitScenarios(next, [], { where: "selection", text: "Выбранный уборщик добавлен в покупку и RaaS с явными профилями и условиями стоимости." });
+  }
+
+  function onCleaningZones(value: { plan: NonNullable<ScenarioSpec["cleaningPlan"]>; items: ScenarioSpec["items"] }) {
+    if (!editable || archive || stale || !focusSpec || focusSpec.kind === "asis") return;
+    commitScenarios(scenarios.map(spec => spec.key === focusSpec.key ? { ...spec, items: value.items, cleaningPlan: value.plan } : spec), [{
+      scenarioKey: focusSpec.key, field: "scenario:cleaningPlan", auto: null, old: null, new: null,
+      reason: "Применён план зон и этажей с уникальными физическими роботами, существующими машинами и трудом",
+    }]);
   }
 
   function onOperationsStaffing(value: ScenarioSpec["operationsStaffing"]) {
@@ -1337,7 +1379,7 @@ export function Workspace({
   const focusInput = model.simInputs[focusKey]?.calculated;
   const contextArea = workspaceAreaContext(project.facility, model.paramsUsed, focusInput?.layout.activeAreaM2);
   const archivedLayout = model.runtime?.layouts?.[focusKey] ?? model.layout;
-  const cleaningSchedule = cleaningItem?.cleaningProfile && cleaningResult?.cleaning && focusResult?.status === "ok" && cleaningResult.n !== null
+  const cleaningSchedule = archive && model.modelVersion !== TZ_MODEL_VERSION && focusSpec?.cleaningPlan ? <p className="text-sm">Сохранён план: {focusSpec.cleaningPlan.zones.length} зон, {focusSpec.cleaningPlan.robots.length} физических роботов. {focusSpec.cleaningPlan.source}. Расписание версии {model.modelVersion} не пересчитывается текущими правилами.</p> : focusSpec?.cleaningPlan ? <CleaningZonesEditor value={focusSpec.cleaningPlan} items={focusSpec.items} products={products} kind={focusSpec.kind === "raas" ? "raas" : "purchase"} readOnly evaluationOptions={{ workDaysPerYear: Number(model.paramsUsed.workDaysPerYear), annualHoursPerFte: scenarioNorms(model, focusKey).annualHoursPerFte, baselineFte: Number(model.paramsUsed.cleanersCount), cleaningAreaM2: Number(model.paramsUsed.cleaningAreaM2), items: focusSpec.items }} /> : cleaningItem?.cleaningProfile && cleaningResult?.cleaning && focusResult?.status === "ok" && cleaningResult.n !== null
     ? archive && model.modelVersion !== TZ_MODEL_VERSION
       ? <p className="text-sm">Сохранённая оценка уборки: {cleaningResult.n} роботов, {formatNum(cleaningResult.cleaning.capacityM2PerDay, 1)} м² на робота в день; требуется {formatNum(cleaningResult.demandPerDay, 1)} м²/день. Расписание старой версии не перестраивается текущими правилами.</p>
       : <CleaningSchedule profile={cleaningItem.cleaningProfile} fleet={cleaningResult.n} requiredM2PerDay={cleaningResult.demandPerDay} productName={cleaningResult.productName} />
@@ -1399,7 +1441,7 @@ export function Workspace({
             <div><dt>{cleaningOnly ? "Площадь уборки" : contextArea.label}</dt><dd>{cleaningOnly ? `${formatNum(Number(model.paramsUsed.cleaningAreaM2), 0)} м²` : contextArea.areaM2 === null ? "Не задана" : `${formatNum(contextArea.areaM2, 0)} м²`}</dd></div>
             {focusInput && <><div><dt>Роботы / зарядки</dt><dd>{focusInput.robots.count} / {focusInput.layout.chargers}</dd></div>
             <div><dt>Требуемый поток</dt><dd>{formatNum(focusInput.demand.peakPerH, 1)} пал./ч</dd></div></>}
-            {!focusInput && cleaningOnly && cleaningResult && <><div><dt>Роботы / станции</dt><dd>{cleaningResult.n ?? "Не рассчитано"} / {cleaningResult.chargers}</dd></div><div><dt>Требуется за день</dt><dd>{formatNum(cleaningResult.demandPerDay, 0)} м²</dd></div></>}
+            {!focusInput && cleaningOnly && cleaningResult && <><div><dt>Роботы / станции</dt><dd>{cleaningFleet ?? "Не рассчитано"} / {cleaningChargers}</dd></div><div><dt>Требуется за день</dt><dd>{formatNum(cleaningDailyDemand, 0)} м²</dd></div></>}
           </dl>
           {!guest && editable && !archive && <CalculationJobStatus job={ownerJob} cancelling={ownerCancelling} onCancel={() => {
             void cancelOwnerCalculation().catch(error => setServerRun({ kind: "error", message: error instanceof Error ? error.message : "Не удалось подтвердить отмену расчёта." }));
@@ -1422,7 +1464,14 @@ export function Workspace({
       </div>
 
       {/* Шаги — пейджер: виден один, смена горизонтальным сдвигом (goToStep выше). */}
-      <div ref={stepsRef} className="workspace-steps flex flex-col gap-10">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border pb-3" role="group" aria-label="Подробность рабочего экрана">
+        <span className="mr-2 text-sm font-medium">Вид:</span>
+        <Button type="button" variant={viewMode === "brief" ? "default" : "outline"} aria-pressed={viewMode === "brief"} onClick={() => setViewMode("brief")}>Кратко · для решения</Button>
+        <Button type="button" variant={viewMode === "detailed" ? "default" : "outline"} aria-pressed={viewMode === "detailed"} onClick={() => setViewMode("detailed")}>Подробно · расчёт и условия</Button>
+        <Link href="/data-requirements" className="tap-target ml-auto inline-flex min-h-11 items-center text-sm text-primary underline underline-offset-2">Какие данные нужны</Link>
+      </div>
+      {viewMode === "brief" && <WorkspaceOverview step={activeStep} model={model} scenarioKey={focusKey} params={params} defs={defs} archived={archive} stale={stale || !calculationReady} expectedInput={focusInput} simSummary={calc.sims?.[focusKey] ?? null} onDetails={() => setViewMode("detailed")} />}
+      <div ref={stepsRef} className="workspace-steps flex flex-col gap-10" hidden={viewMode === "brief"}>
       {/* Шаг 1 — объект */}
       <section id="object" aria-labelledby={`${uid}-h-object`} className={sectionClass} hidden={activeStep !== 1}>
         <h2 id={`${uid}-h-object`} tabIndex={-1}>{stepHeading(1)}</h2>
@@ -1524,6 +1573,7 @@ export function Workspace({
         <p role="status" aria-live="polite" className="text-sm [&:empty]:hidden">
           {noticeFor("selection")}
         </p>
+        <CleaningSelectionPanel facility={facility} params={params} paramDefs={defs} products={products} norms={model.normsUsed} scenarios={scenarios} mode="scrubbing" readOnly={!editable || archive} onApply={onCleaningSelection} />
         {[...calcProcesses, ...(calcProcesses.length === 0 ? otherProcesses : [])].map((p) => (
           <div key={p.slug} className="flex flex-col gap-2 rounded-lg border p-4">
             {!p.calcSupported && (
@@ -1622,6 +1672,12 @@ export function Workspace({
                 readOnly={!editable || stale}
                 onChange={editable && !stale ? onOperationsStaffing : undefined}
               />}
+              {focusSpec && focusSpec.kind !== "asis" && cleaningOnly && (!archive || model.modelVersion === TZ_MODEL_VERSION) && <details className="min-w-0 border-y border-border py-3" open={Boolean(focusSpec.cleaningPlan)}><summary className="min-h-11 cursor-pointer py-2 font-semibold">Настроить смешанный парк, зоны и существующие машины</summary><CleaningZonesEditor
+                key={`zones:${focusSpec.key}:${stableJson(focusSpec.cleaningPlan ?? null)}`}
+                value={focusSpec.cleaningPlan} items={focusSpec.items} products={products} kind={focusSpec.kind}
+                readOnly={!editable || stale} onApply={editable && !stale ? onCleaningZones : undefined}
+                evaluationOptions={{ workDaysPerYear: Number(params.workDaysPerYear), annualHoursPerFte: scenarioNorms(model, focusKey).annualHoursPerFte, baselineFte: Number(params.cleanersCount) || 0, cleaningAreaM2: Number(params.cleaningAreaM2) }}
+              /></details>}
               {focusSpec && focusResult.kind !== "asis" && (!archive || focusSpec.logistics || focusResult.risks.some(risk => risk.code === "LOGISTICS_NOT_ASSESSED")) && <DeploymentLogistics
                 key={`logistics:${focusSpec.key}:${stableJson(focusSpec.logistics ?? null)}`}
                 value={focusSpec.logistics}
@@ -1635,21 +1691,21 @@ export function Workspace({
                 norms={scenarioNorms(model, focusResult.key)}
                 horizonYears={horizonFor(focusResult.key)}
                 paramLabels={paramLabels}
-                readOnly={!editable}
+                readOnly={!editable || Boolean(focusSpec?.cleaningPlan)}
                 bindEditorDraft={bindEditorDraft}
-                onCostPackage={editable && !stale ? onCostPackage : undefined}
-                onRaasPackage={editable && !stale ? onRaasPackage : undefined}
-                onCleaningProfile={editable && !stale ? onCleaningProfile : undefined}
-                onOperatingMode={editable && !stale ? onOperatingMode : undefined}
+                onCostPackage={editable && !stale && !focusSpec?.cleaningPlan ? onCostPackage : undefined}
+                onRaasPackage={editable && !stale && !focusSpec?.cleaningPlan ? onRaasPackage : undefined}
+                onCleaningProfile={editable && !stale && !focusSpec?.cleaningPlan ? onCleaningProfile : undefined}
+                onOperatingMode={editable && !stale && !focusSpec?.cleaningPlan ? onOperatingMode : undefined}
                 onOverride={
-                  editable && focusResult.kind !== "asis"
+                  editable && !focusSpec?.cleaningPlan && focusResult.kind !== "asis"
                     ? (field, value, reason) => onItemOverride(focusResult.key, field, value, reason)
                     : undefined
                 }
               />
               <NormsPanel
                 rows={rows}
-                cleaningOnly={!!focusSpec?.items.length && focusSpec.items.every(item => item.process === "cleaning")}
+                cleaningOnly={cleaningOnly}
                 storageTransfers={project.facility === "warehouse" && (focusInput?.demand.mix?.internal ?? Number(model.paramsUsed.internalPalletMovesPerDay)) > 0}
                 overrides={focusSpec?.normOverrides}
                 onOverride={
@@ -1867,7 +1923,8 @@ export function Workspace({
           readOnly={!editable || stale || !calculationReady}
           draft={editable && !archive && !stale && calculationReady ? pilotDrafts[pilotDraftIdentity] : undefined}
           onDraftChange={editable && !archive && !stale && calculationReady ? rememberPilotDraft : undefined}
-          onChange={editable && !archive && !stale && calculationReady ? onPilotChange : undefined} />}</section>}
+          onChange={editable && !archive && !stale && calculationReady ? onPilotChange : undefined}
+          onEvaluationChange={editable && !archive && !stale && calculationReady ? onPilotEvaluationChange : undefined} />}</section>}
         <ProjectToolbar
           mode={archive ? "readonly" : mode}
           revision={revision}

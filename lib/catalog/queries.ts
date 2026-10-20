@@ -23,6 +23,7 @@ import {
 } from "./product-for-calc";
 import type { CharRow, CharRowFull } from "./product-for-calc";
 import { hasConflictingAlternatives } from "./promote";
+import { catalogVisibilityWhere } from "./assignment";
 
 /**
  * Доступ к данным модели tz-1.0.0 в БД: параметры объекта, нормативы, процессы, продукты для
@@ -400,6 +401,8 @@ export type CatalogFilters = {
   confirmedOnly?: boolean;
   /** Только продукты с опубликованной ставкой RaaS. */
   raas?: boolean;
+  /** Explicit opt-in to identification cards without a supported facility/process assignment. */
+  includeUnassigned?: boolean;
   sort?: CatalogSort;
   page?: number;
 };
@@ -488,7 +491,7 @@ async function matchingIds(db: Db, where: Prisma.CatalogProductWhereInput, token
  * показываются.
  */
 function filterConditions(filters: CatalogFilters): Prisma.CatalogProductWhereInput[] {
-  const and: Prisma.CatalogProductWhereInput[] = [{ archived: false }];
+  const and: Prisma.CatalogProductWhereInput[] = [catalogVisibilityWhere(filters.includeUnassigned)];
   if (filters.facility) and.push({ facilityTypeSlugs: { has: filters.facility } });
   if (filters.process) and.push({ processes: { some: { process: { slug: filters.process } } } });
   if (filters.solutionType) and.push({ solutionType: { slug: filters.solutionType } });

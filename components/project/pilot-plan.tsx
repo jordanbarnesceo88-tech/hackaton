@@ -5,12 +5,14 @@ import Link from "next/link";
 import { ImplementationGuidePanel } from "@/components/implementation/guide-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PilotEvaluation } from "./pilot-evaluation";
 import { formatNum, formatRub } from "@/lib/format/rub";
 import { pluralRu } from "@/lib/format/plural";
 import { buildPilotBudget, defaultPilotPlan, parsePilotPlanInput, PILOT_READINESS, PILOT_WORKS, pilotProductSource, type PilotBudgetModel } from "@/lib/tz/pilot-budget";
+import { isCleaningProcess } from "@/lib/tz/cleaning-zones";
 import type { PilotPlanInput } from "@/lib/tz/types";
 
-export type PilotFormDraft = { plan: PilotPlanInput; residual: number };
+export type PilotFormDraft = { plan: PilotPlanInput; residual: number; residualSource?: string };
 
 type Props = {
   model: PilotBudgetModel;
@@ -19,12 +21,13 @@ type Props = {
   /** Ephemeral unapplied form state, owned by the enclosing workspace. Never a saved result. */
   draft?: PilotFormDraft;
   onDraftChange?: (value: PilotFormDraft | null) => void;
-  onChange?: (value: { pilotPlan: PilotPlanInput; terminalResidualRub: number }) => void;
+  onChange?: (value: { pilotPlan: PilotPlanInput; terminalResidualRub: number; terminalResidualSource?: string }) => void;
+  onEvaluationChange?: (plan: PilotPlanInput) => void;
 };
 type Budget = ReturnType<typeof buildPilotBudget>;
 type WorkKey = keyof typeof PILOT_WORKS;
 
-export function PilotBudgetReadout({ budget, expandGuide = false }: { budget: Budget; expandGuide?: boolean }) {
+export function PilotBudgetReadout({ budget, expandGuide = false, onEvaluationChange, evaluationPlan = budget.plan }: { budget: Budget; expandGuide?: boolean; evaluationPlan?: PilotPlanInput; onEvaluationChange?: (plan: PilotPlanInput) => void }) {
   const country = budget.product.sources.find(source => source.key === "countryOfOrigin") ?? budget.product.sources.find(source => source.key === "country");
   return <div className="grid min-w-0 gap-4" data-pilot-budget={budget.totalRub === null ? "partial" : "complete"}>
     <p className="text-sm"><strong>{budget.plan.fleet} {pluralRu(budget.plan.fleet,["робот","робота","роботов"])} · {budget.plan.chargers} {pluralRu(budget.plan.chargers,["зарядка","зарядки","зарядок"])} · {budget.plan.durationDays} {budget.plan.dayBasis === "working" ? "рабочих" : "календарных"} дней</strong>. {budget.plan.dayBasis === "working" && <>Для подписки принято около {budget.calendarDays} календарных дней, без учёта праздников. </>}{budget.plan.acquisition === "raas" ? `Оплата RaaS: ${budget.subscriptionMonths} полных мес., дневной пропорции нет.` : "Оборудование приобретается в собственность; после пилота остаётся у заказчика."}</p>
@@ -50,6 +53,14 @@ export function PilotBudgetReadout({ budget, expandGuide = false }: { budget: Bu
     <section className="grid gap-2 text-sm"><h4 className="font-semibold">Подготовка к запуску: {budget.readiness.filter(r => r.ready).length} из {budget.readiness.length}</h4><ul className="list-disc space-y-1 pl-5">{budget.readiness.map(r => <li key={r.key}>{r.ready ? "Готово" : "Нужно подготовить"}: {r.label}</li>)}</ul></section>
     <p className="text-sm"><strong>Остаточная стоимость сценария после {budget.residual.year} лет: {formatRub(budget.residual.valueRub)}.</strong> {budget.residual.valueRub === 0 ? "Остаточная стоимость исключена из денежного потока и NPV." : budget.residual.includedInNpv ? "Входит в последний денежный поток и NPV выбранного горизонта." : `Не входит в NPV за ${budget.residual.financialHorizonYears} лет: поступление находится за его горизонтом.`} {budget.residual.note}</p>
     {budget.plan.notes && <p className="whitespace-pre-line break-words text-sm">{budget.plan.notes}</p>}
+    {(onEvaluationChange || evaluationPlan.acceptanceThresholds || evaluationPlan.actualResult) && <PilotEvaluation
+      key={JSON.stringify([evaluationPlan.acceptanceThresholds, evaluationPlan.actualResult])}
+      plan={evaluationPlan} productSlug={budget.product.slug}
+      metric={budget.product.solutionType === "cleaner" ? "accepted-area-m2-day" : "completed-operations-hour"}
+      readOnly={!onEvaluationChange}
+      onApply={onEvaluationChange ? value => onEvaluationChange({ ...evaluationPlan, ...value }) : undefined}
+    />}
+    {budget.residual.valueRub > 0 && <p className="text-sm"><strong>Основание оценки остаточной стоимости:</strong> {budget.residual.source || "В историческом снимке не указано"}</p>}
     {budget.product.implementation
       ? <ImplementationGuidePanel snapshot={budget.product.implementation} expanded={expandGuide} />
       : <p className="text-sm text-muted-foreground">В сохранённом снимке нет сведений по классу и контактов обслуживания. Актуальные материалы доступны в <Link href="/knowledge" className="text-primary underline">базе знаний</Link>; они не являются частью этого сохранённого расчёта.</p>}
@@ -59,30 +70,66 @@ export function PilotBudgetReadout({ budget, expandGuide = false }: { budget: Bu
 
 export function PilotPlan(props: Props) {
   const spec = props.model.scenarios.find(s => s.key === props.scenarioKey);
+  if (spec && spec.items.length > 1) return <MixedPilotPlan {...props} />;
   let initial: PilotPlanInput;
   try { initial = spec?.pilotPlan ?? defaultPilotPlan(props.model, props.scenarioKey); }
   catch (error) { return <Card><CardHeader><CardTitle as="h3">План пилота и бюджет</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : "Выберите рассчитанное решение для подготовки пилота."}</p></CardContent></Card>; }
   const canEdit = !props.readOnly && Boolean(props.onChange);
-  return <PilotEditor key={`${props.scenarioKey}:${canEdit ? "editable" : "saved"}:${JSON.stringify(spec?.pilotPlan)}:${spec?.terminalResidualRub ?? 0}`} {...props}
+  return <PilotEditor key={`${props.scenarioKey}:${canEdit ? "editable" : "saved"}:${JSON.stringify(spec?.pilotPlan)}:${spec?.terminalResidualRub ?? 0}:${spec?.terminalResidualSource ?? ""}`} {...props}
     readOnly={!canEdit} draft={canEdit ? props.draft : undefined} onDraftChange={canEdit ? props.onDraftChange : undefined}
     onChange={canEdit ? props.onChange : undefined} initial={initial} initialResidual={spec?.terminalResidualRub ?? 0} saved={Boolean(spec?.pilotPlan)} />;
 }
 
-function PilotEditor({ model, scenarioKey, readOnly = false, onChange, draft: cachedDraft, onDraftChange, initial, initialResidual, saved }: Props & { initial: PilotPlanInput; initialResidual: number; saved: boolean }) {
-  const cleaning = model.scenarios.find(spec => spec.key === scenarioKey)?.items.some(item => item.process === "cleaning") ?? false;
+/** A mixed fleet requires an explicit pilot model; no implicit first-item selection. */
+function MixedPilotPlan(props: Props) {
+  const spec = props.model.scenarios.find(s => s.key === props.scenarioKey)!;
+  const [productSlug, setProductSlug] = useState(props.draft?.plan.productSlug ?? spec.pilotPlan?.productSlug ?? "");
+  const [selectionError, setError] = useState("");
+  let error = selectionError;
+  const canEdit = !props.readOnly && Boolean(props.onChange);
+  let initial: PilotPlanInput | undefined;
+  if (productSlug) {
+    try { initial = spec.pilotPlan?.productSlug === productSlug ? spec.pilotPlan : defaultPilotPlan(props.model, props.scenarioKey, undefined, productSlug); }
+    catch (cause) { error = cause instanceof Error ? cause.message : "Не удалось подготовить пилот модели"; }
+  }
+  return <div className="grid min-w-0 gap-4">
+    <label className="grid gap-2 text-sm font-semibold">Модель для пилотного участка
+      <select className="min-h-11 w-full rounded border bg-background px-3" value={productSlug} disabled={!canEdit} onChange={event => {
+        const slug = event.target.value;
+        try {
+          const plan = slug ? defaultPilotPlan(props.model, props.scenarioKey, undefined, slug) : undefined;
+          setProductSlug(slug); setError("");
+          props.onDraftChange?.(plan ? { plan, residual: spec.terminalResidualRub ?? 0, residualSource: spec.terminalResidualSource ?? "" } : null);
+        } catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось выбрать модель"); }
+      }}><option value="">Выберите модель</option>{spec.items.map(item => <option key={item.productSlug} value={item.productSlug}>{props.model.productSnapshots[item.productSlug]?.name ?? item.productSlug}</option>)}</select>
+    </label>
+    <p className="text-sm text-muted-foreground">Пилот проверяет выбранную модель на выделенном участке. Его результат не подтверждает работу всего смешанного парка.</p>
+    {error && <p role="alert" className="callout" data-tone="bad">{error}</p>}
+    {initial && <PilotEditor key={`${props.scenarioKey}:${productSlug}:${JSON.stringify(spec.pilotPlan)}`} {...props} initial={initial}
+      draft={props.draft?.plan.productSlug === productSlug ? props.draft : undefined}
+      readOnly={!canEdit} onChange={canEdit ? props.onChange : undefined}
+      onEvaluationChange={spec.pilotPlan?.productSlug === productSlug ? props.onEvaluationChange : undefined}
+      initialResidual={spec.terminalResidualRub ?? 0} saved={spec.pilotPlan?.productSlug === productSlug} />}
+  </div>;
+}
+
+function PilotEditor({ model, scenarioKey, readOnly = false, onChange, onEvaluationChange, draft: cachedDraft, onDraftChange, initial, initialResidual, saved }: Props & { initial: PilotPlanInput; initialResidual: number; saved: boolean }) {
+  const cleaning = model.scenarios.find(spec => spec.key === scenarioKey)?.items.some(item => isCleaningProcess(item.process)) ?? false;
   const [draft, setDraftState] = useState(() => structuredClone(cachedDraft?.plan ?? initial));
   const [residual, setResidualState] = useState(cachedDraft?.residual ?? initialResidual), [message, setMessage] = useState("");
-  const hasUnappliedDraft = JSON.stringify(draft) !== JSON.stringify(initial) || residual !== initialResidual;
+  const appliedResidualSource = model.scenarios.find(spec => spec.key === scenarioKey)?.terminalResidualSource ?? "";
+  const [residualSource, setResidualSource] = useState(cachedDraft?.residualSource ?? appliedResidualSource);
+  const hasUnappliedDraft = JSON.stringify(draft) !== JSON.stringify(initial) || residual !== initialResidual || residualSource !== appliedResidualSource;
   const remember = (plan: PilotPlanInput, value: number) => onDraftChange?.(
-    JSON.stringify(plan) === JSON.stringify(initial) && value === initialResidual ? null : { plan: structuredClone(plan), residual: value }
+    JSON.stringify(plan) === JSON.stringify(initial) && value === initialResidual && residualSource === appliedResidualSource ? null : { plan: structuredClone(plan), residual: value, residualSource }
   );
   const setDraft = (next: PilotPlanInput | ((previous: PilotPlanInput) => PilotPlanInput)) => {
     const value = typeof next === "function" ? next(draft) : next;
     setDraftState(value); remember(value, residual);
   };
   const setResidual = (value: number) => { setResidualState(value); remember(draft, value); };
-  const discardDraft = () => { setDraftState(structuredClone(initial)); setResidualState(initialResidual); onDraftChange?.(null); setMessage("Черновик сброшен к применённому плану сценария."); };
-  const budgetModel = { ...model, scenarios: model.scenarios.map(spec => spec.key === scenarioKey ? { ...spec, terminalResidualRub: Number.isFinite(residual) && residual >= 0 ? residual : initialResidual } : spec) };
+  const discardDraft = () => { setDraftState(structuredClone(initial)); setResidualState(initialResidual); setResidualSource(appliedResidualSource); onDraftChange?.(null); setMessage("Черновик сброшен к применённому плану сценария."); };
+  const budgetModel = { ...model, scenarios: model.scenarios.map(spec => spec.key === scenarioKey ? { ...spec, terminalResidualRub: Number.isFinite(residual) && residual >= 0 ? residual : initialResidual, terminalResidualSource: residualSource } : spec) };
   let budget: Budget | null = null, inputError = "";
   try { budget = buildPilotBudget(budgetModel, scenarioKey, draft); } catch (error) { inputError = error instanceof Error ? error.message : "Проверьте параметры пилота"; }
   const field = (label: string, value: number | null, change: (next: number | null) => void, options: { min?: number; max?: number; integer?: boolean; nullable?: boolean; unit?: string } = {}) => <label className="grid min-w-0 gap-1 text-sm">{label}{options.unit ? `, ${options.unit}` : ""}<input className="min-h-11 w-full rounded border bg-background px-3" type="number" min={options.min ?? 0} max={options.max ?? 1_000_000_000_000} step={options.integer ? 1 : "any"} required={!options.nullable} placeholder={options.nullable ? "Не определено" : undefined} value={value === null || Number.isNaN(value) ? "" : value} onChange={e => change(e.target.value === "" && options.nullable ? null : e.target.valueAsNumber)} /></label>;
@@ -91,13 +138,13 @@ function PilotEditor({ model, scenarioKey, readOnly = false, onChange, draft: ca
     <p className="text-sm">Выберите участок, состав, срок и критерии приёмки. Смета собирается из цен выбранного решения и оценок работ; уточните её с заказчиком и интегратором перед запуском.</p>
     {!readOnly && hasUnappliedDraft && <div className="callout text-sm" data-tone="warn" role="status"><p>В форме есть неприменённые изменения плана. Они сохраняются при пересчёте и переключении сценариев в этой рабочей области, но не входят в проект и выгрузки до нажатия «Применить». После изменения условий проверьте оценки и источники.</p><Button type="button" variant="outline" className="mt-2 min-h-11" onClick={discardDraft}>Сбросить черновик к плану сценария</Button></div>}
     {!saved && <p className="callout text-sm" data-tone="info">План ещё не задан в сценарии. Показаны стартовые оценки по его ценам и нормативам; условия пилота пока не согласованы.</p>}
-    {!readOnly && onChange && <details className="no-print border-y border-border py-2"><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold">Настроить состав, смету и критерии пилота</summary><form className="grid gap-4 pt-3" onSubmit={event => { event.preventDefault(); try { const pilotPlan = parsePilotPlanInput(draft); if (!Number.isFinite(residual) || residual < 0 || residual > 1_000_000_000_000) throw new Error("Укажите неотрицательную чистую остаточную стоимость"); buildPilotBudget(budgetModel, scenarioKey, pilotPlan); onChange({ pilotPlan, terminalResidualRub: residual }); setMessage("План и денежное допущение применены к сценарию. Сохраните проект, чтобы записать их."); } catch (error) { setMessage(error instanceof Error ? error.message : "Не удалось применить план"); } }}>
+    {!readOnly && onChange && <details className="no-print border-y border-border py-2"><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold">Настроить состав, смету и критерии пилота</summary><form className="grid gap-4 pt-3" onSubmit={event => { event.preventDefault(); try { const pilotPlan = parsePilotPlanInput(draft); if (!Number.isFinite(residual) || residual < 0 || residual > 1_000_000_000_000) throw new Error("Укажите неотрицательную чистую остаточную стоимость"); if (residual > 0 && !residualSource.trim()) throw new Error("Укажите источник или основание оценки остаточной стоимости"); buildPilotBudget(budgetModel, scenarioKey, pilotPlan); onChange({ pilotPlan, terminalResidualRub: residual, terminalResidualSource: residualSource.trim() }); setMessage("План и денежное допущение применены к сценарию. Сохраните проект, чтобы записать их."); } catch (error) { setMessage(error instanceof Error ? error.message : "Не удалось применить план"); } }}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {field("Роботов в пилоте", draft.fleet, value => update("fleet", value!), { min: 1, max: 500, integer: true })}
         {field("Зарядок в пилоте", draft.chargers, value => update("chargers", value!), { max: 2000, integer: true })}
         {field("Длительность пилота", draft.durationDays, value => update("durationDays", value!), { min: 1, max: 365, integer: true, unit: "дней" })}
         <label className="grid gap-1 text-sm">Считаем дни<select className="min-h-11 w-full rounded border bg-background px-3" value={draft.dayBasis} onChange={e => update("dayBasis", e.target.value as PilotPlanInput["dayBasis"])}><option value="working">Рабочие (оценка 5/7)</option><option value="calendar">Календарные</option></select></label>
-        <label className="grid gap-1 text-sm">Оборудование пилота<select className="min-h-11 w-full rounded border bg-background px-3" value={draft.acquisition} onChange={e => { try { const acquisition = e.target.value as PilotPlanInput["acquisition"], defaults = defaultPilotPlan(model, scenarioKey, acquisition); setDraft(previous => ({ ...previous, acquisition, equipmentUnitRubOverride: null, raasFirstMonthRubOverride: undefined, chargerBudgetRubOverride: null, chargerBudgetSource: "", costs: defaults.costs })); setMessage("Способ получения оборудования изменён. Оценки работ обновлены по составу услуги; проверьте источники перед применением плана."); } catch (error) { setMessage(error instanceof Error ? error.message : "Не удалось выбрать условия оборудования пилота. Черновик сохранён без изменений."); } }}><option value="purchase">Покупка</option><option value="raas">Услуга RaaS</option></select></label>
+        <label className="grid gap-1 text-sm">Оборудование пилота<select className="min-h-11 w-full rounded border bg-background px-3" value={draft.acquisition} onChange={e => { try { const acquisition = e.target.value as PilotPlanInput["acquisition"], defaults = defaultPilotPlan(model, scenarioKey, acquisition, draft.productSlug); setDraft(previous => ({ ...previous, acquisition, equipmentUnitRubOverride: null, raasFirstMonthRubOverride: undefined, chargerBudgetRubOverride: null, chargerBudgetSource: "", costs: defaults.costs })); setMessage("Способ получения оборудования изменён. Оценки работ обновлены по составу услуги; проверьте источники перед применением плана."); } catch (error) { setMessage(error instanceof Error ? error.message : "Не удалось выбрать условия оборудования пилота. Черновик сохранён без изменений."); } }}><option value="purchase">Покупка</option><option value="raas">Услуга RaaS</option></select></label>
         {field(draft.acquisition === "purchase" ? "Своя оценка цены за робота" : "Своя оценка RaaS за робота/месяц", draft.equipmentUnitRubOverride, value => update("equipmentUnitRubOverride", value), { nullable: true, unit: "₽" })}
         {draft.acquisition === "raas" && <>
           {field("Полная ставка первого месяца пилота за робота", draft.raasFirstMonthRubOverride ?? null, value => update("raasFirstMonthRubOverride", value), { nullable: true, unit: "₽" })}
@@ -113,11 +160,12 @@ function PilotEditor({ model, scenarioKey, readOnly = false, onChange, draft: ca
       <details className="min-w-0" open><summary className="cursor-pointer py-2 text-sm font-semibold">Работы и источники оценки — пустое значение означает «не определено»</summary><div className="grid gap-4 pt-2 sm:grid-cols-2">{(Object.keys(PILOT_WORKS) as WorkKey[]).map(key => <div key={key} className="grid min-w-0 gap-2 border-t pt-3">{field(PILOT_WORKS[key], draft.costs[key].valueRub, valueRub => update("costs", { ...draft.costs, [key]: { ...draft.costs[key], valueRub } }), { nullable: true, unit: "₽" })}<label className="grid gap-1 text-xs">Источник — {PILOT_WORKS[key]}<textarea className="min-h-16 w-full rounded border bg-background px-3 py-2" maxLength={1000} required value={draft.costs[key].source} onChange={e => update("costs", { ...draft.costs, [key]: { ...draft.costs[key], source: e.target.value } })} /></label></div>)}</div></details>
       <fieldset className="grid gap-2"><legend className="mb-2 text-sm font-semibold">Готовность участка</legend>{Object.entries(PILOT_READINESS).map(([key,label]) => <label key={key} className="flex min-h-11 items-start gap-2 text-sm"><input className="mt-1 size-4 shrink-0" type="checkbox" checked={draft.readiness.includes(key)} onChange={e => update("readiness", e.target.checked ? [...draft.readiness,key] : draft.readiness.filter(k => k !== key))} />{label}</label>)}</fieldset>
       {field(`Остаточная стоимость собственных активов после ${budget?.residual.year ?? "TCO"} лет (чистая сумма)`, residual, value => setResidual(value!), { unit: "₽" })}
+      <label className="grid gap-1 text-sm">Источник или основание оценки остаточной стоимости<input className="field min-h-11" value={residualSource} maxLength={1000} required={residual > 0} onChange={event => { const value = event.target.value; setResidualSource(value); onDraftChange?.({ plan: structuredClone(draft), residual, residualSource: value }); }} placeholder="КП на выкуп или расчёт чистой суммы продажи" /></label>
       <p className="text-xs text-muted-foreground">По умолчанию 0: остаточная стоимость исключена. Это оценка после налогов, демонтажа и вывоза, а не подтверждённая цена продажи. {budget && !budget.residual.includedInNpv && `При горизонте NPV ${budget.residual.financialHorizonYears} лет поступление после ${budget.residual.year} лет в него не включается.`}</p>
       <label className="grid gap-1 text-sm">Примечание к плану<textarea className="min-h-20 w-full rounded border bg-background px-3 py-2" maxLength={4000} value={draft.notes} onChange={e => update("notes",e.target.value)} /></label>
       <Button type="submit" className="min-h-11" disabled={Boolean(inputError)}>Применить план и пересчитать сценарий</Button>
       {(message || inputError) && <p role="status" className="text-sm">{inputError || message}</p>}
     </form></details>}
-    {budget && <PilotBudgetReadout budget={budget} expandGuide={readOnly} />}
+    {budget && <PilotBudgetReadout budget={budget} evaluationPlan={initial} expandGuide={readOnly} onEvaluationChange={!readOnly && onEvaluationChange ? plan => onEvaluationChange({ ...initial, acceptanceThresholds: plan.acceptanceThresholds, actualResult: plan.actualResult }) : undefined} />}
   </CardContent></Card>;
 }

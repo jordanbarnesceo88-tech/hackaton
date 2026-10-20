@@ -1,3 +1,4 @@
+import { operatingPlanReportRows } from "./operating-plan";
 // только сервер: exceljs не попадает в клиентский бандл
 import ExcelJS from "exceljs";
 import { ADVICE_NOTE, SEVERITY_LABEL, type AdviceView } from "../../ai/advice/view";
@@ -702,6 +703,13 @@ function simSheet(wb: ExcelJS.Workbook, input: ProjectXlsxInput): void {
     headerRow(ws, r++, ["Сценарий", "Контролируемая проверка мощности", "Значение", "Единица"]);
     for (const row of capacityRows) putRow(ws, r++, [row.scenarioName, row.label, row.value, row.unit]);
   }
+  const operatingRows = operatingPlanReportRows(input.results);
+  if (operatingRows.length) {
+    r += 2;
+    headerRow(ws, r++, ["Сценарий", "План работы и фактическая приёмка", "Значение", "Единица", "Источник"]);
+    for (const row of operatingRows) putRow(ws, r++, [row.scenarioName, row.label, row.value, row.unit, row.source]);
+  }
+
 }
 
 // ——————————————————————————— 10. Нормативы и допущения ———————————————————————————

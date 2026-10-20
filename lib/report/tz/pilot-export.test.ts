@@ -14,7 +14,7 @@ function setup() {
   const first = buildProjectModel(input), plan = defaultPilotPlan(first, "p1");
   for (const key of Object.keys(PILOT_WORKS) as (keyof typeof PILOT_WORKS)[]) plan.costs[key] = { valueRub: 1000, source: "Оценка команды для участка пилота" };
   plan.fleet = 1; plan.targetThroughputPerH = 8; plan.readiness = ["power", "safety"];
-  input.scenarios[1]!.pilotPlan = plan; input.scenarios[1]!.terminalResidualRub = 500_000;
+  input.scenarios[1]!.pilotPlan = plan; input.scenarios[1]!.terminalResidualRub = 500_000; input.scenarios[1]!.terminalResidualSource = "Тестовая оценка чистой стоимости реализации на конец горизонта";
   return buildProjectModel(input);
 }
 

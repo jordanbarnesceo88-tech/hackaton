@@ -1,3 +1,4 @@
+import { operatingPlanReportRows } from "./operating-plan";
 import { toCsv, type CsvCell } from "../../files/csv";
 import type { ScenarioOk } from "../../tz/types";
 import { lineGroups } from "./tables";
@@ -144,6 +145,13 @@ export function projectCsv(results: ReportResults, opts: { projectName: string }
   if (capacityRows.length) {
     rows.push(["Контролируемая проверка мощности — отдельное наблюдение"], ["Сценарий", "Показатель", "Значение", "Единица"]);
     for (const row of capacityRows) rows.push([row.scenarioName, row.label, row.value, row.unit]);
+    rows.push([]);
+  }
+
+  const operatingRows = operatingPlanReportRows(results);
+  if (operatingRows.length) {
+    rows.push(["План работы и фактическая приёмка"], ["Сценарий", "Показатель", "Значение", "Единица", "Источник"]);
+    for (const row of operatingRows) rows.push([row.scenarioName, row.label, row.value, row.unit, row.source]);
     rows.push([]);
   }
 

@@ -26,6 +26,7 @@ const DB_TESTS = [
   "lib/catalog/queries.test.ts",
   "lib/catalog/sync.test.ts",
   "lib/projects/actions.test.ts",
+  "lib/projects/cleaning-plan-roundtrip.test.ts",
   "lib/admin/actions.test.ts",
   "lib/calculation-jobs/adversarial.test.ts",
   "lib/calculation-jobs/policy-integration.test.ts",
