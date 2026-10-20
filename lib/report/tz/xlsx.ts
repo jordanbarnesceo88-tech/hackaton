@@ -179,7 +179,8 @@ function aiAdviceRows(ws: ExcelJS.Worksheet, start: number, advice: AdviceView):
   if (content.risks.length > 0) noteRow(ws, r++, "Главные риски:");
   for (const x of content.risks) {
     noteRow(ws, r++, `• [${SEVERITY_LABEL[x.severity]}] ${x.scenario}: ${x.risk}`);
-    noteRow(ws, r++, `   Как снизить: ${x.mitigation}. Проверить на пилоте: ${x.checkOnPilot}`);
+    noteRow(ws, r++, `   Как снизить: ${x.mitigation}`);
+    noteRow(ws, r++, `   Проверить на пилоте: ${x.checkOnPilot}`);
   }
   const lists: [string, readonly string[], boolean][] = [
     ["Что изменит вывод:", content.whenConclusionChanges, false],
