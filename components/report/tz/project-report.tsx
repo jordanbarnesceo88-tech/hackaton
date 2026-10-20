@@ -1,4 +1,6 @@
 import { expectedSpatialInputFromStored } from "@/lib/tz/model";
+import { AiAdviceContent } from "@/components/project/ai-advice-content";
+import type { AdviceView } from "@/lib/ai/advice/view";
 import { DecisionSummary } from "@/components/project/decision-summary";
 import { PilotPlan } from "@/components/project/pilot-plan";
 import { operationsStaffingText } from "@/lib/tz/operations-staffing-text";
@@ -106,6 +108,8 @@ export type ProjectReportProps = {
    * null — не проверялась.
    */
   liveDataVersion?: string | null;
+  /** Актуальные рекомендации ИИ к этому расчёту; null — раздела нет. */
+  aiAdvice?: AdviceView | null;
 };
 
 /**
@@ -121,6 +125,7 @@ const SECTION_TITLES = {
   simulation: "4. Имитация",
   sensitivity: "5. Чувствительность",
   conclusion: "6. Риски",
+  aiAdvice: "Рекомендации ИИ",
   limitations: "7. Ограничения модели",
   params: "Приложение А. Параметры объекта",
   selection: "Приложение Б. Подбор решений",
@@ -306,12 +311,12 @@ function SummarySection({ results }: { results: ProjectResults }) {
 }
 
 /** Содержание: разделы и приложения в порядке отчёта; на экране — ссылки на разделы. */
-function Contents() {
+function Contents({ aiAdvice }: { aiAdvice: boolean }) {
   return (
     <nav aria-label="Содержание отчёта" className="report-block mt-6 text-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Содержание</div>
       <ol className="mt-1 gap-x-8 sm:columns-2">
-        {Object.entries(SECTION_TITLES).map(([id, title]) => (
+        {Object.entries(SECTION_TITLES).filter(([id]) => aiAdvice || id !== "aiAdvice").map(([id, title]) => (
           <li key={id}>
             <a href={`#${id}-title`} className="hover:underline">
               {title}
@@ -1243,7 +1248,16 @@ export function PilotSection({ results, scenarioKey }: { results: ProjectResults
   return <Section id="pilot" title={SECTION_TITLES.pilot}><PilotPlan model={results} scenarioKey={key} readOnly /></Section>;
 }
 
-export function ProjectReport({ project, results, defs, changes, scenarioKey, liveDataVersion = null }: ProjectReportProps) {
+/** Рекомендации ИИ к этому расчёту — тот же блок, что на экране проекта. */
+function AiAdviceSection({ advice }: { advice: AdviceView }) {
+  return (
+    <Section id="aiAdvice" title={SECTION_TITLES.aiAdvice}>
+      <AiAdviceContent advice={advice} headingLevel={3} />
+    </Section>
+  );
+}
+
+export function ProjectReport({ project, results, defs, changes, scenarioKey, liveDataVersion = null, aiAdvice = null }: ProjectReportProps) {
   const decisionKey = scenarioKey ?? results.conclusion.recommendedScenarioKey ?? results.results.find(r => r.kind !== "asis")?.key ?? "";
   const selectedSpec = results.scenarios.find(spec => spec.key === decisionKey);
   const savedSpatial = selectedSpec?.spatialEvidence;
@@ -1269,13 +1283,14 @@ export function ProjectReport({ project, results, defs, changes, scenarioKey, li
         : <DecisionSummary model={results} scenarioKey={decisionKey} expectedInput={expectedSpatialInputFromStored(results, decisionKey)} simSummary={results.sim?.[decisionKey] ?? null} />
         : <section className="report-block my-4"><h2>Сохранённый вывод модели {results.modelVersion}</h2><p>{results.conclusion.headline}</p><p>Архив не переоценён текущим алгоритмом. Числа и вывод ниже относятся к сохранённой версии.</p></section>}
       <SummarySection results={results} />
-      <Contents />
+      <Contents aiAdvice={aiAdvice !== null} />
       <EconomicsSection results={results} defs={defs} />
       <PilotSection results={results} scenarioKey={scenarioKey} />
       <EquipmentSection results={results} />
       <SimSection results={results} />
       <SensitivitySection results={results} />
       <ConclusionSection results={results} />
+      {aiAdvice && <AiAdviceSection advice={aiAdvice} />}
       <LimitationsSection results={results} />
       <ParamsSection results={results} defs={defs} />
       <SelectionSection results={results} />

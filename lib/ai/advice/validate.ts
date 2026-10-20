@@ -17,8 +17,10 @@ const SEVERITY_ORDER: Readonly<Record<AdviceSeverity, number>> = { high: 0, medi
 
 export type ParsedAdvice = { ok: true; content: AiAdviceContent } | { ok: false; reason: string };
 
+/** Строка без хвостовой запятой и точки с запятой: модель ставит их в конце пунктов («Запросите КП, — …»). */
 function str(v: unknown): string | null {
-  return typeof v === "string" && v.trim() ? v.trim().slice(0, MAX_TEXT) : null;
+  const s = typeof v === "string" ? v.trim().replace(/[\s,;]+$/, "") : "";
+  return s ? s.slice(0, MAX_TEXT) : null;
 }
 
 function strings(v: unknown): string[] | null {

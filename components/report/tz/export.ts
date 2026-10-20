@@ -41,7 +41,7 @@ async function fileBytes(format: ExportFormat, data: ReportData): Promise<Uint8A
   const results = project.results;
   if (!results) throw new Error("нет сохранённого расчёта");
   if (format === "csv") return new TextEncoder().encode(projectCsv(results, { projectName: project.name }));
-  return buildProjectXlsx({ projectName: project.name, results, defs: data.defs, changes: data.changes });
+  return buildProjectXlsx({ projectName: project.name, results, defs: data.defs, changes: data.changes, aiAdvice: data.aiAdvice });
 }
 
 /**

@@ -56,6 +56,7 @@ export default async function ProjectReportPage({ params, searchParams }: { para
       defs={data.defs}
       changes={data.changes}
       liveDataVersion={data.liveDataVersion}
+      aiAdvice={data.aiAdvice ?? null}
     />
   );
 }

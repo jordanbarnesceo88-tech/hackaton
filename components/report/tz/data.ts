@@ -1,4 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
+import { projectAdviceView } from "@/lib/ai/advice/load";
+import type { AdviceView } from "@/lib/ai/advice/view";
 import { getOwnedProjectSnapshot, type ProjectChangeEntry, type ProjectRecord } from "@/lib/projects/queries";
 import { liveDataVersionFrom, loadLiveInputs } from "@/lib/projects/recalc";
 import type { ReportChange } from "@/lib/report/tz/rows";
@@ -31,6 +33,11 @@ export type ReportData = {
    * об этом предупреждает. null — у проекта нет сохранённого расчёта.
    */
   liveDataVersion: string | null;
+  /**
+   * Рекомендации ИИ к этому же сохранённому расчёту: только актуальные — ответ к прежнему расчёту
+   * в отчёт не попадает. null — нет или устарели.
+   */
+  aiAdvice?: AdviceView | null;
 };
 
 /**
@@ -66,7 +73,8 @@ export async function loadReportData(db: PrismaClient, projectId: string, userId
   const live = await loadLiveInputs(db, project.facility);
   const defs = (project.results?.runtime?.paramDefs ?? live.paramDefs).filter((d) => d.facility === project.facility);
   const liveDataVersion = project.results ? liveDataVersionFrom(live, project.results) : null;
-  return { project, defs, changes: toReportChanges(entries ?? []), liveDataVersion };
+  const advice = await projectAdviceView(db, project.id, userId, project.results);
+  return { project, defs, changes: toReportChanges(entries ?? []), liveDataVersion, aiAdvice: advice && !advice.stale ? advice : null };
 }
 
 /** Запрещённые в именах файлов Windows и macOS символы и управляющие коды. */

@@ -80,3 +80,11 @@ describe("порядок рисков", () => {
     expect(parsed.ok && parsed.content.risks.map((r) => r.risk)).toEqual(["в1", "в2", "м1", "н1"]);
   });
 });
+
+describe("чистка пунктов", () => {
+  it("убирает хвостовые запятые и точки с запятой, точку оставляет", () => {
+    const parsed = parseAdvice(JSON.stringify({ ...valid, recommendations: [{ action: "Запросите условия поставки,", why: "Доставка не оценена;" }], nextSteps: ["Обследование;", "КП.", "Пилот"] }), names);
+    expect(parsed.ok && parsed.content.recommendations[0]).toEqual({ action: "Запросите условия поставки", why: "Доставка не оценена" });
+    expect(parsed.ok && parsed.content.nextSteps).toEqual(["Обследование", "КП.", "Пилот"]);
+  });
+});
