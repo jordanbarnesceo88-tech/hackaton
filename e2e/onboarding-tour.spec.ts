@@ -1,4 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/** Тур открывается из меню «Демо» в шапке (кнопка первого экрана переехала туда 2026-10-20). */
+async function openTour(page: Page) {
+  await page.getByRole("banner").getByRole("button", { name: "Демо", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Как это работает" }).click();
+}
 
 // Первый визит: без флага «тур просмотрен» (конфиг по умолчанию его ставит — см.
 // playwright.config.ts).
@@ -8,8 +14,8 @@ test("первый визит не перекрывает расчёт; тур �
   await page.goto("/");
   const tour = page.getByRole("dialog");
   await expect(tour).toBeHidden();
-  await expect(page.getByRole("link", { name: "Открыть демо-расчёт склада" })).toBeVisible();
-  await page.getByRole("button", { name: "Как это работает" }).click();
+  await expect(page.getByRole("link", { name: "Создать проект", exact: true })).toBeVisible();
+  await openTour(page);
   await expect(tour).toBeVisible();
   await expect(tour.getByText("Шаг 1 из 8")).toBeVisible();
   // Фокус — на главном действии тура, а не на первой кнопке по порядку.
@@ -28,8 +34,8 @@ test("«Назад»/«Далее» листают шаги; «Как это р�
   await page.goto("/");
   const tour = page.getByRole("dialog");
   await expect(tour).toBeHidden();
-  await expect(page.getByRole("link", { name: "Открыть демо-расчёт склада" })).toBeVisible();
-  await page.getByRole("button", { name: "Как это работает" }).click();
+  await expect(page.getByRole("link", { name: "Создать проект", exact: true })).toBeVisible();
+  await openTour(page);
   await expect(tour).toBeVisible();
   // На первом шаге «Назад» нет.
   await expect(tour.getByRole("button", { name: "Назад" })).toHaveCount(0);
@@ -49,7 +55,7 @@ test("«Назад»/«Далее» листают шаги; «Как это р�
   await expect(tour).toBeHidden();
 
   // Повторное открытие начинается с первого шага, а не с того, на котором закрыли.
-  await page.getByRole("button", { name: "Как это работает" }).click();
+  await openTour(page);
   await expect(page.getByRole("dialog").getByText("Шаг 1 из 8")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toBeHidden();

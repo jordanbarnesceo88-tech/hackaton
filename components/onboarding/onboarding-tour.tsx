@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 const SEEN_KEY = "onboarding-tour-seen";
 const listeners = new Set<() => void>();
 let cachedOpen = false;
+/** Номер показа: каждое открытие - новый ключ карточки, поэтому тур всегда начинается с шага 1. */
+let run = 0;
 
 function getSnapshot(): boolean {
   return cachedOpen;
@@ -34,6 +36,14 @@ function getSnapshot(): boolean {
 
 function getServerSnapshot(): boolean {
   return false;
+}
+
+function getRun(): number {
+  return run;
+}
+
+function getServerRun(): number {
+  return 0;
 }
 
 function getClientReady(): boolean { return true; }
@@ -53,8 +63,12 @@ function markSeenAndClose() {
   listeners.forEach((l) => l());
 }
 
-/** Повторный показ по кнопке «Как это работает» — не трогает флаг «видел», это разные вещи. */
-function openTour() {
+/**
+ * Повторный показ по кнопке «Как это работает» — не трогает флаг «видел», это разные вещи.
+ * Открывается и снаружи: пункт «Как это работает» в меню «Демо» шапки (components/demo-menu.tsx).
+ */
+export function openOnboardingTour() {
+  run += 1;
   cachedOpen = true;
   listeners.forEach((l) => l());
 }
@@ -135,14 +149,48 @@ export function OnboardingTour({
   triggerSize = "default",
   triggerVariant = "outline",
   triggerClassName,
+  showTrigger = true,
 }: {
   triggerSize?: ButtonProps["size"];
   triggerVariant?: ButtonProps["variant"];
   /** Раскладка кнопки в ряду вызывающего (например, во всю ширину на телефоне) — не её вид. */
   triggerClassName?: string;
+  /** false - только окно: его открывает openOnboardingTour() из другого места (меню «Демо»). */
+  showTrigger?: boolean;
 }) {
   const open = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const ready = useSyncExternalStore(subscribe, getClientReady, getServerSnapshot);
+  const current = useSyncExternalStore(subscribe, getRun, getServerRun);
+
+  return (
+    <>
+      {showTrigger && (
+        <Button
+          type="button"
+          variant={triggerVariant}
+          size={triggerSize}
+          className={triggerClassName}
+          disabled={!ready}
+          onClick={openOnboardingTour}
+        >
+          Как это работает
+        </Button>
+      )}
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) markSeenAndClose();
+        }}
+      >
+        {/* С начала, а не с того шага, на котором тур закрыли: окно открывается снаружи
+            (onOpenChange(true) не вызывается), поэтому каждый показ - новый ключ карточки. */}
+        <TourCard key={current} open={open} />
+      </Dialog>
+    </>
+  );
+}
+
+function TourCard({ open }: { open: boolean }) {
   const [index, setIndex] = useState(0);
   const nextRef = useRef<HTMLButtonElement>(null);
   const step = STEPS[index]!;
@@ -166,75 +214,51 @@ export function OnboardingTour({
     setIndex((i) => Math.max(0, i - 1));
   }
 
+  // На 1/6 крупнее окна по умолчанию (просьба владельца, 2026-09-26): ширина 32rem ×
+  // 7/6, поле 24px × 7/6 = 28px, основной текст 14px → 16px. Фокус при открытии — на
+  // «Далее»: главное действие тура, а не «Пропустить» первым по порядку.
   return (
-    <>
-      <Button
-        type="button"
-        variant={triggerVariant}
-        size={triggerSize}
-        className={triggerClassName}
-        disabled={!ready}
-        onClick={() => {
-          // С начала, а не с того шага, на котором тур закрыли: onOpenChange(true) здесь не
-          // вызывается (окно открывается снаружи, не своим триггером), поэтому сброс — тут.
-          setIndex(0);
-          openTour();
-        }}
-      >
-        Как это работает
-      </Button>
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          if (!next) markSeenAndClose();
-        }}
-      >
-        {/* На 1/6 крупнее окна по умолчанию (просьба владельца, 2026-09-26): ширина 32rem ×
-            7/6, поле 24px × 7/6 = 28px, основной текст 14px → 16px. Фокус при открытии — на
-            «Далее»: главное действие тура, а не «Пропустить» первым по порядку. */}
-        <DialogContent initialFocus={nextRef} className="max-w-[calc(32rem*7/6)] p-7">
-          <DialogHeader>
-            <DialogTitle>{step.title}</DialogTitle>
-            <p className="text-xs text-muted-foreground">
-              Шаг {index + 1} из {STEPS.length}
-            </p>
-          </DialogHeader>
-          {/* Рисунок шага, 16:9. Отступы: по бокам — поле окна, сверху и снизу по 16px, чтобы
-              текст шага стоял рядом с картинкой, а не отдельно от неё. */}
-          <Illustration src={step.image} alt={step.imageAlt} className="mt-4 aspect-video" />
-          <DialogDescription className="mt-4 text-base text-foreground">{step.text}</DialogDescription>
-          {/* Полоса прогресса — точки, не проценты: восемь коротких карточек, а не форма. */}
-          <div className="mt-6 flex items-center gap-1.5" aria-hidden="true">
-            {STEPS.map((s, i) => (
-              <span
-                key={s.title}
-                className={cn(
-                  "h-1.5 flex-1 rounded-full transition-colors",
-                  // bg-border, не bg-muted: на белом --popover светлая тема теряла muted-полоски.
-                  i <= index ? "bg-primary" : "bg-border",
-                )}
-              />
-            ))}
-          </div>
-          <DialogFooter className="mt-6">
-            {!isLast && (
-              <Button type="button" variant="ghost" size="lg" onClick={markSeenAndClose}>
-                Пропустить
-              </Button>
+    <DialogContent initialFocus={nextRef} className="max-w-[calc(32rem*7/6)] p-7">
+      <DialogHeader>
+        <DialogTitle>{step.title}</DialogTitle>
+        <p className="text-xs text-muted-foreground">
+          Шаг {index + 1} из {STEPS.length}
+        </p>
+      </DialogHeader>
+      {/* Рисунок шага, 16:9. Отступы: по бокам — поле окна, сверху и снизу по 16px, чтобы
+          текст шага стоял рядом с картинкой, а не отдельно от неё. */}
+      <Illustration src={step.image} alt={step.imageAlt} className="mt-4 aspect-video" />
+      <DialogDescription className="mt-4 text-base text-foreground">{step.text}</DialogDescription>
+      {/* Полоса прогресса — точки, не проценты: восемь коротких карточек, а не форма. */}
+      <div className="mt-6 flex items-center gap-1.5" aria-hidden="true">
+        {STEPS.map((s, i) => (
+          <span
+            key={s.title}
+            className={cn(
+              "h-1.5 flex-1 rounded-full transition-colors",
+              // bg-border, не bg-muted: на белом --popover светлая тема теряла muted-полоски.
+              i <= index ? "bg-primary" : "bg-border",
             )}
-            <div className="ml-auto flex items-center gap-2">
-              {!isFirst && (
-                <Button type="button" variant="outline" size="lg" onClick={back}>
-                  Назад
-                </Button>
-              )}
-              <Button ref={nextRef} type="button" size="lg" onClick={next}>
-                {isLast ? "Начать" : "Далее"}
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          />
+        ))}
+      </div>
+      <DialogFooter className="mt-6">
+        {!isLast && (
+          <Button type="button" variant="ghost" size="lg" onClick={markSeenAndClose}>
+            Пропустить
+          </Button>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          {!isFirst && (
+            <Button type="button" variant="outline" size="lg" onClick={back}>
+              Назад
+            </Button>
+          )}
+          <Button ref={nextRef} type="button" size="lg" onClick={next}>
+            {isLast ? "Начать" : "Далее"}
+          </Button>
+        </div>
+      </DialogFooter>
+    </DialogContent>
   );
 }

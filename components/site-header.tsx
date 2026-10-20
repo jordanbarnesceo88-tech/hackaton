@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { BookOpen, Bot, Code2, FolderKanban, LifeBuoy, LogIn, Package, Shield, UserPlus } from "lucide-react";
+import { BookOpen, Code2, FolderKanban, LifeBuoy, LogIn, Package, Shield, UserPlus } from "lucide-react";
 import { auth } from "@/auth";
 import { logoutAction } from "@/lib/auth/actions";
 import { isAdminSession } from "@/lib/auth/guards";
 import { cn } from "@/lib/utils";
 import { AuthHandoffLink } from "./auth-handoff-link";
+import { AlfaRobotLogo } from "./brand/alfa-robot-logo";
+import { DemoMenu } from "./demo-menu";
+import { FleetPlatformAccess } from "./fleet-platform-access";
 
 /**
  * Шапка сайта — верхняя панель (не боковая: пробовали rail в этой ветке, владелец решил
@@ -35,9 +38,19 @@ import { AuthHandoffLink } from "./auth-handoff-link";
  * для скринридера). Липкой шапка становится тоже только с xl, где её высота гарантированно
  * 60px: липкие панели ниже (StepNav, панель рабочей области) садятся под неё на top-[60px],
  * а до xl — на top-0, и на телефоне не складываются в две липкие полосы на треть экрана.
+ *
+ * Бренд (2026-10-20, правки владельца): только логотип «alfa robot», без подписи, светлым
+ * цветом из присланных файлов (#D4D1E2, для тёмного фона). Вкладка «Демо» - меню с демо-расчётами
+ * и туром, которые раньше были кнопками первого экрана (components/demo-menu.tsx). Справа от
+ * вкладок - кнопка «Платформа управления парком роботов» (окно с демо-доступом,
+ * components/fleet-platform-access.tsx).
  */
 const TAB_CLASS =
   "tap-target flex shrink-0 items-center gap-2 rounded-md px-3 py-[9px] text-sm font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground";
+
+/** Отдельный продукт, не вкладка этого сайта: контур в цвет логотипа, подпись в две строки с md. */
+const FLEET_CLASS =
+  "tap-target flex shrink-0 cursor-pointer items-center gap-2 rounded-md border border-[#A897FC]/45 px-3 py-[9px] text-xs font-medium text-[#D4D1E2] transition-colors hover:border-[#A897FC] hover:bg-muted hover:text-foreground md:py-1.5";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -51,23 +64,19 @@ export async function SiteHeader() {
         // dark: форсирует тёмную панель поверх любой темы страницы — см. комментарий выше.
         // glass + sticky: та же поверхность, что у рейла/step-nav, не с нуля.
         "dark glass z-20 flex flex-wrap items-center gap-x-2 gap-y-1 xl:sticky xl:top-0 xl:flex-nowrap",
-        "min-h-[60px] border-b border-border bg-background px-3 py-2 text-sm no-print sm:gap-x-[22px] sm:px-[22px]",
+        // xl:py-1.5: кнопка платформы в две строки - 44px; с полями по 8px и рамкой шапка вышла
+        // бы 61px, а липкие панели ниже рассчитаны на 60px (top-[60px]).
+        "min-h-[60px] border-b border-border bg-background px-3 py-2 text-sm no-print sm:gap-x-[22px] sm:px-[22px] xl:py-1.5",
       )}
     >
       {/* basis-0 + grow до xl: бренд занимает остаток первого ряда и при нехватке места
-          сжимается (truncate), а не выталкивает вход/пользователя в отдельную строку — flex-wrap
+          сжимается, а не выталкивает вход/пользователя в отдельную строку — flex-wrap
           переносит элемент раньше, чем сжимает. */}
       <Link
         href="/"
-        className="tap-target flex min-w-0 flex-1 basis-0 items-center gap-2.5 text-foreground xl:mr-2 xl:flex-none xl:basis-auto"
+        className="tap-target flex min-w-0 flex-1 basis-0 items-center text-foreground xl:mr-2 xl:flex-none xl:basis-auto"
       >
-        <Bot size={24} aria-hidden={true} className="shrink-0 text-primary" />
-        <span className="flex min-w-0 flex-col leading-tight">
-          <span className="truncate text-[13px] font-semibold sm:text-sm">Платформа оценки роботизации</span>
-          <span className="hidden text-[11px] tracking-wide text-muted-foreground uppercase sm:block">
-            Роботизация и экономика
-          </span>
-        </span>
+        <AlfaRobotLogo className="h-6 w-auto max-w-full shrink-0 text-[#D4D1E2]" />
       </Link>
 
       <nav
@@ -80,6 +89,7 @@ export async function SiteHeader() {
             Проекты
           </Link>
         )}
+        <DemoMenu triggerClassName={TAB_CLASS} />
         <Link href="/catalog" className={TAB_CLASS}>
           <Package size={16} aria-hidden={true} />
           Каталог
@@ -103,6 +113,8 @@ export async function SiteHeader() {
           </Link>
         )}
       </nav>
+
+      <FleetPlatformAccess triggerClassName={FLEET_CLASS} />
 
       {session?.user ? (
         // user-chip: пилюля-бордер, круглый аватар-инициал, двустрочный блок (почта / роль) —

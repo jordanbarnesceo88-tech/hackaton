@@ -110,11 +110,11 @@ for (const viewport of VIEWPORTS) {
           const workflow = page.getByRole("list", { name: "Как работает платформа", exact: true });
           await expect(workflow).toBeVisible();
           await expect(workflow.getByRole("listitem")).toHaveCount(4);
-          await expect(workflow.getByRole("heading", { level: 3 })).toHaveText(["Объект", "Экономика", "Проверка потока", "План пилота"]);
+          await expect(workflow.getByRole("heading", { level: 3 })).toHaveText(["Объект", "Экономика", "Имитация", "Пилот"]);
           for (const heading of await workflow.getByRole("heading", { level: 3 }).all()) await readable(heading, 14);
-          const primary = page.getByRole("link", { name: "Открыть демо-расчёт склада", exact: true });
+          const primary = page.getByRole("link", { name: "Создать проект", exact: true });
           await readable(primary);
-          await expect(primary).toHaveAttribute("href", "/demo?example=steady-flow");
+          await expect(primary).toHaveAttribute("href", "/projects/new");
         } else if (route.name === "catalog") {
           await readable(page.getByRole("search", { name: "Фильтры каталога" }).getByLabel("Поиск", { exact: true }));
           await expect(page.getByRole("link", { name: /Ronavi H1500/i }).first()).toBeVisible();
