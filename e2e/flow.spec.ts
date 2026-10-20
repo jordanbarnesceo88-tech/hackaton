@@ -36,7 +36,8 @@ test("first screen explains the product and links to the current calculation", a
   const footer = page.locator("footer");
   await expect(footer.getByRole("link", { name: "Откуда цифры: методика и источники", exact: true })).toHaveAttribute("href", "/methodology/tz");
   await expect(footer.locator('a[href="/methodology"], a[href="/onboarding"]')).toHaveCount(0);
-  await page.getByRole("link", { name: "Открыть демо-расчёт склада" }).click();
+  await page.getByRole("banner").getByRole("button", { name: "Демо", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Открыть демо-расчёт склада" }).click();
   await expect(page).toHaveURL(/\/demo/);
 });
 

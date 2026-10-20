@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { CleaningRobot3D } from "@/components/landing/cleaning-robot-3d";
 import { cn } from "@/lib/utils";
 
 /**
- * Первый экран: кто подбирает роботов и почему этому можно верить, три входа и путь от объекта
+ * Первый экран: кто подбирает роботов и почему этому можно верить, два входа и путь от объекта
  * к пилоту, под ними во всю ширину — робот Alfa Robot убирает офисный мусор.
  *
  * С xl (1280px, шапка там в одну строку, 60px) первый блок занимает минимум экран:
  * схема забирает остаток высоты. Уже — обычная прокрутка:
  * шапка переносится, а текст в столбик в один экран не помещается.
  */
-// Первый ряд — три входа одного размера (xl): одно основное действие залито, остальные —
-// контурные. Иерархию задаёт вариант, не рост кнопки.
+// Первый ряд — два входа одного размера (xl): основное действие залито, второе — контурное.
+// Иерархию задаёт вариант, не рост кнопки.
 // На телефоне входы — во всю ширину: в столбик кнопки разной длины читались как разные кнопки.
 /** Основное действие первого экрана. */
 const CTA_PRIMARY = cn(buttonVariants({ variant: "default", size: "xl" }), "w-full sm:w-auto");
@@ -33,42 +32,38 @@ export default function Home() {
           <h1>Подбор роботов от тех, кто уже запускал их на других объектах</h1>
           <div className="flex flex-col gap-2">
             <p className="text-lg text-muted-foreground">
-              Учитываем условия эксплуатации и находим узкие места до покупки. Для собственников, УК и
-              операторов, которым нельзя ошибиться с бюджетом.
+              Для собственников объектов недвижимости, которым важно не только рассчитать экономику
+              роботизации, а внедрить роботов в работу объекта с минимальным временем простоев.
+              <br />
+              Учитываем особенности Объекта и подсвечиваем узкие места до пилота и внедрения роботов.
             </p>
-            <p className="text-sm font-medium">30 роботов в работе у «Азбуки Вкуса» и других клиентов</p>
+            <p className="text-sm font-medium">
+              30 роботов в работе в сети Азбука Вкуса, ТРЦ Авиапарк, ТРЦ Саларис, на складах Озон.
+            </p>
           </div>
-          {/* Каталог решений — в шапке, здесь не дублируется. */}
-          <nav aria-label="Готовые примеры роботизации" className="grid min-w-0 gap-2 sm:grid-cols-3">
-            <Link href="/demo?example=steady-flow" className={cn(CTA_PRIMARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
-              Открыть демо-расчёт склада
-            </Link>
-            <Link href="/demo/warehouse?case=complex" className={cn(CTA_SECONDARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
-              Сложный склад · 3D
-            </Link>
-            <Link href="/demo?example=warehouse-cleaning" className={cn(CTA_SECONDARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
-              Уборка склада · расчёт
-            </Link>
-          </nav>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
-            <Link href="/projects/new" className="tap-target inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">
+          {/* Две основные кнопки (владелец, 2026-10-20). Остальные демо-расчёты и тур «Как это
+              работает» - во вкладке «Демо» шапки, каталог решений - тоже в шапке. */}
+          <nav aria-label="Начать работу" className="grid min-w-0 gap-2 sm:grid-cols-2">
+            <Link href="/projects/new" className={cn(CTA_PRIMARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
               Создать проект
             </Link>
-            <OnboardingTour triggerClassName="h-auto min-h-11 border-0 px-0 text-sm underline underline-offset-4" />
-          </div>
+            <Link href="/demo/warehouse?case=complex" className={cn(CTA_SECONDARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
+              Демо: сложный склад · 3D
+            </Link>
+          </nav>
           <p className="text-sm text-muted-foreground">
             Первый расчёт парка и экономики за 5 минут, без регистрации. Дальше ведём до запуска: подготовка
-            объекта, пилот, сервис.
+            объекта, пилот, покупка или сервисный контракт.
           </p>
         </div>
         <div className="min-w-0 border-y border-border py-6 xl:py-4">
           <h2 className="text-xl">От условий объекта к плану внедрения</h2>
           <ol className="mt-6 grid gap-5 xl:mt-4 xl:gap-3" aria-label="Как работает платформа">
             {[
-              ["Объект", "Задайте поток, режим работы и ограничения площадки."],
-              ["Экономика", "Сравните покупку и услугу, затраты и высвобождаемый труд."],
-              ["Проверка потока", "Оцените выбранный парк и нагрузку с учётом границ модели."],
-              ["План пилота", "Определите подготовку объекта, бюджет и критерии приёмки."],
+              ["Объект", "Выберите тип Объекта и задайте его данные"],
+              ["Экономика", "Сравните затраты As is с покупкой или сервисным контрактом"],
+              ["Имитация", "Наглядно демонстрируем, как подобранные решения будут работать у вас"],
+              ["Пилот", "Как подготовить объект и персонал к пилоту и оценить его эффективность"],
             ].map(([title, description], index) => (
               <li key={title} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 border-b border-border pb-5 last:border-0 last:pb-0 xl:pb-3">
                 <span aria-hidden="true" className="font-mono text-sm text-primary">{String(index + 1).padStart(2, "0")}</span>

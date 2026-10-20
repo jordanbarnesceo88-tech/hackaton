@@ -680,7 +680,10 @@
     const checklist = Object.fromEntries([...document.querySelectorAll('[data-check]')].map(input => [input.dataset.check, input.checked]));
     download(JSON.stringify({ schemaVersion: config.schemaVersion, exportedAt: new Date().toISOString(), ...current, playback: frame, fleetComparison: comparisonPanel.snapshot(), visualAssumptions: config.visualAssumptions, pilotPlan: Core.buildPilotPlan(current), pilotChecklist: checklist }, null, 2), 'application/json', `alfa-robot-${activeCase}.json`);
   }
-  $('export-json').addEventListener('click', exportData); $('pilot-download').addEventListener('click', exportData);
+  // «Скачать данные и чеклист» в окне пилота отдаёт памятку владельца (assets/pilot-guide.html,
+  // встроена сборкой); данные сцены и отметки чеклиста по-прежнему выгружает «Экспорт JSON».
+  $('export-json').addEventListener('click', exportData);
+  $('pilot-download').addEventListener('click', () => download(window.PilotGuideHtml, 'text/html;charset=utf-8', 'Подготовка объекта к пилоту.html'));
   $('export-png').addEventListener('click', () => {
     if (!viewer || dirty) return;
     try {
