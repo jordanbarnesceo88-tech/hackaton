@@ -5,13 +5,20 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const historicalBaseline = "20260924120000_tz_v2";
+const migrationVariables = ["DIRECT_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING", "DATABASE_URL"];
 
 export function migrationConnection(environment) {
-  const value = environment.DIRECT_URL?.trim() || environment.DATABASE_URL?.trim();
-  if (!value) throw new Error("Production migration requires DIRECT_URL or DATABASE_URL.");
+  const value = migrationVariables.map(name => environment[name]?.trim()).find(Boolean);
+  if (!value) throw new Error("Production migration requires a PostgreSQL connection.");
   let url;
   try { url = new URL(value); } catch { throw new Error("Migration connection must be a valid direct PostgreSQL URL."); }
   if (!["postgres:", "postgresql:"].includes(url.protocol) || !url.hostname || url.pathname.length < 2) throw new Error("Migration connection must be a valid direct PostgreSQL URL.");
+  // Neon documents the same endpoint without '-pooler' as its direct migration connection.
+  if (/^ep-[a-z0-9-]+-pooler\.[a-z0-9.-]+\.neon\.tech$/i.test(url.hostname)) {
+    url.hostname = url.hostname.replace(/-pooler\./i, ".");
+    url.searchParams.delete("pgbouncer");
+    return url.toString();
+  }
   if (/(?:^|[.-])(?:pooler|pgbouncer)(?:[.-]|$)/i.test(url.hostname) || url.searchParams.get("pgbouncer") === "true") throw new Error("Migrations require a direct PostgreSQL connection, not a transaction pooler.");
   return value;
 }
@@ -36,8 +43,8 @@ export async function verifyMigrationBaseline(connection) {
 
 export function redactBuildOutput(output, environment) {
   let safe = String(output ?? "").replace(/postgres(?:ql)?:\/\/[^\s'"<>]+/gi, "[REDACTED_DATABASE_URL]");
-  const secrets = Object.entries(environment).filter(([key, value]) => /(?:URL|PASSWORD|SECRET|TOKEN|KEY)$/.test(key) && typeof value === "string" && value.length >= 4).map(([, value]) => value);
-  for (const value of [environment.DATABASE_URL, environment.DIRECT_URL]) {
+  const secrets = Object.entries(environment).filter(([key, value]) => (/(?:URL|PASSWORD|SECRET|TOKEN|KEY)$/.test(key) || migrationVariables.includes(key)) && typeof value === "string" && value.length >= 4).map(([, value]) => value);
+  for (const value of migrationVariables.map(name => environment[name])) {
     try { const url = new URL(value); if (url.password) secrets.push(url.password, decodeURIComponent(url.password)); } catch { /* Invalid input is never echoed. */ }
   }
   for (const secret of secrets.sort((a, b) => b.length - a.length)) safe = safe.split(secret).join("[REDACTED]");

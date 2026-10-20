@@ -13,6 +13,30 @@ const success = (...args: [string?, string[]?, NodeJS.ProcessEnv?]): SpawnSyncRe
 };
 
 describe("Vercel production migration build", () => {
+  it("uses the standard integration direct variables before the pooled runtime URL", () => {
+    const urls = ["postgresql://u:a@direct.example/one", "postgresql://u:b@direct.example/two", "postgresql://u:c@direct.example/three", "postgresql://u:d@direct.example/four"];
+    const keys = ["DIRECT_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING", "DATABASE_URL"];
+    for (let index = 0; index < keys.length; index++) {
+      const env = Object.fromEntries(keys.map((key, position) => [key, position >= index ? urls[position] : "  "]));
+      expect(migrationConnection(env)).toBe(urls[index]);
+    }
+    expect(() => migrationConnection({ DIRECT_URL: "not-a-url", DATABASE_URL_UNPOOLED: urls[1] })).toThrow();
+  });
+  it("derives only Neon's documented direct endpoint without changing its credentials, database or TLS settings", () => {
+    const pooled = "postgresql://role:escaped%40password@ep-example-123-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&schema=public&channel_binding=require&pgbouncer=true";
+    const direct = new URL(migrationConnection({ DATABASE_URL: pooled }));
+    expect(direct.hostname).toBe("ep-example-123.us-east-2.aws.neon.tech");
+    expect(direct.username).toBe("role"); expect(direct.password).toBe("escaped%40password"); expect(direct.pathname).toBe("/neondb");
+    for (const key of ["sslmode", "schema", "channel_binding"]) expect(direct.searchParams.get(key)).toBe(new URL(pooled).searchParams.get(key));
+    expect(direct.searchParams.has("pgbouncer")).toBe(false);
+    expect(pooled).toContain("-pooler.");
+    for (const host of ["ep-example-pooler.us.aws.neon.tech.evil", "aws-0.pooler.supabase.com", "db-pooler.example"]) expect(() => migrationConnection({ DATABASE_URL: `postgresql://u:pw@${host}/db` })).toThrow();
+  });
+  it("redacts direct integration variables and their decoded passwords", () => {
+    const env = { DATABASE_URL_UNPOOLED: "postgresql://u:unpooled%40password@direct.example/db", POSTGRES_URL_NON_POOLING: "postgresql://u:other-password@direct.example/db" };
+    const output = redactBuildOutput(`${env.DATABASE_URL_UNPOOLED} unpooled@password unpooled%40password ${env.POSTGRES_URL_NON_POOLING} other-password`, env);
+    expect(output).not.toMatch(/unpooled|other-password|postgresql/);
+  });
   it("is the actual configured build entrypoint", () => {
     const config = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
     expect(config.buildCommand).toBe("node scripts/vercel-build.mjs");
