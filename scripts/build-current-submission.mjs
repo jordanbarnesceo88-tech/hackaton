@@ -395,7 +395,7 @@ function docs(data) {
 }
 
 async function build() {
-  const data = facts(), verification = read('verification-review.json'), html = docs(data);
+  const data = facts(), html = docs(data);
   const browser = await chromium.launch({ headless: true });
   const targets=process.argv[3]?[process.argv[3]]:['presentation','documentation'];
   if(targets.some(name=>!['presentation','documentation'].includes(name))) throw new Error('Build target must be presentation or documentation');

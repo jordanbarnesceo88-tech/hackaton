@@ -1,0 +1,16 @@
+{
+  "schema": "database-release-verification-1",
+  "status": "PASS",
+  "checkedAt": "2026-10-20T11:09:20.018Z",
+  "sourceCommit": "4f18b5a0e3643d49022d1c31fd9624721b0f38e8",
+  "modelVersion": "tz-1.0.10",
+  "engineRelease": "alfa-robot/sha256:8df905e19177a9d968638fd2eba8ab19cece4875f841673c7bae240828b13e5a",
+  "filesPassed": 10,
+  "testsPassed": 171,
+  "testsFailed": 0,
+  "rawReportSha256": "ec96fc2c8aa8672f5b7a132697b07b6167b109d57219fd7a8fa1de2aa354398d",
+  "scope": "Full sequential DB project on a newly created isolated PostgreSQL database, with migrations and seed. No production or main local database was changed. Real durable operations, financial calculations, spatial replay, revisions and immutable archives are covered.",
+  "testScheduling": "unit maxWorkers2 groupOrder0; DB maxWorkers1 groupOrder1; no global timeout increase",
+  "limits": "This is an integration regression, not a concurrent-user load test or physical-site calibration.",
+  "deadlineNote": "After this PASS under the120-second CAS deadline, only that test deadline was increased to180seconds for3complete calculations; inputs and assertions unchanged. No rerun is claimed for a deadline-only change."
+}

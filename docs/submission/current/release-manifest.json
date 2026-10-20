@@ -1,6 +1,6 @@
 {
   "schemaVersion": "submission-current-1",
-  "generatedAt": "2026-10-20T10:55:01.289Z",
+  "generatedAt": "2026-10-20T11:10:36.168Z",
   "versions": {
     "economics": "tz-1.0.10",
     "analytical": "sim-1.2.1",
@@ -21,7 +21,7 @@
       "engineRelease": "alfa-robot/sha256:8df905e19177a9d968638fd2eba8ab19cece4875f841673c7bae240828b13e5a"
     },
     "capturedAt": "2026-10-20T10:24:31.036Z",
-    "generatorSha256": "52ede9f9ee254e6458c0e7b42588cc919080abc4d043538eb2dc97495ef0e5a5",
+    "generatorSha256": "6f3cc43ca63e3ef4ea7ab2634df9fcf77a468f2e46ec613191654407e3372c4f",
     "capacityContractSha256": "942d2972b96b3030c77908ac29c1e4ac4118c809ed8bd139f08f30bbdc8b8f53"
   },
   "receipts": [
@@ -593,7 +593,14 @@
     },
     "database": {
       "statement": "Текущий результат прошёл через реальный worker, PostgreSQL, архивное открытие и выгрузки. Отдельный интеграционный сценарий уборки проверен на том же движке; полный новый DB-набор этим не заявляется.",
-      "slideStatement": "Реальные worker, PostgreSQL, сохранение и экспорт проверены."
+      "slideStatement": "Реальные worker, PostgreSQL, сохранение и экспорт проверены.",
+      "latestFullCheck": {
+        "status": "PASS",
+        "files": 10,
+        "tests": 171,
+        "proof": "database-verification.json",
+        "statement": "Полный последовательный DB-набор:171/171 PASS в10файлах на новой изолированной PostgreSQL; миграции и начальные данные применены отдельно."
+      }
     },
     "browser": "Шесть уникальных Playwright-сценариев: сохранённая проверка мощности, черновики гостя, редактирование и архив пилота, публичные страницы и восемь шагов на 1366/1920/390. Дополнительно 10 проверок главной и автономных 3D-сцен; новые наблюдения эксплуатации не изменяют профиль при раскрытии.",
     "browserVerification": {
@@ -659,6 +666,11 @@
       "name": "content-coverage.json",
       "bytes": 11862,
       "sha256": "39149d997a1e08b649cd07abfd479a964a7b098f17b6342a63d3ac48b68cfd54"
+    },
+    {
+      "name": "database-verification.json",
+      "bytes": 1190,
+      "sha256": "9e4db8cbd61058e8a491b063aa5f993b43f3ecda333ad0ec0e8ca6711c6c572a"
     },
     {
       "name": "demo-numbers.md",
@@ -747,8 +759,8 @@
     },
     {
       "name": "verification-review.json",
-      "bytes": 4159,
-      "sha256": "ca0cb91842bd202bda8a4c82b47410fa64cf2359f09f043eb3fc6564fba9b50e"
+      "bytes": 4554,
+      "sha256": "cc1ecb5c777708c14e4d45542fe130361adedd786ff5c5d21a9923e35e4e1531"
     },
     {
       "name": "visual-source.json",

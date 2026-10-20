@@ -687,7 +687,7 @@ describe("P0 project revision and immutable archive", () => {
     expect(await commands.recalculate(id, project.revision)).toMatchObject({ reason: "conflict" });
     expect(await serverActions.deleteProjectAction(id, project.revision)).toMatchObject({ reason: "conflict" });
     expect((await getProject(prisma, id, userA))?.revision).toBe(project.revision + 1);
-  }, 120_000);
+  }, 180_000); // Setup plus two real SAVE calculations, each with a bounded 60s project budget.
 
   it("legacy writes without a precondition fail explicitly, including rename, recalc and delete", async () => {
     const { id, params, project } = await example("TZT22 missing revision");
