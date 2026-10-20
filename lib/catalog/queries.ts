@@ -410,7 +410,7 @@ export type CatalogFilters = {
 /** Строк на странице каталога. */
 export const CATALOG_PAGE_SIZE = 50;
 
-/** Строка списка каталога — вынесенные колонки продукта без характеристик. */
+/** Строка списка каталога: числовые колонки и полная справочная производительность. */
 export type CatalogListItem = {
   slug: string;
   name: string;
@@ -427,6 +427,8 @@ export type CatalogListItem = {
   raasRubMonth: number | null;
   throughputPerH: number | null;
   throughputUnit: string | null;
+  /** Значение первичной характеристики с диапазоном, единицей и областью действия; не вход расчёта. */
+  throughputDisplay?: string | null;
   payloadKg: number | null;
   speedMps: number | null;
   completenessPct: number;
@@ -531,7 +533,7 @@ function normPage(page: number | undefined): number {
 
 /**
  * Список каталога с фильтрами, поиском, сортировкой и страницами по 50 (ТЗ §3.3.7). Работает
- * по вынесенным колонкам, без характеристик: это быстро и на всём каталоге организатора.
+ * по вынесенным колонкам; для показа дополнительно читается только характеристика производительности.
  */
 export async function getCatalogList(db: Db, filters: CatalogFilters = {}): Promise<CatalogList> {
   const and = filterConditions(filters);
@@ -550,6 +552,7 @@ export async function getCatalogList(db: Db, filters: CatalogFilters = {}): Prom
     include: {
       solutionType: { select: { slug: true, name: true } },
       processes: { select: { process: { select: { slug: true, name: true } } } },
+      characteristics: { where: { key: "throughput" }, select: { valueNum: true, valueMin: true, valueMax: true, qualifier: true, valueText: true, valueList: true, unit: true, scope: true } },
     },
   });
   return {
@@ -571,6 +574,7 @@ export async function getCatalogList(db: Db, filters: CatalogFilters = {}): Prom
       raasRubMonth: r.raasRubMonth,
       throughputPerH: r.throughputPerH,
       throughputUnit: r.throughputUnit,
+      throughputDisplay: r.characteristics[0] ? formatCharValue(r.characteristics[0]) : "",
       payloadKg: r.payloadKg,
       speedMps: r.speedMps,
       completenessPct: r.completenessPct,

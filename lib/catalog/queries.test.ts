@@ -461,6 +461,39 @@ describe("getCatalogList", () => {
     });
   });
 
+  it("читает полную производительность для списка, не меняя допустимость нормы для расчёта", async () => {
+    await inRolledBackTx(async tx => {
+      const beta = await tx.catalogProduct.findUniqueOrThrow({ where: { slug: `${P}beta` }, select: { id: true } });
+      const cases = [
+        { value: { max: 4000, typical: 4000, qualifier: "до" } as CharValue, unit: "м²/ч", scope: "per-robot" as const, display: "до 4 000 м²/ч (на робота)", calculation: null },
+        { value: { min: 700, max: 1000, typical: 800 } as CharValue, unit: "м²/ч", scope: "per-robot" as const, display: "700–1 000 м²/ч (на робота)", calculation: 800 },
+        { value: 5000, unit: "м²/сут", scope: "per-fleet" as const, display: "5 000 м²/сут (на весь парк)", calculation: null },
+        { value: "700–1 000 м²/ч по режиму мойки", unit: "м²/ч", scope: "per-robot" as const, display: "700–1 000 м²/ч по режиму мойки", calculation: null },
+        { value: "Не заявлена", unit: null, scope: "per-robot" as const, display: "Не заявлена", calculation: null },
+      ];
+      for (const entry of cases) {
+        const row = sourcedToCharRow("throughput", sourced(entry.value, { unit: entry.unit ?? undefined, scope: entry.scope }));
+        const data = toCharacteristicData(row), promoted = promoteColumns([row], { flags: [] });
+        await tx.productCharacteristic.update({ where: { productId_key: { productId: beta.id, key: "throughput" } }, data });
+        await tx.catalogProduct.update({ where: { id: beta.id }, data: { throughputPerH: promoted.throughputPerH, throughputUnit: promoted.throughputUnit } });
+        const item = (await getCatalogList(tx, { process: PROC })).items.find(p => p.slug === `${P}beta`)!;
+        expect(item.throughputDisplay?.replace(/\s/g, " ")).toBe(entry.display);
+        expect(item.throughputPerH).toBe(entry.calculation);
+        const detail = await getCatalogProduct(tx, `${P}beta`);
+        expect(item.throughputDisplay).toBe(detail!.characteristics.TECHNICAL.find(c => c.key === "throughput")!.display);
+        const calculated = (await getCalcProducts(tx, "warehouse")).find(p => p.slug === `${P}beta`)!;
+        expect(calculated.throughputPerH).toBe(entry.calculation);
+      }
+      expect((await getCatalogList(tx, { process: PROC })).items.find(p => p.slug === `${P}gamma`)!.throughputDisplay).toBe("");
+      await tx.productCharacteristic.delete({ where: { productId_key: { productId: beta.id, key: "throughput" } } });
+      await tx.catalogProduct.update({ where: { id: beta.id }, data: { throughputPerH: 90, throughputUnit: "паллет/ч" } });
+      const stale = (await getCatalogList(tx, { process: PROC })).items.find(p => p.slug === `${P}beta`)!;
+      expect(stale.throughputPerH).toBe(90);
+      expect(stale.throughputDisplay).toBe("");
+      expect((await getCatalogProduct(tx, `${P}beta`))!.characteristics.TECHNICAL.some(c => c.key === "throughput")).toBe(false);
+    });
+  });
+
   it("сортировка по цене и производительности: без значения — в конце", async () => {
     expect(own((await list({ sort: "price" })).items.map((i) => i.slug))).toEqual(["alpha", "gamma", "beta", "rnd"]);
     expect(own((await list({ sort: "throughput" })).items.map((i) => i.slug))).toEqual(["alpha", "beta", "gamma", "rnd"]);

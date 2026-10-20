@@ -2,6 +2,7 @@ import Link from "next/link";
 import { fmtValue } from "@/components/project/comparison-table";
 import type { CatalogListItem } from "@/lib/catalog/queries";
 import { formatRub } from "@/lib/format/rub";
+import { displayDataText } from "@/lib/tz/characteristics";
 import { CompletenessBar, QualityChips, StatusChip } from "./chips";
 import { NO_DATA } from "./labels";
 import { productHref } from "./search-params";
@@ -13,9 +14,8 @@ import { productHref } from "./search-params";
  *
  * Отсутствующее значение — «нет данных», а не ноль: цена и производительность публикуются не
  * у всех продуктов, и пустая ячейка не должна читаться как «бесплатно» или «0 паллет/ч».
- * Производительность — ровно то число, что лежит в колонке каталога: паспортная норма без
- * предела «до X» и без значений на весь парк. Это не число расчёта: в расчёте парка норма
- * сравнивается с циклом по планировке объекта (lib/tz/econ/fleet), см. сноску под таблицей.
+ * Производительность сохраняет диапазон, оговорки и область действия первичной характеристики.
+ * Её справочное отображение не меняет допустимое числовое значение для расчёта.
  */
 
 /** Сколько процессов показывать под типом решения; остальные — «и ещё N». */
@@ -26,8 +26,9 @@ export function priceText(priceRub: number | null): string {
   return priceRub === null ? NO_DATA : formatRub(priceRub);
 }
 
-/** Производительность с единицей («90 паллет/ч») или «нет данных». */
-export function throughputText(value: number | null, unit: string | null): string {
+/** Полная справочная характеристика; числовой fallback для прежних строк и фикстур. */
+export function throughputText(value: number | null, unit: string | null, display?: string | null): string {
+  if (display !== undefined && display !== null) return display.trim() === "" || display.trim() === "—" ? NO_DATA : displayDataText(display);
   if (value === null || !Number.isFinite(value)) return NO_DATA;
   const u = (unit ?? "").trim();
   return u === "" ? fmtValue(value) : `${fmtValue(value)} ${u}`;
@@ -43,14 +44,12 @@ export function processesText(processes: readonly { name: string }[]): string | 
 
 /**
  * Сноска под таблицей: какие именно числа стоят в колонках цены и производительности.
- * В списке — вынесенные колонки продукта без оговорок источника («от», «до», диапазон);
- * производительность — паспортная норма, а не число расчёта парка (оно зависит от объекта).
+ * Справочный показ не превращает предел или значение на парк в расчётную норму одного робота.
  */
 export const TABLE_FOOTNOTE =
-  "Цена и ставка RaaS — типичное значение диапазона из источника. Производительность — паспортная " +
-  "норма на одного робота, станцию или канал; в расчёте парка мобильных роботов она сравнивается " +
-  "с циклом по планировке объекта, берётся меньшее. Идёт ли норма в расчёт, диапазоны, оговорки " +
-  "«от» и «до», источник и дата проверки каждого числа — в карточке продукта.";
+  "Цена и ставка RaaS — типичное значение диапазона из источника. Производительность приведена " +
+  "как в карточке: с единицей, диапазоном и оговорками источника. Применимость к расчёту, " +
+  "источник и дата проверки — в карточке продукта.";
 
 export function CatalogTable({ items, caption }: { items: readonly CatalogListItem[]; caption: string }) {
   return (
@@ -78,6 +77,7 @@ export function CatalogTable({ items, caption }: { items: readonly CatalogListIt
           {items.map((item) => {
             const checkboxId = `cmp-${item.slug}`;
             const processes = processesText(item.processes);
+            const throughput = throughputText(item.throughputPerH, item.throughputUnit, item.throughputDisplay);
             return (
               <tr key={item.slug} className="align-top">
                 <td>
@@ -118,8 +118,8 @@ export function CatalogTable({ items, caption }: { items: readonly CatalogListIt
                   )}
                 </td>
                 <td className="whitespace-nowrap text-right tabular-nums">
-                  <span className={item.throughputPerH === null ? "text-muted-foreground" : "font-medium"}>
-                    {throughputText(item.throughputPerH, item.throughputUnit)}
+                  <span className={throughput === NO_DATA ? "text-muted-foreground" : "font-medium"}>
+                    {throughput}
                   </span>
                 </td>
                 <td>

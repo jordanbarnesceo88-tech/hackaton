@@ -12,14 +12,10 @@ import { cn } from "@/lib/utils";
  * схема забирает остаток высоты. Уже — обычная прокрутка:
  * шапка переносится, а текст в столбик в один экран не помещается.
  */
-// Первый ряд — три входа одного размера (xl): одно основное действие залито, остальные —
-// контурные. Иерархию задаёт вариант, не рост кнопки.
-// На телефоне входы — во всю ширину: в столбик кнопки разной длины читались как разные кнопки.
-/** Основное действие первого экрана. */
-const CTA_PRIMARY = cn(buttonVariants({ variant: "default", size: "xl" }), "w-full sm:w-auto");
-
-/** Второстепенные входы первого ряда — тот же размер, контур. */
-const CTA_SECONDARY = cn(buttonVariants({ variant: "outline", size: "xl" }), "w-full sm:w-auto");
+const CTA_LAYOUT = "h-auto min-h-14 w-full px-3 py-3 text-center text-sm leading-snug whitespace-normal";
+const CTA_PRIMARY = cn(buttonVariants({ variant: "default", size: "xl" }), CTA_LAYOUT);
+const CTA_SECONDARY = cn(buttonVariants({ variant: "outline", size: "xl" }), CTA_LAYOUT);
+const TEXT_ACTION = "h-auto min-h-11 px-0 text-sm underline underline-offset-4";
 
 /** Ссылки подвала. */
 const FOOTER_LINK = "tap-target font-medium underline underline-offset-4 hover:text-primary";
@@ -39,22 +35,22 @@ export default function Home() {
             <p className="text-sm font-medium">30 роботов в работе у «Азбуки Вкуса» и других клиентов</p>
           </div>
           {/* Каталог решений — в шапке, здесь не дублируется. */}
-          <nav aria-label="Готовые примеры роботизации" className="grid min-w-0 gap-2 sm:grid-cols-3">
-            <Link href="/demo?example=steady-flow" className={cn(CTA_PRIMARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
+          <nav aria-label="Готовые примеры роботизации" className="grid min-w-0 auto-rows-fr gap-2 sm:grid-cols-3">
+            <Link href="/demo?example=steady-flow" className={CTA_PRIMARY}>
               Открыть демо-расчёт склада
             </Link>
-            <Link href="/demo/warehouse?case=complex" className={cn(CTA_SECONDARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
+            <Link href="/demo/warehouse?case=complex" className={CTA_SECONDARY}>
               Сложный склад · 3D
             </Link>
-            <Link href="/demo?example=warehouse-cleaning" className={cn(CTA_SECONDARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
+            <Link href="/demo?example=warehouse-cleaning" className={CTA_SECONDARY}>
               Уборка склада · расчёт
             </Link>
           </nav>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
-            <Link href="/projects/new" className="tap-target inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">
+            <Link href="/projects/new" className={cn(buttonVariants({ variant: "link" }), TEXT_ACTION)}>
               Создать проект
             </Link>
-            <OnboardingTour triggerClassName="h-auto min-h-11 border-0 px-0 text-sm underline underline-offset-4" />
+            <OnboardingTour triggerVariant="link" triggerClassName={TEXT_ACTION} />
           </div>
           <p className="text-sm text-muted-foreground">
             Первый расчёт парка и экономики за 5 минут, без регистрации. Дальше ведём до запуска: подготовка

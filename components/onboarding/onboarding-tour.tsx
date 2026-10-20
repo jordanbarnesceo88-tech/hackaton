@@ -133,9 +133,11 @@ const STEPS: readonly TourStep[] = [
 
 export function OnboardingTour({
   triggerSize = "default",
+  triggerVariant = "outline",
   triggerClassName,
 }: {
   triggerSize?: ButtonProps["size"];
+  triggerVariant?: ButtonProps["variant"];
   /** Раскладка кнопки в ряду вызывающего (например, во всю ширину на телефоне) — не её вид. */
   triggerClassName?: string;
 }) {
@@ -168,7 +170,7 @@ export function OnboardingTour({
     <>
       <Button
         type="button"
-        variant="outline"
+        variant={triggerVariant}
         size={triggerSize}
         className={triggerClassName}
         disabled={!ready}

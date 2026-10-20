@@ -12,7 +12,7 @@ import { ConfirmedMark } from "./characteristic-row";
 import { ArchivedChip, CompletenessBar, LevelChip, StatusChip } from "./chips";
 import { CHAR_GROUP_ORDER, groupStats, groupStatsText, requiredKeysOf } from "./group-section";
 import { NO_DATA } from "./labels";
-import { selectionParticipation } from "./product-card";
+import { findChar, selectionParticipation } from "./product-card";
 import { compareHref, productHref } from "./search-params";
 
 /**
@@ -164,7 +164,7 @@ export function CompareTable({ products }: { products: readonly Product[] }) {
           <SummaryRow
             label="Производительность"
             products={products}
-            render={(p) => <span className="tabular-nums">{throughputText(p.throughputPerH, p.throughputUnit)}</span>}
+            render={(p) => <span className="tabular-nums">{throughputText(p.throughputPerH, p.throughputUnit, findChar(p, "throughput")?.display ?? "")}</span>}
           />
           <SummaryRow label="Полнота данных" products={products} render={(p) => <CompletenessBar pct={p.completenessPct} />} />
           <SummaryRow

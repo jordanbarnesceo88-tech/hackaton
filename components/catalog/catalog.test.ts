@@ -524,6 +524,42 @@ describe("карточка продукта", () => {
 });
 
 describe("список и сравнение", () => {
+  it.each([
+    "до 4 000 м²/ч (на робота)",
+    "700–1 000 м²/ч (на робота)",
+    "5 000 м²/сут (на весь парк)",
+    "Выработка зависит от режима; не заявлена",
+  ])("показывает справочную производительность в списке и кратком сравнении: %s", display => {
+    const item = listItem({ throughputPerH: null, throughputUnit: "м²/ч", throughputDisplay: display });
+    const html = renderToStaticMarkup(createElement(CatalogTable, { caption: "Производительность", items: [item] }));
+    expect(html).toContain(display);
+    const detail = product({ throughputPerH: null, throughputUnit: "м²/ч" });
+    detail.characteristics.TECHNICAL = [char({ key: "throughput", group: "TECHNICAL", display })];
+    const comparison = renderToStaticMarkup(createElement(CompareTable, { products: [detail] }));
+    const summary = comparison.split("Производительность</th>")[1]!.split("</tr>")[0]!;
+    expect(summary).toContain(display); expect(summary).not.toContain(NO_DATA);
+    if (display.includes("м²/сут")) { expect(summary).not.toContain("м²/ч"); expect(html).not.toContain("м²/ч"); }
+  });
+
+  it("пустая справочная характеристика не превращается в ноль или устаревшую расчётную колонку", () => {
+    expect(throughputText(999, "м²/ч", "—")).toBe(NO_DATA);
+    expect(throughputText(null, null, "")).toBe(NO_DATA);
+    expect(throughputText(90, "паллет/ч", null)).toBe("90 паллет/ч");
+  });
+
+  it("отсутствующая первичная характеристика скрывает устаревшую колонку в списке и сравнении", () => {
+    const html = renderToStaticMarkup(createElement(CatalogTable, {
+      caption: "Производительность", items: [listItem({ throughputPerH: 90, throughputUnit: "паллет/ч", throughputDisplay: "" })],
+    }));
+    expect(html).toContain(NO_DATA);
+    expect(html).not.toContain("90 паллет/ч");
+    const detail = product({ throughputPerH: 90, throughputUnit: "паллет/ч", characteristics: emptyGroups() });
+    const comparison = renderToStaticMarkup(createElement(CompareTable, { products: [detail] }));
+    const summary = comparison.split("Производительность</th>")[1]!.split("</tr>")[0]!;
+    expect(summary).toContain(NO_DATA);
+    expect(summary).not.toContain("90 паллет/ч");
+  });
+
   it("строка списка: «нет данных» вместо нуля, единица производительности, пометки", () => {
     expect(priceText(null)).toBe(NO_DATA);
     expect(throughputText(null, "паллет/ч")).toBe(NO_DATA);
