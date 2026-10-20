@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { fixtureResults } from "@/lib/report/tz/test-fixtures";
 import type { ReportResults } from "@/lib/report/tz/rows";
-import { adviceFactsHash, buildAdviceFacts } from "./facts";
+import { buildAdviceFacts } from "./facts";
+import { adviceFactsHash } from "./hash";
 
 const results = fixtureResults() as ReportResults;
 

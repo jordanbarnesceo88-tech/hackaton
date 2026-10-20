@@ -1,9 +1,7 @@
-import { createHash } from "node:crypto";
 import { disclaimerOf, facilityLabelOf, scenarioTableRows, type ReportResults, type ScenarioRowKey } from "@/lib/report/tz/rows";
 import { pickRecommended } from "@/lib/tz/econ/conclusion";
 import { sortRisks } from "@/lib/tz/econ/risks";
 import type { ScenarioKind, ScenarioResult } from "@/lib/tz/types";
-import { ADVICE_PROMPT_VERSION } from "./prompt";
 import type { AdviceFacts, AdviceScenarioFacts } from "./types";
 
 /**
@@ -14,6 +12,9 @@ import type { AdviceFacts, AdviceScenarioFacts } from "./types";
  * Выбранный платформой сценарий идёт отдельно со всеми рисками: иначе модель переносила риски
  * альтернатив на него (проверено на модели). У альтернатив — главный риск, а если выбора нет —
  * три главных: тогда сравнивать приходится их.
+ *
+ * Модуль без серверных зависимостей: в гостевом демо факты строит браузер из результатов
+ * серверного расчёта (app/demo/ai-advice/route.ts объясняет почему).
  */
 
 const KIND_LABEL: Readonly<Record<ScenarioKind, string>> = {
@@ -47,12 +48,4 @@ export function buildAdviceFacts(results: ReportResults): AdviceFacts {
     platformConclusion: { headline: results.conclusion.headline, points: [...results.conclusion.bullets] },
     limitations: [disclaimerOf(results)],
   };
-}
-
-/**
- * Ключ рекомендаций: те же факты, модель и версия инструкции — тот же ответ из хранилища, без
- * нового вызова ИИ. Новый расчёт с другими числами даёт другой ключ, и старый ответ — устаревший.
- */
-export function adviceFactsHash(facts: AdviceFacts, model: string): string {
-  return createHash("sha256").update(`${ADVICE_PROMPT_VERSION}\n${model}\n${JSON.stringify(facts)}`).digest("hex");
 }
