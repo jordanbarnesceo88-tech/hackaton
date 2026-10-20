@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { CreateProjectState } from "@/lib/projects/action-types";
-import { isPendingJob, readCalculation, submitCalculation } from "@/lib/calculation-jobs/client";
+import { CalculationClientError, isPendingJob, readCalculation, submitCalculation } from "@/lib/calculation-jobs/client";
 import type { JobReceipt } from "@/lib/calculation-jobs/types";
 import type { CalculationRequest } from "@/lib/calculation-jobs/service";
 import { stableJson } from "@/lib/tz/version";
@@ -54,7 +54,8 @@ const SOURCE_OPTIONS: readonly { value: Source; label: string; note: string }[] 
   },
 ];
 
-const INITIAL: CreateProjectState = { error: null };
+type NewProjectState = CreateProjectState & { queueFull?: boolean };
+const INITIAL: NewProjectState = { error: null };
 
 /** Применённый файл параметров: значения, имя файла и тип объекта, для которого он проверен. */
 type Applied = { values: ParamValues; fileName: string; facility: string };
@@ -70,6 +71,7 @@ export function NewProjectForm({ defaultFacility = "warehouse", guestDraftNonce 
   const router = useRouter();
   const mounted = useRef(true);
   const accepted = useRef<{ inputKey: string; id: string } | null>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const nameId = useId();
   const objectId = useId();
@@ -108,7 +110,7 @@ export function NewProjectForm({ defaultFacility = "warehouse", guestDraftNonce 
     return () => { active = false; };
   }, [guestDraftNonce, router]);
   const [state, formAction, pending] = useActionState(
-    async (_prev: CreateProjectState, formData: FormData): Promise<CreateProjectState> => {
+    async (_prev: NewProjectState, formData: FormData): Promise<NewProjectState> => {
       try {
         const transferred = guestDraftNonce ? loadGuestDraft(guestDraftNonce) : null;
         const previousCreate = guestDraftNonce ? readGuestDraftCreate(window.sessionStorage, window.name, guestDraftNonce) : null;
@@ -127,8 +129,15 @@ export function NewProjectForm({ defaultFacility = "warehouse", guestDraftNonce 
         }
         const selectedSource = String(formData.get("source") ?? "demo");
         const paramsJson = String(formData.get("paramsJson") ?? "");
+        const submittedName = String(formData.get("name") ?? "");
+        // This form uses noValidate; reject invalid metadata before opening a server operation.
+        const normalizedName = submittedName.replace(/\s+/g, " ").trim();
+        if (!normalizedName || normalizedName.length > 120) {
+          nameInput.current?.focus();
+          return { error: "Название проекта — от 1 до 120 символов" };
+        }
         if (selectedSource === "upload" && !paramsJson) return { error: "Сначала проверьте файл и примените значения" };
-        const request: CalculationRequest = { operation: "CREATE", name: String(formData.get("name") ?? ""),
+        const request: CalculationRequest = { operation: "CREATE", name: submittedName,
           objectName: String(formData.get("objectName") ?? ""), facility: transferred?.facility ?? String(formData.get("facility") ?? "warehouse"),
           ...(transferred ? { params: transferred.params, scenarios: transferred.scenarios } : selectedSource === "upload" ? { params: JSON.parse(paramsJson) } : {}),
           paramsSource: { kind: transferred ? "manual" : selectedSource === "upload" ? "upload" : selectedSource === "manual" ? "manual" : "demo",
@@ -152,7 +161,8 @@ export function NewProjectForm({ defaultFacility = "warehouse", guestDraftNonce 
         if (mounted.current) router.push(guestDraftNonce ? guestDraftJobRoute(job.id, guestDraftNonce) : `/calculation-jobs/${encodeURIComponent(job.id)}?open=1`);
         return { error: null };
       } catch (e) {
-        return { error: e instanceof Error ? e.message : "Не удалось отправить расчёт. Повторите с теми же данными" };
+        return { error: e instanceof Error ? e.message : "Не удалось отправить расчёт. Повторите с теми же данными",
+          ...(e instanceof CalculationClientError && e.code === "QUEUE_FULL" ? { queueFull: true } : {}) };
       }
     },
     INITIAL,
@@ -190,6 +200,7 @@ export function NewProjectForm({ defaultFacility = "warehouse", guestDraftNonce 
             Название проекта
           </label>
           <input
+            ref={nameInput}
             id={nameId}
             name="name"
             value={name}
@@ -297,6 +308,7 @@ export function NewProjectForm({ defaultFacility = "warehouse", guestDraftNonce 
         <p role="alert" aria-live="assertive" className="text-sm text-destructive [&:empty]:hidden">
           {state.error ?? ""}
         </p>
+        {state.queueFull && <Link href="/calculation-jobs" className="tap-target justify-self-start text-sm underline">Открыть активные расчёты</Link>}
         {state.issues && state.issues.some((i) => i.severity === "error") && (
           <ul className="grid gap-0.5 pl-5 text-sm text-destructive">
             {state.issues

@@ -10,7 +10,7 @@ export type JobResult = { job: JobReceipt; results: ProjectResults | null; submi
 const memoryKeys = new Map<string, { fingerprint: string; key: string }>();
 
 export class CalculationClientError extends Error {
-  constructor(public readonly status: number, message: string) { super(message); this.name = "CalculationClientError"; }
+  constructor(public readonly status: number, message: string, public readonly code?: string) { super(message); this.name = "CalculationClientError"; }
 }
 
 /** Retain the submission key before sending: a lost response must not create another job. */
@@ -39,7 +39,7 @@ export function forgetSubmission(scope: string): void {
 
 async function responseJson(response: Response) {
   const body = await response.json();
-  if (!response.ok) throw new CalculationClientError(response.status, typeof body.error === "string" ? body.error : "Сервер не подтвердил операцию. Повторите отправку с теми же данными");
+  if (!response.ok) throw new CalculationClientError(response.status, typeof body.error === "string" ? body.error : "Сервер не подтвердил операцию. Повторите отправку с теми же данными", typeof body.details?.code === "string" ? body.details.code : undefined);
   return body;
 }
 

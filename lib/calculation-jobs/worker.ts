@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 import { stableJson } from "../tz/version";
 import { computeFrozenCalculation, publishFrozenCalculation } from "./service";
-import { claimJob, completeJob, failJob, heartbeatJob, reapExpiredJobs } from "./store";
+import { claimJob, completeJob, failJob, heartbeatJob, reapExpiredJobs, retryBusyJob } from "./store";
 import { JOB_HEARTBEAT_MS, type ClaimedJob } from "./types";
 import { CalculationQueuePolicyError } from "./policy";
 
@@ -52,6 +52,10 @@ export async function executeClaim(db: PrismaClient, claim: ClaimedJob, signal?:
     // A deployment stop intentionally leaves a lease for bounded recovery by a new worker.
     if (signal?.aborted) return;
     const name = error instanceof Error ? error.name : "Error";
+    if (name === "CalculationBusy") {
+      await retryBusyJob(db, claim).catch(() => { /* Lease recovery remains authoritative on a DB outage. */ });
+      return;
+    }
     const code = name === "SimBudgetExceeded" ? "COMPUTE_BUDGET_EXCEEDED" : name === "AbortError" ? "COMPUTATION_ABORTED" : "COMPUTATION_FAILED";
     const message = code === "COMPUTE_BUDGET_EXCEEDED"
       ? "Исчерпан бюджет расчёта. Уменьшите объём проверки; проект не изменён"

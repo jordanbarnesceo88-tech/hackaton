@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { findIdempotent, getOwnedJob, getOwnedJobResult, listOwnedJobs } from "./store";
+import { findIdempotent, getOwnedJob, getOwnedJobResult, listOwnedJobs, listOwnedPendingJobs } from "./store";
 
 function fixture() {
   const job = { findFirst: vi.fn().mockResolvedValue(null), findMany: vi.fn().mockResolvedValue([]) };
@@ -21,6 +21,11 @@ function expectCompactRunProjection(query: unknown) {
 }
 
 describe("compact calculation status database reads", () => {
+  it("filters pending owner jobs before applying a limit and does not fetch snapshots or terminal history", async () => {
+    const { db, job } = fixture();
+    expect(await listOwnedPendingJobs(db, "owner")).toEqual([]);
+    expect(job.findMany).toHaveBeenCalledWith({ where: { ownerId: "owner", status: { in: ["QUEUED", "RUNNING"] }, run: { ownerId: "owner", purgedAt: null } }, select: { id: true, status: true }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 50 });
+  });
   it("does not fetch immutable input/results for each polling request", async () => {
     const { db, job } = fixture();
     expect(await getOwnedJob(db, "owner", "job")).toBeNull();

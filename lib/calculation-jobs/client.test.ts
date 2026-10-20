@@ -37,6 +37,12 @@ it("does not silently resubmit a deliberately removed result; the next manual at
   expect(fetchMock.mock.calls[0]![1].headers["Idempotency-Key"]).not.toBe(fetchMock.mock.calls[1]![1].headers["Idempotency-Key"]);
 });
 
+it("preserves the queue error code so the form can offer its active operations", async () => {
+  fetchMock.mockResolvedValue(Response.json({ error: "Очередь заполнена", details: { code: "QUEUE_FULL" } }, { status: 429 }));
+  await expect(submitCalculation(input, "test")).rejects.toMatchObject({ status: 429, code: "QUEUE_FULL", message: "Очередь заполнена" });
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
 it("bounds every GET with a timeout and respects an already closed view", async () => {
   const parent = new AbortController(); parent.abort();
   fetchMock.mockImplementation(async (_url, options) => {

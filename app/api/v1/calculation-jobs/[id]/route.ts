@@ -3,6 +3,10 @@ import { apiError, apiJson, isPlainObject, readJsonBody } from "@/lib/api/http";
 import { prisma } from "@/lib/db/client";
 import { getOwnedJob, deleteOwnedTerminalJob } from "@/lib/calculation-jobs/store";
 import { foreignOrigin, jobHttpError } from "@/lib/calculation-jobs/http";
+import { scheduleOwnedCalculations } from "@/lib/calculation-jobs/schedule";
+
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,6 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!userId) return apiError(401, API_AUTH_MESSAGES.userRequired);
     const { id } = await params;
     const job = await getOwnedJob(prisma, userId, id);
+    if (job) scheduleOwnedCalculations(prisma, userId, [job]);
     return job ? apiJson({ job }) : apiError(404, "Расчёт не найден");
   } catch (error) { return jobHttpError(error); }
 }

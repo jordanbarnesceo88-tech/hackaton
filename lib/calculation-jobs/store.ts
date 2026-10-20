@@ -102,13 +102,27 @@ export async function listOwnedJobs(db: Db, ownerId: string, options: { projectI
   return rows.map(toJobReceipt);
 }
 
+/** Recovery must select pending jobs before limiting; terminal history cannot hide them. */
+export async function listOwnedPendingJobs(db: Db, ownerId: string): Promise<Pick<JobReceipt, "id" | "status">[]> {
+  const rows = await db.calculationJob.findMany({
+    where: { ownerId, status: { in: ["QUEUED", "RUNNING"] }, run: { ownerId, purgedAt: null } },
+    select: { id: true, status: true }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 50,
+  });
+  return rows.map(row => ({ id: row.id, status: row.status as JobStatus }));
+}
+
 export async function getOwnedJobResult(db: Db, ownerId: string, id: string) {
   const row = await db.calculationJob.findFirst({ where: { id, ownerId, run: { ownerId, purgedAt: null } }, include: { run: true } });
   if (!row) return null;
   return { job: toJobReceipt(row), run: row.run };
 }
 
-export async function claimJob(db: Db, options: { workerId?: string; leaseMs?: number } = {}): Promise<ClaimedJob | null> {
+export type OwnedJobTarget = { ownerId: string; jobId: string };
+function ownedTargetClause(target?: OwnedJobTarget): Prisma.Sql {
+  return target ? Prisma.sql`AND id = ${target.jobId} AND "ownerId" = ${target.ownerId} AND EXISTS (SELECT 1 FROM "CalculationRun" r WHERE r.id = "CalculationJob"."runId" AND r."ownerId" = ${target.ownerId} AND r."purgedAt" IS NULL)` : Prisma.empty;
+}
+
+export async function claimJob(db: Db, options: { workerId?: string; leaseMs?: number; target?: OwnedJobTarget } = {}): Promise<ClaimedJob | null> {
   const token = randomUUID();
   const leaseMs = options.leaseMs ?? JOB_LEASE_MS;
   return db.$transaction(async tx => {
@@ -117,7 +131,7 @@ export async function claimJob(db: Db, options: { workerId?: string; leaseMs?: n
     const policy = await readQueuePolicy(tx);
     const active = await tx.$queryRaw<{ count: bigint }[]>`SELECT COUNT(*) AS count FROM "CalculationJob" WHERE status = 'RUNNING' AND "leaseUntil" > clock_timestamp()`;
     if (Number(active[0]?.count ?? 0) >= policy.maxActive) return null;
-    const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "CalculationJob" WHERE status = 'QUEUED' AND "nextAttemptAt" <= clock_timestamp() AND "cancelRequestedAt" IS NULL ORDER BY "createdAt", id FOR UPDATE SKIP LOCKED LIMIT 1`;
+    const rows = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT id FROM "CalculationJob" WHERE status = 'QUEUED' AND "nextAttemptAt" <= clock_timestamp() AND "cancelRequestedAt" IS NULL ${ownedTargetClause(options.target)} ORDER BY "createdAt", id FOR UPDATE SKIP LOCKED LIMIT 1`);
     if (!rows[0]) return null;
     const current = await tx.calculationJob.findUniqueOrThrow({ where: { id: rows[0].id }, include: { run: true } });
     if (current.run.engineRelease !== engineRelease()) {
@@ -201,10 +215,16 @@ export async function failJob(db: Db, claim: ClaimedJob, code: string, message: 
   return count === 1;
 }
 
+/** No computation was admitted: release its fenced lease without consuming a recovery attempt. */
+export async function retryBusyJob(db: Db, claim: ClaimedJob): Promise<boolean> {
+  const count = await db.$executeRaw`UPDATE "CalculationJob" SET status = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'CANCELLED' ELSE 'QUEUED' END, stage = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'cancelled' ELSE 'retry_pending' END, attempts = GREATEST(attempts - 1, 0), "nextAttemptAt" = clock_timestamp() + interval '2 seconds', "leaseToken" = NULL, "leaseUntil" = NULL, "diagnosticCode" = 'COMPUTATION_BUSY', "safeMessage" = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'Расчёт отменён; проект не изменён' ELSE 'Расчётный процесс занят; задание ожидает свободного исполнителя' END, "finishedAt" = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN clock_timestamp() ELSE NULL END WHERE id = ${claim.job.id} AND status = 'RUNNING' AND "leaseToken" = ${claim.token} AND "leaseUntil" > clock_timestamp()`;
+  return count === 1;
+}
+
 /** Recovery is only for missing workers. Deterministic model errors are terminal. */
-export async function reapExpiredJobs(db: Db): Promise<number> {
+export async function reapExpiredJobs(db: Db, target?: OwnedJobTarget): Promise<number> {
   return db.$transaction(async tx => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(${CLAIM_LOCK})::text AS locked`;
-    return tx.$executeRaw`UPDATE "CalculationJob" SET status = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'CANCELLED' WHEN attempts >= "maxAttempts" THEN 'FAILED' ELSE 'QUEUED' END, stage = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'cancelled' WHEN attempts >= "maxAttempts" THEN 'failed' ELSE 'retry_pending' END, "nextAttemptAt" = clock_timestamp() + interval '2 seconds', "leaseToken" = NULL, "leaseUntil" = NULL, "diagnosticCode" = 'WORKER_LOST', "safeMessage" = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'Расчёт отменён; проект не изменён' WHEN attempts >= "maxAttempts" THEN 'Worker недоступен; исчерпаны попытки восстановления' ELSE 'Предыдущий worker недоступен; расчёт будет повторён на тех же данных' END, "finishedAt" = CASE WHEN "cancelRequestedAt" IS NOT NULL OR attempts >= "maxAttempts" THEN clock_timestamp() ELSE NULL END WHERE status = 'RUNNING' AND "leaseUntil" <= clock_timestamp()`;
+    return tx.$executeRaw(Prisma.sql`UPDATE "CalculationJob" SET status = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'CANCELLED' WHEN attempts >= "maxAttempts" THEN 'FAILED' ELSE 'QUEUED' END, stage = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'cancelled' WHEN attempts >= "maxAttempts" THEN 'failed' ELSE 'retry_pending' END, "nextAttemptAt" = clock_timestamp() + interval '2 seconds', "leaseToken" = NULL, "leaseUntil" = NULL, "diagnosticCode" = 'WORKER_LOST', "safeMessage" = CASE WHEN "cancelRequestedAt" IS NOT NULL THEN 'Расчёт отменён; проект не изменён' WHEN attempts >= "maxAttempts" THEN 'Worker недоступен; исчерпаны попытки восстановления' ELSE 'Предыдущий worker недоступен; расчёт будет повторён на тех же данных' END, "finishedAt" = CASE WHEN "cancelRequestedAt" IS NOT NULL OR attempts >= "maxAttempts" THEN clock_timestamp() ELSE NULL END WHERE status = 'RUNNING' AND "leaseUntil" <= clock_timestamp() ${ownedTargetClause(target)}`);
   });
 }

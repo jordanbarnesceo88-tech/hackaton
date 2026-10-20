@@ -5,7 +5,7 @@ import { IdempotencyConflict, JobQueueFull, JobHistoryFull, JobHistoryRemoved, J
 export function jobHttpError(error: unknown): Response {
   if (error instanceof CalculationRequestError) return apiError(error.status, error.message, error.details);
   if (error instanceof IdempotencyConflict) return apiError(error.status, error.message);
-  if (error instanceof JobQueueFull) return apiError(error.status, error.message, undefined, { "Retry-After": String(error.retryAfterSec) });
+  if (error instanceof JobQueueFull) return apiError(error.status, error.message, { code: "QUEUE_FULL" }, { "Retry-After": String(error.retryAfterSec) });
   if (error instanceof JobHistoryFull || error instanceof JobHistoryRemoved || error instanceof JobStillActive) return apiError(error.status, error.message, { code: error.code });
   const diagnostic = error && typeof error === "object" ? error as { name?: unknown; code?: unknown; meta?: { code?: unknown } | null } : {};
   console.error("calculation-jobs: operation failed", {

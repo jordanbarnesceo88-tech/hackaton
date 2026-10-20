@@ -1,15 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { JobHistoryFull, JobHistoryRemoved, JobStillActive } from "./types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { JobHistoryFull, JobHistoryRemoved, JobStillActive, JobQueueFull } from "./types";
 import { foreignOrigin } from "./http";
 
 const mocks = vi.hoisted(() => ({
-  user: vi.fn(), enqueue: vi.fn(), get: vi.fn(), list: vi.fn(), result: vi.fn(), cancel: vi.fn(), remove: vi.fn(),
+  user: vi.fn(), enqueue: vi.fn(), get: vi.fn(), list: vi.fn(), pending: vi.fn(), result: vi.fn(), cancel: vi.fn(), remove: vi.fn(), schedule: vi.fn(),
 }));
 vi.mock("@/lib/api/auth", () => ({ apiUser: mocks.user, API_AUTH_MESSAGES: { userRequired: "Войдите в систему" } }));
 vi.mock("@/lib/db/client", () => ({ prisma: {} }));
+vi.mock("@/lib/calculation-jobs/schedule", () => ({ scheduleOwnedCalculations: mocks.schedule }));
 vi.mock("@/lib/calculation-jobs/service", async original => ({ ...await original<typeof import("./service")>(), enqueueCalculation: mocks.enqueue }));
 vi.mock("@/lib/calculation-jobs/store", () => ({
-  getOwnedJob: mocks.get, listOwnedJobs: mocks.list, getOwnedJobResult: mocks.result, cancelJob: mocks.cancel, deleteOwnedTerminalJob: mocks.remove,
+  getOwnedJob: mocks.get, listOwnedJobs: mocks.list, listOwnedPendingJobs: mocks.pending, getOwnedJobResult: mocks.result, cancelJob: mocks.cancel, deleteOwnedTerminalJob: mocks.remove,
 }));
 const collection = await import("@/app/api/v1/calculation-jobs/route");
 const detail = await import("@/app/api/v1/calculation-jobs/[id]/route");
@@ -21,8 +22,9 @@ const request = (method = "POST", body: unknown = {}, headers: Record<string, st
 });
 beforeEach(() => {
   vi.resetAllMocks(); mocks.user.mockResolvedValue("owner1");
-  mocks.get.mockResolvedValue(null); mocks.result.mockResolvedValue(null); mocks.list.mockResolvedValue([]);
+  mocks.get.mockResolvedValue(null); mocks.result.mockResolvedValue(null); mocks.list.mockResolvedValue([]); mocks.pending.mockResolvedValue([]);
 });
+afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("durable calculation HTTP boundary", () => {
   it("accepts the real destination Host behind a bind address while rejecting foreign/forwarded origins", () => {
@@ -40,6 +42,7 @@ describe("durable calculation HTTP boundary", () => {
     const responses = await Promise.all([collection.POST(request()), collection.GET(request("GET")), detail.GET(request("GET"), params), detail.DELETE(request("DELETE"), params), cancel.POST(request(), params), result.GET(request("GET"), params)]);
     expect(responses.map(r => r.status)).toEqual([401, 401, 401, 401, 401, 401]);
     expect(mocks.enqueue).not.toHaveBeenCalled(); expect(mocks.remove).not.toHaveBeenCalled();
+    expect(mocks.schedule).not.toHaveBeenCalled();
   });
 
   it("refuses foreign origins and non-JSON writes, including cancel/delete", async () => {
@@ -98,6 +101,32 @@ describe("durable calculation HTTP boundary", () => {
       const response = await collection.POST(request());
       expect(response.status).toBe(status); expect((await response.json()).details.code).toBe(code);
     }
+  });
+
+  it("hands the accepted job and authorized pending polls to the bounded executor", async () => {
+    const job = { id: "job1", status: "QUEUED" };
+    mocks.enqueue.mockResolvedValue(job);
+    expect((await collection.POST(request())).status).toBe(202);
+    expect(mocks.schedule).toHaveBeenLastCalledWith({}, "owner1", [job]);
+    mocks.get.mockResolvedValue(job);
+    expect((await detail.GET(request("GET"), params)).status).toBe(200);
+    expect(mocks.schedule).toHaveBeenLastCalledWith({}, "owner1", [job]);
+    mocks.list.mockResolvedValue([job]);
+    expect((await collection.GET(request("GET"))).status).toBe(200);
+    expect(mocks.schedule).toHaveBeenLastCalledWith({}, "owner1", [job]);
+    expect(collection.maxDuration).toBe(300);
+    expect(detail.maxDuration).toBe(300);
+  });
+
+  it("keeps admission limits while waking only this owner's existing queue on Vercel", async () => {
+    vi.stubEnv("VERCEL", "1");
+    mocks.enqueue.mockRejectedValue(new JobQueueFull());
+    mocks.pending.mockResolvedValue([{ id: "own-pending", status: "QUEUED" }]);
+    const response = await collection.POST(request());
+    expect(response.status).toBe(429);
+    expect((await response.json()).details.code).toBe("QUEUE_FULL");
+    expect(mocks.pending).toHaveBeenCalledWith({}, "owner1");
+    expect(mocks.schedule).toHaveBeenCalledWith({}, "owner1", [{ id: "own-pending", status: "QUEUED" }]);
   });
 
   it("does not log or return Prisma inputs/secrets on an unknown failure", async () => {
