@@ -272,7 +272,7 @@ beforeAll(async () => {
   expect(catalogProduct(PRODUCT)).toBeDefined();
   await forceRevertProduct();
   // A pre-deploy DB may still contain the previous seed's dataVersion.
-  await syncOrganizerData(prisma, { only: [PRODUCT] });
+  await syncOrganizerData(prisma);
 }, 120_000);
 
 afterAll(async () => {
@@ -466,6 +466,9 @@ describe("каталог: правки администратора и данн�
       const afterIdentity = await derivedQuality(PRODUCT);
       expect(afterIdentity.confirmedInText).toBe(afterIdentity.confirmed);
       expect(afterIdentity.totalInText).toBe(afterIdentity.total);
+      const lostIdentityConfirmations = before.characteristics.filter(row => ["modelName", "countryOfOrigin"].includes(row.key) && row.confirmed).length;
+      const expectedAfterIdentity = (confirmedBefore ?? 0) + 1 - lostIdentityConfirmations;
+      expect(afterIdentity.confirmedInText).toBe(expectedAfterIdentity);
       const noReason = await actions.updateProductAction(
         INIT,
         form({ slug: PRODUCT, name: before.name, status: before.status, solutionType, excluded: "on" }),
@@ -485,6 +488,10 @@ describe("каталог: правки администратора и данн�
       });
       expect(kept).toMatchObject({ editedByAdmin: true, country: "Тестландия", archived: true, priceRub: 4_200_000 });
       expect(kept.characteristics[0]).toMatchObject({ origin: "admin", valueNum: 4_200_000 });
+      expect((await derivedQuality(PRODUCT)).confirmedInText).toBe(expectedAfterIdentity);
+      const repeatedSync = await syncOrganizerData(prisma, { only: [PRODUCT] });
+      expect(repeatedSync.products.updated).toBe(0);
+      expect(repeatedSync.characteristics.upserted).toBe(0);
 
       // Синхронизация вернула производные строки к данным организатора, «Обновить каталог»
       // пересчитывает их по правкам администратора.
@@ -495,7 +502,7 @@ describe("каталог: правки администратора и данн�
       );
       const afterRefresh = await derivedQuality(PRODUCT);
       expect(afterRefresh.confirmedInText).toBe(afterRefresh.confirmed);
-      expect(afterRefresh.confirmedInText).toBe((confirmedBefore ?? 0) + 1);
+      expect(afterRefresh.confirmedInText).toBe(expectedAfterIdentity);
 
       // Продукт организатора удалить нельзя — только в архив.
       const del = await actions.deleteProductAction(INIT, form({ slug: PRODUCT, confirm: "yes" }));
@@ -655,6 +662,37 @@ describe("параметры объектов", () => {
 });
 
 describe("форма правки характеристики", () => {
+  it("preserves reference-only list text/provenance for no-op and note edits, while rejecting changed invalid URLs", async () => {
+    asAdmin();
+    const slug = "mark-a";
+    const row = (await editorRows(slug)).find(item => item.key === "navigation");
+    expect(row?.values.valueList).toEqual([]);
+    expect(row?.values.valueText).toBeTruthy();
+    const before = await prisma.productCharacteristic.findFirstOrThrow({ where: { product: { slug }, key: "navigation" } });
+    const defaults = charEditorDefaults(row!.kind, row!.values, row!.dictUnit);
+    const unchanged = await rolledBack(() => actions.updateCharacteristicAction(INIT, editorForm(slug, "navigation", row!.kind, defaults)), tx => tx.changeLog.count({ where: { entity: "characteristic", entityId: before.productId, userId: adminId } }));
+    expect(unchanged.res.message).toBe(UNCHANGED); expect(unchanged.seen).toBe(0);
+    const note = await rolledBack(() => actions.updateCharacteristicAction(INIT, editorForm(slug, "navigation", row!.kind, defaults, { note: "Reference checked in QA" })), tx => tx.productCharacteristic.findUniqueOrThrow({ where: { id: before.id } }));
+    expect(note.res.status).toBe("ok");
+    expect(note.seen).toMatchObject({ valueList: [], valueText: before.valueText, sourceRef: before.sourceRef, asInSource: before.asInSource, basis: before.basis, confirmed: before.confirmed });
+    const invalid = await rolledBack(() => actions.updateCharacteristicAction(INIT, editorForm(slug, "navigation", row!.kind, defaults, { sourceUrl: "javascript:alert(1)" })), tx => tx.productCharacteristic.findUniqueOrThrow({ where: { id: before.id } }));
+    expect(invalid.res.status).toBe("error"); expect(invalid.res.message).toContain("не адрес страницы");
+    expect(invalid.seen).toEqual(before);
+  });
+
+  it("recognizes an exact existing manufacturer PDF URL with spaces as a no-op, but rejects a changed invalid URL", async () => {
+    asAdmin();
+    const slug = "geoskan-201-agro", key = "payloadKg";
+    const row = (await editorRows(slug)).find(item => item.key === key)!;
+    expect(row.values.sourceUrl).toMatch(/\s/);
+    const defaults = charEditorDefaults(row.kind, row.values, row.dictUnit);
+    const before = await prisma.productCharacteristic.findFirstOrThrow({ where: { product: { slug }, key } });
+    const noop = await rolledBack(() => actions.updateCharacteristicAction(INIT, editorForm(slug, key, row.kind, defaults)), tx => tx.productCharacteristic.findUniqueOrThrow({ where: { id: before.id } }));
+    expect(noop.res.message).toBe(UNCHANGED); expect(noop.seen).toEqual(before);
+    const invalid = await rolledBack(() => actions.updateCharacteristicAction(INIT, editorForm(slug, key, row.kind, defaults, { sourceUrl: "https://invalid host.example/path" })), tx => tx.productCharacteristic.findUniqueOrThrow({ where: { id: before.id } }));
+    expect(invalid.res.status).toBe("error"); expect(invalid.seen).toEqual(before);
+  });
+
   it("«Сохранить» без правок отвечает «Изменений нет» по каждой строке каталога организатора", async () => {
     asAdmin();
     const changed: string[] = [];

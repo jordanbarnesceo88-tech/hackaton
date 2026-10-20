@@ -292,7 +292,7 @@ export function charEditorDefaults(
     qualifier: c?.qualifier ?? "",
     scope: c?.scope ?? "",
     unit: kind === "list" ? "" : c ? (c.unit ?? "") : (dictUnit ?? ""),
-    valueText: kind === "list" ? (c?.valueList ?? []).join("\n") : (c?.valueText ?? ""),
+    valueText: kind === "list" ? (c?.valueList.length ? c.valueList.join("\n") : (c?.valueText ?? "")) : (c?.valueText ?? ""),
     sourceUrl: c?.sourceUrl ?? "",
     verifiedAt: dateInputValue(c?.verifiedAt),
     confirmed: c?.confirmed ?? false,

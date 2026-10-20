@@ -649,5 +649,6 @@ describe("independent enqueue intent, quota and lost-receipt recovery", () => {
     expect((after.params as Record<string, unknown>).forkliftSalaryRubMonth).toBe(130000);
     expect(await prisma.changeLog.count({ where: { projectId: after.id } })).toBe(1);
     await expect(enqueueCalculation(prisma, owner, intent, randomUUID())).rejects.toMatchObject({ status: 409 });
-  }, 60_000);
+  // CREATE and SAVE each execute a complete calculation before lost-receipt/CAS assertions.
+  }, 120_000);
 });

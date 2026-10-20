@@ -22,6 +22,7 @@ import type { ParamKind, ParamSpec } from "@/lib/tz/types";
 import { OPERATING_EVIDENCE_MAX_CHARS, parseOperatingEvidence } from "@/lib/catalog/operating-evidence";
 import { parseServiceCharacteristic } from "@/lib/catalog/service-evidence";
 import { SERVICE_PROVIDERS_MAX_CHARS } from "@/lib/implementation/service-directory";
+import { charEditorDefaults } from "@/components/admin/format";
 
 /*
  * Серверные действия администратора (ТЗ §3.1.1 — роль «администратор»; §3.1.4 и §3.3.5 —
@@ -1058,6 +1059,16 @@ function snapshotOf(c: SnapshotSource): CharSnapshot {
   };
 }
 
+/** Only the exact stored form may bypass validation of legacy reference-only values/URLs. */
+function unchangedCharacteristicForm(fd: FormData, key: CharKey, old: ProductCharacteristic): boolean {
+  const def = CHARACTERISTIC_KEYS[key];
+  const defaults = charEditorDefaults(def.kind, { ...old, verifiedAt: isoDate(old.verifiedAt) }, def.unit);
+  const keys: (keyof typeof defaults)[] = ["valueText", "sourceUrl", "verifiedAt", "note"];
+  if (def.kind !== "list") keys.push("unit");
+  if (def.kind === "num" || def.kind === "range") keys.push("valueNum", "valueMin", "valueMax", "qualifier", "scope");
+  return checked(fd, "confirmed") === defaults.confirmed && keys.every(name => field(fd, name) === String(defaults[name]).replace(/\r\n?/g, "\n").trim());
+}
+
 /**
  * Правка характеристики продукта (или добавление недостающей): значение, границы, оговорка,
  * текст, единица, ссылка на источник, дата проверки, «подтверждено», примечание. Строка
@@ -1083,8 +1094,6 @@ export async function updateCharacteristicAction(prev: AdminFormState, formData:
   if (!slug) return fail(seq, MSG.productNotFound);
   const key = field(formData, "key");
   if (!isCharKey(key)) return fail(seq, `Характеристика «${key.slice(0, 40)}» не описана в словаре — обновите страницу`);
-  const input = parseCharInput(formData, key);
-  if (!input.ok) return fail(seq, input.message);
   const group = charGroupOf(key);
   if (group === null) return fail(seq, MSG.badRequest);
   const label = `«${CHARACTERISTIC_KEYS[key].label}»`;
@@ -1098,7 +1107,15 @@ export async function updateCharacteristicAction(prev: AdminFormState, formData:
       });
       if (!product) return { kind: "fail", message: MSG.productNotFound };
       const old = product.characteristics[0];
+      if (old && unchangedCharacteristicForm(formData, key, old)) return { kind: "fail", message: MSG.unchanged };
+      const input = parseCharInput(formData, key);
+      if (!input.ok) return { kind: "fail", message: input.message };
       const v: CharInput = { ...input.value, unit: resolveUnit(key, input.value, old) };
+      // A reference displayed as text is not silently converted to a structured list by a note/date edit.
+      if (old && CHARACTERISTIC_KEYS[key].kind === "list" && old.valueList.length === 0 && old.valueText !== null && field(formData, "valueText") === old.valueText.replace(/\r\n?/g, "\n").trim()) {
+        v.valueText = old.valueText;
+        v.valueList = [];
+      }
       const oldSnap = old ? snapshotOf({ ...toCharRow(old), note: old.note }) : null;
       const newSnap = snapshotOf(v);
       const changedKeys = (Object.keys(newSnap) as (keyof CharSnapshot)[]).filter(

@@ -9,7 +9,7 @@ import type { NormDef } from "../tz/norms";
 import { PROCESS_DEFS, SOLUTION_TYPE_DEFS } from "../tz/processes";
 import type { ProductSeed } from "../tz/types";
 import { dataVersionOf, stableJson } from "../tz/version";
-import { isoDate, sourcedToCharRow } from "./product-for-calc";
+import { isCharPresent, isoDate, sourcedToCharRow } from "./product-for-calc";
 import type { CharRow } from "./product-for-calc";
 import { promoteColumns } from "./promote";
 import { toCharacteristicData } from "./queries";
@@ -663,6 +663,27 @@ async function syncOneProduct(
   const current = new Map(existing.characteristics.map((c) => [c.key, c]));
   /** Итоговый набор характеристик после записи — из него считаются вынесенные колонки. */
   const final = new Map<string, CharRow>(existing.characteristics.map((c) => [c.key, charRowFromDb(c)]));
+  // Derive quality from the effective merge, including protected admin fields, before writing.
+  const seedKeys = new Set(Object.keys(seed.characteristics));
+  for (const { row } of chars.rows) {
+    if (!(current.get(row.key)?.origin === "admin" && opts.respectAdminEdits)) final.set(row.key, row);
+  }
+  for (const old of existing.characteristics) if (old.origin !== "admin" && !seedKeys.has(old.key)) final.delete(old.key);
+  const qualityKeys = new Set(["primarySourceUrl", "verifiedAt", "confirmation"]);
+  const present = [...final.values()].filter(row => !qualityKeys.has(row.key) && isCharPresent(row));
+  const latest = present.map(row => row.verifiedAt).filter((date): date is string => date !== null).sort().at(-1);
+  for (const item of chars.rows) {
+    if (item.row.origin !== "derived" || current.get(item.row.key)?.origin === "admin" && opts.respectAdminEdits) continue;
+    let valueText: string;
+    if (item.row.key === "confirmation") {
+      const rest = (item.row.valueText ?? "").split("; ").filter(part => part !== "" && !/^\d+ из \d+ подтверждены$/.test(part));
+      valueText = [`${present.filter(row => row.confirmed).length} из ${present.length} подтверждены`, ...rest].join("; ");
+    } else if (item.row.key === "verifiedAt" && latest) valueText = latest;
+    else continue;
+    item.row = { ...item.row, valueText, ...(latest ? { verifiedAt: latest } : {}) };
+    item.data = { ...item.data, valueText, ...(latest ? { verifiedAt: new Date(`${latest}T00:00:00Z`) } : {}) };
+    final.set(item.row.key, item.row);
+  }
   const toCreate: Prisma.ProductCharacteristicCreateManyInput[] = [];
   for (const { row, data } of chars.rows) {
     const old = current.get(row.key);
@@ -686,7 +707,6 @@ async function syncOneProduct(
   }
   // Ключи, которые есть в данных, но отклонены, не удаляются: старое значение остаётся
   // до исправления данных, а предупреждение уже в отчёте.
-  const seedKeys = new Set(Object.keys(seed.characteristics));
   const vanished = existing.characteristics.filter((c) => c.origin !== "admin" && !seedKeys.has(c.key));
   if (vanished.length > 0) {
     await tx.productCharacteristic.deleteMany({ where: { id: { in: vanished.map((c) => c.id) } } });

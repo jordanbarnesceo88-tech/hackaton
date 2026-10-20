@@ -19,6 +19,23 @@ const product = (): ProductSeed => ({ ...structuredClone(products[0]!), slug: "f
 const build = (rows: SpecificationRow[], source = product()) => buildParsedSpecifications([source], { found: rows, notConfirmed: [[]] }, "a".repeat(64));
 
 describe("saved v2 specification import", () => {
+  it("recomputes derived confirmation and date from the overlaid fields, without rewriting source facts", () => {
+    for (const product of products) {
+      const overlaid = withParsedSpecifications(product);
+      const baseRows = Object.entries(overlaid.characteristics).filter(([key]) => !["primarySourceUrl", "verifiedAt", "confirmation"].includes(key)).map(([key, source]) => sourcedToCharRow(key, source));
+      const present = baseRows.filter(row => row.valueNum !== null || row.valueMin !== null || row.valueMax !== null || Boolean(row.valueText?.trim()) || row.valueList.some(item => item.trim()));
+      const confirmation = overlaid.characteristics.confirmation;
+      if (confirmation?.origin === "derived") {
+        expect(String(confirmation.value), product.slug).toMatch(new RegExp(`^${present.filter(row => row.confirmed).length} из ${present.length} подтверждены(?:;|$)`));
+      }
+      const latest = Object.entries(overlaid.characteristics).filter(([key]) => !["primarySourceUrl", "verifiedAt", "confirmation"].includes(key)).map(([, source]) => source.date).sort().at(-1);
+      if (overlaid.characteristics.verifiedAt?.origin === "derived") expect(overlaid.characteristics.verifiedAt.value, product.slug).toBe(latest);
+      const patch = (generated.patches as Record<string, { characteristics: Record<string, unknown> }>)[product.slug];
+      for (const [key, source] of Object.entries(product.characteristics)) {
+        if (!["confirmation", "verifiedAt"].includes(key) && !patch?.characteristics[key]) expect(overlaid.characteristics[key]).toEqual(source);
+      }
+    }
+  });
   it("accounts for all 2860 findings, 31 source exclusions and original product identities without truncating evidence", () => {
     expect(audit.decisions).toHaveLength(2860);
     expect(new Set(audit.decisions.map(item => item.row)).size).toBe(2860);

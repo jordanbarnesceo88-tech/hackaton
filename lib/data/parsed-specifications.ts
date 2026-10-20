@@ -333,5 +333,23 @@ const PATCHES = (generated as unknown as { patches: Record<string, Patch> }).pat
 /** Additive seed overlay; database sync continues to protect administrator edits and archives. */
 export function withParsedSpecifications(product: ProductSeed): ProductSeed {
   const patch = PATCHES[product.slug];
-  return patch ? { ...product, ...(patch.level ? { level: patch.level } : {}), characteristics: { ...product.characteristics, ...structuredClone(patch.characteristics) } } : product;
+  if (!patch) return product;
+  const characteristics = { ...product.characteristics, ...structuredClone(patch.characteristics) };
+  const qualityKeys = new Set(["confirmation", "verifiedAt", "primarySourceUrl"]);
+  const values = Object.entries(characteristics).filter(([key, source]) => {
+    if (qualityKeys.has(key)) return false;
+    const value = source.value;
+    if (typeof value === "number") return Number.isFinite(value);
+    if (typeof value === "string") return value.trim() !== "";
+    if (Array.isArray(value)) return value.some(item => item.trim() !== "");
+    return [value.typical, value.min, value.max].some(item => typeof item === "number" && Number.isFinite(item));
+  }).map(([, source]) => source);
+  const latest = values.map(source => source.date).filter(Boolean).sort().at(-1);
+  const confirmation = characteristics.confirmation;
+  if (confirmation?.origin === "derived") {
+    const rest = String(confirmation.value).split("; ").filter(part => part !== "" && !/^\d+ из \d+ подтверждены$/.test(part));
+    characteristics.confirmation = { ...confirmation, value: [`${values.filter(source => source.confirmed).length} из ${values.length} подтверждены`, ...rest].join("; "), ...(latest ? { date: latest } : {}) };
+  }
+  if (latest && characteristics.verifiedAt?.origin === "derived") characteristics.verifiedAt = { ...characteristics.verifiedAt, value: latest, date: latest };
+  return { ...product, ...(patch.level ? { level: patch.level } : {}), characteristics };
 }
