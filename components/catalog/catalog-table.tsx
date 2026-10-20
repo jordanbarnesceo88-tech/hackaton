@@ -53,11 +53,21 @@ export const TABLE_FOOTNOTE =
 
 export function CatalogTable({ items, caption }: { items: readonly CatalogListItem[]; caption: string }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 max-w-full">
       <p className="mb-2 text-xs text-muted-foreground">Все колонки доступны при горизонтальной прокрутке таблицы. С клавиатуры — стрелками.</p>
-    <div className="data-table-wrap relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" role="region" aria-label={caption} tabIndex={0}>
-      <table className="data-table">
+    <div className="data-table-wrap relative min-w-0 max-w-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" role="region" aria-label={caption} tabIndex={0}>
+      <table className="data-table min-w-[82rem] table-fixed [overflow-wrap:anywhere]">
         <caption className="sr-only">{caption}</caption>
+        <colgroup>
+          <col className="w-10" />
+          <col className="w-56" />
+          <col className="w-44" />
+          <col className="w-36" />
+          <col className="w-40" />
+          <col className="w-60" />
+          <col className="w-32" />
+          <col className="w-[12.5rem]" />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col" className="w-10">
@@ -117,7 +127,7 @@ export function CatalogTable({ items, caption }: { items: readonly CatalogListIt
                     <div className="text-xs text-muted-foreground">RaaS: {formatRub(item.raasRubMonth)}/мес</div>
                   )}
                 </td>
-                <td className="whitespace-nowrap text-right tabular-nums">
+                <td className="whitespace-normal text-right tabular-nums">
                   <span className={throughput === NO_DATA ? "text-muted-foreground" : "font-medium"}>
                     {throughput}
                   </span>

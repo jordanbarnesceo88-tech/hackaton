@@ -50,8 +50,8 @@ function rowLabel(key: string, products: readonly Product[], group: CharGroup): 
 function Cell({ c }: { c: CatalogCharacteristic | undefined }) {
   if (!c || !isCharPresent(c)) return <span className="text-muted-foreground">{NO_DATA}</span>;
   return (
-    <div className="flex flex-col items-start gap-1">
-      <span className="break-words font-medium">{displayDataText(c.display)}</span>
+    <div className="flex min-w-0 flex-col items-start gap-1">
+      <span className="max-w-full font-medium [overflow-wrap:anywhere]">{displayDataText(c.display)}</span>
       {c.hasConflict && (
         <span className="text-xs font-medium text-caution">
           <span aria-hidden="true">⚠ </span>есть расхождения — см. карточку
@@ -111,8 +111,8 @@ function GroupHeader({ group, products }: { group: CharGroup; products: readonly
 export function CompareTable({ products }: { products: readonly Product[] }) {
   const slugs = products.map((p) => p.slug);
   return (
-    <div className="data-table-wrap relative">
-      <table className="w-full min-w-[48rem] table-fixed border-collapse text-sm">
+    <div className="data-table-wrap relative min-w-0 max-w-full">
+      <table className="w-full min-w-[48rem] table-fixed border-collapse text-sm [overflow-wrap:anywhere]">
         <caption className="sr-only">Сравнение решений каталога по группам характеристик</caption>
         <colgroup>
           <col className="w-52" />
