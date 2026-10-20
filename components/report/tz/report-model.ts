@@ -61,7 +61,7 @@ export function scenarioTitleMap(results: ReportResults): Record<string, string>
 export function topLevers(rows: readonly SensitivityRow[], n = REPORT_TOP_LEVERS): SensitivityRow[] {
   return rows
     .map((r, i) => ({ r, i }))
-    .sort((a, b) => b.r.swing - a.r.swing || a.i - b.i)
+    .sort((a, b) => (b.r.swing ?? -1) - (a.r.swing ?? -1) || a.i - b.i)
     .slice(0, Math.max(0, n))
     .map((x) => x.r);
 }

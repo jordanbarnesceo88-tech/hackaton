@@ -74,7 +74,7 @@ type Evaluation = {
 /** Почему у продукта нет NPV покупки — продолжение фразы «нет данных для экономики: …». */
 function econMissingWhy(e: Evaluation, process: ProcessDef): string {
   if (!process.calcSupported) return `экономика процесса «${process.name}» в прототипе не рассчитывается`;
-  if (e.status === "insufficient-data") return "без производительности парк не посчитать";
+  if (e.status === "insufficient-data") return e.thr.needsCleaningProfile ? "не задан эксплуатационный профиль уборки" : "без производительности парк не посчитать";
   if (positiveOrNull(e.product.priceRub) === null) return "нет цены — покупка не рассчитывается";
   return "NPV покупки не рассчитан";
 }

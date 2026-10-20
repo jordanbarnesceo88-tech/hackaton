@@ -4,6 +4,7 @@ import type { OperationsStaffing, ScenarioOk, ScenarioResult, ScenarioSpec } fro
 import { computeScenariosCore } from "./core";
 import { fixtureContext, fixtureSpecs, FIXTURE_H1500 } from "./fixtures";
 import { parseOperationsStaffing } from "./labour";
+import { TEST_CLEANER, TEST_CLEANING_PROFILE } from "./cleaning-fixtures";
 import { computeScenarios } from "./scenario";
 
 const dedicated: OperationsStaffing = { mode: "dedicated", grossSalaryRubMonth: 60_000, payrollMultiplier: 1.3, annualHoursPerFte: 2000, reason: "Оценка отдельного оператора, 60 тыс. ₽ до начислений" };
@@ -71,10 +72,11 @@ describe("additional site operations staffing", () => {
   it("charges one integrator fee for multiple items, and keeps exact allocated totals", () => {
     const ctx = fixtureContext(20, { params: { cleaningAreaM2: 10_000, cleaningsPerDay: 2, cleanersCount: 10, cleanerSalaryRubMonth: 65_000 } });
     ctx.processes = { ...ctx.processes, cleaning: { ...ctx.processes.cleaning!, calcSupported: true } };
+    ctx.products = { ...ctx.products, [TEST_CLEANER.slug]: TEST_CLEANER };
     const multi = specs({ mode: "integrator", billing: "separate", annualFeeRub: 400_000, reason: "Годовая плата за всю площадку" });
     multi[1]!.items = [
       { process: "pallet-transport", productSlug: FIXTURE_H1500.slug, quantityOverride: 9 },
-      { process: "cleaning", productSlug: FIXTURE_H1500.slug, quantityOverride: 9, throughputPerHOverride: 1000 },
+      { process: "cleaning", productSlug: TEST_CLEANER.slug, quantityOverride: 9, cleaningProfile: TEST_CLEANING_PROFILE },
     ];
     const result = ok(computeScenariosCore(ctx, multi));
     expect(result.items).toHaveLength(2);

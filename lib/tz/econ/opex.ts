@@ -3,6 +3,7 @@ import { normDef } from "../norms";
 import type { LineItem, OperationsStaffingResult, Origin } from "../types";
 import { INCLUDED_IN_SUBSCRIPTION } from "./capex";
 import { costPackageRepairIncluded } from "./cost-package";
+import { raasChargeAmount, raasPackageForItem } from "./raas-package";
 import { FORMULAS, OPEX_LINE_KEYS, opexFormulaKey, type OpexLineKey } from "./formulas";
 import { charOrigin, mergeLines, type ItemCalc } from "./internal";
 import type { ProcessBaseline } from "./labour";
@@ -17,6 +18,7 @@ import { fx, rub, share } from "./text";
 
 export const OPEX_LABELS: Readonly<Record<OpexLineKey, string>> = {
   subscription: "Подписка RaaS",
+  platform: "Платформа RaaS",
   service: "Сервисное обслуживание",
   licences: "Лицензии ПО",
   electricity: "Электроэнергия",
@@ -108,6 +110,14 @@ export function lifeOf(c: ItemCalc): number {
 
 function electricityLine(c: ItemCalc): LineItem {
   const n = c.norms;
+  if (c.result.cleaning) {
+    const windowYearH = c.item.cleaningProfile!.windowH * c.hours.D;
+    const row = line("electricity", c.n * n.robotAvgPowerKw * windowYearH * n.electricityRubPerKwh,
+      `${c.n} × ${n.robotAvgPowerKw} кВт × ${windowYearH} ч окна уборки/год × ${n.electricityRubPerKwh} ₽/кВт·ч; загрузка повторно не применяется`, normDef("robotAvgPowerKw").origin);
+    row.formula = "N × средняя мощность × окно уборки/год × тариф";
+    row.originNote = "Оценка средней мощности на всё рабочее окно, включая простои и зарядку; потребление и потери станции, в том числе ночной дозаряд, требуют замера";
+    return row;
+  }
   const v = c.n * n.robotAvgPowerKw * c.hours.Hy * n.utilization * n.electricityRubPerKwh;
   return line(
     "electricity",
@@ -162,11 +172,15 @@ function purchaseItemLines(c: ItemCalc): LineItem[] {
     });
   }
 
-  const licences = finitePos(p.softwareRubYear)
+  const platform = c.item.costPackage?.platformMonthly;
+  const licences = platform
+    ? line("licences", 12 * raasChargeAmount(platform, c.n), platform.mode === "included" ? "0 ₽ отдельно: платформа включена в покупку по явному составу пакета" : `12 × ${platform.mode === "separate" ? platform.amountRub : "не оценено"} ₽/мес × ${platform.mode === "separate" && platform.basis === "per-robot" ? c.n : 1}; заменяет годовую лицензию карточки`, "user", { overridden: true, originNote: c.item.costPackage!.reason })
+    : finitePos(p.softwareRubYear)
     ? line("licences", p.softwareRubYear, `${rub(p.softwareRubYear)} (карточка ${p.name})`, charOrigin(p, "softwareRubYear", "research"))
     : line("licences", 0, "годовая плата за ПО не опубликована — принято 0", "estimate", {
         originNote: "проверить в договоре: годовая лицензия может быть платной",
       });
+  if (platform) licences.formula = platform.mode === "included" ? "Отдельная плата за платформу = 0 по явному составу пакета" : "Годовая плата за платформу = 12 × месячная ставка × (N при оплате за робота, иначе 1)";
 
   const consumables = finitePos(p.consumablesRubYear)
     ? line("consumables", c.n * p.consumablesRubYear, `${fx(c.n)} × ${rub(p.consumablesRubYear)}`, charOrigin(p, "consumablesRubYear", "research"))
@@ -220,6 +234,21 @@ function raasItemLines(c: ItemCalc): LineItem[] {
     overridden: c.raasOverridden && !c.item.raasFromEstimate,
     originNote,
   });
+  const scope = raasPackageForItem(c.item, "raas", rate);
+  if (scope) {
+    const rows = (["platform", "service", "consumables", "repair", "battery"] as const).map(key => {
+      const charge = scope[key];
+      const multiplier = key === "platform" ? 12 : key === "battery" && "everyYears" in charge ? 1 / charge.everyYears : 1;
+      const value = raasChargeAmount(charge, c.n) * multiplier;
+      const row = line(key, value, charge.mode === "included" ? "0 ₽ отдельно — включено по заданному составу RaaS"
+        : `${charge.mode === "separate" && charge.basis === "per-robot" ? `${fx(c.n)} × ` : ""}${rub(raasChargeAmount(charge, 1))}${key === "platform" ? " × 12 мес" : key === "battery" && "everyYears" in charge ? ` / ${charge.everyYears} лет; в потоке — по срокам замены` : " в год"}`,
+      "user", { overridden: true, originNote: scope.reason, includedInSubscription: charge.mode === "included" });
+      row.formula = charge.mode === "included" ? "Отдельная плата = 0 по явно заданному составу RaaS"
+        : `${charge.mode === "separate" && charge.basis === "per-robot" ? "N × " : ""}явная ставка${key === "platform" ? " × 12" : key === "battery" && "everyYears" in charge ? " / срок замены" : ""}`;
+      return row;
+    });
+    return [subscription, ...rows, electricityLine(c), connectivityLine(c), ...labourLines(c)];
+  }
   return [
     subscription,
     included("service"),

@@ -94,6 +94,24 @@ describe("bounded matched warehouse comparison", () => {
     }
   });
 
+  it("retains RaaS service scope only for the same model's RaaS row, never for purchase or another supplier", () => {
+    const { source, input } = setup();
+    source.kind = "raas";
+    source.items[0]!.raasPackage = { firstMonthRub: 250000, startup: { mode: "included" },
+      platform: { mode: "separate", amountRub: 12200, basis: "per-site" }, service: { mode: "included" },
+      consumables: { mode: "included" }, repair: { mode: "included" }, battery: { mode: "included" },
+      reason: "Тестовое условие только этой услуги; не переносится на другие предложения" };
+    const before = structuredClone(source);
+    const compared = buildMatchedComparison({ source, input });
+    for (const row of compared.rows) {
+      if (row.spec.kind === "raas" && row.product.slug === source.items[0]!.productSlug) {
+        expect(row.spec.items[0]!.raasPackage).toEqual(source.items[0]!.raasPackage);
+      } else expect(row.spec.items[0]!.raasPackage).toBeUndefined();
+      expect(row.result.status).toBe("ok");
+    }
+    expect(source).toEqual(before);
+  });
+
   it("reuses only matching canonical source evidence, including for the other acquisition kind", () => {
     const { source, input } = setup();
     withEvidence(source, input);

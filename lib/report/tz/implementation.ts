@@ -38,6 +38,7 @@ export function implementationReportRows(results: ReportResults): Implementation
       push("Организация сервиса", `${provider.name}: ${provider.role}. ${provider.coverage}`, source);
       push("Контакт сервиса", [provider.contactUrl, provider.email, provider.phone].filter(Boolean).join("; ") || "Контакт не предоставлен", source);
       push("Сроки сервиса", `Реакция: ${provider.responseSla ?? "не опубликована; согласовать в договоре"}. Выезд: ${provider.onsiteSla ?? "не опубликован; согласовать для адреса объекта"}.`, source);
+      for (const note of provider.teamNotes ?? []) push("Сведения команды, не договорный SLA", note, source);
     }
     const resources = snapshot.resources ?? [];
     if (resources.length === 0) push("Материалы производителя", "Проверенные модельные материалы в снимке не сохранены; запросить руководство и регламент ТО.", snapshot.version);

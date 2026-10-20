@@ -4,7 +4,9 @@ import { useId } from "react";
 import { pluralRu } from "@/lib/format/plural";
 import { sameParamValue } from "@/lib/tz/params/schema";
 import type { ParamIssue, ParamSpec, ParamValues } from "@/lib/tz/types";
+import type { PayrollApplication } from "@/lib/tz/payroll-breakdown";
 import { isLockedChanged, isValueOutOfRange, ParamField, type ParamValue } from "./param-field";
+import { SalaryCostCalculator } from "./salary-cost-calculator";
 
 /**
  * Форма параметров объекта (ТЗ §2.2 шаг 2, §3.2.2): поля сгруппированы по разделам датасета
@@ -31,7 +33,10 @@ export type ParamsFormProps = {
   baseValues: ParamValues;
   onChange?: (key: string, value: ParamValue) => void;
   onReset?: (key: string) => void;
+  /** One atomic update of the true gross salary and the common employer-cost multiplier. */
+  onApplyPayroll?: (application: PayrollApplication) => void;
   readOnly?: boolean;
+  processScope?: "cleaning";
 };
 
 /** Раздел формы: название и параметры в порядке показа. */
@@ -158,9 +163,11 @@ export function humanizeFormula(formula: string | null, defs: readonly ParamSpec
   });
 }
 
-export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset, readOnly = false }: ParamsFormProps) {
+export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset, onApplyPayroll, readOnly = false, processScope }: ParamsFormProps) {
   const uid = useId();
-  const quickKeys = new Set(["activeAreaM2", "inboundPalletsPerDay", "outboundPalletsPerDay", "internalPalletMovesPerDay", "shiftsPerDay", "shiftDurationH", "peakFactor", "forkliftOperatorsCount", "forkliftSalaryRubMonth", "mainAisleWidthM", "rackAisleWidthM", "avgPalletMassKg"]);
+  const quickKeys = new Set(processScope === "cleaning"
+    ? ["cleaningAreaM2", "cleaningsPerDay", "cleanersCount", "cleanerSalaryRubMonth", "workDaysPerYear", "payrollTaxMultiplier", "horizonYears"]
+    : ["activeAreaM2", "inboundPalletsPerDay", "outboundPalletsPerDay", "internalPalletMovesPerDay", "shiftsPerDay", "shiftDurationH", "peakFactor", "forkliftOperatorsCount", "forkliftSalaryRubMonth", "mainAisleWidthM", "rackAisleWidthM", "avgPalletMassKg"]);
   const quick = defs.length > 12 && defs.every(d => d.facility === "warehouse") ? defs.filter(d => quickKeys.has(d.key)) : [];
   const quickSet = new Set(quick.map(d => d.key));
   const sections = groupBySection(defs.filter(d => !quickSet.has(d.key)));
@@ -168,6 +175,12 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
   const known = new Set(defs.map((d) => d.key));
   // Замечания без поля в форме — строки файла, которые не сопоставились, лишние ключи API.
   const orphan = issues.filter((i) => !known.has(i.key));
+  const payrollDef = defs.find(def => def.key === "payrollTaxMultiplier");
+  const payrollValue = payrollDef ? valueOf(payrollDef, values, baseValues) : null;
+  const salaryOptions = defs.filter(def => def.key.endsWith("SalaryRubMonth") && def.kind === "number" && (processScope !== "cleaning" || def.key === "cleanerSalaryRubMonth")).map(def => {
+    const value = valueOf(def, values, baseValues);
+    return { key: def.key, label: def.label, grossSalaryRubMonth: typeof value === "number" && Number.isFinite(value) ? value : null };
+  });
   const fields = (fields: readonly ParamSpec[], headingId: string) => <div role="group" aria-labelledby={headingId} className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-x-8 gap-y-6">{fields.map(def => <ParamField
     key={def.key} def={def} value={valueOf(def, values, baseValues)} baseValue={baseOf(def, baseValues)}
     issue={issueForKey(issues, def.key)} changed={isParamChanged(def, values, baseValues)} formula={humanizeFormula(def.formula, defs)} readOnly={readOnly}
@@ -194,7 +207,12 @@ export function ParamsForm({ defs, values, issues, baseValues, onChange, onReset
         </div>
       )}
 
-      {quick.length > 0 && <section><h3 id={`${uid}-quick`}>Основные условия расчёта</h3><p className="mt-1 text-sm text-muted-foreground">Поток, режим, труд и ограничения для перевозки паллет. Остальные параметры доступны ниже; их текущие значения участвуют в расчёте.</p>{fields(quick, `${uid}-quick`)}</section>}
+      {quick.length > 0 && <section><h3 id={`${uid}-quick`}>{processScope === "cleaning" ? "Условия уборки и труда" : "Основные условия расчёта"}</h3><p className="mt-1 text-sm text-muted-foreground">{processScope === "cleaning" ? "Площадь, частота уборки, штат и стоимость труда. Рабочее окно, зарядка и ежедневный уход задаются в профиле сценария на шаге экономики." : "Поток, режим, труд и ограничения для перевозки паллет. Остальные параметры доступны ниже; их текущие значения участвуют в расчёте."}</p>{fields(quick, `${uid}-quick`)}</section>}
+      {!readOnly && onApplyPayroll && payrollDef && salaryOptions.length > 0 && <SalaryCostCalculator
+        key={`${payrollDef.facility}:${processScope ?? "all"}`} salaries={salaryOptions}
+        currentPayrollMultiplier={typeof payrollValue === "number" && Number.isFinite(payrollValue) && payrollValue > 0 ? payrollValue : null}
+        onApply={onApplyPayroll}
+      />}
       {sections.map((s, si) => {
         const headingId = `${uid}-section-${si}`;
         const changedHere = s.defs.filter((d) => isParamChanged(d, values, baseValues)).length;

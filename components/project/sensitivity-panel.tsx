@@ -39,12 +39,12 @@ export function metricPair(row: SensitivityRow, metric: SensitivityMetric): [num
 
 /**
  * Рычаг не влияет на результат: обе границы посчитаны, а размах меньше полурубля (шум
- * двоичной арифметики — тоже «не влияет»). Если на границе отказ расчёта, движок пишет
- * размах 0, но это «не посчитано», а не «не влияет»: такая строка не приглушается.
+ * двоичной арифметики — тоже «не влияет»). При отказе на границе размах не рассчитан:
+ * такая строка не приглушается.
  */
 export function leverHasNoEffect(row: SensitivityRow, metric: SensitivityMetric): boolean {
   const [vLow, vHigh] = metricPair(row, metric);
-  return vLow !== null && vHigh !== null && Math.abs(row.swing) < 0.5;
+  return vLow !== null && vHigh !== null && row.swing !== null && Math.abs(row.swing) < 0.5;
 }
 
 const TH = "px-3 py-2 text-left font-medium text-muted-foreground";
@@ -58,6 +58,17 @@ const PLOT_W = 420;
 const PAD_RIGHT = 20;
 const PAD_TOP = 26;
 const PAD_BOTTOM = 8;
+const LABEL_LINE_H = 14;
+
+function labelLines(label: string): string[] {
+  const lines: string[] = [];
+  for (const word of label.trim().split(/\s+/).flatMap(word => word.match(/.{1,24}/gu) ?? [])) {
+    const last = lines.length - 1;
+    if (last >= 0 && lines[last]!.length + word.length + 1 <= 24) lines[last] += ` ${word}`;
+    else lines.push(word);
+  }
+  return lines;
+}
 
 function Tornado({
   rows,
@@ -84,7 +95,18 @@ function Tornado({
   }
   const x = (v: number) => PAD_LEFT + ((v - lo) / (hi - lo)) * PLOT_W;
   const width = PAD_LEFT + PLOT_W + PAD_RIGHT;
-  const height = PAD_TOP + PAD_BOTTOM + rows.length * ROW_H;
+  let nextY = PAD_TOP;
+  const plotted: { row: SensitivityRow; label: string; lines: string[]; dim: boolean; y: number; rowHeight: number }[] = [];
+  for (const row of rows) {
+    const dim = leverHasNoEffect(row, metric);
+    const label = `${row.label}${row.signFlip ? " ⚠" : ""}${dim ? " — не влияет" : ""}`;
+    const lines = labelLines(label);
+    const rowHeight = Math.max(ROW_H, lines.length * LABEL_LINE_H + 8);
+    const y = nextY;
+    nextY += rowHeight;
+    plotted.push({ row, label, lines, dim, y, rowHeight });
+  }
+  const height = nextY + PAD_BOTTOM;
   const metricLabel = metric === "npv" ? "NPV" : "TCO";
   const zeroInside = metric === "npv" && lo < 0 && hi > 0;
 
@@ -104,11 +126,12 @@ function Tornado({
           базовый расчёт
         </span>
       </div>
-      <div className="overflow-x-auto">
+      <p className="text-xs text-muted-foreground sm:hidden">Диаграмму можно прокручивать по горизонтали.</p>
+      <div className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring" role="region" aria-label="Диаграмма чувствительности с горизонтальной прокруткой" tabIndex={0}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
           width={width}
-          className="h-auto max-w-full"
+          className="h-auto max-w-none"
           role="img"
           aria-label={`${metricLabel} при границах каждого параметра относительно базового расчёта; числа — в таблице выше`}
         >
@@ -133,32 +156,30 @@ function Tornado({
               <title>{`${metricLabel} = 0 ₽`}</title>
             </line>
           )}
-          {rows.map((r, i) => {
-            const y = PAD_TOP + i * ROW_H;
+          {plotted.map(({ row: r, label, lines, dim, y, rowHeight }) => {
+            const barY = y + (rowHeight - BAR_H) / 2;
             const [vLow, vHigh] = metricPair(r, metric);
-            const dim = leverHasNoEffect(r, metric);
             const from = base ?? vLow ?? vHigh ?? lo;
             const seg = (v: number | null, color: string, which: string) => {
               if (v === null) return null;
               const a = Math.min(x(from), x(v));
               const w = Math.max(2, Math.abs(x(v) - x(from)));
               return (
-                <rect x={a} y={y} width={w} height={BAR_H} rx={2} fill={color}>
+                <rect x={a} y={barY} width={w} height={BAR_H} rx={2} fill={color}>
                   <title>{`${r.label}, ${which} ${leverValueText(which === "нижняя граница" ? r.low : r.high, r.unit)}: ${metricLabel} ${mln ? formatMlnRub(v) : formatRub(v)}`}</title>
                 </rect>
               );
             };
             return (
               <g key={r.lever} opacity={dim ? 0.4 : 1}>
-                <text x={PAD_LEFT - 10} y={y + BAR_H - 3} textAnchor="end" fontSize={12} fill="var(--muted-foreground)">
-                  {r.label}
-                  {r.signFlip ? " ⚠" : ""}
-                  {dim ? " — не влияет" : ""}
+                <text aria-label={label} textAnchor="end" fontSize={12} fill="var(--muted-foreground)">
+                  {lines.map((line, index) => <tspan key={index} x={PAD_LEFT - 10}
+                    y={y + rowHeight / 2 - (lines.length - 1) * LABEL_LINE_H / 2 + 4 + index * LABEL_LINE_H}>{line}</tspan>)}
                 </text>
                 {seg(vLow, "var(--chart-1)", "нижняя граница")}
                 {seg(vHigh, "var(--chart-2)", "верхняя граница")}
                 {(vLow === null || vHigh === null) && (
-                  <text x={PAD_LEFT + PLOT_W} y={y + BAR_H - 3} textAnchor="end" fontSize={11} fill="var(--muted-foreground)">
+                  <text x={PAD_LEFT + PLOT_W} y={barY + BAR_H - 3} textAnchor="end" fontSize={11} fill="var(--muted-foreground)">
                     на границе — отказ расчёта
                   </text>
                 )}
@@ -260,10 +281,10 @@ export function SensitivityPanel({
                         {vHigh === null ? "отказ расчёта" : money(vHigh)}
                       </td>
                       <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>
-                        {refused ? "—" : money(r.swing)}
+                        {refused || r.swing === null ? "—" : money(r.swing)}
                       </td>
                       {metric === "npv" && (
-                        <td className={`${TD} font-medium text-caution`}>{r.signFlip ? "⚠ да" : ""}</td>
+                        <td className={`${TD} font-medium text-caution`}>{refused ? "—" : r.signFlip ? "⚠ да" : ""}</td>
                       )}
                     </tr>
                   );
@@ -275,8 +296,8 @@ export function SensitivityPanel({
             <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
               {anyClamped && (
                 <li>
-                  * Граница прижата к физическому пределу (например, загрузка не больше 100 %) или расширена до текущего
-                  значения, если оно вне диапазона источника.
+                  * Граница ограничена допустимыми условиями входных данных или расширена до текущего значения,
+                  если оно вне диапазона источника. При изменении ставки RaaS явно заданная цена первого месяца остаётся фиксированной.
                 </li>
               )}
               {flips > 0 && (

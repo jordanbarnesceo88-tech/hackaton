@@ -45,7 +45,8 @@ const html = template.replace('</style>', () => `${panelCss}\n${incidentCss}\n.f
 // Validate both domains before touching either published artifact.
 const outputs = [];
 for (const [name, initialCase] of [['warehouse-3d.html', 'steady-flow'], ['cleaning-3d.html', 'sections']]) {
-  const output = normalizeGeneratedHtml(html.replace('"initialCase":null', `"initialCase":"${initialCase}"`));
+  const title = initialCase === 'sections' ? 'AlfaRobot — уборка по секциям в 3D' : 'AlfaRobot — проверка роботизации склада в 3D';
+  const output = normalizeGeneratedHtml(html.replace('"initialCase":null', `"initialCase":"${initialCase}"`).replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`));
   validateOutput(output, initialCase);
   const out = path.join(repo, 'public', name);
   outputs.push({ out, output });

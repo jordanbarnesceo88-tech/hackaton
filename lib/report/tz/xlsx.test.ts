@@ -178,4 +178,23 @@ describe("книга XLSX проекта", () => {
     expect(params.getCell("A1").value).toBe("Раздел");
     expect(params.rowCount).toBeGreaterThan(40);
   });
+
+  it("отказ чувствительности в Excel не превращается в неокупаемость или отсутствие смены знака", async () => {
+    const snapshot = structuredClone(results);
+    const scenario = snapshot.results.find(x => x.key === "p1");
+    if (scenario?.status !== "ok") throw new Error("нет сценария");
+    const row = scenario.sensitivity[0]!;
+    row.label = "Граница с отказом";
+    row.npvHigh = null; row.tcoHigh = null; row.paybackHigh = null; row.swing = null; row.signFlip = false;
+    const buffer = await buildProjectXlsx({ projectName: "Отказ границы", results: snapshot, defs: fixtureDefs(), changes: [] });
+    const bytes = new ArrayBuffer(buffer.byteLength); new Uint8Array(bytes).set(buffer);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes);
+    const sens = book.getWorksheet("Чувствительность")!;
+    const found = sens.getRows(1, sens.rowCount)!.find(r => r.getCell(2).value === row.label)!;
+    expect(found.getCell(9).value).toBe("—");
+    expect(found.getCell(10).value).toBe("—");
+    expect(found.getCell(12).value).toBe("отказ расчёта");
+    expect(found.getCell(14).value).toBe("—");
+    expect(found.getCell(15).value).toBe("—");
+  });
 });

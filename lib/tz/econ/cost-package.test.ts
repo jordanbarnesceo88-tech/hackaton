@@ -124,4 +124,28 @@ describe("явный состав ценового пакета позиции",
     expect(input.reason).toBe("  договор №1  ");
     expect(fixtureSpecs()[1]?.items[0]?.costPackage).toBeUndefined();
   });
+  it("supports a finite startup package, monthly per-robot/site platform and included docks as N changes", () => {
+    const priceScope: CostPackage = { ...packageInput, includedChargers: 0, allChargersIncluded: true,
+      startup: { mode: "separate", amountRub: 80000, basis: "per-site" }, platformMonthly: { mode: "separate", amountRub: 12200, basis: "per-robot" } };
+    const before = structuredClone(priceScope);
+    for (const fleet of [1, 3]) {
+      const result = calculate(purchase({ quantityOverride: fleet, chargersOverride: fleet, costPackage: priceScope }));
+      expect(amount(result, "equipment")).toBe(fleet * 2700000);
+      expect(amount(result, "chargers")).toBe(0);
+      expect(amount(result, "startup")).toBe(80000);
+      expect(result.capexLines.some(row => ["integration", "commissioning", "training"].includes(row.key))).toBe(false);
+      expect(amount(result, "licences", "opex")).toBe(12 * 12200 * fleet);
+      expect(result.cashflows[1]!.opexRub).toBeCloseTo(result.opexYearRub - amount(result, "battery", "opex"));
+      const site = calculate(purchase({ quantityOverride: fleet, chargersOverride: fleet, costPackage: { ...priceScope, platformMonthly: { mode: "separate", amountRub: 12200, basis: "per-site" } } }));
+      expect(amount(site, "licences", "opex")).toBe(146400);
+    }
+    expect(priceScope).toEqual(before);
+    expect(parseCostPackage(priceScope)).toEqual(priceScope);
+    expect(() => parseCostPackage({ ...priceScope, includedChargers: 1 })).toThrow(/две базы/);
+    expect(() => parseCostPackage({ ...priceScope, platformMonthly: { mode: "included", amountRub: 999 } })).toThrow();
+    for (const field of ["startup", "platformMonthly"] as const) {
+      const refused = computeScenariosCore(fixtureContext(), [purchase({ costPackage: { ...priceScope, [field]: { mode: "unassessed" } } })])[0]!;
+      expect(refused.status).toBe("refused");
+    }
+  });
 });

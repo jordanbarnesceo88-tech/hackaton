@@ -12,9 +12,11 @@ import { CapacityCheck } from "./capacity-check";
 import { PilotPlan, type PilotFormDraft } from "./pilot-plan";
 import { OperationsStaffing } from "./operations-staffing";
 import { DeploymentLogistics } from "./deployment-logistics";
+import { CleaningSchedule } from "./cleaning-schedule";
 import { MatchedComparison } from "./matched-comparison";
 import { buildMatchedComparison, type MatchedComparison as MatchedComparisonData } from "@/lib/tz/matched-comparison";
 import { staffingBreakEvenBudget } from "@/lib/tz/econ/staffing-budget";
+import type { PayrollApplication } from "@/lib/tz/payroll-breakdown";
 import { buildSimVariants, storedMatches, type SimScenario } from "@/components/sim/variants";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Button } from "@/components/ui/button";
@@ -51,9 +53,9 @@ import type {
   ScenarioSpec,
   SelectionResult,
 } from "@/lib/tz/types";
-import { stableJson } from "@/lib/tz/version";
+import { stableJson, TZ_MODEL_VERSION } from "@/lib/tz/version";
 import { ChangeLog, type ChangeLogEntry } from "./change-log";
-import { ComparisonTable, scenarioItemKeys, statusChipLabel } from "./comparison-table";
+import { ComparisonTable, comparisonRowsForScenarios, scenarioItemKeys, statusChipLabel } from "./comparison-table";
 import { Conclusion } from "./conclusion";
 import { FacilitySchematic, PROTOTYPE_BADGE } from "./facility-schematic";
 import { ImportForm } from "./import-form";
@@ -64,6 +66,7 @@ import { ProjectToolbar, RecalcBar } from "./project-toolbar";
 import { workspaceAreaContext } from "./workspace-area";
 import { DemoSceneLinks } from "./demo-scene-links";
 import { ScenarioDetails, parseItemOverrideField, type ItemOverrideKind } from "./scenario-details";
+import { editorDraftIdentity, withoutScenarioEditorDrafts, type BindEditorDraft, type EditorFormDraft } from "./editor-draft";
 import { ScenarioTable } from "./scenario-table";
 import { SelectionPanel } from "./selection-panel";
 import { SensitivityPanel } from "./sensitivity-panel";
@@ -465,6 +468,7 @@ export function Workspace({
   const [stale, setStale] = useState(false);
   // Preserve unapplied editor values across loading unmounts; saved ScenarioSpec remains authoritative.
   const [pilotDrafts, setPilotDrafts] = useState<Record<string, PilotFormDraft>>({});
+  const [editorDrafts, setEditorDrafts] = useState<Record<string, EditorFormDraft>>({});
   const [calc, setCalc] = useState<Calc>(() => ({
     token: 0,
     input: { facility, params: initialParams, paramDefs: defs, scenarios: initialScenarios, products, norms: initialModel.normsUsed },
@@ -703,6 +707,9 @@ export function Workspace({
       : (recommendedKey && results.some((r) => r.key === recommendedKey) ? recommendedKey : (firstRobot?.key ?? ""));
   const focusResult = results.find((r) => r.key === focusKey) ?? null;
   const focusSpec = scenarios.find((s) => s.key === focusKey) ?? model.scenarios.find((s) => s.key === focusKey);
+  const cleaningItem = focusSpec?.items.find(item => item.process === "cleaning");
+  const cleaningResult = focusResult?.items.find(item => item.process === "cleaning");
+  const cleaningOnly = Boolean(focusSpec?.items.length && focusSpec.items.every(item => item.process === "cleaning"));
   const pilotDraftIdentity = JSON.stringify([project.id ?? "guest", facility, focusKey, focusSpec?.items.map(item => [item.process, item.productSlug]) ?? []]);
   function rememberPilotDraft(value: PilotFormDraft | null) {
     if (!editable || archive || stale || !calculationReady) return;
@@ -711,6 +718,18 @@ export function Workspace({
       return { ...previous, [pilotDraftIdentity]: structuredClone(value) };
     });
   }
+  const bindEditorDraft: BindEditorDraft = (process, productSlug, section, accepted) => {
+    if (!editable || archive || stale) return {};
+    const key = editorDraftIdentity(project.id, facility, focusKey, process, productSlug, section, accepted);
+    return {
+      draft: editorDrafts[key],
+      onDraftChange: value => setEditorDrafts(previous => {
+        if (value !== null) return { ...previous, [key]: { ...value } };
+        if (!previous[key]) return previous;
+        const next = { ...previous }; delete next[key]; return next;
+      }),
+    };
+  };
   const matchedInputKey = `${projectDraftKey(params, scenarios)}:${focusKey}:${model.dataVersion}`;
   const tabs = results.map((r) => ({
     key: r.key,
@@ -784,6 +803,18 @@ export function Workspace({
     const def = defsByKey.get(key);
     const base = baseValues[key] !== undefined ? baseValues[key] : (def?.base ?? null);
     onParamChange(key, base ?? null);
+  }
+
+  function onApplyPayroll(application: PayrollApplication) {
+    if (!editable || !defsByKey.has(application.salaryKey) || !defsByKey.has("payrollTaxMultiplier")) return;
+    const at = new Date().toISOString();
+    invalidateCalculation();
+    setParams(previous => ({ ...previous, [application.salaryKey]: application.grossSalaryRubMonth, payrollTaxMultiplier: application.payrollMultiplier }));
+    setParamMeta(previous => ({ ...previous,
+      [application.salaryKey]: { at, reason: application.reason },
+      payrollTaxMultiplier: { at, reason: application.reason },
+    }));
+    setStale(true);
   }
 
   function onImportApply(values: ParamValues, meta: { fileName: string }) {
@@ -1040,8 +1071,51 @@ export function Workspace({
     commitScenarios(scenarios.map(s => s.key === focusSpec.key ? { ...s, items: s.items.map(item => item === previous ? nextItem : item) } : s), [{
       scenarioKey: focusSpec.key, field: `item:${process}:package`, auto: null,
       old: previous.costPackage ?? null, new: value ?? null,
-      reason: value?.reason ?? "Возврат к исходным отдельным статьям расходов",
+      reason: value ? "Применён состав покупки; полное основание сохранено в комплектации" : "Возврат к исходным отдельным статьям расходов",
     }]);
+  }
+
+  function onRaasPackage(process: string, value: ScenarioItem["raasPackage"]) {
+    if (!editable || stale || !focusSpec || focusSpec.kind !== "raas") return;
+    const previous = focusSpec.items.find(item => item.process === process);
+    if (!previous) return;
+    const nextItem = { ...previous };
+    if (value) {
+      nextItem.raasPackage = value;
+      delete nextItem.serviceRubYearOverride;
+    }
+    else delete nextItem.raasPackage;
+    const logs: PendingChange[] = [{
+      scenarioKey: focusSpec.key, field: `item:${process}:raasPackage`, auto: null,
+      old: previous.raasPackage ?? null, new: value ?? null,
+      reason: value ? "Применён явный состав RaaS; полное основание сохранено в составе услуги" : "Возврат к исходным допущениям о включении услуг RaaS",
+    }];
+    if (value && previous.serviceRubYearOverride !== undefined) logs.push({
+      scenarioKey: focusSpec.key, field: `item:${process}:service`, auto: null,
+      old: previous.serviceRubYearOverride, new: null,
+      reason: "Отдельная корректировка сервиса заменена статьёй в явном составе RaaS",
+    });
+    commitScenarios(scenarios.map(s => s.key === focusSpec.key ? { ...s, items: s.items.map(item => item === previous ? nextItem : item) } : s), logs);
+  }
+
+  function onCleaningProfile(process: string, value: ScenarioItem["cleaningProfile"]) {
+    if (!editable || stale || !focusSpec || focusSpec.kind === "asis" || process !== "cleaning") return;
+    const previous = focusSpec.items.find(item => item.process === process);
+    if (!previous) return;
+    const nextItem = { ...previous };
+    if (value) nextItem.cleaningProfile = value;
+    else delete nextItem.cleaningProfile;
+    const logs: PendingChange[] = [{
+      scenarioKey: focusSpec.key, field: `item:${process}:cleaningProfile`, auto: null,
+      old: previous.cleaningProfile ?? null, new: value ?? null,
+      reason: value ? "Применён рабочий профиль уборки с источником и допущениями; полевые измерения не подтверждены" : "Рабочий профиль уборки удалён",
+    }];
+    if (value && previous.throughputPerHOverride !== undefined) {
+      delete nextItem.throughputPerHOverride;
+      logs.push({ scenarioKey: focusSpec.key, field: `item:${process}:throughput`, auto: null,
+        old: previous.throughputPerHOverride, new: null, reason: "Отдельная выработка заменена явным профилем уборки и зарядки" });
+    }
+    commitScenarios(scenarios.map(spec => spec.key === focusSpec.key ? { ...spec, items: spec.items.map(item => item === previous ? nextItem : item) } : spec), logs);
   }
 
   function onBuildMatchedComparison() {
@@ -1100,6 +1174,7 @@ export function Workspace({
   function onRemoveScenario() {
     const spec = scenarios.find((s) => s.key === focusKey);
     if (!spec || spec.kind === "asis" || scenarios.length <= SCENARIOS_MIN) return;
+    setEditorDrafts(previous => withoutScenarioEditorDrafts(previous, project.id, facility, spec.key));
     setPilotDrafts(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => {
       const [owner, kind, scenario] = JSON.parse(key) as [string, string, string];
       return owner !== (project.id ?? "guest") || kind !== facility || scenario !== spec.key;
@@ -1214,7 +1289,7 @@ export function Workspace({
     facility === "warehouse" && scenarios.some((s) => s.items.some((it) => processDef(it.process)?.simSupported));
 
   // ——— Подбор: процессы и варианты «Добавить сценарий» ———
-  const calcProcesses = processes.filter((p) => p.calcSupported);
+  const calcProcesses = processes.filter((p) => p.calcSupported).sort((a, b) => cleaningOnly ? Number(b.slug === "cleaning") - Number(a.slug === "cleaning") : 0);
   const otherProcesses = processes.filter((p) => !p.calcSupported);
   const addGroups = processes
     .map((p) => ({
@@ -1256,6 +1331,11 @@ export function Workspace({
   const focusInput = model.simInputs[focusKey]?.calculated;
   const contextArea = workspaceAreaContext(project.facility, model.paramsUsed, focusInput?.layout.activeAreaM2);
   const archivedLayout = model.runtime?.layouts?.[focusKey] ?? model.layout;
+  const cleaningSchedule = cleaningItem?.cleaningProfile && cleaningResult?.cleaning && focusResult?.status === "ok" && cleaningResult.n !== null
+    ? archive && model.modelVersion !== TZ_MODEL_VERSION
+      ? <p className="text-sm">Сохранённая оценка уборки: {cleaningResult.n} роботов, {formatNum(cleaningResult.cleaning.capacityM2PerDay, 1)} м² на робота в день; требуется {formatNum(cleaningResult.demandPerDay, 1)} м²/день. Расписание старой версии не перестраивается текущими правилами.</p>
+      : <CleaningSchedule profile={cleaningItem.cleaningProfile} fleet={cleaningResult.n} requiredM2PerDay={cleaningResult.demandPerDay} productName={cleaningResult.productName} />
+    : <p className="callout" data-tone="info">Для расписания уборки задайте рабочий профиль и завершите расчёт сценария. Причина остановки и поля для исправления показаны в экономике.</p>;
   // Only visited content mounts; section anchors/headings always exist. Visited children stay mounted.
   // Ритм шага: заголовок с вводной — одна группа, дальше блоки шага через 40px; внутри блока
   // свой, более плотный шаг. Раньше всё шло через 16px, и соседние разделы сливались.
@@ -1310,9 +1390,10 @@ export function Workspace({
         <div className="workspace-context" aria-label="Текущие условия расчёта">
           <dl>
             <div><dt>Сценарий</dt><dd>{focusResult?.name ?? "Не выбран"}</dd></div>
-            <div><dt>{contextArea.label}</dt><dd>{contextArea.areaM2 === null ? "Не задана" : `${formatNum(contextArea.areaM2, 0)} м²`}</dd></div>
+            <div><dt>{cleaningOnly ? "Площадь уборки" : contextArea.label}</dt><dd>{cleaningOnly ? `${formatNum(Number(model.paramsUsed.cleaningAreaM2), 0)} м²` : contextArea.areaM2 === null ? "Не задана" : `${formatNum(contextArea.areaM2, 0)} м²`}</dd></div>
             {focusInput && <><div><dt>Роботы / зарядки</dt><dd>{focusInput.robots.count} / {focusInput.layout.chargers}</dd></div>
             <div><dt>Требуемый поток</dt><dd>{formatNum(focusInput.demand.peakPerH, 1)} пал./ч</dd></div></>}
+            {!focusInput && cleaningOnly && cleaningResult && <><div><dt>Роботы / станции</dt><dd>{cleaningResult.n ?? "Не рассчитано"} / {cleaningResult.chargers}</dd></div><div><dt>Требуется за день</dt><dd>{formatNum(cleaningResult.demandPerDay, 0)} м²</dd></div></>}
           </dl>
           {editable && !archive && <div className="workspace-calculation-status" role="status" aria-live="polite" data-guest-calculation={guest ? serverRun.kind : undefined} data-server-calculation={serverRun.kind}>
             <strong>{serverRun.kind === "running" ? "Сервер рассчитывает…" : serverRun.kind === "error" ? "Расчёт не завершён" : serverRun.kind === "edited" ? "Условия изменены · пересчитайте" : calc.simSource === "stored" ? "Сохранённый расчёт" : "Серверный расчёт завершён"}</strong>
@@ -1416,6 +1497,8 @@ export function Workspace({
           issues={issues}
           baseValues={baseValues}
           onChange={editable ? onParamChange : undefined}
+          onApplyPayroll={editable ? onApplyPayroll : undefined}
+          processScope={cleaningOnly ? "cleaning" : undefined}
           onReset={editable ? onParamReset : undefined}
           readOnly={!editable}
         />
@@ -1483,7 +1566,10 @@ export function Workspace({
       {/* Шаг 4 — сравнение */}
       <section id="comparison" aria-labelledby={`${uid}-h-comparison`} className={sectionClass} hidden={activeStep !== 4}>
         <h2 id={`${uid}-h-comparison`} tabIndex={-1}>{stepHeading(4)}</h2>
-        {visitedSteps.has(4) && <ComparisonTable rows={model.comparison} pinned={itemKeys} />}
+        {visitedSteps.has(4) && <>
+          {!scenarios.some(spec => spec.kind !== "asis" && spec.items.length > 0) && <p className="text-sm text-muted-foreground">В сценариях пока не выбран процесс роботизации: показан каталог решений для этого типа объекта.</p>}
+          <ComparisonTable rows={comparisonRowsForScenarios(model.comparison, scenarios)} pinned={itemKeys} />
+        </>}
       </section>
 
       {/* Шаг 5 — экономика */}
@@ -1519,7 +1605,7 @@ export function Workspace({
               className="flex flex-col gap-12"
             >
               {focusSpec && focusResult.kind !== "asis" && <OperationsStaffing
-                key={`${focusSpec.key}-${stableJson(focusSpec.operationsStaffing ?? null)}`}
+                key={`staffing:${focusSpec.key}:${stableJson(focusSpec.operationsStaffing ?? null)}`}
                 value={focusSpec.operationsStaffing}
                 annualCostRub={focusResult.status === "ok" ? focusResult.items.reduce((sum, item) => sum + item.operatingStaffRub, 0) : null}
                 breakEvenAnnualRub={focusResult.status === "ok" ? staffingBreakEvenBudget(focusResult.items.reduce((sum, item) => sum + item.operatingStaffRub, 0), focusResult.npvRub, horizonFor(focusResult.key) ?? NaN, scenarioNorms(model, focusResult.key).discountRate) : null}
@@ -1530,7 +1616,7 @@ export function Workspace({
                 onChange={editable && !stale ? onOperationsStaffing : undefined}
               />}
               {focusSpec && focusResult.kind !== "asis" && (!archive || focusSpec.logistics || focusResult.risks.some(risk => risk.code === "LOGISTICS_NOT_ASSESSED")) && <DeploymentLogistics
-                key={`${focusSpec.key}-${stableJson(focusSpec.logistics ?? null)}`}
+                key={`logistics:${focusSpec.key}:${stableJson(focusSpec.logistics ?? null)}`}
                 value={focusSpec.logistics}
                 readOnly={!editable || stale}
                 onChange={editable && !stale ? onLogistics : undefined}
@@ -1543,7 +1629,10 @@ export function Workspace({
                 horizonYears={horizonFor(focusResult.key)}
                 paramLabels={paramLabels}
                 readOnly={!editable}
+                bindEditorDraft={bindEditorDraft}
                 onCostPackage={editable && !stale ? onCostPackage : undefined}
+                onRaasPackage={editable && !stale ? onRaasPackage : undefined}
+                onCleaningProfile={editable && !stale ? onCleaningProfile : undefined}
                 onOperatingMode={editable && !stale ? onOperatingMode : undefined}
                 onOverride={
                   editable && focusResult.kind !== "asis"
@@ -1553,6 +1642,7 @@ export function Workspace({
               />
               <NormsPanel
                 rows={rows}
+                cleaningOnly={!!focusSpec?.items.length && focusSpec.items.every(item => item.process === "cleaning")}
                 storageTransfers={project.facility === "warehouse" && (focusInput?.demand.mix?.internal ?? Number(model.paramsUsed.internalPalletMovesPerDay)) > 0}
                 overrides={focusSpec?.normOverrides}
                 onOverride={
@@ -1686,7 +1776,9 @@ export function Workspace({
         <h2 id={`${uid}-h-simulation`} tabIndex={-1}>{stepHeading(7)}</h2>
         {project.facility === "warehouse" && <DemoSceneLinks project />}
         {visitedSteps.has(7) && <>
-        {archive ? (
+        {cleaningOnly ? (
+          !calculationReady || stale ? <p className="callout" data-tone="info">Расписание будет доступно после расчёта текущего профиля уборки. Пересчитайте изменённые условия.</p> : cleaningSchedule
+        ) : archive ? (
           <div className="grid gap-3 text-sm" data-archive-simulation>
             <p>Архив имитации: показаны сохранённые итоги. Текущий движок и проигрывание не запускаются при открытии.</p>
             {Object.entries(calc.sims ?? {}).filter(([, summary]) => summary !== null).map(([key, summary]) => summary && (
@@ -1701,6 +1793,7 @@ export function Workspace({
           // ссылка без пробелов растягивала раскрытый блок шире карточки (её обрезает
           // overflow-hidden). Переносим такие строки в ячейках раскрывающихся блоков где угодно.
           <div className="min-w-0 [&_details_td]:[overflow-wrap:anywhere]">
+            {cleaningItem && cleaningSchedule}
             <WarehouseSimulation
               scenarios={simScenarios}
               initialKey={simInitialKey}

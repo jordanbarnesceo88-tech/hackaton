@@ -156,6 +156,7 @@ export function NormsPanel({
   print = false,
   scenarioName,
   storageTransfers = false,
+  cleaningOnly = false,
 }: {
   rows: readonly NormPanelRow[];
   /** Переопределения выбранного сценария (ScenarioSpec.normOverrides). */
@@ -169,13 +170,17 @@ export function NormsPanel({
   scenarioName?: string;
   /** Applicable only when this warehouse scenario includes customer storage→storage transfers. */
   storageTransfers?: boolean;
+  cleaningOnly?: boolean;
 }) {
   const byKey = new Map(rows.map((r) => [r.key, r]));
   const editable = !print && !readOnly && onOverride !== undefined;
   const overridesByKey: Readonly<Record<string, number | undefined>> = overrides ?? {};
   const setKeys = Object.keys(overridesByKey).filter(key => Number.isFinite(overridesByKey[key]));
+  const applicableKeys: readonly NormKey[] = cleaningOnly
+    ? ["reservePct", "discountRate", "serviceLifeYearsDefault", "batteryReplacementYears"]
+    : SCENARIO_NORM_KEYS;
   const shownKeys = editable
-    ? [...new Set([...SCENARIO_NORM_KEYS.filter(key => key !== "simStorageVacancyShare" || storageTransfers || overridesByKey[key] !== undefined), ...setKeys])]
+    ? [...new Set([...applicableKeys.filter(key => key !== "simStorageVacancyShare" || storageTransfers || overridesByKey[key] !== undefined), ...setKeys])]
     : setKeys;
   const showOverrides = editable || setKeys.length > 0;
 
@@ -207,6 +212,7 @@ export function NormsPanel({
                   key={key}
                   label={def.label}
                   unit={share ? percentUnit(unit) : unit}
+                  integer={key === "serviceLifeYearsDefault" || key === "batteryReplacementYears"}
                   percent={share}
                   auto={auto}
                   value={overridesByKey[key]}

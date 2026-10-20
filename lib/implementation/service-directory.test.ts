@@ -23,4 +23,21 @@ describe("product-specific service directory input", () => {
     expect(() => parseServiceProviderList(Array.from({ length: 6 }, (_, i) => ({ ...fixture(), id: `provider-${i}` })))).toThrow();
     expect(() => parseServiceProviderList(" ".repeat(16001))).toThrow();
   });
+
+  it("keeps Alfa team terms separate from SLA and preserves all supplied contacts", () => {
+    const alfa = serviceProviders("cleaner", "Viggo")[0]!;
+    expect(alfa.contactUrl).toBe("https://www.alfa-int.ru");
+    expect(alfa.phone).toBe("+7 (495) 741-49-50");
+    expect(alfa.responseSla).toBeNull();
+    expect(alfa.onsiteSla).toBeNull();
+    expect(alfa.teamNotes?.join(" ")).toContain("не восстановления");
+    const exported = serviceProvidersText([alfa]);
+    expect(exported).toContain(alfa.phone);
+    expect(exported).toContain("не договорный SLA");
+    expect(exported).toContain("не уточнён");
+    expect(() => parseServiceProviderList([{ ...fixture(), teamNotes: ["one day"] }])).toThrow();
+    expect(() => parseServiceProviderList([{ ...alfa, teamNotes: [" "] }])).toThrow();
+    expect(() => parseServiceProviderList([{ ...alfa, teamNotes: Array(6).fill("note") }])).toThrow();
+    expect(parseServiceProviderList([fixture()])[0]).not.toHaveProperty("teamNotes");
+  });
 });

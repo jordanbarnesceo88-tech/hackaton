@@ -15,6 +15,10 @@ import { OverrideInput } from "./override-input";
 import { RefusalNote } from "./refusal-note";
 import { TraceList } from "./trace-list";
 import { CostPackageEditor } from "./cost-package";
+import { RaasPackageEditor } from "./raas-package";
+import { CleaningProfileEditor } from "./cleaning-profile";
+import { stableJson } from "@/lib/tz/version";
+import type { BindEditorDraft } from "./editor-draft";
 
 /**
  * Подробности сценария (ТЗ §2.2 шаг 5, §3.5.2–3.5.4, §3.5.8): состав парка и как он получен,
@@ -138,7 +142,10 @@ function ItemCard({
   editable,
   onOverride,
   onCostPackage,
+  onRaasPackage,
+  onCleaningProfile,
   onOperatingMode,
+  bindEditorDraft,
 }: {
   view: ItemView;
   kind: ScenarioKind;
@@ -147,7 +154,10 @@ function ItemCard({
   editable: boolean;
   onOverride?: (field: string, value: number | null, reason?: string) => void;
   onCostPackage?: (process: string, value: ScenarioItem["costPackage"]) => void;
+  onRaasPackage?: (process: string, value: ScenarioItem["raasPackage"]) => void;
+  onCleaningProfile?: (process: string, value: ScenarioItem["cleaningProfile"]) => void;
   onOperatingMode?: (process: string, value: string | undefined) => void;
+  bindEditorDraft?: BindEditorDraft;
 }) {
   const { result: r, spec: it, product } = view;
   const p = processDef(view.process);
@@ -216,7 +226,8 @@ function ItemCard({
       badge: it?.raasFromEstimate ? `оценка ${share(pct)} цены` : undefined,
     });
   }
-  const shown = editable ? fields : fields.filter((f) => f.value !== undefined);
+  const applicableFields = view.process === "cleaning" ? fields.filter(field => field.k !== "throughput") : fields;
+  const shown = editable ? applicableFields : applicableFields.filter((f) => f.value !== undefined);
 
   return (
     <div className="flex flex-col gap-3 rounded-md border px-3 py-3">
@@ -247,7 +258,16 @@ function ItemCard({
           предложение.
         </p>
       )}
-      <OperatingEvidencePanel product={product} result={r} mode={it?.operatingMode} onMode={editable && onOperatingMode ? value => onOperatingMode(view.process, value) : undefined} />
+      {view.process === "cleaning" ? <p className="text-xs text-muted-foreground">Расчёт уборки использует явный рабочий профиль ниже. Полевые отчёты и паспортная производительность не подставляются в него автоматически; качество и выработку на объекте проверяют в пилоте.</p>
+        : <OperatingEvidencePanel product={product} result={r} mode={it?.operatingMode} onMode={editable && onOperatingMode ? value => onOperatingMode(view.process, value) : undefined} />}
+      {view.process === "cleaning" && <CleaningProfileEditor
+        key={`cleaningProfile:${stableJson(it?.cleaningProfile ?? null)}`}
+        {...(editable ? bindEditorDraft?.(view.process, view.productSlug, "cleaningProfile", it?.cleaningProfile) : {})}
+        productSlug={view.productSlug}
+        value={it?.cleaningProfile}
+        readOnly={!editable}
+        onChange={editable && onCleaningProfile ? value => onCleaningProfile(view.process, value) : undefined}
+      />}
       {shown.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2">
           {shown.map((f) => (
@@ -288,11 +308,20 @@ function ItemCard({
         </div>
       )}
       {kind === "purchase" && (editable || it?.costPackage) && <CostPackageEditor
-        key={JSON.stringify(it?.costPackage ?? null)}
+        key={`costPackage:${stableJson(it?.costPackage ?? null)}`}
+        {...(editable ? bindEditorDraft?.(view.process, view.productSlug, "costPackage", it?.costPackage) : {})}
         value={it?.costPackage}
         chargers={r?.chargers ?? it?.chargersOverride ?? 0}
         readOnly={!editable}
         onChange={editable && onCostPackage ? value => onCostPackage(view.process, value) : undefined}
+      />}
+      {kind === "raas" && (editable || it?.raasPackage) && <RaasPackageEditor
+        key={`raasPackage:${stableJson(it?.raasPackage ?? null)}`}
+        {...(editable ? bindEditorDraft?.(view.process, view.productSlug, "raasPackage", it?.raasPackage) : {})}
+        value={it?.raasPackage}
+        recurringRubMonth={it?.raasRubMonthOverride ?? product?.raasRubMonth ?? null}
+        readOnly={!editable}
+        onChange={editable && onRaasPackage ? value => onRaasPackage(view.process, value) : undefined}
       />}
     </div>
   );
@@ -309,7 +338,10 @@ export function ScenarioDetails({
   print = false,
   onOverride,
   onCostPackage,
+  onRaasPackage,
+  onCleaningProfile,
   onOperatingMode,
+  bindEditorDraft,
 }: {
   result: ScenarioResult;
   /** Описание сценария — источник текущих ручных корректировок (цена, сервис, ставка). */
@@ -327,7 +359,10 @@ export function ScenarioDetails({
   print?: boolean;
   onOverride?: (field: string, value: number | null, reason?: string) => void;
   onCostPackage?: (process: string, value: ScenarioItem["costPackage"]) => void;
+  onRaasPackage?: (process: string, value: ScenarioItem["raasPackage"]) => void;
+  onCleaningProfile?: (process: string, value: ScenarioItem["cleaningProfile"]) => void;
   onOperatingMode?: (process: string, value: string | undefined) => void;
+  bindEditorDraft?: BindEditorDraft;
 }) {
   const editable = !print && !readOnly && onOverride !== undefined;
   const views = result.kind === "asis" ? [] : itemViews(result, spec, products);
@@ -356,7 +391,7 @@ export function ScenarioDetails({
           <h4 className="block-title">Состав оборудования и как он получен</h4>
           {views.map((v) => (
             <ItemCard
-              key={v.process}
+              key={stableJson([result.key, v.process, v.productSlug])}
               view={v}
               kind={result.kind}
               refusedRaas={refusedRaas}
@@ -364,7 +399,10 @@ export function ScenarioDetails({
               editable={editable}
               onOverride={onOverride}
               onCostPackage={onCostPackage}
+              onRaasPackage={onRaasPackage}
+              onCleaningProfile={onCleaningProfile}
               onOperatingMode={onOperatingMode}
+              bindEditorDraft={editable ? bindEditorDraft : undefined}
             />
           ))}
         </div>

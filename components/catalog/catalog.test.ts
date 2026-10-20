@@ -429,7 +429,8 @@ describe("карточка продукта", () => {
       processes: [{ slug: "cleaning", name: "Уборка склада", order: 5 }],
     });
     const cleaning = char({ ...THROUGHPUT, valueNum: 950, valueMin: null, valueMax: null, unit: "м²/ч" });
-    expect(throughputCalcNote(cleaner, cleaning)).toMatch(/^в расчёт парка не идёт: экономика процесса «.+» в прототипе не рассчитывается$/);
+    expect(throughputCalcNote(cleaner, cleaning)).toContain("нужен рабочий профиль");
+    expect(throughputCalcNote(cleaner, cleaning)).not.toContain("норма для расчёта парка");
 
     const none = product({ throughputPerH: null, throughputUnit: null });
     const upTo = char({ key: "throughput", group: "TECHNICAL", display: "до 1 000 м²/ч", valueNum: 1000, valueMax: 1000, qualifier: "до" });

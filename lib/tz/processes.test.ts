@@ -70,7 +70,7 @@ describe("PROCESS_DEFS", () => {
   });
 
   it("экономика и имитация заявлены только для перемещения паллет (остальное — прототип, §5.7)", () => {
-    expect(PROCESS_DEFS.filter((p) => p.calcSupported).map((p) => p.slug)).toEqual(["pallet-transport"]);
+    expect(PROCESS_DEFS.filter((p) => p.calcSupported).map((p) => p.slug)).toEqual(["pallet-transport", "cleaning"]);
     expect(PROCESS_DEFS.filter((p) => p.simSupported).map((p) => p.slug)).toEqual(["pallet-transport"]);
   });
 

@@ -122,7 +122,7 @@ describe("чувствительность", () => {
   it("строки отсортированы по размаху; размах — по NPV, у «Как есть» — по TCO", () => {
     for (const key of ["asis", "p1", "r1"]) {
       const rows = ok(results, key).sensitivity;
-      for (let i = 1; i < rows.length; i++) expect(rows[i - 1]!.swing).toBeGreaterThanOrEqual(rows[i]!.swing);
+      for (let i = 1; i < rows.length; i++) expect(rows[i - 1]!.swing ?? -1).toBeGreaterThanOrEqual(rows[i]!.swing ?? -1);
     }
     const p = ok(results, "p1").sensitivity;
     for (const r of p) {
@@ -132,7 +132,9 @@ describe("чувствительность", () => {
     const a = ok(results, "asis").sensitivity;
     for (const r of a) {
       expect(r.npvLow).toBeNull();
-      expect(r.swing).toBeCloseTo(Math.abs(r.tcoHigh - r.tcoLow), 6);
+      expect(r.tcoHigh).not.toBeNull();
+      expect(r.tcoLow).not.toBeNull();
+      expect(r.swing).toBeCloseTo(Math.abs(r.tcoHigh! - r.tcoLow!), 6);
     }
   });
 

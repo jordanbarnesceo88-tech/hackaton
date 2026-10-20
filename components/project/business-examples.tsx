@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BUSINESS_EXAMPLES, type BusinessExampleId } from "@/lib/projects/business-examples";
 
 export function BusinessExamples({ active }: { active?: BusinessExampleId }) {
-  const titles = ["Регулярный поток", "Пиковая нагрузка", "Сотрудники остаются"];
+  const titles = ["Регулярный поток", "Пиковая нагрузка", "Сотрудники остаются", "Уборка склада"];
   return <section className="min-w-0" aria-label="Готовые бизнес-примеры">
     <nav aria-label="Бизнес-примеры" className="flex min-w-0 gap-2 overflow-x-auto pb-1">
       {BUSINESS_EXAMPLES.map((example, index) => <Link key={example.id} href={`/demo?example=${example.id}`}

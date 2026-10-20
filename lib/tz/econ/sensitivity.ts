@@ -287,17 +287,38 @@ function itemLever(
 ): Lever | null {
   const base = def.bases[0];
   if (base === undefined || !(base > 0)) return null;
+  let [minimum, maximum] = def.hard;
+  for (const [index, item] of spec.items.entries()) {
+    const itemBase = def.bases[index];
+    if (itemBase === undefined || !(itemBase > 0)) continue;
+    if (def.field === "throughputPerHOverride" && item.cleaningProfile) {
+      minimum = Math.max(minimum, base * (0.01 / itemBase));
+      maximum = Math.min(maximum, base * (1_000_000 / itemBase));
+    }
+    // The quoted first month stays fixed: this lever changes only the recurring rate.
+    if (def.field === "raasRubMonthOverride" && item.raasPackage?.firstMonthRub !== undefined) {
+      maximum = Math.min(maximum, base * (item.raasPackage.firstMonthRub / itemBase));
+    }
+  }
   return {
     lever: def.lever,
     label: def.label,
     unit: def.unit,
     base,
-    bounds: leverBounds(ctx, base, { hard: def.hard }),
+    bounds: leverBounds(ctx, base, { hard: [minimum, maximum] }),
     run: (v) => {
       const factor = v / base;
       const patched = patchSpec(specs, spec.key, (s) => ({
         ...s,
-        items: s.items.map((it: ScenarioItem, i: number) => ({ ...it, [def.field]: (def.bases[i] ?? base) * factor })),
+        items: s.items.map((it: ScenarioItem, i: number) => {
+          let value = (def.bases[i] ?? base) * factor;
+          // Reapply the intersected limit after multiplication to avoid a one-ulp overshoot.
+          if (def.field === "throughputPerHOverride" && it.cleaningProfile) value = Math.min(1_000_000, Math.max(0.01, value));
+          if (def.field === "raasRubMonthOverride" && it.raasPackage?.firstMonthRub !== undefined) value = Math.min(it.raasPackage.firstMonthRub, value);
+          return def.field === "throughputPerHOverride" && it.process === "cleaning" && it.cleaningProfile
+            ? { ...it, cleaningProfile: { ...it.cleaningProfile, throughputM2PerH: value } }
+            : { ...it, [def.field]: value };
+        }),
       }));
       return findResult(computeScenariosCore(ctx, patched), spec.key);
     },
@@ -322,7 +343,7 @@ function volumeLever(ctx: ScenarioContext, specs: readonly ScenarioSpec[], spec:
   const perDay = first.demandPerDay;
   return {
     lever: "volume",
-    label: pallets ? "Объём паллет" : "Объём операций",
+    label: spec.items[0]?.process === "cleaning" ? "Площадь уборки" : pallets ? "Объём паллет" : "Объём операций",
     unit,
     base: perDay,
     bounds: leverBounds(ctx, perDay, { hard: [0, Infinity] }),
@@ -335,11 +356,31 @@ function volumeLever(ctx: ScenarioContext, specs: readonly ScenarioSpec[], spec:
   };
 }
 
+/** Cleaning labour comes from its explicit profile, independently of transport labour norms. */
+function cleaningLabourLever(ctx: ScenarioContext, specs: readonly ScenarioSpec[], spec: ScenarioSpec, pureCleaning: boolean): Lever | null {
+  const index = spec.items.findIndex(item => item.process === "cleaning" && item.cleaningProfile);
+  const profile = spec.items[index]?.cleaningProfile;
+  if (!profile) return null;
+  const base = profile.automatableLabourShare;
+  return {
+    lever: pureCleaning ? "laborShare" : "cleaningLaborShare",
+    label: "Доля роботизируемого труда уборщиков", unit: "доля", base,
+    bounds: leverBounds(ctx, base, { normKey: "laborShareAutomatable", hard: [0, 1] }),
+    run: value => findResult(computeScenariosCore(ctx, patchSpec(specs, spec.key, current => ({
+      ...current,
+      items: current.items.map((item, i) => i === index
+        ? { ...item, cleaningProfile: { ...profile, automatableLabourShare: value } } : item),
+    }))), spec.key),
+  };
+}
+
 function robotLevers(ctx: ScenarioContext, spec: ScenarioSpec, specs: readonly ScenarioSpec[], base: ScenarioOk): Lever[] {
   const levers: (Lever | null)[] = [];
   const first = spec.items[0];
   const proc: ProcessDef | undefined = first ? ctx.processes[first.process] : undefined;
   const products = spec.items.map((it) => ctx.products[it.productSlug]);
+  const pureCleaning = spec.items.every(item => item.process === "cleaning");
+  const firstCleaning = first?.process === "cleaning" && first.cleaningProfile !== undefined;
 
   if (proc?.salaryParam) {
     const s = optNum(ctx.params, proc.salaryParam);
@@ -382,14 +423,15 @@ function robotLevers(ctx: ScenarioContext, spec: ScenarioSpec, specs: readonly S
   levers.push(
     itemLever(ctx, specs, spec, {
       lever: "throughput",
-      label: "Производительность робота",
-      unit: proc?.throughputUnit ?? "ед./ч",
+      label: firstCleaning ? "Рабочая выработка за активный час" : "Производительность робота",
+      unit: firstCleaning ? "м²/активный ч" : proc?.throughputUnit ?? "ед./ч",
       field: "throughputPerHOverride",
-      bases: base.items.map((r) => r.thrEff ?? 0),
-      hard: [1e-6, Infinity],
+      bases: spec.items.map((item, i) => item.process === "cleaning" && item.cleaningProfile
+        ? item.cleaningProfile.throughputM2PerH : base.items[i]?.thrEff ?? 0),
+      hard: firstCleaning ? [0.01, 1_000_000] : [1e-6, Infinity],
     }),
   );
-  levers.push(
+  if (!pureCleaning) levers.push(
     normLever(ctx, specs, spec, { lever: "utilization", label: "Коэффициент загрузки", unit: "доля", normKey: "utilization" }),
   );
   if (proc?.peakFactorParam) {
@@ -434,7 +476,8 @@ function robotLevers(ctx: ScenarioContext, spec: ScenarioSpec, specs: readonly S
       );
     }
   }
-  levers.push(
+  levers.push(cleaningLabourLever(ctx, specs, spec, pureCleaning));
+  if (!pureCleaning) levers.push(
     normLever(ctx, specs, spec, {
       lever: "laborShare",
       label: "Доля автоматизируемого труда",
@@ -511,13 +554,13 @@ export function scenarioSensitivity(
     const hi = okOf(l.run(l.bounds.high));
     const npvLow = asis ? null : (lo?.npvRub ?? null);
     const npvHigh = asis ? null : (hi?.npvRub ?? null);
-    const tcoLow = lo?.tcoRub ?? b.tcoRub;
-    const tcoHigh = hi?.tcoRub ?? b.tcoRub;
+    const tcoLow = lo?.tcoRub ?? null;
+    const tcoHigh = hi?.tcoRub ?? null;
     const swing = asis
-      ? Math.abs(tcoHigh - tcoLow)
+      ? tcoHigh !== null && tcoLow !== null ? Math.abs(tcoHigh - tcoLow) : null
       : npvLow !== null && npvHigh !== null
         ? Math.abs(npvHigh - npvLow)
-        : 0;
+        : null;
     return {
       lever: l.lever,
       label: l.label,
@@ -541,6 +584,6 @@ export function scenarioSensitivity(
   });
   return rows
     .map((r, i) => ({ r, i }))
-    .sort((a, b2) => b2.r.swing - a.r.swing || a.i - b2.i)
+    .sort((a, b2) => (b2.r.swing ?? -1) - (a.r.swing ?? -1) || a.i - b2.i)
     .map(({ r }) => r);
 }

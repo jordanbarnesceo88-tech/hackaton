@@ -1,9 +1,11 @@
 import type { ParamValues, ProductForCalc, ScenarioSpec } from "../tz/types";
+import { warehouseCleaningInputs } from "./cleaning-example";
 
 export const BUSINESS_EXAMPLES = [
   { id: "steady-flow", title: "Регулярный поток", description: "6 роботов на 5 000 м². Сравните покупку и RaaS при заданном сокращении расходов на труд.", lesson: "Проверить выполнение нагрузки и сравнить затраты двух способов внедрения.", inboundPerDay: 500, outboundPerDay: 500, cashShare: 1 },
   { id: "peak-overload", title: "Парк не справляется с пиком", description: "Тот же парк и объект; поступление паллет удвоено. Посмотрите очередь и невыполненную работу.", lesson: "Отдельно проверить выполнение нагрузки и экономику при росте потока.", inboundPerDay: 1000, outboundPerDay: 1000, cashShare: 1 },
   { id: "retained-staff", title: "Сотрудники остаются в штате", description: "Тот же регулярный поток, но ФОТ не сокращается. Высвобождённое время показано отдельно от денег.", lesson: "Разделить производственный эффект и реальное сокращение расходов.", inboundPerDay: 500, outboundPerDay: 500, cashShare: 0 },
+  { id: "warehouse-cleaning", title: "Уборка склада", description: "PUDU CC1 на 8 000 м²: рабочее окно, зарядка, ежедневный уход и полный состав покупки / RaaS.", lesson: "Сравнить стоимость уборки на редактируемых эксплуатационных и финансовых допущениях.", inboundPerDay: 0, outboundPerDay: 0, cashShare: 1 },
 ] as const;
 export type BusinessExampleId = typeof BUSINESS_EXAMPLES[number]["id"];
 export function businessExample(value: unknown) { return BUSINESS_EXAMPLES.find(e => e.id === value) ?? null; }
@@ -11,6 +13,7 @@ export function businessExample(value: unknown) { return BUSINESS_EXAMPLES.find(
 /** Demonstration assumptions, not a customer case or a guaranteed vendor business case. */
 export function businessExampleInputs(id: BusinessExampleId, defaults: ParamValues, products: readonly ProductForCalc[]) {
   const example = businessExample(id);
+  if (example?.id === "warehouse-cleaning") return { example, ...warehouseCleaningInputs(defaults, products) };
   if (!example || !products.some(p => p.slug === "ronavi-h1500")) throw new Error("Вход или продукт бизнес-примера недоступен");
   const params: ParamValues = { ...defaults, activeAreaM2: 5000, totalAreaM2: 10000,
     inboundPalletsPerDay: example.inboundPerDay, outboundPalletsPerDay: example.outboundPerDay,

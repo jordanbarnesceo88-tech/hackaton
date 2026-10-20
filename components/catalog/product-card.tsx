@@ -106,6 +106,9 @@ function processesPhrase(processes: readonly { name: string }[]): string {
  */
 export function throughputCalcNote(product: ThroughputNoteInput, c: CatalogCharacteristic | undefined): string | null {
   if (!selectionParticipation(product).ok) return null;
+  if (product.processes.some(p => p.slug === "cleaning")) {
+    return "паспортная производительность показана справочно; для расчёта парка уборки нужен рабочий профиль: выработка за активный час, рабочее окно, зарядка и ежедневный уход";
+  }
   if (product.throughputPerH === null) {
     if (!c || c.display === "—") return null;
     if (c.valueNum === null) return "в расчёт парка не идёт: числа для расчёта нет";

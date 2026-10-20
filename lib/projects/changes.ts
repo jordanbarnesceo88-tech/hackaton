@@ -69,7 +69,7 @@ export function projectAuditDiff(
       if (itemsReordered) add(`item:${process}:order`, old.items.findIndex(i => i.process === process), itemIndex, key);
       const fields = { productSlug: "product", operatingMode: "operatingMode", quantityOverride: "quantity", chargersOverride: "chargers",
         automationCoverageOverride: "coverage", priceRubOverride: "price", throughputPerHOverride: "throughput",
-        serviceRubYearOverride: "service", raasRubMonthOverride: "raasRate", raasFromEstimate: "raasEstimate", costPackage: "package" } as const;
+        serviceRubYearOverride: "service", raasRubMonthOverride: "raasRate", raasFromEstimate: "raasEstimate", costPackage: "package", raasPackage: "raasPackage", cleaningProfile: "cleaningProfile" } as const;
       for (const [property, field] of Object.entries(fields)) {
         const p = property as keyof typeof fields;
         const unit = field === "quantity" || field === "chargers" ? "шт." : field === "price" ? "₽" : field === "service" ? "₽/год"
@@ -234,6 +234,8 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   chargers: "Число зарядных станций",
   coverage: "Оценочная доля годовой нагрузки",
   raasEstimate: "Ставка RaaS принята по оценке",
+  raasPackage: "Состав услуг и платежей RaaS",
+  cleaningProfile: "Эксплуатационный профиль уборки (оценка)",
   add: "Позиция добавлена",
   remove: "Позиция удалена",
   order: "Порядок позиции",

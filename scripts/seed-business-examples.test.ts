@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../lib/data/organizer/catalog";
+import { VENDOR_CLEANING_PRODUCTS } from "../lib/data/vendor-cleaning";
 import { productForCalcFromSeed } from "../lib/catalog/product-for-calc";
 import { paramSpecsFor } from "../lib/data/organizer/params";
 import { resolveNorms } from "../lib/tz/norms";
@@ -10,7 +11,7 @@ import type { BusinessExampleId } from "../lib/projects/business-examples";
 
 vi.mock("../lib/projects/recalc", async importOriginal => ({
   ...await importOriginal<typeof import("../lib/projects/recalc")>(),
-  loadLiveInputs: async () => ({ paramDefs: paramSpecsFor("warehouse"), products: CATALOG.map(productForCalcFromSeed), norms: resolveNorms(), paramDefsFrom: "code" }),
+  loadLiveInputs: async () => ({ paramDefs: paramSpecsFor("warehouse"), products: [...CATALOG, ...VENDOR_CLEANING_PRODUCTS].map(productForCalcFromSeed), norms: resolveNorms(), paramDefsFrom: "code" }),
 }));
 vi.mock("../lib/projects/business-example-offline", async importOriginal => {
   const actual = await importOriginal<typeof import("../lib/projects/business-example-offline")>();
@@ -22,7 +23,7 @@ vi.mock("../lib/projects/business-example-offline", async importOriginal => {
 });
 const { seedBusinessExamples } = await import("./seed-business-examples");
 const { buildBusinessExampleOffline } = await import("../lib/projects/business-example-offline");
-const live: LiveInputs = { paramDefs: paramSpecsFor("warehouse"), products: CATALOG.map(productForCalcFromSeed), norms: resolveNorms(), paramDefsFrom: "code" };
+const live: LiveInputs = { paramDefs: paramSpecsFor("warehouse"), products: [...CATALOG, ...VENDOR_CLEANING_PRODUCTS].map(productForCalcFromSeed), norms: resolveNorms(), paramDefsFrom: "code" };
 // Persistence tests reuse genuine completed calculations, not fabricated metrics.
 // Warm once outside each test; every consumer receives an isolated clone.
 for (const example of BUSINESS_EXAMPLES) buildBusinessExampleOffline(live, example.id);
@@ -48,17 +49,24 @@ describe("prepared public demo seed", () => {
     first.results.scenarios[1]!.spatialEvidence!.summary.achievedPerH = -1;
     expect(buildBusinessExampleOffline(live, "steady-flow")).toEqual(before);
   });
-  it("persists all three completed examples, with public owner and demonstration flags", async () => {
+  it("persists transport examples with physical evidence and cleaning with its explicit financial profile", async () => {
     const { db, project, transaction } = database(null);
     await seedBusinessExamples(db);
-    expect(transaction).toHaveBeenCalledTimes(3);
-    expect(project.create).toHaveBeenCalledTimes(3);
+    expect(transaction).toHaveBeenCalledTimes(BUSINESS_EXAMPLES.length);
+    expect(project.create).toHaveBeenCalledTimes(BUSINESS_EXAMPLES.length);
     for (const [index, call] of project.create.mock.calls.entries()) {
       expect(call[0].data).toMatchObject({
         id: `demo-example-${BUSINESS_EXAMPLES[index]!.id}`, userId: "demo-owner", isDemo: true,
       });
-      expect(call[0].data.results.scenarios[1].spatialEvidence.assessment.status).not.toBe("NOT_EVALUATED");
-      expect(call[0].data.results.sim.purchase).toBeTruthy();
+      if (BUSINESS_EXAMPLES[index]!.id === "warehouse-cleaning") {
+        expect(call[0].data.results.scenarios[1].spatialEvidence).toBeUndefined();
+        expect(call[0].data.results.scenarios[1].items[0].cleaningProfile.basis).toBe("active-hour");
+        expect(call[0].data.results.results.find((row: { key: string }) => row.key === "purchase").status).toBe("ok");
+        expect(call[0].data.results.sim.purchase).toBeFalsy();
+      } else {
+        expect(call[0].data.results.scenarios[1].spatialEvidence.assessment.status).not.toBe("NOT_EVALUATED");
+        expect(call[0].data.results.sim.purchase).toBeTruthy();
+      }
     }
   });
   it("refreshes snapshots without deleting their project identity or copiedFrom references", async () => {
@@ -66,8 +74,8 @@ describe("prepared public demo seed", () => {
     await seedBusinessExamples(db);
     expect(project.deleteMany).not.toHaveBeenCalled();
     expect(project.create).not.toHaveBeenCalled();
-    expect(scenario.deleteMany).toHaveBeenCalledTimes(3);
-    expect(project.update).toHaveBeenCalledTimes(3);
+    expect(scenario.deleteMany).toHaveBeenCalledTimes(BUSINESS_EXAMPLES.length);
+    expect(project.update).toHaveBeenCalledTimes(BUSINESS_EXAMPLES.length);
     for (const call of project.update.mock.calls) {
       expect(call[0].data).not.toHaveProperty("copiedFromId");
       expect(call[0].data).not.toHaveProperty("createdAt");

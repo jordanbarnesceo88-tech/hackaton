@@ -3,6 +3,8 @@ import { paramSpecsFor } from "../data/organizer/params";
 import { FIXTURE_H1500 } from "../tz/econ/fixtures";
 import { resolveNorms } from "../tz/norms";
 import { buildProductDemoPreview } from "./product-demo";
+import { VENDOR_CLEANING_PRODUCTS } from "../data/vendor-cleaning";
+import { productForCalcFromSeed } from "../catalog/product-for-calc";
 
 const selected = { ...FIXTURE_H1500, slug: "chosen-amr", name: "Chosen AMR", raasRubMonth: null };
 const live = { paramDefs: paramSpecsFor("warehouse").map(def => ({ ...def, base: def.key === "activeAreaM2" ? 1000 : def.key === "totalAreaM2" ? 2000 : def.base })), products: [FIXTURE_H1500, selected], norms: resolveNorms(), paramDefsFrom: "code" as const };
@@ -25,4 +27,15 @@ it("does not substitute the default robot when the selected product fails the ob
 it("declines an unsupported process or a product absent from the applicable live catalogue", () => {
   expect(buildProductDemoPreview(live, "airport", selected.slug).ok).toBe(false);
   expect(buildProductDemoPreview(live, "warehouse", "not-in-live-catalogue").ok).toBe(false);
+});
+
+it.each(VENDOR_CLEANING_PRODUCTS.map(productForCalcFromSeed))("opens $slug for an explicit working profile without substituting passport output", product => {
+  const preview = buildProductDemoPreview({ ...live, products: [product] }, "warehouse", product.slug);
+  expect(preview.ok).toBe(true);
+  if (!preview.ok) throw Error(preview.reason);
+  for (const scenario of preview.model.scenarios.filter(s => s.kind !== "asis")) {
+    expect(scenario.items[0]?.productSlug).toBe(product.slug);
+    expect(scenario.items[0]?.cleaningProfile).toBeUndefined();
+    expect(preview.model.results.find(result => result.key === scenario.key)?.status).toBe("refused");
+  }
 });

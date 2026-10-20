@@ -23,6 +23,7 @@ export type DecisionSummaryProps = {
 export function DecisionSummary({ model, scenarioKey, stale = false, expectedInput, simSummary, onCompare, onSimulation, onPilot, onCapacityCheck }: DecisionSummaryProps) {
   const d = buildDecision(model, scenarioKey, expectedInput, stale, simSummary), e = d.spatial.evidence, f = d.finance;
   const spatial = d.verification.kind === "spatial", analytical = d.verification.kind === "analytical";
+  const schedule = d.verification.kind === "schedule";
   const metrics = d.verification.metrics, unit = d.processes.length === 1 ? d.processes[0]!.unit : "ед./ч";
   const tone = d.status === "suitable" ? "ok" : ["invalid", "refused"].includes(d.status) ? "crit" : ["missing", "baseline", "unverified"].includes(d.status) ? "info" : "warn";
   const pct = (value: number) => `${formatNum(value * 100, 1)} %`;
@@ -35,7 +36,7 @@ export function DecisionSummary({ model, scenarioKey, stale = false, expectedInp
         <p className="text-base font-semibold">{d.headline}</p>
         {f && <dl className="decision-metrics grid grid-cols-1 gap-x-5 gap-y-4 border-y border-border py-4 text-sm tabular-nums min-[430px]:grid-cols-2 xl:grid-cols-3" aria-label="Ключевые показатели решения">
           <div><dt className="text-xs text-muted-foreground">Парк / зарядки</dt><dd className="m-0 font-semibold">{d.processes.map(p => `${p.n ?? '—'} / ${p.chargers}`).join(' · ') || 'Без роботов'}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Доставлено / требуется, {unit}</dt><dd className="m-0 font-semibold">{d.status === 'baseline' ? 'Не применяется' : metrics ? `${formatNum(metrics.achievedPerH,1)} / ${formatNum(metrics.requiredPerH,1)}` : d.verification.supported ? 'Не проверено' : 'Модель не поддерживается'}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">{schedule ? "Расчётная уборка / требуется, м²/ч рабочего окна" : `Доставлено / требуется, ${unit}`}</dt><dd className="m-0 font-semibold">{d.status === 'baseline' ? 'Не применяется' : metrics ? `${formatNum(metrics.achievedPerH,1)} / ${formatNum(metrics.requiredPerH,1)}` : d.verification.supported ? 'Не проверено' : 'Модель не поддерживается'}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Вложения</dt><dd className="m-0 font-semibold">{formatRub(f.capexRub)}</dd></div>
           <div><dt className="text-xs text-muted-foreground">NPV{d.horizonYears === null ? '' : ` за ${formatYearsRu(d.horizonYears)}`} · {pct(d.discountRate)}</dt><dd className="m-0 font-semibold">{formatRub(f.npvRub)}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Чистый эффект в год</dt><dd className="m-0 font-semibold">{formatRub(f.effectYearRub)}</dd></div>
@@ -44,10 +45,10 @@ export function DecisionSummary({ model, scenarioKey, stale = false, expectedInp
         {spatial && e && <CapacityCheck evidence={e} expectedInput={expectedInput} fresh={d.spatial.state === "fresh"} onRequest={onCapacityCheck} />}
         <p className="callout" data-tone={tone}>{d.nextAction}</p>
         {(onSimulation || onCompare || onPilot) && <div className="no-print flex flex-wrap gap-2">
-          {onSimulation&&d.verification.supported&&needsSimulation&&<Button type="button" className="min-h-11" onClick={onSimulation} disabled={stale}>{spatial && d.spatial.state==='fresh'?'Разобрать ограничения в 3D':analytical?'Открыть аналитическую имитацию':'Открыть проверку сценария'}</Button>}
+          {onSimulation&&d.verification.supported&&needsSimulation&&<Button type="button" className="min-h-11" onClick={onSimulation} disabled={stale}>{schedule ? 'Посмотреть расписание' : spatial && d.spatial.state==='fresh'?'Разобрать ограничения в 3D':analytical?'Открыть аналитическую имитацию':'Открыть проверку сценария'}</Button>}
           {onCompare&&<Button type="button" className="min-h-11" variant={d.status === 'financial-limit' ? 'default' : 'outline'} onClick={onCompare} disabled={stale}>Сравнить варианты</Button>}
           {onPilot && d.finance && d.status !== 'baseline' && <Button type="button" className="min-h-11" variant={d.status === 'suitable' ? 'default' : 'outline'} onClick={onPilot} disabled={stale}>Составить план и бюджет пилота</Button>}
-          {onSimulation&&d.verification.supported&&!needsSimulation&&<Button type="button" className="min-h-11" variant="outline" onClick={onSimulation} disabled={stale}>{spatial?'Открыть прогон в 3D':'Открыть аналитическую имитацию'}</Button>}
+          {onSimulation&&d.verification.supported&&!needsSimulation&&<Button type="button" className="min-h-11" variant="outline" onClick={onSimulation} disabled={stale}>{schedule ? 'Посмотреть расписание' : spatial?'Открыть прогон в 3D':'Открыть аналитическую имитацию'}</Button>}
         </div>}
         <details className="min-w-0" open={!onCompare && !onSimulation && !onPilot}><summary className="cursor-pointer py-2 text-sm font-semibold">Обоснование: нагрузка, экономика, труд и источники</summary><div className="grid min-w-0 gap-5 pt-3">
         {d.processes.length > 0 && <section className="grid gap-3" aria-label="Состав и выполнение работы">
@@ -55,7 +56,7 @@ export function DecisionSummary({ model, scenarioKey, stale = false, expectedInp
             <h4 className="text-sm font-semibold">{p.label} · {p.productName}</h4>
             <p className="text-sm">Парк: {p.n ?? "не определён"} · зарядок: {p.chargers}. Требуется {formatNum(p.requiredPerH, 1)} {p.unit}.</p>
             <p className="text-xs text-muted-foreground">Расчётный предел охвата по производительности: {p.analyticCoverage === null ? "не определён" : pct(p.analyticCoverage)}.{p.annualCoverageShare !== null && <> Годовое допущение сценария: {pct(p.annualCoverageShare)}.</>} Принято в экономике: {pct(p.financialCoverage)}{p.coverageOverridden ? " — меньшее из расчётного предела и годового допущения" : " — по расчётной производительности"}. Это отдельный расчёт, а не подтверждение 3D.</p>
-            <p className="text-xs text-muted-foreground">Эффективная выработка: {p.thrEff === null ? "не определена" : `${formatNum(p.thrEff,1)} ${p.unit}`}. Основание: {p.thrSource}. Загрузка U: {pct(p.effectiveUtilization)}; доступность A: {pct(p.effectiveAvailability)}.{p.shiftHourObservation && " Простои уже включены в выработку за час смены; загрузка и доступность повторно не уменьшают охват."}</p>
+            <p className="text-xs text-muted-foreground">Эффективная выработка: {p.thrEff === null ? "не определена" : `${formatNum(p.thrEff,1)} ${p.unit}`}. Основание: {p.thrSource}. Загрузка U: {pct(p.effectiveUtilization)}; доступность A: {pct(p.effectiveAvailability)}.{p.cleaning && " Зарядка и уход уже включены в рабочее окно; загрузка и доступность повторно не уменьшают охват."}{p.shiftHourObservation && " Простои уже включены в выработку за час смены; загрузка и доступность повторно не уменьшают охват."}</p>
           </div>)}
         </section>}
         {d.status === 'baseline' ? null : spatial ? <section className="grid gap-2" aria-label="Пространственная проверка">
@@ -77,7 +78,7 @@ export function DecisionSummary({ model, scenarioKey, stale = false, expectedInp
             <p className="text-xs text-muted-foreground">Модель {d.verification.analytical.simModelVersion}; seed {d.verification.analytical.seed}.</p>
           </> : <p className="text-sm">Нет актуальной сводки для текущего входа и версии модели. Повторите серверный расчёт.</p>}
           <p className="text-xs text-muted-foreground">Проверяются задания, очередь, зарядка и критерии аналитической модели. Подхват мобильного стеллажа, столкновения и пространственная безопасность этим прогоном не подтверждаются.</p>
-        </section> : <section className="grid gap-2" aria-label="Границы проверки нагрузки"><h4 className="text-sm font-semibold">Проверка нагрузки не поддерживается</h4><p className="text-sm">Финансовый результат остаётся предварительным. Для этого состава нет применимой имитационной проверки всего сценария; нужны отдельные проверки процессов или замеры на объекте.</p></section>}
+        </section> : schedule ? <section className="grid gap-2" aria-label="Расчёт уборки по рабочему окну"><h4 className="text-sm font-semibold">Расчёт по рабочему профилю уборки</h4><p className="text-sm">Площадь рассчитана по конечным циклам уборки и зарядки, с ежедневным уходом и отдельной станцией для каждого робота. Это прогноз по введённым условиям. Качество уборки, вода, лифты, люди и движение на объекте проверяются в пилоте.</p></section> : <section className="grid gap-2" aria-label="Границы проверки нагрузки"><h4 className="text-sm font-semibold">Проверка нагрузки не поддерживается</h4><p className="text-sm">Финансовый результат остаётся предварительным. Для этого состава нет применимой имитационной проверки всего сценария; нужны отдельные проверки процессов или замеры на объекте.</p></section>}
         {f && <section className="grid gap-3" aria-label="Финансы выбранного сценария">
           <h4 className="text-sm font-semibold">Экономика этого сценария{d.horizonYears === null ? "" : ` · горизонт ${formatYearsRu(d.horizonYears)}`}</h4>
           <dl className="grid gap-x-5 gap-y-3 text-sm tabular-nums sm:grid-cols-2 lg:grid-cols-3">
@@ -87,8 +88,7 @@ export function DecisionSummary({ model, scenarioKey, stale = false, expectedInp
         </section>}
         {d.processes.length > 0 && <section className="grid gap-2" aria-label="Труд и денежная реализация">
           <h4 className="text-sm font-semibold">Объём труда и денежный эффект</h4>
-          <p className="text-sm">Доля труда процесса, которую берут роботы: {pct(d.analyticAssumptions.laborShare)} — {d.analyticAssumptions.laborSource}.</p>
-          {d.processes.map(p=><p key={`${p.process}:${p.productName}`} className="text-sm">{p.label}: модельно высвобождается {formatNum(p.releasedFte,2)} ставки; остаток ручной работы — {formatNum(p.remainingWorkFte,2)} ставки в эквиваленте трудозатрат. Оставшийся ФОТ процесса в расчёте — {formatRub(p.remainingLabourRub)} в год.</p>)}
+          {d.processes.map(p=><div key={`${p.process}:${p.productName}`} className="grid gap-2 text-sm"><p>Доля труда процесса «{p.label}», которую берут роботы: {pct(p.labourShare)} — {p.labourSource}.</p><p>{p.label}: модельно высвобождается {formatNum(p.releasedFte,2)} ставки; остаток ручной работы — {formatNum(p.remainingWorkFte,2)} ставки в эквиваленте трудозатрат. Оставшийся ФОТ процесса в расчёте — {formatRub(p.remainingLabourRub)} в год.</p></div>)}
           <p className="text-sm">Денежная реализация высвобождаемого труда: <strong>{pct(d.cashRealizationShare)}</strong> — {d.cashRealizationExplicit ? "задано в сценарии" : "исходное допущение модели"}.</p>
           <p className="text-xs text-muted-foreground">Высвобождение времени не равно увольнению людей или автоматическому сокращению ФОТ. Физический остаток работы и сохраняемые денежные затраты показаны раздельно.</p>
         </section>}

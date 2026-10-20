@@ -320,6 +320,32 @@ export type ScenarioKind = "asis" | "purchase" | "raas";
  * Позиция сценария: какой продукт закрывает какой процесс, плюс ручные корректировки
  * автоматически рассчитанных значений (ТЗ §3.5.4 — каждая корректировка пишется в журнал).
  */
+export type CleaningProfile = {
+  basis: "active-hour";
+  throughputM2PerH: number;
+  workBeforeChargeH: number;
+  chargeH: number;
+  dailyCareMin: number;
+  windowH: number;
+  initiallyCharged: true;
+  careWithinWindow: true;
+  automatableLabourShare: number;
+  mode: string;
+  source: string;
+  date: string;
+  reason: string;
+};
+
+export type CleaningProfileResult = {
+  activeHoursPerDay: number;
+  chargeHoursPerDay: number;
+  capacityM2PerDay: number;
+  careHoursPerDay: number;
+  remainingChargeH: number;
+  overnightH: number;
+  careFte: number;
+};
+
 export type ScenarioItem = {
   process: string;
   productSlug: string;
@@ -335,6 +361,8 @@ export type ScenarioItem = {
   throughputPerHOverride?: number;
   serviceRubYearOverride?: number;
   costPackage?: CostPackage;
+  raasPackage?: RaasPackage;
+  cleaningProfile?: CleaningProfile;
   raasRubMonthOverride?: number;
   /** Ставка RaaS подставлена оценкой raasMonthlyPctOfPrice по явному действию пользователя. */
   raasFromEstimate?: boolean;
@@ -361,7 +389,10 @@ export type SpatialEvidence = {
 export type PilotPlanInput = {
   schemaVersion: "pilot-plan-1"; fleet: number; chargers: number; durationDays: number; dayBasis: "working" | "calendar"; acquisition: "purchase" | "raas";
   costs: Record<"setup" | "integration" | "training" | "logistics" | "sitePreparation" | "evaluation", { valueRub: number | null; source: string }>;
-  equipmentUnitRubOverride: number | null; contingencyPct: number; targetThroughputPerH: number | null; maxP95WaitMin: number;
+  equipmentUnitRubOverride: number | null;
+  /** Full first-month RaaS tariff per robot for a separately estimated pilot quote. */
+  raasFirstMonthRubOverride?: number | null;
+  contingencyPct: number; targetThroughputPerH: number | null; maxP95WaitMin: number;
   chargerBudgetRubOverride?: number | null;
   chargerBudgetSource?: string;
   maxInterventionsPerShift: number; readiness: string[]; notes: string;
@@ -386,9 +417,39 @@ export type OperationsStaffingResult = {
 };
 
 export type CostPackage = {
+  startup?: RaasCharge;
+  allChargersIncluded?: boolean;
+  /** Explicit recurring platform charge replaces the legacy annual licence estimate. */
+  platformMonthly?: RaasCharge;
   softwareIncludedInIntegration: boolean;
   repairsIncludedInService: boolean;
   includedChargers: number;
+  reason: string;
+};
+
+/** Explicit commercial assumption for one RaaS cost, never an inferred inclusion. */
+export type RaasCharge =
+  | { mode: "included" }
+  | { mode: "unassessed" }
+  | { mode: "separate"; amountRub: number; basis: "per-robot" | "per-site" };
+
+export type RaasBatteryCharge = Exclude<RaasCharge, { mode: "separate" }> |
+  { mode: "separate"; amountRub: number; basis: "per-robot" | "per-site"; everyYears: number };
+
+/** A stated service/payment scope, not a complete equipment or infrastructure contract. */
+export type RaasPackage = {
+  /** Full first-month subscription per robot; only its premium is paid once at t=0. */
+  firstMonthRub?: number;
+  /** One-off startup including integration, commissioning and training; replaces those three lines. */
+  startup: RaasCharge;
+  /** Monthly platform licence. */
+  platform: RaasCharge;
+  /** Annual costs. */
+  service: RaasCharge;
+  consumables: RaasCharge;
+  repair: RaasCharge;
+  /** Replacement cost and interval, with actual periodic cashflows. */
+  battery: RaasBatteryCharge;
   reason: string;
 };
 
@@ -461,6 +522,7 @@ export type RefusalReason =
   | "throughput_required"
   | "price_required"
   | "raas_rate_required"
+  | "raas_package_incomplete"
   | "staffing_required"
   | "calc_not_supported"
   | "invalid_inputs";
@@ -491,7 +553,8 @@ export type ItemResult = {
   thrCycle: number | null;
   /** Принятая производительность, ед./ч. */
   thrEff: number | null;
-  thrSource: "норма" | "цикл" | "задано вами" | "замер" | null;
+  thrSource: "норма" | "цикл" | "задано вами" | "замер" | "профиль уборки" | null;
+  cleaning?: CleaningProfileResult;
   thrEvidence?: OperatingEvidenceDecision;
   /** Средняя длина плеча с грузом по планировке, м. */
   routeLoadedM: number | null;
@@ -552,10 +615,10 @@ export type SensitivityRow = {
   npvHigh: number | null;
   paybackLow: number | null;
   paybackHigh: number | null;
-  tcoLow: number;
-  tcoHigh: number;
-  /** Размах результата между границами (NPV, для «Как есть» — TCO), ₽. */
-  swing: number;
+  tcoLow: number | null;
+  tcoHigh: number | null;
+  /** Размах между границами, ₽; null — расчёт на одной из границ отказан. */
+  swing: number | null;
   signFlip: boolean;
 };
 
@@ -667,6 +730,8 @@ export type SelectionResult = {
  * эксплуатационные и экономические показатели в одинаковых единицах. null — нет данных.
  */
 export type ComparisonRow = {
+  /** Explicit scenario basis for profile-driven figures; catalogue data alone cannot size cleaning fleets. */
+  calculationBasis?: string;
   process: string;
   productSlug: string;
   productName: string;

@@ -310,7 +310,7 @@ export const PROCESS_DEFS: readonly ProcessDef[] = [
     headcountParam: "cleanersCount",
     salaryParam: "cleanerSalaryRubMonth",
     constraints: { aisleParam: "rackAisleWidthM" },
-    calcSupported: false,
+    calcSupported: true,
     simSupported: false,
     solutionTypes: ["cleaner"],
   },

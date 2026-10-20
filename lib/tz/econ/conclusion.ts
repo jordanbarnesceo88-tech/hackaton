@@ -280,6 +280,7 @@ export function buildConclusion(
     const pb = rec.paybackYears !== null ? formatYearsRu(rec.paybackYears) : "—";
     headline = `Предварительный финансовый выбор: ${rec.name}. NPV ${mrub(rec.npvRub ?? 0)} за ${yearsNom(H)}, окупаемость ${pb} — ${band.text}.`;
     bullets.push("Финансовый выбор не подтверждает эксплуатационную пригодность: проверьте нагрузку и условия объекта; успешная имитация относится только к условиям модели.");
+    if (rec.items.some(item => item.cleaning)) bullets.push("Уборка рассчитана по рабочему эксплуатационному профилю: расписание является прогнозом, а не подтверждением имитацией. Принятая площадь, качество, ручная доработка, уход и зарядка требуют измерительного пилота; один транспортный прогон не подтверждает весь состав смешанного сценария.");
   } else if (robots.some((r) => isViableScenario(r) && r.risks.some(risk => risk.code === "SIM_NOT_EVALUATED")) &&
     !robots.some(r => isViableScenario(r) && r.risks.some(risk => risk.code === "SIM_NOT_CONFIRMED"))) {
     headline = "Рекомендации нет: выполнение нагрузки не оценено, актуального подтверждения нет. Проверьте причину отсутствия оценки; при недостаточной нагрузке увеличьте окно или выполните нагруженный прогон. Финансовые показатели оставлены для сравнения.";
@@ -318,7 +319,7 @@ export function buildConclusion(
   for (const r of top.slice(0, 3)) bullets.push(`Риск (${SEVERITY_LABEL[r.severity]}): ${r.text}`);
 
   // Сильнейший рычаг с диапазоном NPV.
-  const lever = bestRobot?.sensitivity.find((s) => s.npvLow !== null && s.npvHigh !== null && s.swing > 0);
+  const lever = bestRobot?.sensitivity.find((s) => s.npvLow !== null && s.npvHigh !== null && s.swing !== null && s.swing > 0);
   if (lever && lever.npvLow !== null && lever.npvHigh !== null) {
     bullets.push(
       `Сильнейший рычаг — ${q(lever.label)}: при ${rangeText(lever.low, lever.high, lever.unit)} NPV от ${mrub(lever.npvLow)} до ${mrub(lever.npvHigh)}`,

@@ -27,7 +27,7 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   const evidence: SpatialEvidence | null = spec?.spatialEvidence ?? null;
   const evidenceStale = result?.risks.some(r => r.code === "SPATIAL_STALE") ?? false;
   const fresh = !stale && !evidenceStale && spatialEvidenceMatchesInput(evidence, expectedInput);
-  const capacityCandidate = fresh && capacityEvidenceQualifies(evidence, expectedInput);
+  const capacityQualified = fresh && capacityEvidenceQualifies(evidence, expectedInput);
   const partialFacts: string[] = [];
   const measured = fresh && evidence?.assessment.status === "PARTIAL" ? evidence.summary : null;
   const insufficientOutput = measured !== null && measured.achievedPerH + 1e-8 < measured.requiredPerH;
@@ -42,19 +42,28 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   const ok = result?.status === "ok" ? result : null;
   // One transport receipt cannot confirm the other positions or processes of a compound scenario.
   const singleItem = ok?.items.length === 1 && spec?.items.length === 1;
+  const cleaningItem = singleItem && ok?.items[0]?.cleaning ? ok.items[0] : null;
+  const cleaningProfile = cleaningItem ? spec?.items[0]?.cleaningProfile : undefined;
   const verificationKind = !singleItem ? "unsupported" :
+    cleaningItem && cleaningProfile ? "schedule" :
     expectedInput?.transportWorkflow === "closed-pod-1" || (!expectedInput && evidence?.input.transportWorkflow === "closed-pod-1") ? "spatial" :
     expectedInput ? "analytical" : "unsupported";
+  const capacityCandidate = verificationKind === "spatial" && capacityQualified;
   const analytical = verificationKind === "analytical" && !stale && !evidenceStale &&
     simSummary?.scenarioKey === selectedKey && simSummaryMatchesInput(simSummary, expectedInput) ? simSummary : null;
-  const verified = verificationKind === "spatial" ? fresh && evidence?.assessment.status === "OK" : analytical?.verdict === "CONFIRMED";
-  const verificationMetrics = verificationKind === "spatial" ? fresh && evidence?.assessment.status !== "NOT_EVALUATED" ? evidence?.summary ?? null : null : analytical;
+  const verified = verificationKind === "spatial" ? fresh && evidence?.assessment.status === "OK" : verificationKind === "analytical" && analytical?.verdict === "CONFIRMED";
+  const scheduleMetrics = cleaningItem?.cleaning && cleaningProfile && cleaningItem.n !== null ? {
+    fleet: cleaningItem.n, achievedPerH: cleaningItem.n * cleaningItem.cleaning.capacityM2PerDay / cleaningProfile.windowH,
+    requiredPerH: cleaningItem.peakPerHour, queueEnd: null, waitP95Min: null,
+  } : null;
+  const verificationMetrics = verificationKind === "schedule" ? scheduleMetrics : verificationKind === "spatial" ? fresh && evidence?.assessment.status !== "NOT_EVALUATED" ? evidence?.summary ?? null : null : analytical;
   const cashRealizationShare = spec?.cashRealizationShare ?? 1;
   const processes = (ok?.items ?? []).map(item => {
     const definition = processDef(item.process);
+    const itemProfile = spec?.items.find(i => i.process === item.process && i.productSlug === item.productSlug)?.cleaningProfile;
     const shiftHourObservation = item.thrEvidence?.applied === true && item.thrEvidence.basis === "shift-hour";
-    const effectiveUtilization = shiftHourObservation ? 1 : norms.utilization;
-    const effectiveAvailability = shiftHourObservation ? 1 : norms.availability;
+    const effectiveUtilization = shiftHourObservation || item.cleaning ? 1 : norms.utilization;
+    const effectiveAvailability = shiftHourObservation || item.cleaning ? 1 : norms.availability;
     const analyticCoverage = item.n !== null && item.thrEff !== null
       ? coverage(item.n, item.thrEff, effectiveUtilization, effectiveAvailability, item.peakPerHour) : null;
     return {
@@ -62,6 +71,9 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
       n: item.n, chargers: item.chargers, requiredPerH: item.peakPerHour,
       unit: definition?.throughputUnit ?? "ед./ч", analyticCoverage,
       shiftHourObservation, effectiveUtilization, effectiveAvailability,
+      cleaning: Boolean(item.cleaning),
+      labourShare: itemProfile?.automatableLabourShare ?? norms.laborShareAutomatable,
+      labourSource: itemProfile ? `рабочий профиль: ${itemProfile.source}, ${itemProfile.date}` : spec?.normOverrides?.laborShareAutomatable !== undefined ? "задано в сценарии" : "норматив модели",
       financialCoverage: item.coverage,
       annualCoverageShare: spec?.items.find(i => i.process === item.process && i.productSlug === item.productSlug)?.automationCoverageOverride ?? null,
       coverageOverridden: spec?.items.find(i => i.process === item.process && i.productSlug === item.productSlug)?.automationCoverageOverride !== undefined,
@@ -71,6 +83,10 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
     };
   });
   const financialViable = ok !== null && ok.kind !== "asis" && isViableScenario(ok);
+  const scheduleFullCoverage = verificationKind === "schedule" && processes.every(p => (p.analyticCoverage ?? 0) >= 1 - 1e-9 && p.financialCoverage >= 1 - 1e-9);
+  const scheduleDeficit = cleaningItem?.cleaning && cleaningItem.n !== null ? Math.max(0, cleaningItem.demandPerDay - cleaningItem.n * cleaningItem.cleaning.capacityM2PerDay) : 0;
+  const scheduleLimit = scheduleDeficit > 1e-8 ? `Расчётный дефицит ${formatNum(scheduleDeficit, 1)} м²/день: площадь и кратность уборки превышают выработку этого парка в заданном окне. `
+    : !scheduleFullCoverage ? "Расчётная дневная мощность не снимает заданного ограничения годового охвата; уточните его основание. " : "";
   let status: DecisionStatus, headline: string, nextAction: string;
   if (!result) {
     status = "missing"; headline = "Выберите рассчитанный сценарий для решения";
@@ -87,6 +103,12 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   } else if (ok.risks.some(r => r.code === "MANUAL_ADD")) {
     status = "invalid"; headline = "Применимость выбранной техники не подтверждена подбором";
     nextAction = "Разберите причину исключения техники из подбора; финансовые числа ниже оставлены для сравнения.";
+  } else if (verificationKind === "schedule") {
+    status = financialViable ? "partial" : "financial-limit";
+    headline = !financialViable ? "Уборка рассчитана по рабочему профилю; финансовые критерии не выполнены"
+      : !scheduleFullCoverage ? "Расчётный профиль не закрывает требуемую уборку полностью"
+      : "Условный кандидат по рабочему профилю уборки; результат пилота не подтверждён";
+    nextAction = `${scheduleLimit}Расписание — прогноз по явным допущениям, не подтверждение 2D/3D. ${!financialViable ? "Сравните реальные затраты и денежную реализацию труда. " : ""}На измерительном пилоте проверьте принятую площадь, качество, ручную доработку, уход и зарядку; успешность пилота и безопасность этим расчётом не подтверждены.`;
   } else if (verificationKind === "unsupported") {
     status = "unsupported"; headline = "Экономика рассчитана; проверка нагрузки этого сценария не поддерживается";
     nextAction = !singleItem ? "Сценарий содержит несколько позиций: результат одного транспортного прогона не подтверждает весь состав. Уточните нагрузки каждого процесса и проверьте их отдельно."
@@ -133,15 +155,15 @@ export function buildDecision(model: DecisionModel, scenarioKey?: string, expect
   return {
     scenarioKey: result?.key ?? selectedKey ?? null, scenarioName: result?.name ?? "Сценарий не выбран", status, headline, nextAction, capacityCandidate,
     horizonYears, discountRate: norms.discountRate, processes, constraints, sources,
-    analyticAssumptions: { utilization: norms.utilization, availability: norms.availability, laborShare: norms.laborShareAutomatable,
-      laborSource: spec?.normOverrides?.laborShareAutomatable !== undefined ? "задано в сценарии" : laborDefinition ? originLabel(laborDefinition.origin) : "источник не сохранён" },
+    analyticAssumptions: { utilization: cleaningItem ? 1 : norms.utilization, availability: cleaningItem ? 1 : norms.availability, laborShare: cleaningProfile?.automatableLabourShare ?? norms.laborShareAutomatable,
+      laborSource: cleaningProfile ? `рабочий профиль: ${cleaningProfile.source}, ${cleaningProfile.date}; ${cleaningProfile.reason}` : spec?.normOverrides?.laborShareAutomatable !== undefined ? "задано в сценарии" : laborDefinition ? originLabel(laborDefinition.origin) : "источник не сохранён" },
     spatial: { state: spatialState, evidence, metrics: evidence && evidence.assessment.status !== "NOT_EVALUATED" ? evidence.summary : null, partialFacts },
     finance: ok ? { capexRub: ok.capexRub, opexYearRub: ok.opexYearRub, effectYearRub: ok.effectYearRub, npvRub: ok.npvRub, paybackYears: ok.paybackYears, discountedPaybackYears: ok.discountedPaybackYears, tcoRub: ok.tcoRub, tcoYears: ok.tcoYears, viable: financialViable } : null,
     cashRealizationShare, cashRealizationExplicit: spec?.cashRealizationShare !== undefined,
-    verification: { kind: verificationKind, metrics: verificationMetrics, analytical, supported: verificationKind !== "unsupported" },
+    verification: { kind: verificationKind, metrics: verificationMetrics, analytical, supported: verificationKind !== "unsupported", verified, isForecast: verificationKind === "schedule" },
     pilot: {
-      applicable: status === "suitable", criteria,
-      purpose: status === "suitable" ? "Проверить выбранный вариант на ограниченном участке по его нагрузке и критериям." : "Сначала разрешить показанное ограничение или получить актуальную проверку; пилот не подменяет вывод по сценарию.",
+      applicable: status === "suitable" || (status === "partial" && financialViable && scheduleFullCoverage), criteria,
+      purpose: verificationKind === "schedule" ? "Измерительный пилот проверяет принятую площадь, качество, ручной труд и эксплуатационный профиль; расчётное расписание не считается успешной приёмкой." : status === "suitable" ? "Проверить выбранный вариант на ограниченном участке по его нагрузке и критериям." : "Сначала разрешить показанное ограничение или получить актуальную проверку; пилот не подменяет вывод по сценарию.",
       p95WaitMaxMin: expectedInput?.thresholds.p95WaitMaxMin ?? (fresh ? evidence?.input.thresholds.p95WaitMaxMin : null) ?? null,
       servedShareMin: expectedInput?.thresholds.servedShareMin ?? (fresh ? evidence?.input.thresholds.servedShareMin : null) ?? null,
       preparation: ["Выбрать участок и согласовать границы работы, проходы, связь, питание и размещение зарядок.", "Зафиксировать ручные операции, вмешательства и способ денежной реализации высвобождаемого труда.", "Согласовать ответственных, длительность, критерии приёмки и условия остановки проверки."],

@@ -3,6 +3,7 @@ import { formatMRub, formatNum, formatPct, formatRub } from "@/lib/format/rub";
 import { processDef, type ProcessDef } from "@/lib/tz/processes";
 import type { ComparisonRow, ScenarioSpec, SelectionStatus } from "@/lib/tz/types";
 import { cn } from "@/lib/utils";
+export { comparisonRowsForScenarios } from "@/lib/tz/comparison-scope";
 
 /**
  * Сравнение решений по единым характеристикам (ТЗ §2.2 шаг 4): продукты — столбцы (до шести),
@@ -345,6 +346,7 @@ function ProcessComparison({
                   ) : (
                     r.productName
                   )}
+                  {r.calculationBasis && <p className="mt-2 max-w-64 whitespace-normal text-xs font-normal leading-relaxed text-muted-foreground">{r.calculationBasis}</p>}
                 </th>
               ))}
             </tr>
@@ -366,7 +368,9 @@ function ProcessComparison({
                   return (
                     <tr key={m.key} className="border-t">
                       <th scope="row" className="px-3 py-1.5 text-left font-normal">
-                        {m.label}
+                        {process === "cleaning" && m.key === "thrNorm" ? "Паспортная производительность (справочно)" :
+                          process === "cleaning" && m.key === "thrEff" ? "Принятая выработка за час рабочего окна" :
+                          process === "cleaning" && m.key === "raasRubMonth" ? "Каталожная ставка RaaS" : m.label}
                         {unit && <span className="text-muted-foreground">, {unit}</span>}
                       </th>
                       {placeholder !== null ? (

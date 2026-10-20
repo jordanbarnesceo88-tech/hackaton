@@ -18,6 +18,7 @@ export const REFUSAL_TITLES: Readonly<Record<RefusalReason, string>> = {
   throughput_required: "не хватает производительности",
   price_required: "не хватает цены",
   raas_rate_required: "не хватает ставки RaaS",
+  raas_package_incomplete: "уточните состав RaaS",
   staffing_required: "не хватает данных о персонале",
   calc_not_supported: "экономика не рассчитывается",
   invalid_inputs: "исправьте данные",
@@ -31,6 +32,10 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   raasRate: "Ставка RaaS, ₽/мес за робота",
   manual: "Решение для процесса",
   package: "Комплектация и границы платежей",
+  raasPackage: "Состав услуги RaaS и отдельные платежи",
+  cleaningProfile: "Рабочий профиль уборки и зарядки",
+  throughput: "Выработка за активный час в рабочем профиле",
+  chargers: "Число отдельных зарядных станций",
 };
 
 /** Подписи полей уровня сценария: 'scenario:<вид>'. */
@@ -40,6 +45,7 @@ const SCENARIO_FIELD_LABELS: Readonly<Record<string, string>> = {
   operationsStaffing: "Организация и дополнительные расходы эксплуатации",
   costPackage: "Комплектация покупки и границы платежей",
   logistics: "Доставка полного внедрения",
+  raasPackage: "Общие платежи RaaS за площадку",
 };
 
 /**

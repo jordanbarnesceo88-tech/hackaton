@@ -14,6 +14,7 @@ import { fmtNum } from "./text";
 
 /** Можно ли посчитать парк по данным продукта. */
 export type ThroughputAssessment = {
+  needsCleaningProfile?: boolean;
   /**
    * Паспортная производительность пригодна для расчёта парка — решает `normThroughput` движка
    * экономики: на один робот или станцию, в единицах процесса, не «до X».
@@ -46,6 +47,9 @@ export type ThroughputAssessment = {
  * производительности, ни скорости.
  */
 export function assessThroughput(product: ProductForCalc, process: ProcessDef): ThroughputAssessment {
+  if (process.slug === "cleaning") {
+    return { hasNorm: false, hasCycle: false, insufficient: true, needsCleaningProfile: true, normIssue: "не задан эксплуатационный профиль уборки" };
+  }
   const thr = positiveOrNull(product.throughputPerH);
   const speed = positiveOrNull(product.speedMps);
   const norm = normThroughput(product, process);
@@ -73,6 +77,7 @@ const THROUGHPUT_HOW_TO_FIX = "Укажите производительност
  */
 export function insufficientReason(product: ProductForCalc, process: ProcessDef, a: ThroughputAssessment): string | null {
   if (!a.insufficient) return null;
+  if (a.needsCleaningProfile) return "Для расчёта парка задайте эксплуатационный профиль уборки; паспортная производительность его не заменяет";
   if (!process.calcSupported) return "Недостаточно данных: нет ни производительности, ни скорости";
   const cycle = !product.mobile
     ? "цикл по скорости для стационарного решения не считается"
@@ -99,7 +104,9 @@ export function cycleOnlyNote(product: ProductForCalc, process: ProcessDef, a: T
 export function missingData(product: ProductForCalc, a: ThroughputAssessment): MissingItem[] {
   const out: MissingItem[] = [];
   if (a.insufficient) {
-    out.push({ key: "throughput", label: "Производительность", howToFix: THROUGHPUT_HOW_TO_FIX });
+    out.push(a.needsCleaningProfile
+      ? { key: "throughput", label: "Эксплуатационный профиль уборки", howToFix: "В экономике сценария задайте выработку за активный час, рабочее окно, работу и зарядку, ежедневный уход. Паспортная производительность не заменяет профиль." }
+      : { key: "throughput", label: "Производительность", howToFix: THROUGHPUT_HOW_TO_FIX });
   }
   // Как у движка экономики: цена и ставка должны быть положительными числами, иначе отказ
   // price_required / raas_rate_required.

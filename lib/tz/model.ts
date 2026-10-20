@@ -612,6 +612,7 @@ function comparisonOf(
   ctx: ScenarioContext,
   sels: readonly ProcessSelection[],
   specs: readonly ScenarioSpec[],
+  results: readonly ScenarioResult[],
 ): ComparisonRow[] {
   const rows: ComparisonRow[] = [];
   for (const ps of sels) {
@@ -626,6 +627,25 @@ function comparisonOf(
     for (const slug of slugs) {
       const product = ctx.products[slug];
       if (!product) continue;
+      if (ps.process.slug === "cleaning") {
+        const matching = specs.filter(spec => spec.kind !== "asis" && spec.items.length === 1 &&
+          spec.items[0]?.process === "cleaning" && spec.items[0]?.productSlug === slug);
+        const purchases = matching.filter(spec => spec.kind === "purchase");
+        const references = purchases.length > 0 ? purchases : matching;
+        const reference = references.length === 1 ? references[0] : undefined;
+        const calculated = reference ? results.find(result => result.key === reference.key) ?? null : null;
+        const hasProfile = reference?.items[0]?.cleaningProfile !== undefined;
+        const basis = references.length > 1
+          ? "У модели несколько сценариев: профиль, парк и деньги сравнивайте в таблице сценариев. Единое значение не выбрано."
+          : hasProfile && reference && calculated?.status === "ok"
+            ? `Принятая выработка в м²/ч рабочего окна и парк — из сценария «${reference.name}». ${reference.kind === "purchase" ? "Покупка рассчитана по его условиям." : "Это RaaS; показатели покупки не рассчитаны."} Паспортные характеристики и каталожная ставка RaaS показаны справочно.`
+            : hasProfile && reference
+              ? `Сценарий «${reference.name}» не рассчитан полностью${calculated?.status === "refused" ? `: ${calculated.refusal.message}` : "."} ${calculated?.items.length ? "Выработка и парк показаны из частичного расчёта по профилю; финансовые показатели отсутствуют." : "Профиль задан; выработка, парк и финансовые показатели появятся после устранения причины отказа."} Паспортные характеристики и каталожная ставка RaaS показаны справочно.`
+            : "Профиль уборки для сравнения не задан. Паспортная производительность не используется для расчёта парка; условия смешанного сценария смотрите отдельно.";
+        rows.push(comparisonRow(ctx, ps.process, product, statusOf.get(slug) ?? "excluded", manual.has(slug),
+          hasProfile ? calculated : null, { basis, item: reference?.items[0], purchase: reference?.kind === "purchase" }));
+        continue;
+      }
       rows.push(
         comparisonRow(ctx, ps.process, product, statusOf.get(slug) ?? "excluded", manual.has(slug), ps.temp.get(slug) ?? null),
       );
@@ -642,13 +662,16 @@ function comparisonRow(
   status: SelectionStatus,
   manuallyAdded: boolean,
   temp: ScenarioResult | null,
+  cleaning?: { basis: string; item?: ScenarioItem; purchase: boolean },
 ): ComparisonRow {
   const item = temp?.items.find((i) => i.process === process.slug) ?? null;
   const thr = item
     ? { thrNorm: item.thrNorm, thrCycle: item.thrCycle, thrEff: item.thrEff }
-    : throughputFor(ctx, { process: process.slug, productSlug: product.slug });
-  const ok = temp && temp.status === "ok" ? temp : null;
+    : process.slug === "cleaning" ? { thrNorm: product.throughputPerH, thrCycle: null, thrEff: null }
+      : throughputFor(ctx, { process: process.slug, productSlug: product.slug });
+  const ok = temp && temp.status === "ok" && (!cleaning || cleaning.purchase) ? temp : null;
   return {
+    ...(cleaning ? { calculationBasis: cleaning.basis } : {}),
     process: process.slug,
     productSlug: product.slug,
     productName: product.name,
@@ -656,7 +679,7 @@ function comparisonRow(
     manuallyAdded,
     payloadKg: product.payloadKg,
     speedMps: product.speedMps,
-    thrNorm: thr.thrNorm,
+    thrNorm: process.slug === "cleaning" ? product.throughputPerH : thr.thrNorm,
     thrCycle: thr.thrCycle,
     thrEff: thr.thrEff,
     autonomyH: product.autonomyH,
@@ -664,7 +687,7 @@ function comparisonRow(
     minAisleM: product.minAisleM,
     n: item?.n ?? null,
     chargers: item ? item.chargers : null,
-    priceRub: product.priceRub,
+    priceRub: cleaning?.purchase ? cleaning.item?.priceRubOverride ?? product.priceRub : product.priceRub,
     capexPurchaseRub: ok ? ok.capexRub : null,
     npvPurchaseRub: ok ? ok.npvRub : null,
     paybackPurchaseYears: ok ? ok.paybackYears : null,
@@ -842,9 +865,9 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
     }
   }
   const layoutProblem = layoutCheck && !layoutCheck.ok ? layoutCheck : null;
-  /** Позиции, которым нужна планировка: мобильный робот на процессе с расчётом экономики. */
+  /** Cleaning uses its declared finite-day profile, never pallet routes or loading gates. */
   const needsLayout = (product: ProductForCalc | undefined, process: ProcessDef | undefined): boolean =>
-    layoutProblem !== null && product?.mobile === true && process?.calcSupported === true;
+    layoutProblem !== null && product?.mobile === true && process?.calcSupported === true && process.slug !== "cleaning";
 
   const ctx: ScenarioContext = {
     facility,
@@ -859,6 +882,7 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
   const explicitLegs = new WeakMap<SimLayout, Map<string, ExpectedLegs>>();
   const explicitClosedLegs = new WeakMap<SimLayout, Map<string, ExpectedLegs>>();
   ctx.cycleForSpec = (spec, scenarioNorms, currentParams) => {
+    if (spec.items.length > 0 && spec.items.every(item => item.process === "cleaning")) return {};
     const currentMix = mixFor(currentParams), mixKey = stableJson(currentMix);
     const closed = facility === "warehouse" && spec.items.some(item => productsBySlug[item.productSlug]?.mobile && productsBySlug[item.productSlug]?.handlingClass === "jacking");
     if (!spec.siteLayout) {
@@ -947,7 +971,7 @@ export function buildProjectModel(input: BuildProjectModelInput): ProjectModel {
     });
   }
 
-  const comparison = comparisonOf(ctx, sels, specs);
+  const comparison = comparisonOf(ctx, sels, specs, results);
   // Смена вывода по горизонту пересчитывает сценарии по их описаниям: сценарий с отказом из-за
   // планировки туда не передаётся, иначе он посчитался бы по паспортной норме.
   const conclusionSpecs = layoutProblem ? specs.filter((s) => !layoutBlocked(s)) : specs;

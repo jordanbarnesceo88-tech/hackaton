@@ -157,6 +157,14 @@ describe("NORM_DEFS: правила происхождения (ТЗ §3.5.1 —
 });
 
 describe("resolveNorms", () => {
+  it("accepts explicit shorter equipment-life assumptions without changing the seven-year default", () => {
+    expect(normDef("serviceLifeYearsDefault")).toMatchObject({ value: 7, min: 1, max: 10 });
+    expect(resolveNorms().serviceLifeYearsDefault).toBe(7);
+    expect(resolveNorms([{ key: "serviceLifeYearsDefault", value: 7 }], { serviceLifeYearsDefault: 3 }).serviceLifeYearsDefault).toBe(3);
+    expect(resolveNorms(undefined, { serviceLifeYearsDefault: 0 }).serviceLifeYearsDefault).toBe(1);
+    expect(resolveNorms(undefined, { serviceLifeYearsDefault: 11 }).serviceLifeYearsDefault).toBe(10);
+    expect(normDef("serviceLifeYearsDefault").basis).toContain("не гарантия");
+  });
   it("без аргументов возвращает умолчания, но не сам замороженный объект", () => {
     const n = resolveNorms();
     expect(n).toEqual(DEFAULT_NORMS);

@@ -18,7 +18,11 @@ import { processDef, solutionTypeDef } from "../tz/processes";
 import { AUTO_MANUAL_SUFFIX, buildProjectModel, expectedSpatialInputFromStored, storedPartOf } from "../tz/model";
 import type { ProductSeed, ProjectResults, ScenarioSpec } from "../tz/types";
 import { stableJson } from "../tz/version";
-import { bestPaybackYears, getProject, getProjectChanges, getOwnedProjectSnapshot, persistNewProject, listProjects, persistProjectCalculation, type NewProject, type ProjectCalculation } from "./queries";
+import { buildPilotBudget, defaultPilotPlan } from "../tz/pilot-budget";
+import { TEST_CLEANING_PROFILE } from "../tz/econ/cleaning-fixtures";
+import { VENDOR_CLEANING_PRODUCTS } from "../data/vendor-cleaning";
+import { projectCsv } from "../report/tz/csv";
+import { bestPaybackYears, getProject, getProjectChanges, getOwnedProjectSnapshot, persistNewProject, listProjects, persistProjectCalculation, scenarioFromRow, type NewProject, type ProjectCalculation } from "./queries";
 import { resultsFromInputsAsync, type LiveInputs, type ComputeProjectInput, liveDataVersion, loadLiveInputs, reproduceModel } from "./recalc";
 
 /**
@@ -807,6 +811,126 @@ describe("server-derived audit and consistent report snapshot", () => {
     expect(await completeJob(prisma, claim, computed, publishFrozenCalculation)).toBe(true);
     return (await getOwnedJobResult(prisma, userA, jobId))!;
   }
+
+  it("round-trips cleaning financial profiles through the actual worker engine, JSONB, archive and CSV", async () => {
+    // Only this isolated review fixture temporarily enables its existing taxonomy feature flag.
+    const definition = processDef("cleaning")!, solution = solutionTypeDef("cleaner")!;
+    const previous = await prisma.process.findUnique({ where: { slug: definition.slug } });
+    const process = await prisma.process.upsert({ where: { slug: definition.slug }, update: { calcSupported: true }, create: {
+      slug: definition.slug, name: definition.name, description: definition.description, demandUnit: definition.demandUnit,
+      demandFormula: definition.demandFormula, throughputUnit: definition.throughputUnit, calcSupported: true, simSupported: false, order: definition.order,
+    } });
+    try {
+      await prisma.solutionType.upsert({ where: { slug: solution.slug }, update: {}, create: { slug: solution.slug, name: solution.name, purpose: solution.purpose, handlingClass: solution.handlingClass, mobile: solution.mobile } });
+      const warehouse = await prisma.facilityType.findUniqueOrThrow({ where: { slug: "warehouse" } });
+      await prisma.facilityTypeProcess.upsert({ where: { facilityTypeId_processId: { facilityTypeId: warehouse.id, processId: process.id } }, update: {}, create: { facilityTypeId: warehouse.id, processId: process.id, order: definition.order } });
+      const slug = `${P}cc1-profile`;
+      await writeProduct({ ...VENDOR_CLEANING_PRODUCTS[0]!, slug, name: "TZT22 CC1 cleaning fixture", processes: ["cleaning"], facilityTypes: ["warehouse"] });
+      const live = await loadLiveInputs(prisma, "warehouse"), included = { mode: "included" } as const;
+      expect(live.products.find(row => row.slug === slug)!.handlingClass).toBe("cleaner");
+      const params = { ...Object.fromEntries(live.paramDefs.map(d => [d.key, d.base])), cleaningAreaM2: 4400, cleaningsPerDay: 1, cleanersCount: 4, cleanerSalaryRubMonth: 65000 };
+      const scope = { softwareIncludedInIntegration: true, repairsIncludedInService: false, includedChargers: 0, allChargersIncluded: true,
+        startup: { mode: "separate" as const, amountRub: 80000, basis: "per-site" as const }, platformMonthly: { mode: "separate" as const, amountRub: 12200, basis: "per-robot" as const }, reason: "Синтетическая DB-оценка комплекта, запуска и платформы, не КП" };
+      const specs: ScenarioSpec[] = [
+        { key: "asis", name: "Ручная уборка", kind: "asis", items: [] },
+        { key: "p1", name: "Покупка уборщика", kind: "purchase", items: [{ process: "cleaning", productSlug: slug, cleaningProfile: TEST_CLEANING_PROFILE, priceRubOverride: 2790000, serviceRubYearOverride: 112000, costPackage: scope }] },
+        { key: "r1", name: "Услуга уборщика", kind: "raas", items: [{ process: "cleaning", productSlug: slug, cleaningProfile: TEST_CLEANING_PROFILE, raasRubMonthOverride: 185000,
+          raasPackage: { firstMonthRub: 250000, startup: included, platform: included, service: included, consumables: included, repair: included, battery: included, reason: "Синтетическая полная DB-оценка состава услуги, не КП" } }] },
+      ];
+      const created = await insertProject(prisma, live, { userId: userA, name: "TZT22 cleaning profile archive", objectName: null, facility: "warehouse", params, paramsSource: { kind: "demo" }, scenarios: specs });
+      const edited = structuredClone(specs);
+      for (const spec of edited.filter(row => row.kind !== "asis")) spec.items[0]!.cleaningProfile = { ...TEST_CLEANING_PROFILE, throughputM2PerH: 600, dailyCareMin: 20, source: "Сохранённая синтетическая DB-оценка 600 м²/активный ч" };
+      asUser(userA);
+      const saved = await commands.save(created.id, { expectedRevision: 0, params, scenarios: edited, changes: [] });
+      expect(saved.ok).toBe(true);
+      if (!saved.ok) throw new Error(saved.message);
+      expect(saved.results.modelVersion).toBe("tz-1.0.10");
+      expect(Object.values(saved.results.sim).every(value => value === null)).toBe(true);
+      const result = saved.results.results.find(row => row.key === "p1");
+      if (result?.status !== "ok") throw new Error(JSON.stringify(result));
+      const item = result.items[0]!;
+      expect(item.cleaning!.capacityM2PerDay).toBe(2400);
+      const comparison = saved.results.comparison.find(row => row.process === "cleaning" && row.productSlug === slug)!;
+      expect(comparison.calculationBasis).toContain("Покупка уборщика");
+      expect(comparison.thrEff).toBe(item.thrEff);
+      expect(comparison.thrEff).toBe(2400 / TEST_CLEANING_PROFILE.windowH);
+      const throughput = result.sensitivity.find(row => row.lever === "throughput")!;
+      expect(throughput.base).toBe(600);
+      expect(throughput.unit).toBe("м²/активный ч");
+      for (const endpoint of [throughput.npvLow, throughput.npvHigh]) {
+        expect(endpoint).not.toBeNull(); expect(Number.isFinite(endpoint)).toBe(true);
+      }
+      const raasResult = saved.results.results.find(row => row.key === "r1");
+      if (raasResult?.status !== "ok") throw new Error("Expected persisted RaaS sensitivity");
+      const rate = raasResult.sensitivity.find(row => row.lever === "raasRate")!;
+      expect(rate.base).toBe(185000); expect(rate.high).toBeLessThanOrEqual(250000);
+      for (const endpoint of [rate.npvLow, rate.npvHigh]) {
+        expect(endpoint).not.toBeNull(); expect(Number.isFinite(endpoint)).toBe(true);
+      }
+      expect(result.capexLines.find(row => row.key === "startup")!.valueRub).toBe(80000);
+      expect(result.capexLines.find(row => row.key === "chargers")!.valueRub).toBe(0);
+      expect(result.opexLines.find(row => row.key === "licences")!.valueRub).toBe(item.n! * 12 * 12200);
+      const raw = await prisma.project.findUniqueOrThrow({ where: { id: created.id }, include: { scenarios: true } });
+      expect(raw.results as unknown as ProjectResults).toEqual(saved.results);
+      expect((raw.results as unknown as ProjectResults).scenarios.find(row => row.key === "p1")!.items[0]!.cleaningProfile).toEqual(edited[1]!.items[0]!.cleaningProfile);
+      const rawSpec = scenarioFromRow(raw.scenarios.find(row => row.key === "p1")!);
+      expect(rawSpec.items[0]!.costPackage).toEqual(scope);
+      expect(rawSpec.items[0]!.cleaningProfile).toEqual(edited[1]!.items[0]!.cleaningProfile);
+      const countBefore = await prisma.calculationJob.count({ where: { ownerId: userA } });
+      if (previous) await prisma.process.update({ where: { id: process.id }, data: { calcSupported: previous.calcSupported } });
+      const reopened = (await getProject(prisma, created.id, userA))!;
+      expect(reopened.results).toEqual(saved.results);
+      const archive = reproduceModel({ ...live, products: [] }, reopened.results!);
+      expect(archive.results).toEqual(saved.results.results);
+      expect(archive.comparison).toEqual(saved.results.comparison);
+      const csv = projectCsv(reopened.results!, { projectName: reopened.name });
+      expect(csv).toContain(edited[1]!.items[0]!.cleaningProfile!.source);
+      expect(csv).toContain("2400 м²/робот/день"); expect(csv).toContain(scope.reason);
+      expect(await prisma.calculationJob.count({ where: { ownerId: userA } })).toBe(countBefore);
+      expect((await getProjectChanges(prisma, created.id, userA))!.some(row => row.field === "item:cleaning:cleaningProfile")).toBe(true);
+    } finally {
+      if (previous) await prisma.process.update({ where: { id: process.id }, data: { calcSupported: previous.calcSupported } });
+    }
+  }, 120_000);
+
+  it("persists explicit RaaS scope and a pilot's own first month through durable SAVE and immutable archive reopening", async () => {
+    const project = await fixture(), live = await loadLiveInputs(prisma, "warehouse");
+    const specs = structuredClone(project.scenarios), raas = specs.find(row => row.key === "r1")!;
+    const included = { mode: "included" } as const;
+    raas.items[0] = { ...raas.items[0]!, quantityOverride: 2, chargersOverride: 1, raasRubMonthOverride: 185000,
+      raasPackage: { firstMonthRub: 250000, startup: { mode: "separate", amountRub: 80000, basis: "per-site" },
+        platform: { mode: "separate", amountRub: 12200, basis: "per-site" }, service: included,
+        consumables: included, repair: included, battery: included, reason: "Синтетическая оценка интеграционного теста, не КП" } };
+    const edited = buildProjectModel({ ...live, facility: "warehouse", params: project.params, scenarios: specs });
+    const pilot = defaultPilotPlan(edited, "r1");
+    pilot.equipmentUnitRubOverride = 300000;
+    pilot.raasFirstMonthRubOverride = 400000;
+    raas.pilotPlan = pilot;
+    const accepted = await enqueue(project, { scenarios: specs, changes: [] });
+    expect((await finish(accepted.id)).job.publicationState).toBe("PUBLISHED");
+    const saved = (await getProject(prisma, project.id, userA))!;
+    const savedSpec = saved.scenarios.find(row => row.key === "r1")!;
+    expect(savedSpec.items[0]!.raasPackage).toEqual(raas.items[0]!.raasPackage);
+    expect(savedSpec.pilotPlan).toEqual(pilot);
+    expect(saved.results!.scenarios.find(row => row.key === "r1")).toEqual(savedSpec);
+    const finance = saved.results!.results.find(row => row.key === "r1");
+    if (finance?.status !== "ok") throw new Error("Expected canonical RaaS financial result");
+    expect(finance.capexLines.find(line => line.key === "firstMonthPremium")!.valueRub).toBe(130000);
+    expect(finance.opexLines.find(line => line.key === "platform")!.valueRub).toBe(146400);
+    const journal = await getProjectChanges(prisma, project.id, userA);
+    expect(journal!.find(row => row.field === `item:${PT}:raasPackage`)!.new).toEqual(raas.items[0]!.raasPackage);
+    const jobsBefore = await prisma.calculationJob.count({ where: { ownerId: userA } });
+    const reopened = (await getProject(prisma, project.id, userA))!;
+    expect(reopened.results).toEqual(saved.results);
+    expect(reopened.revision).toBe(project.revision + 1);
+    const archived = reproduceModel({ ...live, products: [] }, reopened.results!);
+    expect(archived.results).toEqual(saved.results!.results);
+    expect(archived.scenarios.find(row => row.key === "r1")!.pilotPlan).toEqual(pilot);
+    const budget = buildPilotBudget(archived, "r1");
+    expect(budget.lines.find(line => line.key === "equipment")!.valueRub).toBe(600000);
+    expect(budget.lines.find(line => line.key === "firstMonthPremium")!.valueRub).toBe(200000);
+    expect(await prisma.calculationJob.count({ where: { ownerId: userA } })).toBe(jobsBefore);
+  });
 
   it("server-derived audit records omitted changes through the real SAVE publication path", async () => {
     const project = await fixture(), specs = structuredClone(project.scenarios);

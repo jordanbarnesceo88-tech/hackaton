@@ -10,7 +10,8 @@ export function ServiceContacts({ providers }: { providers: readonly ServiceProv
     {providers.map(provider => <article key={provider.id} className="grid min-w-0 gap-2 border-t pt-3">
       <h4 className="font-semibold">{provider.name}</h4>
       <p>{provider.role}. {provider.coverage}</p>
-      <p>Реакция: {provider.responseSla ?? "срок не опубликован; согласовать в договоре"}. Выезд: {provider.onsiteSla ?? "срок не опубликован; согласовать для адреса объекта"}.</p>
+      <p>Договорный SLA — реакция: {provider.responseSla ?? "не согласована"}; выезд: {provider.onsiteSla ?? "не согласован для объекта"}.</p>
+      {provider.teamNotes && <div className="grid gap-2"><p className="font-medium">Сведения команды для подготовки договора</p><ul className="list-disc space-y-2 pl-5">{provider.teamNotes.map(note => <li key={note}>{note}</li>)}</ul></div>}
       <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-2 break-all">
         {provider.contactUrl && <a className="tap-target text-primary underline" href={provider.contactUrl} target="_blank" rel="noopener noreferrer">Связаться с организацией ↗</a>}
         {provider.email && <a className="tap-target text-primary underline" href={`mailto:${encodeURIComponent(provider.email).replace(/%40/g, "@")}`}>{provider.email}</a>}
@@ -35,6 +36,7 @@ export function ImplementationGuidePanel({ snapshot, expanded = false }: { snaps
           {([
             ["Проверить до запуска", guide.bottlenecks], ["Подготовить объект", guide.preparation],
             ["Принять результат пилота", guide.acceptance], ["Работа инженера", guide.operations],
+            ["Работа заказчика", guide.customer],
           ] as const).map(([title, items]) => <section key={title} className="grid content-start gap-2"><h4 className="font-semibold">{title}</h4><ul className="list-disc space-y-2 pl-5">{items.map(item => <li key={item}>{item}</li>)}</ul></section>)}
         </div>
       </details>

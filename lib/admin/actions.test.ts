@@ -271,6 +271,8 @@ beforeAll(async () => {
   // Продукт для проверки: данные организатора без правок администратора.
   expect(catalogProduct(PRODUCT)).toBeDefined();
   await forceRevertProduct();
+  // A pre-deploy DB may still contain the previous seed's dataVersion.
+  await syncOrganizerData(prisma, { only: [PRODUCT] });
 }, 120_000);
 
 afterAll(async () => {

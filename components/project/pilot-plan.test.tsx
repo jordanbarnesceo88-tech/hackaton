@@ -13,6 +13,19 @@ import { PilotPlan } from "./pilot-plan";
 const model = () => buildProjectModel({ facility: "warehouse", params: { ...WAREHOUSE_BASE_PARAMS }, paramDefs: paramSpecsFor("warehouse"), products: FIXTURE_PRODUCTS, norms: resolveNorms(), scenarios: fixtureSpecs() });
 
 describe("pilot plan presentation", () => {
+  it("offers a separate first-month quote for a RaaS pilot and prints its one-off premium", () => {
+    const m = model();
+    const plan = defaultPilotPlan(m, "r1");
+    plan.equipmentUnitRubOverride = 300000;
+    plan.raasFirstMonthRubOverride = 400000;
+    const html = renderToStaticMarkup(createElement(PilotPlan, {
+      model: m, scenarioKey: "r1", draft: { plan, residual: 0 }, onChange: () => {},
+    }));
+    expect(html).toContain("Полная ставка первого месяца пилота за робота");
+    expect(html).toContain('value="400000"');
+    expect(html).toContain("Доплата первого месяца RaaS на пилот");
+    expect(html).toContain("другого предложения");
+  });
   it("shows known country and dated source without calling it unknown, but keeps local service separate", () => {
     const m = model(), seed = catalogProduct("ronavi-h1500")!;
     m.productSnapshots[seed.slug] = productForCalcFromSeed(seed);

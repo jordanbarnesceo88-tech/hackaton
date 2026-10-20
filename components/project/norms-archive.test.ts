@@ -8,6 +8,22 @@ import { NormsPanel } from "./norms-panel";
 import { readOverride } from "./override-input";
 
 describe("labour input and archived norm panel", () => {
+  it("combines whole-year validation with the allowed life and battery ranges", () => {
+    expect(readOverride("11", { integer: true, range: [1, 10] }).ok).toBe(false);
+    expect(readOverride("1", { integer: true, range: [3, 5] }).ok).toBe(false);
+    expect(readOverride("3,5", { integer: true, range: [3, 5] }).ok).toBe(false);
+    expect(readOverride("3", { integer: true, range: [3, 5] })).toEqual({ ok: true, value: 3 });
+  });
+  it("offers cleaning life assumptions without unrelated transport utilization or driver labour controls", () => {
+    const html = renderToStaticMarkup(createElement(NormsPanel, {
+      rows: NORM_DEFS.map(def => ({ ...def })), cleaningOnly: true, onOverride: () => {},
+    }));
+    const controls = html.split("Все нормативы и допущения")[0]!;
+    expect(controls).toContain("Срок службы робота");
+    expect(controls).toContain("лет");
+    expect(controls).not.toContain("Коэффициент загрузки робота");
+    expect(controls).not.toContain("до исключения нестандартных грузов");
+  });
   it("shows recorded simulation-window overrides in their original units", () => {
     const results = fixtureResults();
     const html = renderToStaticMarkup(createElement(NormsPanel, {

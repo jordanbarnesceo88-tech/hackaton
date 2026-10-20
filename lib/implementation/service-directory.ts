@@ -12,10 +12,12 @@ export type ServiceProvider = {
   sourceRef: string | null;
   checkedAt: string;
   verification: "public-source" | "team-reference" | "contract-reference";
+  /** Working information from the team, separate from contractual SLA. Absent in older snapshots. */
+  teamNotes?: string[];
 };
 
 export const SERVICE_PROVIDERS_MAX_CHARS = 16_000;
-const FIELDS = new Set(["id", "name", "role", "coverage", "responseSla", "onsiteSla", "contactUrl", "email", "phone", "sourceUrl", "sourceRef", "checkedAt", "verification"]);
+const FIELDS = new Set(["id", "name", "role", "coverage", "responseSla", "onsiteSla", "contactUrl", "email", "phone", "sourceUrl", "sourceRef", "checkedAt", "verification", "teamNotes"]);
 
 function httpsUrl(value: string | null): string | null {
   if (value === null) return null;
@@ -58,15 +60,24 @@ export function parseServiceProviderList(raw: unknown): ServiceProvider[] {
     const email = text("email", 254, true), phone = text("phone", 60, true);
     if (email && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) throw new Error("Сервис: неверный email");
     if (phone && !/^\+?[0-9 ()-]{5,60}$/.test(phone)) throw new Error("Сервис: неверный телефон");
+    let teamNotes: string[] | undefined;
+    if (row.teamNotes !== undefined) {
+      if (verification !== "team-reference" || !sourceRef || !Array.isArray(row.teamNotes) || row.teamNotes.length < 1 || row.teamNotes.length > 5) throw new Error("Сервис: сведения команды требуют основания и списка от 1 до 5 пунктов");
+      teamNotes = row.teamNotes.map(note => {
+        if (typeof note !== "string" || !note.trim() || note.length > 1000 || /[\u0000-\u001f]/.test(note)) throw new Error("Сервис: проверьте сведения команды");
+        return note.trim();
+      });
+    }
     return { id, name: text("name", 200)!, role: text("role", 500)!, coverage: text("coverage", 1000)!, responseSla, onsiteSla,
-      contactUrl: httpsUrl(text("contactUrl", 2000, true)), email, phone, sourceUrl, sourceRef, checkedAt, verification };
+      contactUrl: httpsUrl(text("contactUrl", 2000, true)), email, phone, sourceUrl, sourceRef, checkedAt, verification,
+      ...(teamNotes ? { teamNotes } : {}) };
   });
 }
 
 export function serviceProvidersText(raw: unknown): string {
   try {
     const list = parseServiceProviderList(raw);
-    return list.length ? list.map(provider => `${provider.name}: ${provider.role}; ${provider.coverage}. Реакция: ${provider.responseSla ?? "не согласована"}; выезд: ${provider.onsiteSla ?? "не согласован"}. Контакт: ${provider.contactUrl ?? provider.email ?? provider.phone ?? "не предоставлен"}. Источник: ${[provider.sourceUrl, provider.sourceRef].filter(Boolean).join("; ")}; проверка ${provider.checkedAt}.`).join("\n") : "Контакты обслуживания не назначены.";
+    return list.length ? list.map(provider => `${provider.name}: ${provider.role}; ${provider.coverage}. Договорная реакция: ${provider.responseSla ?? "не согласована"}; договорный выезд: ${provider.onsiteSla ?? "не согласован"}. ${provider.teamNotes ? `Сведения команды, не договорный SLA: ${provider.teamNotes.join(" ")} ` : ""}Контакты: ${[provider.contactUrl, provider.email, provider.phone].filter(Boolean).join("; ") || "не предоставлены"}. Источник: ${[provider.sourceUrl, provider.sourceRef].filter(Boolean).join("; ")}; проверка ${provider.checkedAt}.`).join("\n") : "Контакты обслуживания не назначены.";
   } catch { return "Сведения сервиса некорректны; запросите актуальные контакты и условия."; }
 }
 
@@ -86,8 +97,13 @@ const providers: { ronavi: ServiceProvider; spi: ServiceProvider; alfa: ServiceP
   alfa: {
     id: "alfa-service", name: "Альфа-Сервис", role: "Клининг и организация пилота — сведения команды",
     coverage: "Территорию и обслуживаемые модели согласовать с командой.",
-    responseSla: null, onsiteSla: null, contactUrl: null, email: null, phone: null,
-    sourceUrl: null, sourceRef: "Бэклог команды от 18.10.2026, пункт 34: по клинингу — Альфа-Сервис", checkedAt: "2026-10-18", verification: "team-reference",
+    responseSla: null, onsiteSla: null, contactUrl: "https://www.alfa-int.ru", email: null, phone: "+7 (495) 741-49-50",
+    sourceUrl: "https://www.alfa-int.ru", sourceRef: "Сообщение команды от 19.10.2026, пункт 37; телефон из предоставленного сервисного предложения Альфа-Сервиса", checkedAt: "2026-10-20", verification: "team-reference",
+    teamNotes: [
+      "По сведениям команды выезд инженера — в течение одного дня; рабочий или календарный день не уточнён. Это срок выезда, не восстановления робота.",
+      "Запуск подготовленного объекта — 1–2 дня в зависимости от сложности; готовность станции и объекта проверяется до старта.",
+      "За день простоя предусмотрен вычет из стоимости сервисного контракта. Базу, порядок и исключения зафиксировать в договоре; из всей арендной платы компенсация автоматически не рассчитывается.",
+    ],
   },
 };
 

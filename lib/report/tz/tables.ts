@@ -1,4 +1,5 @@
 import { simSummaryRows } from "../../sim/export-rows";
+import { comparisonRowsForScenarios } from "../../tz/comparison-scope";
 import { displayDataText, originLabel } from "../../tz/characteristics";
 import {
   FORMULAS,
@@ -133,10 +134,10 @@ export type ComparisonReportRow = ComparisonRow & { processName: string; product
 
 /** Строки сравнения решений; решение, добавленное вручную, помечено ⚠. */
 export function comparisonReportRows(results: ReportResults): ComparisonReportRow[] {
-  return results.comparison.map((c) => ({
+  return comparisonRowsForScenarios(results.comparison, results.scenarios).map((c) => ({
     ...c,
     processName: processLabel(c.process),
-    productTitle: c.manuallyAdded ? `${c.productName} ${MANUAL_MARK}` : c.productName,
+    productTitle: `${c.manuallyAdded ? `${c.productName} ${MANUAL_MARK}` : c.productName}${c.calculationBasis ? ` — ${c.calculationBasis}` : ""}`,
     statusLabel: SELECTION_STATUS_LABELS[c.status] ?? c.status,
   }));
 }

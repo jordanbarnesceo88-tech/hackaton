@@ -102,11 +102,11 @@ describe("отказы расчёта", () => {
   });
 
   it("calc_not_supported: процесс без экономики в прототипе", () => {
-    const results = computeScenarios(fixtureContext(20), [asis, purchase(FIXTURE_H1500.slug, {}, "cleaning")]);
+    const results = computeScenarios(fixtureContext(20), [asis, purchase(FIXTURE_H1500.slug, {}, "storage")]);
     for (const key of ["asis", "p1"]) {
       const r = refused(results, key);
       expect(r.refusal.reason).toBe("calc_not_supported");
-      expect(r.refusal.message).toBe("Экономика для процесса «Уборка склада» в прототипе не рассчитывается");
+      expect(r.refusal.message).toContain("в прототипе не рассчитывается");
     }
   });
 

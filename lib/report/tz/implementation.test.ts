@@ -22,6 +22,25 @@ function savedGuidance() {
 }
 
 describe("saved implementation guidance in CSV and XLSX", () => {
+  it("carries team terms and the customer guide through print, CSV and XLSX without upgrading them to SLA", async () => {
+    const { results, product } = savedGuidance();
+    product.implementation = buildImplementationSnapshot("cleaner", "Pudu");
+    const snapshot = structuredClone(product.implementation);
+    const notes = snapshot.providers.find(provider => provider.id === "alfa-service")!.teamNotes!;
+    const rows = implementationReportRows(results);
+    for (const note of notes) expect(rows.some(row => row.label === "Сведения команды, не договорный SLA" && row.text === note)).toBe(true);
+    const printed = renderToStaticMarkup(createElement(ImplementationGuidePanel, { snapshot, expanded: true }));
+    expect(printed).toContain("Работа заказчика");
+    expect(printed).toContain(snapshot.guide!.customer[0]);
+    expect(printed).toContain("не восстановления робота");
+    expect(projectCsv(results, { projectName: "Клининг" })).toContain(notes[0]);
+    const bytes = await buildProjectXlsx({ results, projectName: "Клининг", defs: fixtureDefs() });
+    const workbook = new ExcelJS.Workbook();
+    const buffer = new ArrayBuffer(bytes.byteLength); new Uint8Array(buffer).set(bytes);
+    await workbook.xlsx.load(buffer);
+    expect(JSON.stringify(workbook.getWorksheet("Внедрение")!.getSheetValues())).toContain(notes[0]);
+    expect(product.implementation).toEqual(snapshot);
+  });
   it("keeps an imported unknown-brand generic model free of inferred OEM materials in snapshots, print and exports", async () => {
     const original = CATALOG.find(seed => seed.slug === "yandex-robot-inventarizator")!;
     const checked = validateProductSeeds([{ ...structuredClone(original), slug: "unknown-brand-inventory", manufacturer: null,

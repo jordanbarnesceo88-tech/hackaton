@@ -7,6 +7,8 @@ import { expectedSpatialInputFromStored } from "../../tz/model";
 import { buildPilotBudget } from "../../tz/pilot-budget";
 import { operationsStaffingText } from "../../tz/operations-staffing-text";
 import { deploymentLogisticsText } from "../../tz/deployment-logistics";
+import { raasPackageDescription } from "../../tz/econ/raas-package";
+import { cleaningProfileDescription } from "../../tz/econ/cleaning-profile";
 import { displayDataText, originLabel, sourceRefLabel } from "../../tz/characteristics";
 import {
   DEFAULT_PARAM_LABELS,
@@ -319,6 +321,8 @@ function tableCell(key: ScenarioRowKey, r: ScenarioResult, results: ReportResult
       if (spec?.cashRealizationShare !== undefined) assumptions.push(`денежная реализация высвобождаемого ФОТ: ${formatPct(spec.cashRealizationShare * 100)} (оценка; FTE отдельно)`);
       if (spec?.operationsStaffing) assumptions.push(operationsStaffingText(spec.operationsStaffing));
       if (spec?.logistics || r.risks.some(risk => risk.code === "LOGISTICS_NOT_ASSESSED")) assumptions.push(deploymentLogisticsText(spec?.logistics));
+      for (const item of spec?.items ?? []) if (item.raasPackage) assumptions.push(raasPackageDescription(item.raasPackage));
+      for (const item of spec?.items ?? []) if (item.cleaningProfile) assumptions.push(cleaningProfileDescription(item.cleaningProfile));
       return [null, [compositionText(r), ...assumptions].join("; ")];
     }
     case "sim": {
@@ -708,6 +712,8 @@ const ITEM_FIELD_LABELS: Readonly<Record<string, string>> = {
   throughput: "производительность",
   service: "сервис за робота в год",
   raasRate: "ставка RaaS за робота в месяц",
+  raasPackage: "состав услуг и платежей RaaS",
+  cleaningProfile: "эксплуатационный профиль уборки (оценка)",
   manual: "решение добавлено вручную",
   package: "комплектация и границы платежей",
 };

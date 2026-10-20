@@ -3,6 +3,8 @@ import { LABOR_SHARE_SENSITIVITY_RANGE, normDef } from "../norms";
 import type { ItemResult, ProductForCalc, Risk, ScenarioItem, ScenarioResult, ScenarioSpec, SensitivityRow } from "../types";
 import { FACILITY_PARAM_KEYS, normsForSpec, optNum, type ScenarioContext } from "./context";
 import { costPackageWarnings } from "./cost-package";
+import { raasPackageDescription } from "./raas-package";
+import { cleaningProfileDescription } from "./cleaning-profile";
 import { deploymentLogisticsText } from "../deployment-logistics";
 import { baseOutsideSourceRange } from "./sensitivity";
 import { fx, mrub, q, rangeText, rub, share, unitShort } from "./text";
@@ -94,6 +96,20 @@ export function scenarioRisks(
       add("ANNUAL_COVERAGE_ASSUMPTION", "medium", `Годовой охват ${q(v.name)} ограничен оценкой ${share(v.spec.automationCoverageOverride)} и аналитической мощностью парка; короткий 3D-прогон не доказывает годовой охват`);
     }
     const p = v.product;
+    if (v.spec?.cleaningProfile) {
+      let text = "Некорректный эксплуатационный профиль уборки — см. причину отказа";
+      try { text = cleaningProfileDescription(v.spec.cleaningProfile); } catch { /* Refused input must not crash risk presentation. */ }
+      add("CLEANING_PROFILE_ASSUMPTION", "medium", `${text} Ежедневный уход уменьшает высвобождаемый труд существующих уборщиков один раз; дополнительные расходы эксплуатации задаются отдельно. Это финансовая оценка, не подтверждение 2D/3D или успешного пилота.`);
+    }
+    if (result.kind === "raas") {
+      let scopeText = "Некорректный состав услуги RaaS — см. причину отказа расчёта";
+      if (v.spec?.raasPackage) {
+        try { scopeText = raasPackageDescription(v.spec.raasPackage); } catch { /* Invalid input remains a refusal, never a fabricated scope. */ }
+      }
+      add(v.spec?.raasPackage ? "RAAS_PACKAGE_ASSUMPTION" : "RAAS_PACKAGE_UNCONFIRMED", "medium", v.spec?.raasPackage
+        ? `${q(v.name)}: ${scopeText}. Оборудование, зарядки, разовое ПО и инфраструктура пока приняты включёнными по прежнему допущению модели — подтвердите отдельно`
+        : `${q(v.name)}: состав RaaS не задан. Прежняя модель предполагает включение ТО, лицензий, расходников, ремонта, АКБ, оборудования, зарядок, пусконаладки и инфраструктуры в подписку; это неподтверждённое допущение, не условие договора. Первый месяц принят равным регулярному; отдельная плата за платформу не оценена. Задайте явный состав услуг`);
+    }
     if (result.kind === "purchase" && p && v.spec) {
       for (const warning of costPackageWarnings(p, v.spec, norms)) add("COST_PACKAGE_SCOPE_UNCONFIRMED", "medium", `${q(v.name)}: ${warning}`);
     }

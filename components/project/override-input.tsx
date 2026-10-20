@@ -101,10 +101,8 @@ export function checkOverride(
       message: opts.percent ? "Введите число в процентах, например 80." : "Введите число, например 12 или 0,8.",
     };
   }
-  if (opts.integer) {
-    return Number.isInteger(n) && n >= 1
-      ? { ok: true, value: n }
-      : { ok: false, message: "Нужно целое число не меньше 1." };
+  if (opts.integer && (!Number.isInteger(n) || n < 1)) {
+    return { ok: false, message: "Нужно целое число не меньше 1." };
   }
   if (opts.range) {
     const [lo, hi] = opts.range;

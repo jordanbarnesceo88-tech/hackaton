@@ -149,6 +149,7 @@ export function buildMatchedComparison({ input, source, maxProducts = 3 }: {
       };
       // Purchase contract terms cannot silently become a subscription package.
       if (kind === "raas") delete item.costPackage;
+      if (kind === "purchase") delete item.raasPackage;
       if (original.siteLayout) item.chargersOverride = original.siteLayout.chargers.length;
       let suffix = 0, key = `match-${original.key.slice(0, 14)}-${index + 1}-${kind}`;
       while (occupied.has(key)) key = `match-${index + 1}-${kind}-${++suffix}`;
@@ -198,6 +199,7 @@ export function buildMatchedComparison({ input, source, maxProducts = 3 }: {
       "Проверьте совместимость паллет и грузоносителя, габариты и интервал SOC опубликованной зарядки. Числовое совпадение характеристик не подтверждает одинаковые условия измерения.",
     ];
     if (spec.kind === "raas") costBasis.push("Ставка из карточки либо явной корректировки исходной модели; неизвестная ставка автоматически не оценивается. Пакет покупки не переносится в RaaS.");
+    if (spec.kind === "purchase" && sourceItem.raasPackage) costBasis.push("Состав услуг и платежей RaaS не перенесён в покупку.");
     return {
       spec: structuredClone(spec), result: structuredClone(result), product: structuredClone(product),
       fleetBasis: same && sourceItem.quantityOverride !== undefined ? "source-fixed" : "auto",

@@ -297,7 +297,7 @@ describe("selectProducts — статусы и рекомендация", () => 
     expect(r!.reasons[0]).toContain("«до 90»");
   });
 
-  it("процесс-прототип: «до X» — это данные, продукт остаётся кандидатом, но без рекомендации", () => {
+  it("уборка требует рабочего профиля вместо паспортного предела «до X»", () => {
     const cleaning = proc("cleaning");
     const cleaner: ProductForCalc = {
       ...F.h1500,
@@ -312,7 +312,8 @@ describe("selectProducts — статусы и рекомендация", () => 
       speedMps: null,
     };
     const [r] = run({ products: [cleaner], process: cleaning, econ: {} });
-    expect(r!.status).toBe("candidate");
+    expect(r!.status).toBe("insufficient-data");
+    expect(r!.missing.find(item => item.key === "throughput")?.howToFix).toContain("активный час");
     const econ = r!.score.contributions.find((c) => c.factor === "econ")!;
     expect(econ.explanation).toContain("нет данных для экономики");
   });

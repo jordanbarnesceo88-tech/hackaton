@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TEST_CLEANER, TEST_CLEANING_PROFILE } from "./cleaning-fixtures";
 import type { ProductForCalc, ScenarioOk, ScenarioResult, ScenarioSpec } from "../types";
 import { computeScenariosCore } from "./core";
 import { FIXTURE_H1500, fixtureContext, fixtureSpecs } from "./fixtures";
@@ -188,9 +189,10 @@ describe("тождества ROI, окупаемости и TCO", () => {
     const cleaning = ctx.processes["cleaning"];
     if (!cleaning) throw new Error("нет процесса cleaning");
     ctx.processes = { ...ctx.processes, cleaning: { ...cleaning, calcSupported: true } };
+    ctx.products = { ...ctx.products, [TEST_CLEANER.slug]: TEST_CLEANER };
     const specs: ScenarioSpec[] = [
       ...fixtureSpecs(),
-      { key: "c1", name: "Уборка", kind: "purchase", items: [{ process: "cleaning", productSlug: FIXTURE_H1500.slug, throughputPerHOverride: 1000 }] },
+      { key: "c1", name: "Уборка", kind: "purchase", items: [{ process: "cleaning", productSlug: TEST_CLEANER.slug, cleaningProfile: TEST_CLEANING_PROFILE }] },
     ];
     const results = computeScenariosCore(ctx, specs);
     const cleanersBaseline = 10 * 65_000 * 12 * 1.302;

@@ -2,6 +2,7 @@ import { normDef, type NormValues } from "../norms";
 import type { CostPackage, DeploymentLogistics, LineItem, Origin } from "../types";
 import { parseDeploymentLogistics } from "../deployment-logistics";
 import { costPackageForItem } from "./cost-package";
+import { raasChargeAmount, raasPackageForItem } from "./raas-package";
 import { FACILITY_PARAM_KEYS, isRonavi, isWaybot, optNum, paramLabel, refuse, type ScenarioContext } from "./context";
 import { CAPEX_LINE_KEYS, FORMULAS, capexFormulaKey, type CapexLineKey } from "./formulas";
 import { charOrigin, mergeLines, sumLines, type ItemCalc } from "./internal";
@@ -25,6 +26,8 @@ export const CAPEX_LABELS: Readonly<Record<CapexLineKey, string>> = {
   integration: "Интеграция с WMS/ERP",
   commissioning: "Пусконаладка",
   training: "Обучение персонала",
+  startup: "Запуск (интеграция, настройка, обучение)",
+  firstMonthPremium: "Разовая доплата первого месяца RaaS",
   logistics: "Доставка полного внедрения",
   reserve: "Резерв (10 %)",
 };
@@ -185,6 +188,12 @@ function purchaseItemLines(c: ItemCalc): LineItem[] {
     chargers.formula = "CAPEXзар = (C − Cвключено) × pзар";
   }
   const perUnit = c.norms.commissioningRubPerUnit;
+  if (costPackage?.startup) {
+    const charge = costPackage.startup;
+    const startup = line("startup", raasChargeAmount(charge, c.n), charge.mode === "included" ? "0 ₽ отдельно — запуск включён в комплект" : `${raasChargeAmount(charge, c.n)} ₽ разово; заменяет интеграцию, пусконаладку и обучение`, "user", { overridden: true, originNote: costPackage.reason });
+    startup.formula = "Разовая явная стоимость запуска по базе за робота или площадку; без повторных работ";
+    return [equipment, chargers, softwareLine(c, costPackage), startup];
+  }
   const commissioning = line(
     "commissioning",
     c.n * perUnit,
@@ -223,15 +232,20 @@ export function purchaseCapexLines(
 export function raasCapexLines(items: readonly ItemCalc[], norms: NormValues, logistics?: DeploymentLogistics): LineItem[] {
   for (const c of items) costPackageForItem(c.item, { kind: "raas", chargers: c.chargers });
   const merged = mergeLines(
-    items.map((c) => [
-      included("equipment"),
-      included("chargers"),
-      included("software"),
-      integrationLine(c),
-      included("commissioning"),
-      trainingLine(c),
-    ]),
+    items.map((c) => {
+      const scope = raasPackageForItem(c.item, "raas", c.raasRubMonth ?? 0);
+      const common = [included("equipment"), included("chargers"), included("software")];
+      if (!scope) return [...common, integrationLine(c), included("commissioning"), trainingLine(c)];
+      const startup = scope.startup;
+      return [...common,
+        line("startup", raasChargeAmount(startup, c.n), startup.mode === "included" ? "0 ₽ отдельно — старт заявлен включённым"
+          : `${startup.mode === "separate" && startup.basis === "per-robot" ? `${fx(c.n)} × ` : ""}${rub(raasChargeAmount(startup, 1))} разово`, "user",
+        { overridden: true, originNote: scope.reason, includedInSubscription: startup.mode === "included" }),
+        line("firstMonthPremium", c.n * ((scope.firstMonthRub ?? c.raasRubMonth ?? 0) - (c.raasRubMonth ?? 0)),
+          `${fx(c.n)} × (${rub(scope.firstMonthRub ?? c.raasRubMonth ?? 0)} − ${rub(c.raasRubMonth ?? 0)}) один раз в начале; регулярные платежи отдельно`, "user", { overridden: true, originNote: scope.reason })];
+    }),
   );
   const lines = ordered([...merged, included("infrastructure"), ...logisticsLines(logistics)]);
-  return [...lines, reserveLine(norms, sumLines(lines))];
+  // The quoted first-month tariff is a payment, not a contingency cost base.
+  return [...lines, reserveLine(norms, sumLines(lines.filter(row => row.key !== "firstMonthPremium")))];
 }

@@ -13,8 +13,10 @@ import { facilityLabel } from "../tz/selection/text";
 import type { PendingChange, ScenarioItem, ScenarioKind, ScenarioSpec, SpatialEvidence } from "../tz/types";
 import { stableJson } from "../tz/version";
 import { parsePilotPlanInput } from "../tz/pilot-budget";
+import { parseCleaningProfile } from "../tz/econ/cleaning-profile";
 import { parseOperationsStaffing } from "../tz/econ/labour";
 import { parseCostPackage } from "../tz/econ/cost-package";
+import { parseRaasPackage, validateRaasSiteCharges } from "../tz/econ/raas-package";
 import { parseDeploymentLogistics } from "../tz/deployment-logistics";
 import { OPERATING_MODE_RE } from "../catalog/operating-evidence";
 
@@ -64,6 +66,8 @@ const ITEM_FIELDS: ReadonlySet<string> = new Set([
   "throughputPerHOverride",
   "serviceRubYearOverride",
   "costPackage",
+  "raasPackage",
+  "cleaningProfile",
   "raasRubMonthOverride",
   "raasFromEstimate",
   "manuallyAdded",
@@ -234,6 +238,12 @@ function checkItem(
     errors.push(`${where}: продукт «${String(productSlug)}» не найден в каталоге — выберите другой`);
   }
   const item: ScenarioItem = { process: String(process), productSlug: String(productSlug) };
+  if (raw.cleaningProfile !== undefined) {
+    try { item.cleaningProfile = parseCleaningProfile(raw.cleaningProfile); }
+    catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный профиль уборки"}`); }
+    if (process !== "cleaning") errors.push(`${where}: профиль уборки применим только к уборке склада`);
+    if (raw.throughputPerHOverride !== undefined) errors.push(`${where}: производительность уборки задаётся только в профиле`);
+  }
   if (raw.operatingMode !== undefined) {
     if (typeof raw.operatingMode !== "string" || !OPERATING_MODE_RE.test(raw.operatingMode)) errors.push(`${where}: неверный режим работы`);
     else item.operatingMode = raw.operatingMode;
@@ -243,6 +253,11 @@ function checkItem(
       item.costPackage = parseCostPackage(raw.costPackage);
       if (item.costPackage.includedChargers > LAYOUT_LIMITS.maxPointsPerKind) errors.push(`${where}: число включённых зарядок превышает предел инфраструктуры`);
     } catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный состав ценового пакета"}`); }
+  }
+  if (raw.raasPackage !== undefined) {
+    try { item.raasPackage = parseRaasPackage(raw.raasPackage); }
+    catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверный состав RaaS"}`); }
+    if (raw.serviceRubYearOverride !== undefined) errors.push(`${where}: стоимость сервиса задаётся в составе RaaS, а не одновременно отдельным переопределением`);
   }
 
   const q = raw.quantityOverride;
@@ -364,6 +379,7 @@ export function validateScenarioSpecs(
         const item = checkItem(ri, `${where}, позиция ${j + 1}`, products, processes, errors);
         if (!item) return;
         if (item.costPackage && kind !== "purchase") errors.push(`${where}: ценовой пакет применим только к покупке`);
+        if (item.raasPackage && kind !== "raas") errors.push(`${where}: состав услуги RaaS применим только к RaaS`);
         if (seenProcess.has(item.process)) {
           errors.push(`${where}: на процесс «${processName(item.process)}» уже выбрано решение — оставьте одно`);
           return;
@@ -391,6 +407,10 @@ export function validateScenarioSpecs(
             errors.push(`${where}: норматив «${def.label}» — укажите число`);
             continue;
           }
+          if ((k === "serviceLifeYearsDefault" || k === "batteryReplacementYears") && !Number.isInteger(v)) {
+            errors.push(`${where}: норматив «${def.label}» — укажите целое число лет`);
+            continue;
+          }
           // Вне допустимого диапазона движок молча прижал бы значение к границе, и в сценарии и
           // журнале осталось бы одно число, а в расчёте — другое. Поэтому такое значение
           // отклоняется с диапазоном.
@@ -406,6 +426,10 @@ export function validateScenarioSpecs(
       }
     }
 
+    if (kind === "raas") {
+      try { validateRaasSiteCharges(items); }
+      catch (error) { errors.push(`${where}: ${error instanceof Error ? error.message : "неверные общие статьи RaaS"}`); }
+    }
     let cashRealizationShare: number | undefined;
     let logistics: ScenarioSpec["logistics"];
     if (raw.logistics !== undefined) {
@@ -480,7 +504,7 @@ export function checkScenarioPedestrians(raw:unknown,site?:SimLayout):Pedestrian
 }
 
 /** Поля журнала позиции сценария (формат PendingChange.field). */
-const ITEM_CHANGE_FIELDS = "quantity|price|throughput|service|raasRate|manual|package|operatingMode";
+const ITEM_CHANGE_FIELDS = "quantity|price|throughput|service|raasRate|manual|package|raasPackage|cleaningProfile|operatingMode";
 /** Допустимые значения PendingChange.field (ТЗ §3.5.4 — журнал корректировок). */
 const CHANGE_FIELD_RE = new RegExp(
   `^(param:[A-Za-z][A-Za-z0-9_]{0,63}|item:[a-z0-9-]{1,60}:(${ITEM_CHANGE_FIELDS})|norm:[A-Za-z][A-Za-z0-9]{0,63}|scenario:add|scenario:remove|scenario:pilot|scenario:residual|scenario:staffing|scenario:logistics|scenario:pedestrians)$`,

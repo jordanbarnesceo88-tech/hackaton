@@ -1,0 +1,66 @@
+import ExcelJS from "exceljs";
+import { describe, expect, it } from "vitest";
+import { paramSpecsFor } from "../../data/organizer/params";
+import { projectSnapshotModel } from "../../projects/archive";
+import { TEST_CLEANER, TEST_CLEANING_PROFILE, cleaningContext, cleaningSpecs } from "../../tz/econ/cleaning-fixtures";
+import { FIXTURE_PRODUCTS, fixtureSpecs } from "../../tz/econ/fixtures";
+import { buildProjectModel, storedPartOf } from "../../tz/model";
+import { buildPilotBudget, defaultPilotPlan } from "../../tz/pilot-budget";
+import { projectCsv } from "./csv";
+import { buildProjectXlsx } from "./xlsx";
+
+describe("cleaning financial snapshot exports", () => {
+  it("does not require pallet gates or routes for a cleaning-only profile, while pallet layout guards remain active", () => {
+    const ctx = cleaningContext(), defs = paramSpecsFor("warehouse");
+    const params = { ...ctx.params, receivingDocksCount: 0, shippingDocksCount: 0, hasWms: "Нет" };
+    const input = { facility: "warehouse", params, norms: ctx.norms, products: [TEST_CLEANER, ...FIXTURE_PRODUCTS], paramDefs: defs };
+    const cleaning = buildProjectModel({ ...input, scenarios: cleaningSpecs() });
+    expect(cleaning.results.find(row => row.key === "c1")?.status).toBe("ok");
+    expect(cleaning.simInputs.c1!.calculated).toBeNull();
+    const pallet = buildProjectModel({ ...input, scenarios: fixtureSpecs() }).results.find(row => row.key === "p1")!;
+    expect(pallet.status).toBe("refused");
+    if (pallet.status === "refused") expect(pallet.refusal.message).toContain("ворот");
+  });
+  it("exports finite-day assumptions, care and exact financial results without pretending to have a simulation proof", async () => {
+    const ctx = cleaningContext(), scenarios = cleaningSpecs(), defs = paramSpecsFor("warehouse");
+    scenarios[1]!.items[0]!.costPackage = { softwareIncludedInIntegration: true, repairsIncludedInService: false, includedChargers: 0, allChargersIncluded: true,
+      startup: { mode: "separate", amountRub: 80000, basis: "per-site" }, platformMonthly: { mode: "separate", amountRub: 12200, basis: "per-robot" }, reason: "Тестовая оценка платформы и запуска" };
+    const model = buildProjectModel({ facility: "warehouse", params: ctx.params, norms: ctx.norms, products: [TEST_CLEANER], scenarios, paramDefs: defs });
+    const result = model.results.find(row => row.key === "c1");
+    if (result?.status !== "ok") throw new Error(JSON.stringify(result));
+    expect(model.simInputs.c1?.calculated ?? null).toBeNull();
+    const saved = { ...storedPartOf(model, defs), calculatedAt: "2026-10-20T00:00:00.000Z", sim: {} };
+    const before = structuredClone(saved), archive = projectSnapshotModel(saved);
+    expect(archive.results).toEqual(saved.results);
+    expect(archive.comparison).toEqual(saved.comparison);
+    const comparison = archive.comparison.find(row => row.productSlug === TEST_CLEANER.slug)!;
+    expect(comparison.thrEff).toBe(result.items[0]!.thrEff);
+    expect(comparison.n).toBe(result.items[0]!.n);
+    expect(archive.scenarios[1]!.items[0]!.cleaningProfile).toEqual(TEST_CLEANING_PROFILE);
+    const csv = projectCsv(saved, { projectName: "Оценка уборки" });
+    expect(csv).toContain(TEST_CLEANING_PROFILE.source); expect(csv).toContain("не подтверждённый замер");
+    expect(csv).toContain("восстановление заряда после окна"); expect(csv).toContain("Ежедневный уход");
+    const bytes = await buildProjectXlsx({ projectName: "Оценка уборки", results: saved, defs });
+    const buffer = new ArrayBuffer(bytes.byteLength); new Uint8Array(buffer).set(bytes);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(buffer);
+    const values: ExcelJS.CellValue[] = [];
+    book.eachSheet(sheet => sheet.eachRow(row => row.eachCell(cell => values.push(cell.value))));
+    expect(values.some(value => typeof value === "string" && value.includes(TEST_CLEANING_PROFILE.source))).toBe(true);
+    expect(values).toContain(result.capexRub);
+    expect(values).toContain(result.items[0]!.releasedFte);
+    expect(values.some(value => typeof value === "string" && value.includes(comparison.calculationBasis!))).toBe(true);
+    const pilot = defaultPilotPlan(archive, "c1"), budget = buildPilotBudget(archive, "c1", pilot);
+    expect(pilot.chargers).toBe(pilot.fleet);
+    expect(budget.lines.find(line => line.key === "chargers")!.valueRub).toBe(0);
+    expect(budget.lines.find(line => line.key === "chargers")!.source).toContain("комплект покупки");
+    expect(budget.lines.find(line => line.key === "platform")!.valueRub).toBe(12200 * pilot.fleet);
+    expect(pilot.costs.setup.valueRub).toBe(80000);
+    expect(budget.criteria.join(" ")).toContain("площадь полного парка не перенесена");
+    expect(budget.criteria.join(" ")).toContain("ручной повторной уборки");
+    expect(budget.criteria.join(" ")).not.toMatch(/p95|носител|операций\/ч/);
+    const targeted = buildPilotBudget(archive, "c1", { ...pilot, targetThroughputPerH: 200 });
+    expect(targeted.criteria[0]).toContain("200 м²/ч рабочего окна");
+    expect(targeted.criteria[0]).toContain("1600 м² за окно 8 ч");
+    expect(saved).toEqual(before);
+  });
+});

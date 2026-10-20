@@ -42,6 +42,8 @@ export const CAPEX_LINE_KEYS = [
   "integration",
   "commissioning",
   "training",
+  "startup",
+  "firstMonthPremium",
   "logistics",
   "reserve",
 ] as const;
@@ -50,6 +52,7 @@ export type CapexLineKey = (typeof CAPEX_LINE_KEYS)[number];
 /** Ключи строк OPEX (LineItem.key в opexLines). */
 export const OPEX_LINE_KEYS = [
   "subscription",
+  "platform",
   "service",
   "licences",
   "electricity",
@@ -252,16 +255,18 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     units: "₽",
     source: "наш выбор",
   },
+  "capex:startup": { title: "Старт RaaS", expression: "явная разовая ставка × N при оплате за робота, иначе разовая сумма за площадку; заменяет интеграцию, настройку и обучение", units: "₽", source: "наш выбор" },
+  "capex:firstMonthPremium": { title: "Доплата первого месяца RaaS", expression: "N × (полная ставка первого месяца − регулярная ставка); один раз в начале горизонта, без резерва", units: "₽", source: "наш выбор" },
   "capex:reserve": {
     title: "Резерв",
-    expression: "доля резерва CAPEX × сумма остальных статей CAPEX",
+    expression: "доля резерва CAPEX × сумма остальных статей CAPEX, кроме фиксированной доплаты первого месяца RaaS",
     units: "₽",
     source: "организатор",
   },
   capexTotal: {
     title: "CAPEX",
     expression:
-      "оборудование + зарядные станции + инфраструктура + ПО + интеграция + пусконаладка + обучение + явно заданная доставка + резерв",
+      "оборудование + зарядные станции + инфраструктура + ПО + интеграция + пусконаладка + обучение (либо единый явно заданный старт RaaS) + разовая доплата первого месяца RaaS + явно заданная доставка + резерв",
     units: "₽",
     source: "ТЗ §3.5.2",
   },
@@ -279,6 +284,7 @@ export const FORMULAS: Readonly<Record<FormulaKey, Formula>> = {
     units: "₽/год",
     source: "ТЗ §3.5.2",
   },
+  "opex:platform": { title: "Платформа RaaS", expression: "12 × месячная ставка × N при оплате за робота, иначе 12 × ставка за площадку", units: "₽/год", source: "наш выбор" },
   "opex:licences": {
     title: "Лицензии ПО",
     expression: "годовая плата за ПО из карточки продукта (на объект), иначе 0",

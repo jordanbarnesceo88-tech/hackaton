@@ -100,3 +100,4 @@ export {
   type OpexLineKey,
 } from "./formulas";
 export { MODEL_LIMITATIONS } from "./limitations";
+export { parseRaasPackage, raasPackageDescription } from "./raas-package";
