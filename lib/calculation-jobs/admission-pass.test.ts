@@ -129,6 +129,37 @@ describe("single locked calculation admission", () => {
     expect(f.transaction).toHaveBeenCalledOnce(); expect(f.trace).toEqual(["prepare:read-only", "prepare:idempotency-key", "prepare:idempotency-job"]);
   });
 
+  it("retries a valid CREATE with its original intent hash before reading a changed catalogue", async () => {
+    const f = fixture();
+    const request = { operation: "CREATE" as const, name: "  Склад  ", objectName: "  Объект  ", facility: "warehouse",
+      paramsSource: { kind: "demo" as const } };
+    f.controls.earlyExisting = true;
+    f.controls.existingRequestHash = createHash("sha256").update(stableJson(request)).digest("hex");
+    mocks.load.mockRejectedValue(new Error("Catalogue changed or is unavailable"));
+    expect((await enqueueCalculation(f.db, "owner", request, "key")).id).toBe("job");
+    expect(mocks.load).not.toHaveBeenCalled();
+    expect(f.tx.calculationRun.create).not.toHaveBeenCalled();
+    expect(f.transaction).toHaveBeenCalledOnce();
+  });
+
+  it("freezes normalized CREATE metadata without changing the submitted intent", async () => {
+    const f = fixture();
+    const request = { operation: "CREATE" as const, name: "  Склад  ", objectName: "  Объект  ", facility: "warehouse",
+      paramsSource: { kind: "upload" as const, fileName: "warehouse.csv" } };
+    const before = structuredClone(request);
+    await enqueueCalculation(f.db, "owner", request, "key");
+    expect(f.tx.calculationRun.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ input: expect.objectContaining({ publication: {
+        reservedProjectId: expect.any(String), name: "Склад", objectName: "Объект",
+        paramsSource: { kind: "upload", fileName: "warehouse.csv" },
+      } }) }),
+    }));
+    expect(request).toEqual(before);
+    expect(f.tx.calculationJob.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ requestHash: createHash("sha256").update(stableJson(before)).digest("hex") }),
+    }));
+  });
+
   it("returns a racing committed receipt before quota and publication checks", async () => {
     const f = fixture(); f.controls.lockedExisting = true; f.controls.ownerExists = false; f.controls.lockedOwnedActive = 2;
     f.controls.existingRequestHash = createHash("sha256").update(stableJson(recalculate)).digest("hex");

@@ -69,17 +69,31 @@ function intentOf(raw: unknown): CalculationRequest {
 function paramsSourceOf(raw: unknown): ParamsSource {
   if (raw === undefined) return { kind: "api" };
   if (!isPlainObject(raw) || unknownFields(raw, new Set(["kind", "fileName"])).length ||
-    !["manual", "upload", "api", "demo"].includes(String(raw.kind)) ||
+    (typeof raw.kind !== "string" || !["manual", "upload", "api", "demo"].includes(raw.kind)) ||
     (raw.fileName !== undefined && (typeof raw.fileName !== "string" || raw.fileName.length > 255))) {
     throw new CalculationRequestError(422, "paramsSource — источник manual, upload, api или demo; имя файла не длиннее 255 символов");
   }
   return { kind: raw.kind as ParamsSource["kind"], ...(typeof raw.fileName === "string" ? { fileName: raw.fileName } : {}) };
 }
 
-async function prepareFrozenInput(tx: Prisma.TransactionClient, ownerId: string, request: CalculationRequest): Promise<FrozenCalculationInput> {
+function createMetadataOf(request: Extract<CalculationRequest, { operation: "CREATE" }>) {
+  const name = sanitizeProjectName(request.name);
+  if (!name) throw new CalculationRequestError(422, "Название проекта — от 1 до 120 символов");
+  const facility = facilityOf(request.facility);
+  if (!facility) throw new CalculationRequestError(422, "facility — warehouse, airport или medical");
+  if (request.objectName !== undefined && request.objectName !== null &&
+    (typeof request.objectName !== "string" || request.objectName.trim().length > 200)) {
+    throw new CalculationRequestError(422, "Название объекта — строка не длиннее 200 символов");
+  }
+  return { facility, publication: { name, objectName: request.objectName?.trim() || null,
+    paramsSource: paramsSourceOf(request.paramsSource) } };
+}
+
+async function prepareFrozenInput(tx: Prisma.TransactionClient, ownerId: string, request: CalculationRequest,
+  create?: ReturnType<typeof createMetadataOf>): Promise<FrozenCalculationInput> {
   const evidenceEvaluatedOn = new Date().toISOString().slice(0, 10);
   if (request.operation === "CREATE" || request.operation === "CALCULATE") {
-    const facility = facilityOf(request.facility);
+    const facility = create?.facility ?? facilityOf(request.facility);
     if (!facility) throw new CalculationRequestError(422, "facility — warehouse, airport или medical");
     const live = await loadLiveInputs(tx, facility, evidenceEvaluatedOn);
     const checked = checkCalcInput(live, facility, request.params, request.scenarios);
@@ -87,14 +101,7 @@ async function prepareFrozenInput(tx: Prisma.TransactionClient, ownerId: string,
     const frozen: FrozenCalculationInput = { schemaVersion: 1, operation: request.operation, live,
       input: { facility, params: checked.params, ...(checked.scenarios ? { scenarios: checked.scenarios } : {}) } };
     if (request.operation === "CREATE") {
-      const name = sanitizeProjectName(request.name);
-      if (!name) throw new CalculationRequestError(422, "Название проекта — от 1 до 120 символов");
-      if (request.objectName !== undefined && request.objectName !== null &&
-        (typeof request.objectName !== "string" || request.objectName.trim().length > 200)) {
-        throw new CalculationRequestError(422, "Название объекта — строка не длиннее 200 символов");
-      }
-      frozen.publication = { reservedProjectId: randomUUID(), name,
-        objectName: request.objectName?.trim() || null, paramsSource: paramsSourceOf(request.paramsSource) };
+      frozen.publication = { reservedProjectId: randomUUID(), ...create!.publication };
     }
     return frozen;
   }
@@ -147,6 +154,7 @@ export async function enqueueCalculation(db: PrismaClient, ownerId: string, raw:
     throw new CalculationRequestError(422, "Передайте Idempotency-Key: уникальный ключ операции до 128 символов");
   }
   const request = intentOf(raw);
+  const create = request.operation === "CREATE" ? createMetadataOf(request) : undefined;
   const requestHash = digest(request);
   // Freeze all catalogue/project reads at one MVCC snapshot, without holding the global
   // admission lock. A waiter must not carry that old snapshot into quota admission.
@@ -155,7 +163,7 @@ export async function enqueueCalculation(db: PrismaClient, ownerId: string, raw:
     const existing = await findIdempotent(tx, ownerId, idempotencyKey, requestHash);
     if (existing) return { existing };
     await assertQueueCapacity(tx, ownerId);
-    const payload = await prepareFrozenInput(tx, ownerId, request);
+    const payload = await prepareFrozenInput(tx, ownerId, request, create);
     if (Buffer.byteLength(stableJson(payload), "utf8") > 16 * 1024 * 1024) {
       throw new CalculationRequestError(413, "Полный снимок расчёта превышает 16 МиБ — сократите число сценариев или разделите проект");
     }
