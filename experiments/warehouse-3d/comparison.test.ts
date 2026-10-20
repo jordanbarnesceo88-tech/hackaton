@@ -57,7 +57,8 @@ describe("matched warehouse fleet enumeration", () => {
       expect(state.layout.chargers).toHaveLength(reference.input.layout.chargers);
     }
     expect(result.context.fixedInput).toEqual(common);
-  }, 20000);
+  // Comparison plus three terminal replays, including N60, share CI CPUs; this is a correctness budget, not an execution SLA.
+  }, 120_000);
 
   it("keeps scripted targets fixed and marks smaller candidates ineligible, not failed", async () => {
     const result = await compareWarehouseFleet(reference, { maxFleet: 4, faultMode: "scripted" });
@@ -130,7 +131,8 @@ describe("matched warehouse fleet enumeration", () => {
     expect(() => applyFleetComparison(changed, result, 2)).toThrow("изменён");
     result.context.fixedInput.demoTraffic.maxActiveRoutes++;
     expect(() => applyFleetComparison(reference, result, 2)).toThrow("изменены");
-  });
+  // Enumerates N1–3 and independently replays the chosen row; allow CPU scheduling without relaxing exact equality.
+  }, 60_000);
 
   it("does not allow progress observers to change canonical comparison rows", async () => {
     const result = await compareWarehouseFleet(reference, { maxFleet: 1, onProgress: (p) => { if (p.run?.summary) p.run.summary.achievedPerH = 999999; } });

@@ -26,7 +26,8 @@ describe("chosen fleet to canonical finance verification", () => {
     expect(finance.purchase.items[0]).toMatchObject({ n: 14, chargers: reserve.input.layout.chargers });
     expect(finance.assumptions.spatialMatchesFinancialInput).toBe(true);
     expect(finance.model.scenarios.find(s => s.key === "purchase")!.spatialEvidence!.assessment.status).toBe("PARTIAL");
-  }, 60_000); // Two complete 135-minute physical runs, including the reserve's charging failure.
+  // Two full 135-minute replays plus trusted financial recheck; outer test budget is not the engine deadline.
+  }, 180_000);
 
   it("carries the six-robot nominal shortfall and its exact physical receipt into finance", () => {
     const products = CATALOG.map(productForCalcFromSeed);

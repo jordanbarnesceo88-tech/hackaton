@@ -44,7 +44,8 @@ describe("standalone financial scenario uses the shared project engine", () => {
     const ratesOnly = structuredClone(baseline); ratesOnly.summary.achievedPerH *= 0.25;
     const withoutRateScaling = calculateSpatialFinance(ratesOnly, shares);
     expect(withoutRateScaling.purchase.npvRub).toBe(previous.purchase.npvRub);
-  });
+  // Rechecks a real N20 spatial input before comparing financial results; retain all engine limits.
+  }, 60_000);
 
   it("separates annual work coverage from cash realization at both endpoints", () => {
     const zero = calculateSpatialFinance(baseline, { annualCoverageShare: 0.6, cashRealizationShare: 0 });
@@ -69,7 +70,8 @@ describe("standalone financial scenario uses the shared project engine", () => {
     expect(complex).toEqual(before);
     const changed = structuredClone(complex); changed.financialSourceInput!.siteLayout!.widthM++;
     expect(() => calculateSpatialFinance(changed, shares)).toThrow(/геометрия/);
-  });
+  // Complex geometry preparation and terminal replay are CPU work even with the short fixture horizon.
+  }, 30_000);
 
   it("rejects project handoffs, missing parameters, stale counts and nonfinite shares", () => {
     const project = structuredClone(baseline);

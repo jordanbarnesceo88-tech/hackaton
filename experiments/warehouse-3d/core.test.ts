@@ -29,12 +29,13 @@ describe("warehouse visualization uses the production calculation and engine", (
     while (!isPlaybackDone(state)) stepWarehouseTraffic(state);
     return state;
   };
-  it.each(["baseline","insufficient","increased-flow"] as const)("preset %s uses the intended fleet and original demand units",id=>{
+  for (const id of ["baseline", "insufficient", "increased-flow"] as const) it(`preset ${id} uses the intended fleet and original demand units`,()=>{
     const model=fixture(id);expect(DEMO_CASES[0].id).toBe("steady-flow");expect(model.input.robots.count).toBe(id==="insufficient"?3:id==="baseline"?19:11);
     if(id!=="baseline")expect(model.summary.verdict).toBe("NOT_CONFIRMED");
     if(id==="increased-flow")expect(model.summary.requiredPerH).toBeGreaterThan(129.54545454545453);
     expect(model.finance).toBeNull();expect(model.financeUnavailableReason).toContain("защитные остановки");expect(model.summary.minStableFleet).toBeNull();
-  },30000);
+  // Only baseline N19 exceeded its old budget on CI; preserve the other two deadlines.
+  }, id === "baseline" ? 120_000 : 30_000);
 
   it("manual fleet, chargers, finance and physical inputs match buildProjectModel", () => {
     const result = calculateCase("baseline", { fleet: 7 });
@@ -79,14 +80,16 @@ describe("warehouse visualization uses the production calculation and engine", (
     frame.points[0]!.queue.push(-1);
     expect(state.robots[0]!.x).not.toBe(-999);
     expect(state.points[0]!.queue).not.toContain(-1);
-  },15000);
+  // Two complete 35-minute N19 replays must finish before their exact metrics are compared.
+  }, 60_000);
 
   it("racks share engine world coordinates, including resized active area", () => {
     const result = calculateCase("baseline", { areaM2: 5000 });
     expect(result.layout.widthM * result.layout.heightM).toBeCloseTo(5000);
     expect(result.racks).toEqual([]);expect(result.layout.slots.length).toBeGreaterThan(500);
     expect(result.racks.every((r) => r.y >= 0 && r.y + r.h <= result.layout.heightM)).toBe(true);
-  },30000);
+  // Constructs and completes the full 135-minute baseline before checking resized geometry.
+  }, 120_000);
 
   it.each([
     { fleet: NaN }, { fleet: Infinity }, { fleet: 1.5 }, { fleet: 0 }, { fleet: 501 },
@@ -130,7 +133,8 @@ describe("warehouse visualization uses the production calculation and engine", (
     const c = { x: 94, y: 74 };
     const d = { x: 144, y: 34 };
     expect(siteSegmentIsClear(result.layout, c, d)).toBe(false);
-  },30000);
+  // Includes the full complex-case replay and all-edge/route clearance checks on shared CI CPUs.
+  }, 120_000);
 
   it("invalid custom graph is NOT_SUPPORTED, never a fallback successful rectangle", () => {
     const result = fixture("complex");

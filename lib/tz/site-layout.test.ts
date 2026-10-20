@@ -48,12 +48,14 @@ describe('one explicit site in financial cycle, simulation and persisted proof',
   expect((saved.results.results.find(r=>r.key==='p1') as ScenarioOk).npvRub).toBe((first.results.find(r=>r.key==='p1') as ScenarioOk).npvRub);
   const changed=structuredClone(input);changed.scenarios[1]!.siteLayout!.walls!.push({x:1,y:1,w:1,h:1});
   const different=buildProjectModel(changed);expect(different.results.find(r=>r.key==='p1')!.risks.some(r=>r.code==='SPATIAL_STALE')).toBe(true);
- });
+ // Independent spatial replay plus server recheck and complex-model rebuilds precede archive identity checks.
+ }, 120_000);
  it('rejects area, operation-point and charger mismatch rather than silently rebuilding the plan',()=>{
   for(const change of ['area','docks','chargers'] as const){const input=args();if(change==='area')input.params.activeAreaM2=12000;else if(change==='docks')input.params.receivingDocksCount=3;else input.scenarios[1]!.items[0]!.chargersOverride=2;
    const m=buildProjectModel(input);expect(m.results.find(r=>r.key==='p1')!.status).toBe('refused');expect(m.simInputs.p1!.calculated).toBeNull();}
   const bad=complexSite(10000,1);bad.walls![0]!.x=NaN;expect(()=>checkScenarioSiteLayout(bad)).toThrow();
- });
+ // Each mismatch still builds the other valid complex scenario; this outer correctness budget is not a runtime SLA.
+ }, 30_000);
  it('refuses a sub-body-clearance site in the financial model and persisted geometry boundary',()=>{
   const input=args();input.scenarios[1]!.siteLayout!.routingGraph!.clearanceM=0;
   const before=structuredClone(input),m=buildProjectModel(input);

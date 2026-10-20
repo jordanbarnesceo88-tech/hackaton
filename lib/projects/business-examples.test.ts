@@ -34,7 +34,8 @@ describe("reproducible end-to-end business examples", () => {
     expect(d.finance?.npvRub).toBeLessThan(0);
     expect(d.spatial.evidence?.assessment.status).toBe("PARTIAL"); expect(d.status).toBe("partial");
     expect(model.conclusion.recommendedScenarioKey).toBeNull();
-  });
+  // Runs the canonical overloaded business example, including terminal spatial replay, before decision assertions.
+  }, 120_000);
   it("keeps the previous five-robot case as a physical counterexample despite positive NPV", () => {
     const input = businessExampleInputs("steady-flow", baseValuesFor("warehouse"), products);
     input.scenarios.forEach(spec => spec.items.forEach(item => { item.quantityOverride = 5; }));

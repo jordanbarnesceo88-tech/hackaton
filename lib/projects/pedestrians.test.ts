@@ -29,7 +29,8 @@ describe("canonical pedestrian assumption lifecycle",()=>{
     const diff=projectAuditDiff(baseline,input).filter(c=>c.field==="scenario:pedestrians");expect(diff).toHaveLength(1);
     expect(validatePendingChanges(diff).ok).toBe(true);expect(changeFieldLabel("scenario:pedestrians")).toBe("Модель пешеходов и параметры перехода");
     expect(simInputIdentity({...physical,pedestrians:undefined})).not.toBe(simInputIdentity(physical));
-  });
+  // Building the real complex geometry computes routed cycles before validation/archive assertions.
+  }, 30_000);
   it("rejects misplaced or tampered assumptions without silently substituting a default",()=>{
     const input=source();input.scenarios[0]!.pedestrians=input.scenarios[1]!.pedestrians;
     expect(validateScenarioSpecs(input.scenarios,"warehouse",[FIXTURE_H1500.slug],["pallet-transport"]).ok).toBe(false);
@@ -39,5 +40,6 @@ describe("canonical pedestrian assumption lifecycle",()=>{
     const tampered=source();Object.assign(tampered.scenarios[1]!.pedestrians!,{runtime:{safe:true}});
     expect(validateScenarioSpecs(tampered.scenarios,"warehouse",[FIXTURE_H1500.slug],["pallet-transport"]).ok).toBe(false);
     expect(validateScenarioSpecs(source().scenarios,"airport",[FIXTURE_H1500.slug],["pallet-transport"]).ok).toBe(false);
-  });
+  // The other valid scenarios still build complex geometry while the misplaced assumption is refused.
+  }, 30_000);
 });

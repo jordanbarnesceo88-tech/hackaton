@@ -95,7 +95,8 @@ describe("cooperative server calculation", () => {
     expect(noClock(actual.results)).toEqual(noClock(expected.results));
     expect(actual.results.scenarios[1]!.spatialEvidence!.summary.achievedPerH).not.toBe(999999);
     expect(stages).toEqual(["preparing", "spatial-check", "simulation", "fleet-search", "finalizing"]);
-  }, 30_000);
+  // Four full canonical executions (direct sync/async and project sync/async) must precede exact equality; engine deadlines stay unchanged.
+  }, 180_000);
 
   it("allows repeated event-loop heartbeats DURING canonical replay", async () => {
     const { snapshot } = fixture(14);

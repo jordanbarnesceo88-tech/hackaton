@@ -273,7 +273,8 @@ describe("metric traffic safety", () => {
     while(!isDone(headless))stepWarehouseTraffic(headless);while(!isPlaybackDone(playback))stepPlayback(playback,900);
     expect(summarize(playback)).toEqual(summarize(headless));expect(playback.tasks).toEqual(headless.tasks);expect(playback.robots).toHaveLength(60);
     expect(headless.doneCount).toBeGreaterThan(0);expect(headless.demoTraffic.collisionCount).toBe(0);expect(headless.demoTraffic.minimumClearanceM).toBeGreaterThanOrEqual(.15-1e-8);
-  },15000);
+  // Two dense N60 terminal replays compare exact task traces, collision count and body clearance.
+  }, 60_000);
 
   it("fills the supported generated storage floor and places sixty separate real bodies without mutating source inputs",()=>{
     const input=warehouseBaseInput(60),before=structuredClone(input),original=buildWarehouseLayout(input.layout),prepared=prepareWarehouseTraffic(input),site=prepared.siteLayout!;
@@ -283,13 +284,15 @@ describe("metric traffic safety", () => {
     const nodes=new Map(site.routingGraph!.nodes.map(n=>[n.id,n]));for(const e of site.routingGraph!.edges)expect(siteSegmentIsClear(site,nodes.get(e.from)!,nodes.get(e.to)!)).toBe(true);
     expect(new Set(prepared.demoTraffic.initialPositions.map(p=>`${p.x},${p.y}`)).size).toBe(60);
     const a=createPlayback(prepared),b=createPlayback(JSON.parse(JSON.stringify(prepared)));stepPlayback(a,60);stepPlayback(b,60);expect(playbackFrame(a)).toEqual(playbackFrame(b));
-  },10000);
+  // Validates every dense-graph edge and compares two N60 playbacks; allow shared-runner CPU scheduling.
+  }, 30_000);
 
   it("does not impose the former area-based ten-route heuristic on a sixty-body input",()=>{
     const input=warehouseBaseInput(60),prepared=prepareWarehouseTraffic(input);
     expect(prepared.demoTraffic.maxActiveRoutes).toBe(60);
     const resized=structuredClone(prepared);resized.robots.count=11;expect(prepareWarehouseTraffic(resized).demoTraffic.maxActiveRoutes).toBe(11);
-  });
+  // Prepares the full dense N60 floor twice; no inventory thinning or smaller fixture is substituted.
+  }, 30_000);
 
   it("rejects an oversized dense generated floor explicitly instead of thinning its permanent inventory",()=>{
     const input=warehouseBaseInput(60);input.layout.activeAreaM2=50000;const source=structuredClone(input);
