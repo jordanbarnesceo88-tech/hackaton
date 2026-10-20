@@ -1,0 +1,568 @@
+[
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-08-01",
+    "through": "2026-08-31",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 13,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 5200,
+    "reportedAreaM2": 1253498.4532207,
+    "recordedTaskHours": 2515.1930555555564,
+    "m2PerRecordedTaskHour": 498.370671965706,
+    "recordedRobotDays": 357,
+    "sourceFiles": [
+      {
+        "file": "pudu-family.json",
+        "sha256": "a1119caa84f72bd3459d7860598a04c59c3599971825ae5c607db995ffe73277"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "ff4e17b6bfbd5494532f2ede7dab215d6dd832a55ab8a03a588b42e770c5cc4e"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-08-01",
+    "through": "2026-08-31",
+    "mode": "scrubbing",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 13,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 5200,
+    "reportedAreaM2": 1253498.4532207,
+    "recordedTaskHours": 2515.1930555555564,
+    "m2PerRecordedTaskHour": 498.370671965706,
+    "recordedRobotDays": 357,
+    "sourceFiles": [
+      {
+        "file": "pudu-mode-1.json",
+        "sha256": "a1119caa84f72bd3459d7860598a04c59c3599971825ae5c607db995ffe73277"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "ff4e17b6bfbd5494532f2ede7dab215d6dd832a55ab8a03a588b42e770c5cc4e"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-08-01",
+    "through": "2026-08-31",
+    "mode": "sweeping",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 0,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 0,
+    "reportedAreaM2": 0,
+    "recordedTaskHours": 0,
+    "m2PerRecordedTaskHour": null,
+    "recordedRobotDays": 0,
+    "sourceFiles": [
+      {
+        "file": "pudu-mode-2.json",
+        "sha256": "fb3d5a6110a2a370cf15c150eb143e0c230db97ebd713f3c48b720c31e50d53b"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "ff4e17b6bfbd5494532f2ede7dab215d6dd832a55ab8a03a588b42e770c5cc4e"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "agibot",
+    "productSlug": "agibot-c5",
+    "from": "2026-08-01",
+    "through": "2026-08-31",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 14,
+    "robotsWithTasks": 10,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 2318,
+    "reportedAreaM2": 725805.1229440551,
+    "recordedTaskHours": 1648.112777777778,
+    "m2PerRecordedTaskHour": 440.38559298271423,
+    "recordedRobotDays": 232,
+    "sourceFiles": [
+      {
+        "file": "agibot-family.json",
+        "sha256": "8704e627be9c55593cb728eb2bff7fe51a3178c75de869546cccfdd1482d1faa"
+      },
+      {
+        "file": "agibot-robots-daily.json",
+        "sha256": "2e21b613e46d4a9a1b8cfe71d08169f5085f3ef6740284017daaf3ca76b8bb99"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      },
+      {
+        "file": "alfa-agibot-devices-private.json",
+        "sha256": "70cf43676a019efd0f93afcee4ddf758925cdd6e8a7f74d695ca60ce3bfec72f"
+      }
+    ]
+  },
+  {
+    "vendor": "viggo",
+    "productSlug": null,
+    "from": "2026-08-01",
+    "through": "2026-08-31",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 6,
+    "robotsWithTasks": 2,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 468,
+    "reportedAreaM2": 330636.68999999994,
+    "recordedTaskHours": 577.1833333333332,
+    "m2PerRecordedTaskHour": 572.845179174728,
+    "recordedRobotDays": 61,
+    "sourceFiles": [
+      {
+        "file": "viggo-family.json",
+        "sha256": "41e76d5d5dcc8d4f8e5a21f06ca35518896034134a4a3faf6ee3cd420597da2d"
+      },
+      {
+        "file": "viggo-robots-daily.json",
+        "sha256": "8bdef3aa39134d02e17ea07024742d876e149cb3752a21e7c78d1862bd77594c"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "viggo",
+    "productSlug": "viggo-sc80",
+    "from": "2026-08-01",
+    "through": "2026-08-31",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 1,
+    "robotsWithTasks": 1,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 1,
+    "reportedAreaM2": 1009.7,
+    "recordedTaskHours": 0.55,
+    "m2PerRecordedTaskHour": 1835.8181818181818,
+    "recordedRobotDays": 1,
+    "sourceFiles": [
+      {
+        "file": "viggo-family.json",
+        "sha256": "41e76d5d5dcc8d4f8e5a21f06ca35518896034134a4a3faf6ee3cd420597da2d"
+      },
+      {
+        "file": "viggo-robots-daily.json",
+        "sha256": "8bdef3aa39134d02e17ea07024742d876e149cb3752a21e7c78d1862bd77594c"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-09-01",
+    "through": "2026-09-30",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 13,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 4923,
+    "reportedAreaM2": 1114855.6647896734,
+    "recordedTaskHours": 2260.140555555554,
+    "m2PerRecordedTaskHour": 493.26828902268704,
+    "recordedRobotDays": 336,
+    "sourceFiles": [
+      {
+        "file": "pudu-family.json",
+        "sha256": "6a129c5ce283c4c18b7d8904cca5be3926602b517a8d5a0fa18e5c37d8e5949a"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "78c65b5343b6a5b04644f48e5bdc881af19e457a8804bb545b6adf8c32c1a264"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-09-01",
+    "through": "2026-09-30",
+    "mode": "scrubbing",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 13,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 4916,
+    "reportedAreaM2": 1114390.5498292414,
+    "recordedTaskHours": 2259.163055555554,
+    "m2PerRecordedTaskHour": 493.2758381865447,
+    "recordedRobotDays": 334,
+    "sourceFiles": [
+      {
+        "file": "pudu-mode-1.json",
+        "sha256": "de27c6c758e7651df90c280f1089186c53d2cfefbf6d85bd47a51c635e91fecc"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "78c65b5343b6a5b04644f48e5bdc881af19e457a8804bb545b6adf8c32c1a264"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-09-01",
+    "through": "2026-09-30",
+    "mode": "sweeping",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 1,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 7,
+    "reportedAreaM2": 465.1149604320526,
+    "recordedTaskHours": 0.9775,
+    "m2PerRecordedTaskHour": 475.8209313882891,
+    "recordedRobotDays": 2,
+    "sourceFiles": [
+      {
+        "file": "pudu-mode-2.json",
+        "sha256": "43b28b5ec27d9208826154f514051ed4303890705379c779d904d97e885fe3f6"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "78c65b5343b6a5b04644f48e5bdc881af19e457a8804bb545b6adf8c32c1a264"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "agibot",
+    "productSlug": "agibot-c5",
+    "from": "2026-09-01",
+    "through": "2026-09-30",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 14,
+    "robotsWithTasks": 13,
+    "zeroOutputRobotsWithTasks": 1,
+    "tasks": 2023,
+    "reportedAreaM2": 848728.0984040912,
+    "recordedTaskHours": 1791.395555555555,
+    "m2PerRecordedTaskHour": 473.7803975073948,
+    "recordedRobotDays": 250,
+    "sourceFiles": [
+      {
+        "file": "agibot-family.json",
+        "sha256": "9e616d179b4da01ba3a7848bf3c2f9f5b87ee96b91b7b290948a389fd5d00a28"
+      },
+      {
+        "file": "agibot-robots-daily.json",
+        "sha256": "31d21ac1ea7a2a41d62cfee030ef4f78b33540a67b86e43fbfde73badd469a99"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      },
+      {
+        "file": "alfa-agibot-devices-private.json",
+        "sha256": "70cf43676a019efd0f93afcee4ddf758925cdd6e8a7f74d695ca60ce3bfec72f"
+      }
+    ]
+  },
+  {
+    "vendor": "viggo",
+    "productSlug": null,
+    "from": "2026-09-01",
+    "through": "2026-09-30",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 6,
+    "robotsWithTasks": 3,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 343,
+    "reportedAreaM2": 204283.94999999995,
+    "recordedTaskHours": 395.9166666666666,
+    "m2PerRecordedTaskHour": 515.9771416543886,
+    "recordedRobotDays": 54,
+    "sourceFiles": [
+      {
+        "file": "viggo-family.json",
+        "sha256": "3deaa1b14e4a5f95cbbd01c07a21a36f29a2b16a445ca98bae4b7d0e0aa487e0"
+      },
+      {
+        "file": "viggo-robots-daily.json",
+        "sha256": "e7f8aebf4e5ffbb6a63ee51c2f1ceca185403983a48352a93e0744104136cee0"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "viggo",
+    "productSlug": "viggo-sc80",
+    "from": "2026-09-01",
+    "through": "2026-09-30",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 1,
+    "robotsWithTasks": 1,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 22,
+    "reportedAreaM2": 42306.17,
+    "recordedTaskHours": 36.25,
+    "m2PerRecordedTaskHour": 1167.0667586206896,
+    "recordedRobotDays": 6,
+    "sourceFiles": [
+      {
+        "file": "viggo-family.json",
+        "sha256": "3deaa1b14e4a5f95cbbd01c07a21a36f29a2b16a445ca98bae4b7d0e0aa487e0"
+      },
+      {
+        "file": "viggo-robots-daily.json",
+        "sha256": "e7f8aebf4e5ffbb6a63ee51c2f1ceca185403983a48352a93e0744104136cee0"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-09-20",
+    "through": "2026-10-19",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 11,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 5128,
+    "reportedAreaM2": 1072527.2968607694,
+    "recordedTaskHours": 2178.3275,
+    "m2PerRecordedTaskHour": 492.3627401576528,
+    "recordedRobotDays": 323,
+    "sourceFiles": [
+      {
+        "file": "pudu-family.json",
+        "sha256": "aadd219d95f70a191eaa3f9595d607de6e39f5ae1ff9e6befd4841d7644533d1"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "e4f5bca85871c945cd5d0aebfe15d7034e8a6bacfc73c34318bfb54c378fd46e"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-09-20",
+    "through": "2026-10-19",
+    "mode": "scrubbing",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 11,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 5128,
+    "reportedAreaM2": 1072527.2968607694,
+    "recordedTaskHours": 2178.3275,
+    "m2PerRecordedTaskHour": 492.3627401576528,
+    "recordedRobotDays": 323,
+    "sourceFiles": [
+      {
+        "file": "pudu-mode-1.json",
+        "sha256": "aadd219d95f70a191eaa3f9595d607de6e39f5ae1ff9e6befd4841d7644533d1"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "e4f5bca85871c945cd5d0aebfe15d7034e8a6bacfc73c34318bfb54c378fd46e"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      },
+      {
+        "file": "alfa-pudu-tasks-private.json",
+        "sha256": "0bab490efa3c5b54d4cefc0c42f63bfb3835de735e53178d73d952f0109fe005"
+      }
+    ],
+    "timeBasisCheck": {
+      "sampledRecords": 20,
+      "shorterThanElapsed": 20,
+      "equalToElapsed": 0,
+      "greaterThanElapsed": 0,
+      "gapMinSeconds": 208,
+      "gapMaxSeconds": 336,
+      "sampleCleaningSeconds": 14330,
+      "sampleElapsedSeconds": 19266
+    }
+  },
+  {
+    "vendor": "pudu",
+    "productSlug": "pudu-cc1",
+    "from": "2026-09-20",
+    "through": "2026-10-19",
+    "mode": "sweeping",
+    "basis": "reported-task-hour",
+    "robotsSelected": 13,
+    "robotsWithTasks": 0,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 0,
+    "reportedAreaM2": 0,
+    "recordedTaskHours": 0,
+    "m2PerRecordedTaskHour": null,
+    "recordedRobotDays": 0,
+    "sourceFiles": [
+      {
+        "file": "pudu-mode-2.json",
+        "sha256": "fb3d5a6110a2a370cf15c150eb143e0c230db97ebd713f3c48b720c31e50d53b"
+      },
+      {
+        "file": "pudu-robots-daily.json",
+        "sha256": "e4f5bca85871c945cd5d0aebfe15d7034e8a6bacfc73c34318bfb54c378fd46e"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "agibot",
+    "productSlug": "agibot-c5",
+    "from": "2026-09-20",
+    "through": "2026-10-19",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 14,
+    "robotsWithTasks": 14,
+    "zeroOutputRobotsWithTasks": 1,
+    "tasks": 2578,
+    "reportedAreaM2": 1186272.9353740579,
+    "recordedTaskHours": 2192.0661111111126,
+    "m2PerRecordedTaskHour": 541.16658679275,
+    "recordedRobotDays": 282,
+    "sourceFiles": [
+      {
+        "file": "agibot-family.json",
+        "sha256": "83d6478fb8ddc9002482405a009f9435f5e91c3f9f41e3a77a12781c492a04cc"
+      },
+      {
+        "file": "agibot-robots-daily.json",
+        "sha256": "714a10ba3f0acca3197406bbc648c92965af6185747b2b1d5071e1ac172e7fc0"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      },
+      {
+        "file": "alfa-agibot-devices-private.json",
+        "sha256": "70cf43676a019efd0f93afcee4ddf758925cdd6e8a7f74d695ca60ce3bfec72f"
+      }
+    ]
+  },
+  {
+    "vendor": "viggo",
+    "productSlug": null,
+    "from": "2026-09-20",
+    "through": "2026-10-19",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 6,
+    "robotsWithTasks": 3,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 302,
+    "reportedAreaM2": 156005.24000000005,
+    "recordedTaskHours": 298.6000000000001,
+    "m2PerRecordedTaskHour": 522.4555927662425,
+    "recordedRobotDays": 51,
+    "sourceFiles": [
+      {
+        "file": "viggo-family.json",
+        "sha256": "892e01af4624a881d262c47ee11b782588a8b2844cda861d629622fd96f502a4"
+      },
+      {
+        "file": "viggo-robots-daily.json",
+        "sha256": "c8aae80690eea0e56352ca2c090cc736f332da75abe0071488019ed5c8fa08c7"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  },
+  {
+    "vendor": "viggo",
+    "productSlug": "viggo-sc80",
+    "from": "2026-09-20",
+    "through": "2026-10-19",
+    "mode": "all",
+    "basis": "reported-task-hour",
+    "robotsSelected": 1,
+    "robotsWithTasks": 1,
+    "zeroOutputRobotsWithTasks": 0,
+    "tasks": 18,
+    "reportedAreaM2": 25296.530000000002,
+    "recordedTaskHours": 18.950000000000003,
+    "m2PerRecordedTaskHour": 1334.909234828496,
+    "recordedRobotDays": 5,
+    "sourceFiles": [
+      {
+        "file": "viggo-family.json",
+        "sha256": "892e01af4624a881d262c47ee11b782588a8b2844cda861d629622fd96f502a4"
+      },
+      {
+        "file": "viggo-robots-daily.json",
+        "sha256": "c8aae80690eea0e56352ca2c090cc736f332da75abe0071488019ed5c8fa08c7"
+      },
+      {
+        "file": "alfa-bitrix-model-metadata-private.json",
+        "sha256": "5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014"
+      }
+    ]
+  }
+]

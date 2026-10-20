@@ -47,9 +47,25 @@ jobs:
       # Check the checked-in offline viewers before build regenerates them.
       - run: npm run check:3d
       - run: npm run build
-      - run: npx vitest run
+      # Unit physics and real-DB worker tests must not compete for the same CPUs.
+      # vitest.config.mts also orders projects for local `npm test` and bounds workers.
+      - name: Unit (at most two workers)
+        timeout-minutes: 20
+        run: npm run test:unit -- --reporter=default --reporter=json --outputFile.json=test-results/unit.json
+      - name: PostgreSQL integration (one worker, after unit)
+        timeout-minutes: 30
+        run: npm run test:db -- --reporter=default --reporter=json --outputFile.json=test-results/db.json
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          # The seed and owned-project e2e use the same public demo-account fixture.
+          DEMO_USER_PASSWORD: demo-user-2026
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-results
+          path: test-results/
+          retention-days: 7
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

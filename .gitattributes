@@ -10,6 +10,7 @@ docs/submission/sample-report.csv -text whitespace=cr-at-eol
 
 # The current submission manifest records exact bytes of generated artifacts.
 docs/submission/current/** -text whitespace=cr-at-eol
+docs/submission/archive-tz-1.0.8/** -text whitespace=cr-at-eol
 
 # The release manifest records the generator's exact source hash.
 scripts/build-current-submission.mjs text eol=lf

@@ -1,8 +1,8 @@
 {
-  "capturedAt": "2026-10-19T07:55:48.705Z",
-  "project": "d0918f13-b0fe-425a-b924-208a844d3665",
+  "capturedAt": "2026-10-20T10:30:04.937Z",
+  "project": "75c9a3c7-4507-4155-9fd0-9033b771f77e",
   "projectRevision": 0,
-  "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1",
+  "engineRelease": "alfa-robot/sha256:8df905e19177a9d968638fd2eba8ab19cece4875f841673c7bae240828b13e5a",
   "simulationTimeS": 3000,
   "fleet": 6,
   "chargers": 2,
@@ -607,7 +607,7 @@
     "verdictScope": "intake-sla"
   },
   "projectOrigin": {
-    "requestId": "2b8c6528-301e-4a31-9ad6-52e5fef4bf75",
+    "requestId": "e2f2e0d0-fe90-4e7f-bae4-43556095cc35",
     "scenarioKey": "purchase",
     "variantId": "calculated",
     "sourceInput": {
@@ -658,7 +658,7 @@
   "robotId": 4,
   "renderedInputSha256": "6742dcf318f7aba2e85e898e9b2165e4c72db83adf9cfb6c6571cb9d0a24aadb",
   "assetSha256": {
-    "assets/warehouse-current.png": "4af8bf4295afe15abb56742aa6e605c22d6dcf9c513422c2b70302ba3dba742d",
-    "assets/robot-current.png": "2a9f58d948b98fe85ae4a9caea007894da584154ecb8e63f56c99f30464b70da"
+    "assets/warehouse-current.png": "b4aa64235b050a818c302162704d2ae40d60f4bcc1213083f58e34f1ee097674",
+    "assets/robot-current.png": "d9b4570329064a86713957954a950ebc08a429df41e0eb76ec1034dc645261b5"
   }
 }

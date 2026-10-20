@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "operating-evidence-1",
+  "productSlug": "pudu-cc1",
+  "process": "cleaning",
+  "facility": "warehouse",
+  "mode": "scrubbing",
+  "unit": "м²/ч",
+  "site": "Обезличенная выборка одного CC1; тип исходного участка не установлен",
+  "measuredAt": "2026-10-19",
+  "verifiedAt": "2026-10-20",
+  "sourceRef": "alfa-pudu-tasks-private.json SHA-256 0bab490efa3c5b54d4cefc0c42f63bfb3835de735e53178d73d952f0109fe005; модель: alfa-bitrix-model-metadata-private.json SHA-256 5ea2ddd3898ea3687e8192f94299d63101d0d5f270a2aa1fc89b0c4c80fb5014. clean_time — сообщённое время уборки; паузы/зарядка не классифицированы. warehouse — целевой тип сопоставления, не установленный тип исходного объекта. Площадь сообщённая, качество не оценено; status не отфильтрован.",
+  "measuredBy": "Система отчётов Alfa Robots; статистический черновик без подтверждённого акта",
+  "samples": 20,
+  "output": 1628.9102220535278,
+  "operatingMinutes": 238.83333333333334,
+  "elapsedMinutes": 321.1,
+  "basis": "operating-hour",
+  "confirmed": false
+}

@@ -26,26 +26,34 @@ const FOOTER_LINK = "tap-target font-medium underline underline-offset-4 hover:t
 
 export default function Home() {
   return (
-    <div className="surface-data flex flex-col gap-8 py-8 xl:h-[calc(100dvh-60px)] xl:gap-5 xl:py-6">
+    <div className="surface-data flex flex-col gap-8 py-8 xl:h-[calc(100dvh-60px)] xl:gap-5 xl:py-5">
       <section className="grid items-start gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5 xl:gap-3">
           <h1>Подбор роботов от тех, кто уже запускал их на других объектах</h1>
           <div className="flex flex-col gap-2">
             <p className="text-lg text-muted-foreground">
-              Считаем по реальной производительности и находим узкие места до покупки. Для собственников, УК и
+              Учитываем условия эксплуатации и находим узкие места до покупки. Для собственников, УК и
               операторов, которым нельзя ошибиться с бюджетом.
             </p>
             <p className="text-sm font-medium">30 роботов в работе у «Азбуки Вкуса» и других клиентов</p>
           </div>
           {/* Каталог решений — в шапке, здесь не дублируется. */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/demo?example=steady-flow" className={CTA_PRIMARY}>
+          <nav aria-label="Готовые примеры роботизации" className="grid min-w-0 gap-2 sm:grid-cols-3">
+            <Link href="/demo?example=steady-flow" className={cn(CTA_PRIMARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
               Открыть демо-расчёт склада
             </Link>
-            <Link href="/projects/new" className={CTA_SECONDARY}>
+            <Link href="/demo/warehouse?case=complex" className={cn(CTA_SECONDARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
+              Сложный склад · 3D
+            </Link>
+            <Link href="/demo?example=warehouse-cleaning" className={cn(CTA_SECONDARY, "h-auto min-h-12 px-3 py-2 text-center text-sm leading-snug whitespace-normal")}>
+              Уборка склада · расчёт
+            </Link>
+          </nav>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+            <Link href="/projects/new" className="tap-target inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4">
               Создать проект
             </Link>
-            <OnboardingTour triggerSize="xl" triggerClassName="w-full sm:w-auto" />
+            <OnboardingTour triggerClassName="h-auto min-h-11 border-0 px-0 text-sm underline underline-offset-4" />
           </div>
           <p className="text-sm text-muted-foreground">
             Первый расчёт парка и экономики за 5 минут, без регистрации. Дальше ведём до запуска: подготовка

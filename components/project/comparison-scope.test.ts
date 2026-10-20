@@ -11,7 +11,6 @@ const rows = [
 const spec = (kind: ScenarioSpec["kind"], ...processes: string[]): Pick<ScenarioSpec, "kind" | "items"> => ({
   kind, items: processes.map(process => ({ process, productSlug: process === "cleaning" ? "pudu-cc1" : "pallet-a" })),
 });
-
 describe("project comparison process scope", () => {
   it("keeps cleaning alternatives and excludes unrelated warehouse processes", () => {
     expect(comparisonRowsForScenarios(rows, [spec("asis"), spec("purchase", "cleaning"), spec("raas", "cleaning")]))

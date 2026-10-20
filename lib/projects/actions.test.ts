@@ -959,7 +959,7 @@ describe("server-derived audit and consistent report snapshot", () => {
     const saved = await getProject(prisma, project.id, userA);
     await finish((await enqueue(saved!, { changes })).id);
     expect(await prisma.changeLog.findMany({ where: { projectId: project.id } })).toEqual(rows);
-  });
+  }, 60_000); // Two real SAVE calculations/publications, not a store-only audit assertion.
 
   it("server-derived audit survives scenario deletion and a stale removal cannot detach the winner's history", async () => {
     const project = await fixture(), specs = structuredClone(project.scenarios);
@@ -977,7 +977,7 @@ describe("server-derived audit and consistent report snapshot", () => {
     expect(rows.find(row => row.id === before[0]!.id)).toMatchObject({ oldValue: 12, newValue: 13, scenarioId: null, entityId: "p1" });
     expect(rows.find(row => row.field === "scenario:remove")).toMatchObject({ scenarioId: null, entityId: "p1" });
     expect((await getProjectChanges(prisma, project.id, userA))!.every(row => row.scenarioKey === "p1")).toBe(true);
-  });
+  }, 60_000); // Three real SAVE attempts, including stale-revision publication and removal.
 
   it("server-derived audit and report RepeatableRead do not mix a newly committed journal with old numbers", async () => {
     const project = await fixture();

@@ -6,7 +6,8 @@ import path from "path";
 // 3 падения из 5 прогонов, причём в разных тестах, а добавление постороннего файла в
 // lib/economics/ меняло исход. Общий Postgres на параллельных файлах — единственное состояние,
 // которое они делят, поэтому наборы разведены: unit — всё, кроме DB_TESTS, параллельно;
-// db — только DB_TESTS, последовательно.
+// db — только DB_TESTS, последовательно ПОСЛЕ unit. Иначе даже один DB-worker
+// конкурирует с тяжёлыми физическими прогонами за CPU и истекает timeout проверки.
 //
 // Смысл разделения не в скорости, а в доверии: зелёный гейт по обоим наборам решает, можно ли
 // мержить (В-1), и мигающий гейт заставляет перезапускать до зелёного вместо того, чтобы читать
@@ -44,6 +45,10 @@ export default defineConfig({
           name: "unit",
           environment: "node",
           globals: false,
+          // Full physical replays are CPU-bound; unconstrained workers starve one
+          // another on CI. Keep the existing per-test deadlines and assertions.
+          maxWorkers: 2,
+          sequence: { groupOrder: 0 },
           // Playwright specs live in e2e/ and import @playwright/test (not vitest) — keep them
           // out of the unit run, which would otherwise pick up *.spec.ts and hard-fail on the
           // import.
@@ -64,6 +69,8 @@ export default defineConfig({
           // Один Postgres на все файлы набора: параллельный запуск означает, что они
           // наступают друг другу на состояние.
           fileParallelism: false,
+          maxWorkers: 1,
+          sequence: { groupOrder: 1 },
         },
       },
     ],

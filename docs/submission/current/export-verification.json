@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "checkedAt": "2026-10-19T07:54:22.733Z",
+  "checkedAt": "2026-10-20T10:51:46.798Z",
   "checks": 7329,
   "sheets": 14,
   "finance": [
@@ -256,34 +256,34 @@
     "note": "Zero cash realization and zero automatable labour are different inputs."
   },
   "scope": "Read-only JSON/CSV/XLSX14 comparison, independent financial and cohort arithmetic. Cached Excel values and formula references only; no Excel recalculation, simulation replay, DB, browser, PDF text or visual acceptance.",
-  "capturePinsSha256": "83a011e091f8c9cb8ec5b195163cce331917bf7f14b158ea1c6543fc8e270493",
+  "capturePinsSha256": "f0e5ad230a771e053b9e692b6a7cbf94ecd8a452fa7dac94c48c670cf9b88eab",
   "project": {
-    "id": "d0918f13-b0fe-425a-b924-208a844d3665",
+    "id": "75c9a3c7-4507-4155-9fd0-9033b771f77e",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
     "revision": 0
   },
   "sourceProject": {
-    "id": "d0918f13-b0fe-425a-b924-208a844d3665",
+    "id": "75c9a3c7-4507-4155-9fd0-9033b771f77e",
     "name": "Сдаточный пример - полный цикл мобильного стеллажа",
     "revision": 0
   },
   "operation": {
-    "id": "cmveyilnt000d01qsswk84q0x",
+    "id": "cmvgjdjag000ar8qqluwoxdph",
     "kind": "CREATE",
     "status": "SUCCEEDED",
     "publication": "PUBLISHED",
-    "engineRelease": "alfa-robot/sha256:c390fad7903ca679f0c932fb46837e19101c5c72813def5814ed9fbafaf7906e/alfa-durable-calculation-1"
+    "engineRelease": "alfa-robot/sha256:8df905e19177a9d968638fd2eba8ab19cece4875f841673c7bae240828b13e5a"
   },
-  "modelVersion": "tz-1.0.8",
+  "modelVersion": "tz-1.0.10",
   "spatialVersion": "warehouse-dense-underlift-1.9.1",
   "sha256": {
-    "calculation-source.json": "ed5cc7f9e046d044ee8fd88b65806bbb9eeddc9c11759b64ade1cc607aa6478c",
-    "sample-report.xlsx": "f4901a2a64d7a93516fe4f0bee7ce3c8caef4c35c337a55392afe9d1acac192b",
-    "sample-report.csv": "96ef04f907b24527a9a7af5520cb9e4718f42e1cc09c2fbdbbeb034169565048",
-    "sample-report.pdf": "35a8ebfe6dd4cd717821c33aeac16d6bf7338430c7ca9d0b6f7429dc976e3706",
-    "steady-flow-receipt.json": "2a020e6849f3e70263e6cfd1457a3d25225d0226c60042076786ecc16b2c8c3e",
-    "peak-overload-receipt.json": "1199584a803d70b7b375e8a9391d9b9437197107b0f4597a64254741a373e70b",
-    "retained-staff-receipt.json": "2935c221f1ad48d4b69b4fed7a56956343dd5f8d2dd8b1d73c700ae7c2ad5cd1"
+    "calculation-source.json": "3e7eaa32febc1f34d3c4a3d9823d653318f3ac620c616247c63dd3bdfb7635bb",
+    "sample-report.xlsx": "c2b03c7af3caba79b1f71f13f4c73bd868bd0de54124c18c161ca2619a8c118a",
+    "sample-report.csv": "5aa3c90236f3acfe1c3d7365ee4f176b5388e0b71d9ece0f3787c54e134ec9b4",
+    "sample-report.pdf": "a9413c52c563e657504e01c32d9b4abbebbf62d1bcac0118bf8ae67613c4eac2",
+    "steady-flow-receipt.json": "8ad59a1210169cf7a3a7d28bed21b747f9ed91395a8ca25e4220efbc40b86c79",
+    "peak-overload-receipt.json": "6b4e6e4cd11085b14a769f3fffb30bc0aaaed986bc8453c0aadb9792a6478627",
+    "retained-staff-receipt.json": "be63bc21a6cd5281d25c6e84a9bf17933581abe23d3077045913d1a28a6e1790"
   },
   "excelRecalculated": false,
   "rawXmlZeroCacheEvidence": [

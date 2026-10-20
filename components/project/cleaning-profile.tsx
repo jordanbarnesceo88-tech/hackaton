@@ -2,7 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { cleaningWorkingProfile } from "@/lib/data/cleaning-assumptions";
+import { cleaningOperatingReadiness, cleaningWorkingProfile } from "@/lib/data/cleaning-assumptions";
 import { formatNum } from "@/lib/format/rub";
 import { cleaningDay, parseCleaningProfile } from "@/lib/tz/econ/cleaning-profile";
 import type { CleaningProfile } from "@/lib/tz/types";
@@ -72,6 +72,32 @@ export type CleaningProfileEditorProps = EditorDraftBindings & {
   onChange?: (value: CleaningProfile | undefined) => void;
 };
 
+function CleaningOperatingReports({ productSlug }: { productSlug: string }) {
+  const report = cleaningOperatingReadiness(productSlug);
+  if (!report.observations.length) return null;
+  const modes = { all: "Все режимы", scrubbing: "Мойка", sweeping: "Подметание" };
+  return <details data-cleaning-operating-reports className="min-w-0 border-t pt-3">
+    <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Отчёты эксплуатации Alfa Robots</summary>
+    <div className="mt-3 grid min-w-0 gap-3 text-sm">
+      <p>Выборка относится к этой модели. Периоды показаны отдельно: сентябрь и период с 20 сентября пересекаются, складывать их нельзя.</p>
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Выработка модели по отчётам эксплуатации">
+        <table className="w-full text-left text-xs">
+          <caption className="pb-2 text-left text-muted-foreground">Площадь за час времени заданий из отчёта, м²/ч</caption>
+          <thead><tr>{["Период", "Режим", "Роботов с заданиями", "Заданий", "Выработка"].map(label => <th key={label} scope="col" className="border-b px-2 py-2 font-medium">{label}</th>)}</tr></thead>
+          <tbody>{report.observations.map(row => <tr key={`${row.from}:${row.through}:${row.mode}`}>
+            <td className="whitespace-nowrap border-b px-2 py-2">{row.from} — {row.through}</td>
+            <td className="border-b px-2 py-2">{modes[row.mode]}</td>
+            <td className="border-b px-2 py-2 tabular-nums">{row.robotsWithTasks}</td>
+            <td className="border-b px-2 py-2 tabular-nums">{row.tasks}</td>
+            <td className="border-b px-2 py-2 tabular-nums">{row.m2PerRecordedTaskHour === null ? "Нет времени в отчёте" : formatNum(row.m2PerRecordedTaskHour, 2)}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+      <p className="text-xs leading-relaxed text-muted-foreground">Источник — выгрузки Alfa Robots за август, сентябрь и 20 сентября — 19 октября 2026 года; модель сопоставлена с реестром оборудования. Время задания пока не приравнено к активному времени уборки или полной смене. Эти наблюдения доступны для сравнения с рабочей оценкой; расчёт использует явно применённый профиль ниже.</p>
+    </div>
+  </details>;
+}
+
 export function CleaningProfileEditor(props: CleaningProfileEditorProps) {
   // Reset only when the accepted profile or product changes; unrelated renders retain the local draft.
   return <CleaningProfileForm key={`${props.productSlug}:${stableJson(props.value ?? null)}`} {...props} />;
@@ -104,7 +130,7 @@ function CleaningProfileForm({ productSlug, value, readOnly, onChange, draft: sa
   </section>;
   return <details data-cleaning-profile-editor className="min-w-0 border-t pt-3">
     <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Рабочий профиль уборки: выработка, зарядка и труд</summary>
-    <div className="mt-3 grid min-w-0 gap-4"><ProfileSummary value={value} />{limits}</div>
+    <div className="mt-3 grid min-w-0 gap-4"><ProfileSummary value={value} />{limits}<CleaningOperatingReports productSlug={productSlug} /></div>
     <form onSubmit={apply} className="mt-4 grid max-w-3xl min-w-0 gap-4">
       {preset && <div className="grid gap-2">
         <Button type="button" variant="outline" className="h-auto min-h-11 w-fit max-w-full whitespace-normal" onClick={() => { replaceDraft(profileDraft(preset)); setMessage({ error: false, text: "Рабочая оценка заполнена только в форме. Проверьте единицы, режим и допущения, затем примените профиль." }); }}>Заполнить рабочую оценку</Button>

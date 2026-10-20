@@ -12,6 +12,19 @@ const draft: CleaningProfileDraft = {
 const text = (html: string) => html.replace(/\s/g, " ");
 
 describe("cleaning working-profile editor", () => {
+  it("shows model-specific operating reports without changing the accepted profile or archive", () => {
+    const onChange = vi.fn();
+    const html = renderToStaticMarkup(createElement(CleaningProfileEditor, { productSlug: "pudu-cc1", onChange }));
+    expect(html).toContain("Отчёты эксплуатации Alfa Robots");
+    expect(html).toContain("времени заданий");
+    expect(html).toContain("2026-08-01");
+    expect(html).toContain("Мойка");
+    expect(html).toContain("складывать их нельзя");
+    expect(html).not.toContain('value="550"');
+    expect(onChange).not.toHaveBeenCalled();
+    const archive = renderToStaticMarkup(createElement(CleaningProfileEditor, { productSlug: "pudu-cc1", readOnly: true }));
+    expect(archive).not.toContain("Отчёты эксплуатации Alfa Robots");
+  });
   it("converts editable percentages exactly once and delegates all domain validation", () => {
     const profile = parseCleaningProfileDraft({ ...draft, automatableLabourPct: "25,5" });
     expect(profile.automatableLabourShare).toBe(0.255);
@@ -35,7 +48,10 @@ describe("cleaning working-profile editor", () => {
     expect(estimate).toEqual(cleaningWorkingProfile(slug));
     expect(estimate.mode).toContain("кафеля");
     expect(estimate.source).toContain("Экспертная оценка команды");
-    if (slug === "viggo-sc80") expect(estimate.reason).toContain("не подтверждена");
+    if (slug === "viggo-sc80") {
+      expect(estimate.reason).toContain("сопоставленной моделью SC80");
+      expect(estimate.reason).toContain("не подменяет активный час");
+    }
   });
 
   it("starts missing profiles blank and never applies an example merely by rendering", () => {

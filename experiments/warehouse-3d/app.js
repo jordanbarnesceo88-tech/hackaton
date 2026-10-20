@@ -9,10 +9,10 @@
   const projectMode = config.initialCase !== 'sections' && projectHash.has('project');
   const projectRequestId = projectHash.get('project');
   const viewerUrl = kind => location.protocol === 'file:' ? `./${kind}-3d.html` : `/demo/${kind}`;
+  $('warehouse-demo-link').href = viewerUrl('warehouse');
   $('complex-demo-link').href = `${viewerUrl('warehouse')}?case=complex`;
   $('cleaning-demo-link').href = viewerUrl('cleaning');
   if (location.protocol === 'file:') $('cad-methodology').hidden = true;
-  $('demo-link').href = viewerUrl(config.initialCase === 'sections' ? 'warehouse' : 'cleaning');
   const numberFormats = new Map();
   const format = (value, digits = 1) => {
     if (!Number.isFinite(value)) return '—';
@@ -244,6 +244,7 @@
     const a = current.assessment;
     $('verdict').dataset.kind = dirty ? 'dirty' : ({ OK: 'pass', PARTIAL: 'warn', FAIL: 'fail', NOT_EVALUATED: 'neutral', RUNNING: 'neutral' }[a?.status] || 'neutral');
     text('verdict', dirty ? 'Параметры изменены — нужен пересчёт' : a?.headline || 'Результат пока не оценён');
+    text('result-summary', `Итог прогона · ${dirty ? 'нужен пересчёт' : a?.headline || 'результат пока не оценён'}`);
     const cause = (a?.status === 'FAIL' && a.checks.find(c => c.category === 'safety' && c.status === 'FAIL')) || a?.checks.find(c => c.category === 'goal' && ['FAIL', 'WARN', 'NOT_EVALUATED'].includes(c.status));
     const throughputMiss = !isCleaning() && a?.status !== 'FAIL' && a?.checks.some(c => c.id === 'throughput' && c.status === 'FAIL');
     const explanation = throughputMiss ? `Доставлено ${formatRate(current.summary.achievedPerH)} пал./ч при цели ${formatRate(current.summary.requiredPerH)} пал./ч и поступлении ${formatRate(current.summary.arrivedPerH)} пал./ч. Очередь в конце: ${current.summary.queueEnd} заданий при допуске ${format(current.summary.endQueueLimit)}.` : cause ? `${cause.measuredText}. ${cause.why}` : 'Заданные критерии этого прогона выполнены. Измерения объекта и результаты пилота пока не получены.';
@@ -442,7 +443,7 @@
     facts('facts', [['Парк / секции', `${current.input.robots.count} / ${s.totalSections}`], ['Доступная площадь задания', `${format(s.targetM2)} м²`], ['Выполнено / осталось', `${format(s.cleanedM2)} / ${format(Math.max(0,s.targetM2-s.cleanedM2))} м²`], ['Средняя за прогон', `${format(s.achievedM2PerH, 0)} м²/ч`], ['Источник', 'Модель покрытия, не отчёт вендора']]);
     text('decision-title', current.assessment.status === 'OK' ? 'Задание уборки выполнено в модели' : 'Задание уборки выполнено не полностью');
     text('pilot-summary', `${s.completedSections} из ${s.totalSections} секций, ${format(s.cleanedM2)} из ${format(s.targetM2)} м². Осталось ${format(Math.max(0, s.targetM2 - s.cleanedM2))} м². Качество мытья и ручные вмешательства нужно проверить на объекте.`);
-    $('decision-action').hidden = true; $('decision-compare').hidden = true; text('decision-action-note', 'Этот дополнительный сценарий показывает покрытие секций. Экономический подбор основного продукта относится к перевозке паллет.');
+    $('decision-action').hidden = true; $('decision-compare').hidden = true; text('decision-action-note', 'Этот отдельный 3D-сценарий показывает покрытие секций. Финансовый пример уборки использует свой рабочий профиль; результат этой сцены не подтверждает его выработку или качество уборки.');
   }
   function renderSections() {
     if (!isCleaning() || !frame?.sections) return;
@@ -505,6 +506,7 @@
   function installModel(result, id, { modified = false, preserveComparison = false } = {}) {
     financialEvaluation = null;
     $('decision-action').hidden = result.kind === 'cleaning'; $('decision-compare').hidden = result.kind === 'cleaning';
+    $('cleaning-finance-link').hidden = result.kind !== 'cleaning' || location.protocol === 'file:';
       current = result; activeCase = id; selectedId = null; $('selection').hidden = true;
       document.querySelectorAll('[data-check]').forEach(input => { input.checked = false; });
       clearLiveRows();
@@ -522,10 +524,8 @@
       $('area').value = cleaning ? result.activeAreaM2 : result.input.layout.activeAreaM2;
       $('sections-panel').hidden = !cleaning; $('coverage-legend').hidden = !cleaning; $('warehouse-legend').hidden = cleaning;
       $('warehouse-examples').hidden = true; $('input-details').open = !cleaning && !matchMedia('(max-width:650px)').matches;
-      $('demo-link').href = viewerUrl(cleaning ? 'warehouse' : 'cleaning');
-      text('demo-link', cleaning ? 'Основное демо: склад' : 'Дополнительно: уборка');
       sectionRows.clear(); $('section-list').replaceChildren();
-      text('page-title', cleaning ? 'Работа роботов внутри секций' : 'Склад. Поток. Состояние каждого робота.');
+      text('page-title', cleaning ? 'Уборка · работа по секциям' : 'Склад · работа парка');
       text('header-context', cleaning ? 'Дополнительная модель уборки · все параметры условные' : 'Перевозка грузов · полный цикл мобильных стеллажей');
       text('playback-help', result.input.pedestrians ? 'Показаны роботы и учебный пешеход на плане в метрах. Сравните план и факт выше; выберите робота, чтобы увидеть причину замедления или ожидания, историю и выбранный момент. Расписание перехода желаемое; фактический проход начинается после освобождения. Параметры торможения оценочные, безопасность объекта не подтверждена.' : cleaning ? 'Показан рабочий след уборки пяти секций: закраска означает уникальную пройденную площадь, а не качество мытья. Сравните задание и покрытие выше; выберите робота для истории. Люди и тормозной путь не моделируются.' : 'Роботы и задания показаны на плане в метрах. Сравните план и факт выше; выберите робота для телеметрии и истории, затем перемотайте нужный момент. Люди и тормозной путь не моделируются.');
       text('scope-note', cleaning ? 'Моделируем выполнение уборки в пяти секциях: доступный пол, рабочие полосы, переезды и зарядку. Покрытие — уникальная площадь пройденных рабочих ячеек.' : 'Проверяем поток, очереди и зарядку на типовой планировке. Прохождение модели — основание для обследования и пилота.');
@@ -534,7 +534,7 @@
       text('required-label', cleaning ? 'Площадь задания' : 'Нужно перемещать');
       text('achieved-label', cleaning ? 'Убрано за прогон' : 'Завершено за час');
       text('queue-label', cleaning ? 'Секции завершены' : 'Максимальная очередь');
-      text('live-done-label', cleaning ? 'секций выполнено' : 'заявок выполнено');
+      text('live-done-label', cleaning ? 'Завершённые секции' : 'Завершённые заявки');
       text('fleet-done-heading', cleaning ? 'УБРАНО, М²' : 'ЗАЯВКИ / ВНУТР. РЕЙСЫ');
       const heads = cleaning ? ['СЕКЦИЯ','ЗАДАНИЕ, М²','СОСТОЯНИЕ','РОБОТ','УБРАНО, М²','ОСТАЛОСЬ, М²','ПРОГРЕСС','НАЧАТО'] : ['ЗАДАНИЕ','ТИП','СТАТУС','РОБОТ','ОТКУДА X / Y','КУДА X / Y','СОЗДАНО','ОЖИДАНИЕ, С'];
       const headrow = document.createElement('tr'); heads.forEach(v => { const th = document.createElement('th'); th.textContent = v; headrow.append(th); }); $('task-head').replaceChildren(headrow);
@@ -559,7 +559,7 @@
         text('header-context', 'Пространственная проверка снимка выбранного сценария');
         text('case-context', `${result.title} · ${result.input.robots.count} роботов · базовый прогон без учебных инцидентов`);
         text('input-note', 'Параметры получены из проекта и здесь доступны только для чтения. Правьте исходный сценарий и откройте новый снимок. Сравнение парков ниже проверяет отдельные варианты и не изменяет проект.');
-        $('presets').hidden = true; $('recalculate').hidden = true; $('demo-link').href = viewerUrl('warehouse'); text('demo-link', 'Открыть отдельное демо');
+        $('presets').hidden = true; $('recalculate').hidden = true;
       }
       setDirty(false);
       setTimeout(() => { if (!playing) renderFrame(false); }, 700);
@@ -765,7 +765,17 @@
   $('pilot-close').addEventListener('click', () => $('pilot-dialog').close());
   window.addEventListener('pagehide', () => { cancelAnimationFrame(animation); calculationWorker?.terminate(); if (workerUrl) URL.revokeObjectURL(workerUrl); comparisonPanel.dispose(); incidents.dispose(); inspection.dispose(); viewer?.dispose(); });
   window.warehouseDemo = { calculationMode: () => calculationWorker ? 'worker' : 'main', comparisonStats: () => comparisonPanel.stats(), fleetComparison: () => comparisonPanel.snapshot(), stats: () => viewer?.getStats?.(), detailStats: () => inspection.getStats(), workHistory: () => inspection.getHistory(), projectRobot: id => viewer?.projectRobot?.(id), projectObject: id => viewer?.projectObject?.(id), snapshot: () => JSON.parse(JSON.stringify({ caseId: activeCase, input: current?.input, summary: current?.summary, assessment: current?.assessment, projectOrigin: current?.projectOrigin, comparisonOrigin: current?.comparisonOrigin, frame, playing, mode, speed, playbackClock: { canonicalS: state?.tS, pendingS: carry }, dirty, busy, comparing })) };
-  if (matchMedia('(max-width:650px)').matches) $('input-details')?.removeAttribute('open');
+  const compactLayout = matchMedia('(max-width:650px)');
+  const setDisclosureLayout = () => {
+    for (const id of ['header-navigation', 'result-shell', 'scenario-settings']) $(id).open = !compactLayout.matches;
+    if (compactLayout.matches) $('input-details').open = false;
+    viewer?.resize();
+  };
+  compactLayout.addEventListener('change', setDisclosureLayout);
+  setDisclosureLayout();
+  let restoreCollapsedResult = false;
+  window.addEventListener('beforeprint', () => { restoreCollapsedResult = !$('result-shell').open; $('result-shell').open = true; });
+  window.addEventListener('afterprint', () => { if (restoreCollapsedResult) $('result-shell').open = false; restoreCollapsedResult = false; });
   let projectMessageHandler = null, projectTimer = null;
   if (projectMode) {
     setBusy(true); text('page-title', 'Проверка снимка проекта');

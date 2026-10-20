@@ -9,6 +9,8 @@ import { validatePendingChanges, validateScenarioSpecs } from "../projects/valid
 import { projectAuditDiff } from "../projects/changes";
 import { parseServiceCharacteristic } from "./service-evidence";
 import { serviceProviders } from "../implementation/service-directory";
+import alfaCc1Draft from "../data/alfa-cc1-operating-evidence-draft.generated.json";
+import { assessOperatingEvidence } from "./operating-evidence";
 
 function seedWithObservation(): ProductSeed {
   const seed = structuredClone(VENDOR_CLEANING_PRODUCTS[0]!);
@@ -18,6 +20,17 @@ function seedWithObservation(): ProductSeed {
 }
 
 describe("operating evidence boundary and snapshot", () => {
+  it("imports the received CC1 statistical draft without confirming it or overwriting the passport", () => {
+    const seed = structuredClone(VENDOR_CLEANING_PRODUCTS[0]!);
+    seed.characteristics.operatingEvidence = { value: JSON.stringify(alfaCc1Draft), origin: "research", sourceType: "field-measurement", sourceUrl: null, sourceRef: "Alfa CC1: 20 первичных заданий 19.10.2026; полные хеши источников внутри записи", date: alfaCc1Draft.verifiedAt, confirmed: false };
+    const checked = validateProductSeeds([seed]);
+    expect(checked.ok ? [] : checked.issues).toEqual([]);
+    const frozen = productForCalcFromSeed(seed);
+    expect(frozen.throughputPerH).toBe(700);
+    expect(frozen.operatingEvidence).toMatchObject({ confirmed: false, samples: 20, output: 1628.9102220535278, operatingMinutes: 238.83333333333334, elapsedMinutes: 321.1 });
+    expect(frozen.operatingEvidenceConfirmed).toBe(false);
+    expect(assessOperatingEvidence(frozen.operatingEvidence, { productSlug: "pudu-cc1", process: "cleaning", facility: "warehouse", mode: "scrubbing", unit: "м²/ч", confirmed: true, asOf: "2026-10-20" }).applied).toBe(false);
+  });
   it("accepts a private sourced field record and freezes all metadata independently of the nameplate", () => {
     const seed = seedWithObservation(), checked = validateProductSeeds([seed]);
     expect(checked.ok ? [] : checked.issues).toEqual([]);
