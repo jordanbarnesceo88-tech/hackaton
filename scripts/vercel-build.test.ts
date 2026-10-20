@@ -41,15 +41,16 @@ describe("Vercel production migration build", () => {
     const config = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
     expect(config.buildCommand).toBe("node scripts/vercel-build.mjs");
   });
-  it("checks historical baseline, migrates first using DIRECT_URL, then builds with unchanged runtime env", async () => {
+  it("checks baseline, migrates and syncs using DIRECT_URL, then builds with unchanged runtime env", async () => {
     const order: string[] = [], original = structuredClone(environment);
     const run = vi.fn((command: string, args: string[], env: NodeJS.ProcessEnv) => {
       if (args.includes("deploy")) { order.push("migrate"); expect(env.DATABASE_URL).toBe(environment.DIRECT_URL); expect(args.slice(1)).toEqual(["migrate", "deploy"]); }
+      else if (args[1]?.endsWith("sync-runtime-catalog.ts")) { order.push("sync"); expect(env.DATABASE_URL).toBe(environment.DIRECT_URL); expect(args[0]).toMatch(/node_modules[\\/]tsx[\\/]dist[\\/]cli\.mjs$/); }
       else { order.push("build"); expect(args).toEqual(["run", "build"]); expect(env.DATABASE_URL).toBe(environment.DATABASE_URL); }
       return success();
     });
     await runVercelBuild(environment, { run, verifyBaseline: async connection => { expect(connection).toBe(environment.DIRECT_URL); order.push("preflight"); }, log: vi.fn() });
-    expect(order).toEqual(["preflight", "migrate", "build"]); expect(environment).toEqual(original);
+    expect(order).toEqual(["preflight", "migrate", "sync", "build"]); expect(environment).toEqual(original);
   });
   it.each(["preview", "development"])("never connects or performs DDL in %s, even with production credentials present", async VERCEL_ENV => {
     const run = vi.fn(success), verifyBaseline = vi.fn();
@@ -59,7 +60,7 @@ describe("Vercel production migration build", () => {
   it("uses direct DATABASE_URL fallback only for the migration child", async () => {
     const env = { ...environment, DIRECT_URL: "", DATABASE_URL: "postgresql://user:password@direct.example/db" }, run = vi.fn(success);
     await runVercelBuild(env, { run, verifyBaseline: async () => {}, log: vi.fn() });
-    expect(run.mock.calls[0]?.[2]?.DATABASE_URL).toBe(env.DATABASE_URL); expect(run).toHaveBeenCalledTimes(2);
+    expect(run.mock.calls[0]?.[2]?.DATABASE_URL).toBe(env.DATABASE_URL); expect(run.mock.calls[1]?.[2]?.DATABASE_URL).toBe(env.DATABASE_URL); expect(run).toHaveBeenCalledTimes(3);
   });
   it.each([{}, { VERCEL: "1", VERCEL_ENV: "staging" }, { VERCEL: "0", VERCEL_ENV: "production" }])("fails closed for an unknown build environment", async env => {
     const run = vi.fn(success), verifyBaseline = vi.fn();
@@ -76,6 +77,17 @@ describe("Vercel production migration build", () => {
     await expect(runVercelBuild(environment, { run, verifyBaseline: async () => {}, log })).rejects.toThrow("Prisma migration failed (P3009)");
     expect(run).toHaveBeenCalledTimes(1); expect(JSON.stringify(log.mock.calls)).not.toContain("secret");
   });
+  it("stops before build and omits raw diagnostics when catalogue synchronization fails", async () => {
+    const run = vi.fn((command: string, args: string[]) => args.includes("deploy") ? success() : ({ ...success(), status: 1, stdout: environment.DIRECT_URL, stderr: "direct-secret" })), log = vi.fn();
+    await expect(runVercelBuild(environment, { run, verifyBaseline: async () => {}, log })).rejects.toThrow("Runtime catalogue synchronization failed");
+    expect(run).toHaveBeenCalledTimes(2); expect(JSON.stringify(log.mock.calls)).not.toContain("secret");
+  });
+  it("redacts successful catalogue subprocess output too", async () => {
+    const log = vi.fn();
+    const run = vi.fn((command: string, args: string[]) => ({ ...success(), stdout: args[1]?.endsWith("sync-runtime-catalog.ts") ? `${environment.DIRECT_URL} direct-secret` : "ok" }));
+    await runVercelBuild(environment, { run, verifyBaseline: async () => {}, log });
+    expect(JSON.stringify(log.mock.calls)).not.toContain("secret"); expect(run).toHaveBeenCalledTimes(3);
+  });
   it("rejects missing, malformed, non-PostgreSQL and explicitly pooled migration endpoints without echoing them", () => {
     for (const DIRECT_URL of ["", "not-a-url-secret", "https://user:secret@example.com/db", "postgresql://user:secret@db-pooler.example/db", "postgresql://user:secret@direct.example/db?pgbouncer=true"]) {
       expect(() => migrationConnection({ DIRECT_URL })).toThrow();
@@ -84,7 +96,7 @@ describe("Vercel production migration build", () => {
   it("redacts URLs and supplied secrets from build output and propagates build failure", async () => {
     const env = { ...environment, AI_API_KEY: "provider-secret", AUTH_SECRET: "auth-secret" }, log = vi.fn();
     expect(redactBuildOutput(`${environment.DIRECT_URL} direct-secret provider-secret auth-secret`, env)).not.toContain("secret");
-    const run = vi.fn((command: string, args: string[]) => args.includes("deploy") ? success() : ({ ...success(), status: 1, stdout: env.AI_API_KEY, stderr: env.DIRECT_URL }));
+    const run = vi.fn((command: string, args: string[]) => args.includes("build") ? ({ ...success(), status: 1, stdout: env.AI_API_KEY, stderr: env.DIRECT_URL }) : success());
     await expect(runVercelBuild(env, { run, verifyBaseline: async () => {}, log })).rejects.toThrow("Application build failed");
     expect(JSON.stringify(log.mock.calls)).not.toContain("secret");
   });

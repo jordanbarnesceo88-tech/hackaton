@@ -56,6 +56,8 @@ import type { Db } from "./queries";
 
 /** Параметры синхронизации. */
 export type SyncOptions = {
+  /** Deployment must not publish a release marker after a partial product import. */
+  requireComplete?: boolean;
   /**
    * Уважать правки администратора (по умолчанию true). false — данные организатора
    * перезаписывают правленые строки параметров, нормативов и продуктов и снимают с них
@@ -875,6 +877,9 @@ export async function syncOrganizerData(db: Db, opts: SyncOptions = {}): Promise
   report.warnings.push(...products.warnings);
 
   await archiveVanished(db, report, respect, opts.only);
+  if (opts.requireComplete && (report.products.failed || report.characteristics.rejected)) {
+    throw new Error("Runtime organizer catalogue synchronization was incomplete.");
+  }
   await upsertRelease(db, report);
   report.staleSources = await countStaleSources(db, opts.now ?? new Date());
   return report;

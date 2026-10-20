@@ -68,8 +68,12 @@ export async function runVercelBuild(environment, { run = execute, verifyBaselin
       throw new Error(`Prisma migration failed${code ? ` (${code})` : ""}; application build was not started. Connection details are omitted.`);
     }
     log("Production migrations completed.");
+    const sync = run(process.execPath, [resolve(root, "node_modules/tsx/dist/cli.mjs"), resolve(root, "scripts/sync-runtime-catalog.ts")], { ...environment, DATABASE_URL: connection });
+    for (const output of [sync.stdout, sync.stderr]) if (output) log(redactBuildOutput(output, environment));
+    if (sync.error || sync.status !== 0) throw new Error("Runtime catalogue synchronization failed; application build was not started. Connection details are omitted.");
+    log("Production reference catalogue synchronized (administrator edits preserved; no full seed).");
   } else log(`${environment.VERCEL_ENV}: database migrations are disabled.`);
-  // The direct migration connection is confined to its child process; build/runtime keeps DATABASE_URL unchanged.
+  // Direct connection is confined to migration/catalogue children; build/runtime keeps DATABASE_URL unchanged.
   const build = run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build"], { ...environment });
   for (const output of [build.stdout, build.stderr]) if (output) log(redactBuildOutput(output, environment));
   if (build.error || build.status !== 0) throw new Error("Application build failed.");
