@@ -47,7 +47,7 @@ export function LineItems({
         <p className="text-sm text-muted-foreground">Статей нет.</p>
       ) : (
         <div className="data-table-wrap">
-          <table className="print-table w-full border-collapse text-sm">
+          <table className="print-table cost-breakdown w-full border-collapse text-sm" role="table">
             <thead className="border-b">
               <tr>
                 <th scope="col" className={TH}>
@@ -66,8 +66,8 @@ export function LineItems({
             </thead>
             <tbody>
               {lines.map((l) => (
-                <tr key={l.key}>
-                  <th scope="row" className={`${TD} text-left font-normal`}>
+                <tr role="row" key={l.key}>
+                  <th role="rowheader" scope="row" className={`${TD} text-left font-normal`}>
                     {l.label}
                     {l.overridden && (
                       <span data-tone="info" className="badge ml-2">
@@ -75,12 +75,14 @@ export function LineItems({
                       </span>
                     )}
                   </th>
-                  <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>{formatRub(l.valueRub)}</td>
-                  <td className={`${TD} min-w-64`}>
+                  <td role="cell" className={`${TD} text-right tabular-nums whitespace-nowrap`}>{formatRub(l.valueRub)}</td>
+                  <td role="cell" data-cost-basis className={`${TD} min-w-64`}>
+                    <span className="mb-1 block text-xs font-medium sm:hidden print:hidden">Формула</span>
                     <div className="text-xs text-muted-foreground">{l.formula}</div>
                     <div className="mt-0.5 font-mono text-xs break-words">{l.substituted}</div>
                   </td>
-                  <td className={`${TD} min-w-40`}>
+                  <td role="cell" data-cost-basis className={`${TD} min-w-40`}>
+                    <span className="mb-1 block text-xs font-medium sm:hidden print:hidden">Источник</span>
                     {print ? (
                       <>
                         <SourceBadge origin={l.origin} />
@@ -99,12 +101,12 @@ export function LineItems({
               ))}
             </tbody>
             <tfoot>
-              <tr className="font-semibold">
+              <tr role="row" className="font-semibold">
                 <th scope="row" className={`${TD} text-left`}>
                   {totalLabel}
                 </th>
                 <td className={`${TD} text-right tabular-nums whitespace-nowrap`}>{formatRub(total ?? linesTotal(lines))}</td>
-                <td className={TD} colSpan={2} />
+                <td className={`${TD} max-sm:hidden print:table-cell`} colSpan={2} />
               </tr>
             </tfoot>
           </table>

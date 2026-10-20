@@ -1401,11 +1401,6 @@ export function Workspace({
             <div><dt>Требуемый поток</dt><dd>{formatNum(focusInput.demand.peakPerH, 1)} пал./ч</dd></div></>}
             {!focusInput && cleaningOnly && cleaningResult && <><div><dt>Роботы / станции</dt><dd>{cleaningResult.n ?? "Не рассчитано"} / {cleaningResult.chargers}</dd></div><div><dt>Требуется за день</dt><dd>{formatNum(cleaningResult.demandPerDay, 0)} м²</dd></div></>}
           </dl>
-          {editable && !archive && <div className="workspace-calculation-status" role="status" aria-live="polite" data-guest-calculation={guest ? serverRun.kind : undefined} data-server-calculation={serverRun.kind}>
-            <strong>{serverRun.kind === "running" ? "Сервер рассчитывает…" : serverRun.kind === "error" ? "Расчёт не завершён" : serverRun.kind === "edited" ? "Условия изменены · пересчитайте" : calc.simSource === "stored" ? "Сохранённый расчёт" : "Серверный расчёт завершён"}</strong>
-            {serverRun.kind === "error" ? <span>{serverRun.message}</span> : <details className="min-w-0 text-muted-foreground"><summary className="cursor-pointer">О расчёте</summary><p className="max-w-3xl py-2">{serverRun.kind === "running" ? "Считаем экономику, нагрузку и движение роботов. Предварительные числа не подтверждают выполнение задачи." : serverRun.kind === "edited" ? "Предыдущий результат не подтверждает новые значения. Нажмите «Пересчитать»." : guest ? "Результат относится к показанным условиям; проект гостевого расчёта не сохраняется." : "Пересчёт не публикует изменения. Сохранение проекта и его ревизия — отдельное действие."}</p></details>}
-            {serverRun.kind === "error" && <Button type="button" size="sm" onClick={recalc} disabled={calculationBusy}>Повторить расчёт</Button>}
-          </div>}
           {!guest && editable && !archive && <CalculationJobStatus job={ownerJob} cancelling={ownerCancelling} onCancel={() => {
             void cancelOwnerCalculation().catch(error => setServerRun({ kind: "error", message: error instanceof Error ? error.message : "Не удалось подтвердить отмену расчёта." }));
           }} />}
@@ -1417,6 +1412,12 @@ export function Workspace({
           statusText={statusText}
           simText={simText}
           unsaved={mode === "owner" && !project.isDemo && dirty}
+          retry={serverRun.kind === "error"}
+          status={editable && !archive ? <div className="workspace-calculation-status" role="status" aria-live="polite" data-guest-calculation={guest ? serverRun.kind : undefined} data-server-calculation={serverRun.kind}>
+            <strong>{serverRun.kind === "running" ? "Сервер рассчитывает…" : serverRun.kind === "error" ? "Расчёт не завершён" : serverRun.kind === "edited" ? "Условия изменены · пересчитайте" : calc.simSource === "stored" ? "Сохранённый расчёт" : "Серверный расчёт завершён"}</strong>
+            {serverRun.kind === "error" && <span>{serverRun.message}</span>}
+          </div> : undefined}
+          explanation={editable && !archive ? serverRun.kind === "running" ? "Считаем экономику, нагрузку и движение роботов. Предварительные числа не подтверждают выполнение задачи." : serverRun.kind === "edited" ? "Предыдущий результат не подтверждает новые значения. Нажмите «Пересчитать»." : guest ? "Результат относится к показанным условиям; проект гостевого расчёта не сохраняется." : "Пересчёт не публикует изменения. Сохранение проекта и его ревизия — отдельное действие." : undefined}
         />
       </div>
 

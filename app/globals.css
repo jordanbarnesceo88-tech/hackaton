@@ -1,6 +1,11 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+
+/* Only UI sources define utilities; build output and research files are not styles. */
+@source "./";
+@source "../components";
+@source "../lib";
 
 /* Scoped operating styles outrank shared utility defaults; the outer brand keeps its own type. */
   .project-workspace {
@@ -26,16 +31,14 @@
   .workspace-context > dl > div { min-width: 0; }
   .workspace-context dt { font-size: 0.6875rem; line-height: 1.4; color: var(--muted-foreground); }
   .workspace-context dd { margin: 0.2rem 0 0; font-size: 0.8125rem; line-height: 1.45; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .workspace-calculation-status { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; padding-top: 0.65rem; border-top: 1px solid var(--border); font-size: 0.75rem; line-height: 1.45; }
-  .workspace-calculation-status > span { flex: 1 1 28rem; color: var(--muted-foreground); }
-  .workspace-calculation-status details > summary { min-height: 2.75rem; line-height: 2.75rem; }
+  .workspace-calculation-status { display: flex; flex: 1 1 12rem; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; min-width: 0; font-size: 0.75rem; line-height: 1.45; }
+  .workspace-calculation-status > span { flex-basis: 100%; color: var(--muted-foreground); }
   .workspace-calculation-status[data-guest-calculation="error"] > strong { color: var(--destructive); }
   .workspace-calculation-status[data-guest-calculation="edited"] > strong { color: var(--caution); }
   .project-workspace .callout { border-radius: 0.25rem; }
   @media (max-width: 639px) {
     .workspace-context > dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 1rem; }
     .workspace-context { padding-block: 0.5rem; }
-    .workspace-calculation-status > span { flex-basis: 100%; }
   }
   .decision-summary .decision-status {
     border: 1px solid currentColor;
@@ -950,6 +953,38 @@
   .data-table tbody tr:last-child > td,
   .data-table tbody tr:last-child > th[scope="row"] {
     border-bottom: none;
+  }
+
+  @media screen and (max-width: 639px) {
+    /* Keep each amount with its item; formulas and sources use the full row width. */
+    .cost-breakdown { table-layout: fixed; }
+    .cost-breakdown thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .cost-breakdown tbody,
+    .cost-breakdown tfoot { display: block; }
+    .cost-breakdown tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 1rem;
+      border-top: 1px solid var(--border);
+      padding-block: 0.75rem;
+    }
+    .cost-breakdown th,
+    .cost-breakdown td {
+      min-width: 0;
+      max-width: none;
+      border-top: 0;
+      padding: 0.25rem 0;
+      overflow-wrap: anywhere;
+    }
+    .cost-breakdown [data-cost-basis] { grid-column: 1 / -1; }
+    .project-workspace .subtab { min-height: 2.75rem; }
+    .project-workspace .field { min-height: 2.75rem; }
   }
 
   /* .empty-state — BCB's empty-state block: centered, generous vertical padding (44px/22px,

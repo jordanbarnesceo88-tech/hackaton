@@ -54,7 +54,9 @@ export const TABLE_FOOTNOTE =
 
 export function CatalogTable({ items, caption }: { items: readonly CatalogListItem[]; caption: string }) {
   return (
-    <div className="data-table-wrap relative">
+    <div className="min-w-0">
+      <p className="mb-2 text-xs text-muted-foreground">Все колонки доступны при горизонтальной прокрутке таблицы. С клавиатуры — стрелками.</p>
+    <div className="data-table-wrap relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" role="region" aria-label={caption} tabIndex={0}>
       <table className="data-table">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -131,6 +133,7 @@ export function CatalogTable({ items, caption }: { items: readonly CatalogListIt
           })}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

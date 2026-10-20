@@ -57,12 +57,12 @@ const buttonVariantsBase = cva(
         // px-3.5 (14px): BCB's base button horizontal padding — a prior pass used px-2.5
         // (10px), which read visibly tighter than the prototype.
         default:
-          "h-8 gap-1.5 px-3.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+          "h-8 max-sm:h-auto max-sm:min-h-11 max-sm:py-2 max-sm:whitespace-normal gap-1.5 px-3.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+        sm: "h-7 max-sm:h-auto max-sm:min-h-11 max-sm:py-2 max-sm:whitespace-normal gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         // 40px, px-4: вызывающие добавляли "px-4" сверху к прежнему h-9 px-3.5 — теперь это
         // и есть размер, без правок на месте.
-        lg: "h-10 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        lg: "h-10 max-sm:h-auto max-sm:min-h-11 max-sm:py-2 max-sm:whitespace-normal gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
         // BCB's --btn--big (22px side padding, 18×18 icons), fitted to the 8px grid: 48px tall
         // by fixed height with centred content, no vertical padding — the prototype's 52px
         // (13px padding around a 24px line) was the one size off the shared control scale.
@@ -73,7 +73,7 @@ const buttonVariantsBase = cva(
         "icon-sm":
           "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-10",
-        "icon-round": "size-8 rounded-full",
+        "icon-round": "size-8 max-sm:size-11 rounded-full",
         "icon-round-lg": "size-11 rounded-full [&_svg:not([class*='size-'])]:size-5",
       },
     },

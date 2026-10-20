@@ -29,7 +29,20 @@ export function PilotBudgetReadout({ budget, expandGuide = false }: { budget: Bu
   return <div className="grid min-w-0 gap-4" data-pilot-budget={budget.totalRub === null ? "partial" : "complete"}>
     <p className="text-sm"><strong>{budget.plan.fleet} {pluralRu(budget.plan.fleet,["робот","робота","роботов"])} · {budget.plan.chargers} {pluralRu(budget.plan.chargers,["зарядка","зарядки","зарядок"])} · {budget.plan.durationDays} {budget.plan.dayBasis === "working" ? "рабочих" : "календарных"} дней</strong>. {budget.plan.dayBasis === "working" && <>Для подписки принято около {budget.calendarDays} календарных дней, без учёта праздников. </>}{budget.plan.acquisition === "raas" ? `Оплата RaaS: ${budget.subscriptionMonths} полных мес., дневной пропорции нет.` : "Оборудование приобретается в собственность; после пилота остаётся у заказчика."}</p>
     <p className="callout text-sm" data-tone="info">{budget.warning} {budget.financialStatus}</p>
-    <div className="max-w-full overflow-x-auto"><table className="print-table w-full text-left text-sm"><caption className="sr-only">Оценочный бюджет пилота с источниками</caption><thead><tr><th className="py-2 pr-3">Статья</th><th className="py-2 pr-3">Оценка</th><th className="py-2">Основание</th></tr></thead><tbody>{budget.lines.map(line => <tr key={line.key} className="border-t border-border align-top"><th className="py-2 pr-3 font-normal">{line.label}</th><td className="py-2 pr-3 tabular-nums">{line.valueRub === null ? "Не определено" : formatRub(line.valueRub)}</td><td className="max-w-xl break-words py-2 text-xs text-muted-foreground">{line.formula}. {line.source}</td></tr>)}</tbody></table></div>
+    <div className="max-w-full overflow-x-auto">
+      <table className="print-table cost-breakdown w-full text-left text-sm" role="table">
+        <caption className="sr-only">Оценочный бюджет пилота с источниками</caption>
+        <thead><tr><th scope="col" className="py-2 pr-3">Статья</th><th scope="col" className="py-2 pr-3">Оценка</th><th scope="col" className="py-2">Основание</th></tr></thead>
+        <tbody>{budget.lines.map(line => <tr role="row" key={line.key} className="border-t border-border align-top">
+          <th role="rowheader" scope="row" className="py-2 pr-3 font-normal">{line.label}</th>
+          <td role="cell" className="py-2 pr-3 tabular-nums whitespace-nowrap">{line.valueRub === null ? "Не определено" : formatRub(line.valueRub)}</td>
+          <td role="cell" data-cost-basis className="max-w-xl break-words py-2 text-xs text-muted-foreground">
+            <span className="mb-1 block font-medium sm:hidden print:hidden">Основание</span>
+            {line.formula}. {line.source}
+          </td>
+        </tr>)}</tbody>
+      </table>
+    </div>
     <dl className="grid gap-3 text-sm sm:grid-cols-3"><div><dt className="text-muted-foreground">Известная часть сметы</dt><dd className="m-0 font-semibold">{formatRub(budget.knownSubtotalRub)}</dd></div><div><dt className="text-muted-foreground">Резерв {formatNum(budget.plan.contingencyPct)}%</dt><dd className="m-0">{budget.reserveRub === null ? "После заполнения всех статей" : formatRub(budget.reserveRub)}</dd></div><div><dt className="text-muted-foreground">Полный бюджет пилота</dt><dd className="m-0 font-semibold">{budget.totalRub === null ? "Не определён" : formatRub(budget.totalRub)}</dd></div></dl>
     {budget.unknowns.length > 0 && <p className="text-sm">Не определены: {budget.unknowns.join(", ")}. Введите оценку и источник; если статья включена в договор, явно задайте 0 и укажите это основание.</p>}
     <p className="text-xs text-muted-foreground">{budget.quoteNote}</p>

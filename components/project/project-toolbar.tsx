@@ -72,15 +72,21 @@ export type RecalcBarProps = {
   simText?: string | null;
   /** Есть несохранённые изменения (владелец) — ссылка на шаг 8. */
   unsaved?: boolean;
+  /** Current server state and the explanation belong to the same command bar. */
+  status?: ReactNode;
+  explanation?: string;
+  retry?: boolean;
 };
 
-export function RecalcBar({ onRecalc, readOnly = false, stale, statusText, simText, unsaved = false }: RecalcBarProps) {
+export function RecalcBar({ onRecalc, readOnly = false, stale, statusText, simText, unsaved = false, status, explanation, retry = false }: RecalcBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 text-xs">
       <Button type="button" size="sm" onClick={onRecalc} disabled={readOnly}>
-        Пересчитать
+        {retry ? "Повторить расчёт" : "Пересчитать"}
       </Button>
+      {status}
       <details className="min-w-0 text-muted-foreground"><summary className="cursor-pointer py-1">Детали расчёта</summary><div className="grid gap-1 py-2">
+        {explanation && <p className="max-w-3xl text-sm leading-relaxed">{explanation}</p>}
         <p role="status" aria-live="polite" className="break-words tabular-nums">{statusText}</p>
         {simText && <p aria-live="polite">{simText}</p>}
       </div></details>

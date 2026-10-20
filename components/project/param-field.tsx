@@ -239,7 +239,7 @@ export function ParamField({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 rounded-md border-l-2 py-1 pl-3",
+        "flex flex-col gap-1 border-l py-1 pl-3",
         invalid ? "border-destructive" : cautionBorder ? "border-caution" : "border-transparent",
       )}
     >
@@ -343,7 +343,7 @@ export function ParamField({
             {!readOnly && onReset !== undefined && (
               <button
                 type="button"
-                className="text-xs text-primary underline underline-offset-2 hover:no-underline"
+                className="inline-flex min-h-11 items-center text-xs text-primary underline underline-offset-2 hover:no-underline sm:min-h-6"
                 onClick={() => {
                   setDraft(null);
                   onReset();
