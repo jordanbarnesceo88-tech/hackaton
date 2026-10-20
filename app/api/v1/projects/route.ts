@@ -5,6 +5,10 @@ import { prisma } from "@/lib/db/client";
 import { enqueueCalculation } from "@/lib/calculation-jobs/service";
 import { foreignOrigin, jobHttpError } from "@/lib/calculation-jobs/http";
 import { PROJECT_INPUT_MAX_BYTES } from "@/lib/projects/payload-limit";
+import { scheduleOwnedCalculations } from "@/lib/calculation-jobs/schedule";
+
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
 const RATE = { limit: 30, windowMs: 15 * 60 * 1000 } as const;
 const FIELDS: ReadonlySet<string> = new Set(["name", "facility", "params", "objectName", "scenarios"]);
@@ -23,6 +27,7 @@ export async function POST(request: Request) {
     const extra = unknownFields(body.value, FIELDS);
     if (extra.length) return apiError(422, `Неизвестные поля: ${extra.join(", ")}`);
     const job = await enqueueCalculation(prisma, userId, { ...body.value, operation: "CREATE", paramsSource: { kind: "api" } }, request.headers.get("idempotency-key") ?? "");
+    scheduleOwnedCalculations(prisma, userId, [job]);
     return apiJson({ job }, { status: 202, headers: { Location: `/api/v1/calculation-jobs/${job.id}`, "Retry-After": "1" } });
   } catch (error) { return jobHttpError(error); }
 }
