@@ -180,7 +180,8 @@ describe("warehouse visualization uses the production calculation and engine", (
     expect(frame.events.some((e) => e.type === "task-completed")).toBe(true);
     expect(frame.events.every((e) => e.tS >= 0 && e.tS <= state.tS)).toBe(true);
     expect(frame.events.every((e) => e.observedAtS! >= e.tS && e.observedAtS! <= state.tS)).toBe(true);
-  },15000);
+  // Two complete 35-minute complex replays precede exact metrics/history checks on shared CI CPUs.
+  }, 60_000);
 
   it("smooth preview follows graph path, changes no state/counters and predicts canonical next positions", () => {
     const result = fixture("complex");
