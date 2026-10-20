@@ -1,40 +1,17 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { Accordion, AccordionItem } from "@/components/ui/accordion";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
+import { CleaningRobot3D } from "@/components/landing/cleaning-robot-3d";
 import { cn } from "@/lib/utils";
-import { DemoSceneLinks } from "@/components/project/demo-scene-links";
 
-/** Первый экран объясняет путь к решению; расчётные результаты открываются в демо. */
-const OBJECTIONS = [
-  {
-    q: "«Цены вы взяли с потолка?»",
-    a:
-      "Нет. У каждой цены указаны источник и дата проверки. Это оценка: комплектация, доставка " +
-      "и сервис меняют итог, поэтому перед пилотом цену подтверждает коммерческое предложение " +
-      "поставщика.",
-    href: "/methodology/tz",
-    link: "Методика и источники",
-  },
-  {
-    q: "«Откуда экономия на персонале?»",
-    a:
-      "Численность вы задаёте сами, по каждой задаче; где есть норматив, он подсказан со ссылкой. " +
-      "Модель считает высвобождаемое время в ставках (FTE), а не увольнения. Сколько из этого " +
-      "станет экономией ФОТ, решаете вы: можно оставить всех в штате.",
-    href: "/demo?example=retained-staff",
-    link: "Пример с сохранением сотрудников",
-  },
-  {
-    q: "«А если ставка и сроки другие?»",
-    a:
-      "Поменяйте их: ставку дисконтирования, горизонт, срок службы роботов и долю замещения. " +
-      "Диаграмма чувствительности покажет, что сильнее всего влияет на результат вашего сценария.",
-    href: "/demo?example=steady-flow",
-    link: "Проверить в демо-расчёте",
-  },
-];
-
+/**
+ * Первый экран: кто подбирает роботов и почему этому можно верить, три входа и путь от объекта
+ * к пилоту, под ними во всю ширину — робот Alfa Robot убирает офисный мусор.
+ *
+ * С xl (1280px, шапка там в одну строку, 60px) страница ровно в экран: колонка высотой
+ * 100dvh − шапка, схема забирает остаток высоты и вписывается в него. Уже — обычная прокрутка:
+ * шапка переносится, а текст в столбик в один экран не помещается.
+ */
 // Первый ряд — три входа одного размера (xl): одно основное действие залито, остальные —
 // контурные. Иерархию задаёт вариант, не рост кнопки.
 // На телефоне входы — во всю ширину: в столбик кнопки разной длины читались как разные кнопки.
@@ -49,43 +26,42 @@ const FOOTER_LINK = "tap-target font-medium underline underline-offset-4 hover:t
 
 export default function Home() {
   return (
-    <div className="surface-data flex flex-col gap-20 py-12 lg:py-16">
+    <div className="surface-data flex flex-col gap-8 py-8 xl:h-[calc(100dvh-60px)] xl:gap-5 xl:py-6">
       <section className="grid items-start gap-10 xl:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] xl:gap-12">
         <div className="flex flex-col gap-6">
           <h1>Подбор роботов от тех, кто уже запускал их на других объектах</h1>
-          <p className="text-lg text-muted-foreground">
-            Считаем по реальной производительности и находим узкие места до покупки. Для собственников, УК и
-            операторов, которым нельзя ошибиться с бюджетом.
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-lg text-muted-foreground">
+              Считаем по реальной производительности и находим узкие места до покупки. Для собственников, УК и
+              операторов, которым нельзя ошибиться с бюджетом.
+            </p>
+            <p className="text-sm font-medium">30 роботов в работе у «Азбуки Вкуса» и других клиентов</p>
+          </div>
+          {/* Каталог решений — в шапке, здесь не дублируется. */}
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/demo?example=steady-flow" className={CTA_PRIMARY}>
               Открыть демо-расчёт склада
             </Link>
-            <Link href="/catalog" className={CTA_SECONDARY}>
-              Каталог решений
-            </Link>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
             <Link href="/projects/new" className={CTA_SECONDARY}>
               Создать проект
             </Link>
             <OnboardingTour triggerSize="xl" triggerClassName="w-full sm:w-auto" />
           </div>
           <p className="text-sm text-muted-foreground">
-            Парк и экономика за 30 секунд, без регистрации. Дальше ведём до запуска: подготовка объекта, пилот, сервис.
+            Первый расчёт парка и экономики за 5 минут, без регистрации. Дальше ведём до запуска: подготовка
+            объекта, пилот, сервис.
           </p>
-          <DemoSceneLinks />
         </div>
-        <div className="min-w-0 border-y border-border py-6">
+        <div className="min-w-0 border-y border-border py-6 xl:py-4">
           <h2 className="text-xl">От условий объекта к плану внедрения</h2>
-          <ol className="mt-6 grid gap-5" aria-label="Как работает платформа">
+          <ol className="mt-6 grid gap-5 xl:mt-4 xl:gap-3" aria-label="Как работает платформа">
             {[
               ["Объект", "Задайте поток, режим работы и ограничения площадки."],
               ["Экономика", "Сравните покупку и услугу, затраты и высвобождаемый труд."],
               ["Проверка потока", "Оцените выбранный парк и нагрузку с учётом границ модели."],
               ["План пилота", "Определите подготовку объекта, бюджет и критерии приёмки."],
             ].map(([title, description], index) => (
-              <li key={title} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 border-b border-border pb-5 last:border-0 last:pb-0">
+              <li key={title} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 border-b border-border pb-5 last:border-0 last:pb-0 xl:pb-3">
                 <span aria-hidden="true" className="font-mono text-sm text-primary">{String(index + 1).padStart(2, "0")}</span>
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold">{title}</h3>
@@ -97,28 +73,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Подробности и ссылки доступны по раскрытию вопроса. */}
-      <section className="grid gap-8 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-14">
-        <div className="flex flex-col gap-3">
-          <h2>Что спросит ваш финансовый директор</h2>
-          <p className="text-muted-foreground">
-            Три вопроса, с которых начинается разговор о бюджете. К каждому ответу есть пример для проверки.
-          </p>
-        </div>
-        <Accordion>
-          {OBJECTIONS.map((o) => (
-            <AccordionItem key={o.q} title={o.q}>
-              <div className="flex flex-col gap-4">
-                <p className="max-w-prose text-muted-foreground">{o.a}</p>
-                <Link href={o.href} className="tap-target w-fit font-medium underline underline-offset-4 hover:text-primary">{o.link} →</Link>
-              </div>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </section>
+      {/* Робот Alfa Robot убирает мусор; на xl полоса забирает остаток экрана. */}
+      <CleaningRobot3D className="h-72 xl:h-auto xl:min-h-44 xl:flex-1" />
 
       {/* Методика текущего расчёта и словарь — для проверки формул, источников и терминов. */}
-      <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm">
+      <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-sm">
         <Link href="/methodology/tz" className={FOOTER_LINK}>
           Откуда цифры: методика и источники
         </Link>
